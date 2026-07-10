@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 const CATEGORIES = [
   "ROLL",
@@ -45,6 +45,51 @@ function formatPrice(value) {
 
 function parsePrice(priceLabel) {
   return parseFloat(priceLabel.replace(",", ".").replace(" €", ""));
+}
+
+// §5: KM San Mamolo, usata come centro per il locationBias dei
+// suggerimenti indirizzo.
+const STORE_LOCATION = { lat: 44.4855346, lng: 11.3393718 };
+const STORE_BIAS_RADIUS_METERS = 15000;
+
+// §10: area di consegna, coppie [longitudine, latitudine]. TEMPORANEA:
+// va spostata su Supabase quando colleghiamo il database.
+const DELIVERY_GEOFENCE = [
+  [11.3191308, 44.5274196],
+  [11.2849702, 44.5037955],
+  [11.2729539, 44.4763648],
+  [11.2870301, 44.4747725],
+  [11.311921, 44.487755],
+  [11.3132943, 44.4810191],
+  [11.3284005, 44.4851832],
+  [11.3340654, 44.4837136],
+  [11.3326921, 44.473915],
+  [11.3359536, 44.4740375],
+  [11.3393869, 44.4769773],
+  [11.3424768, 44.4722001],
+  [11.3536348, 44.4767323],
+  [11.3695993, 44.4625221],
+  [11.3943185, 44.4610519],
+  [11.4010133, 44.4730576],
+  [11.4030732, 44.4951024],
+  [11.4023866, 44.5176284],
+  [11.3907136, 44.5339054],
+  [11.356038, 44.5516458],
+  [11.3409318, 44.5353738],
+  [11.3191308, 44.5274196],
+];
+
+// Ray casting standard: point e polygon come coppie [lng, lat].
+function isPointInPolygon([x, y], polygon) {
+  let inside = false;
+  for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+    const [xi, yi] = polygon[i];
+    const [xj, yj] = polygon[j];
+    const intersect =
+      yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi;
+    if (intersect) inside = !inside;
+  }
+  return inside;
 }
 
 // §21: stessa lista per ogni Bowl, nessun default preselezionato.
@@ -1280,6 +1325,65 @@ function FulfillmentSelector({
   scheduledDay,
   onScheduledDayChange,
 }) {
+  const [suggestions, setSuggestions] = useState([]);
+  const [geofenceStatus, setGeofenceStatus] = useState(null);
+  const sessionTokenRef = useRef(null);
+  const debounceRef = useRef(null);
+
+  async function fetchSuggestions(value) {
+    if (!value || value.trim().length < 3) {
+      setSuggestions([]);
+      return;
+    }
+    const places = window.google?.maps?.places;
+    if (!places?.AutocompleteSuggestion) return;
+
+    if (!sessionTokenRef.current) {
+      sessionTokenRef.current = new places.AutocompleteSessionToken();
+    }
+
+    const { suggestions: results } =
+      await places.AutocompleteSuggestion.fetchAutocompleteSuggestions({
+        input: value,
+        includedRegionCodes: ["it"],
+        locationBias: {
+          center: { lat: STORE_LOCATION.lat, lng: STORE_LOCATION.lng },
+          radius: STORE_BIAS_RADIUS_METERS,
+        },
+        sessionToken: sessionTokenRef.current,
+      });
+    setSuggestions(results ?? []);
+  }
+
+  function handleAddressInputChange(value) {
+    onAddressChange(value);
+    setGeofenceStatus(null);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => fetchSuggestions(value), 300);
+  }
+
+  async function handleSelectSuggestion(suggestion) {
+    const place = suggestion.placePrediction.toPlace();
+    await place.fetchFields({ fields: ["formattedAddress", "location"] });
+
+    onAddressChange(place.formattedAddress ?? "");
+    setSuggestions([]);
+    sessionTokenRef.current = null;
+
+    if (place.location) {
+      const lat =
+        typeof place.location.lat === "function"
+          ? place.location.lat()
+          : place.location.lat;
+      const lng =
+        typeof place.location.lng === "function"
+          ? place.location.lng()
+          : place.location.lng;
+      const inside = isPointInPolygon([lng, lat], DELIVERY_GEOFENCE);
+      setGeofenceStatus(inside ? "inside" : "outside");
+    }
+  }
+
   const optionLabelStyle = {
     display: "flex",
     alignItems: "center",
@@ -1341,26 +1445,98 @@ function FulfillmentSelector({
             marginTop: 12,
           }}
         >
-          {/* verifica reale indirizzo da implementare con Google Places */}
-          <input
-            type="text"
-            placeholder="Inserisci il tuo indirizzo"
-            value={address}
-            onChange={(event) => onAddressChange(event.target.value)}
-            style={{
-              padding: "10px 12px",
-              borderRadius: 8,
-              border: "1px solid var(--card-border)",
-              background: "var(--surface-white)",
-              color: "var(--navy)",
-              fontSize: 14,
-              fontFamily: "inherit",
-            }}
-          />
+          <div style={{ position: "relative" }}>
+            <input
+              type="text"
+              placeholder="Inserisci il tuo indirizzo"
+              value={address}
+              onChange={(event) => handleAddressInputChange(event.target.value)}
+              onBlur={() => {
+                setTimeout(() => setSuggestions([]), 150);
+              }}
+              style={{
+                width: "100%",
+                padding: "10px 12px",
+                borderRadius: 8,
+                border: "1px solid var(--card-border)",
+                background: "var(--surface-white)",
+                color: "var(--navy)",
+                fontSize: 14,
+                fontFamily: "inherit",
+              }}
+            />
 
-          <div style={{ fontSize: 13, color: "var(--text-on-dark)" }}>
-            Delivery 2,50 € · Ordine minimo 15 €
+            {suggestions.length > 0 && (
+              <div
+                style={{
+                  position: "absolute",
+                  top: "calc(100% + 4px)",
+                  left: 0,
+                  right: 0,
+                  background: "var(--surface-white)",
+                  border: "1px solid var(--card-border)",
+                  borderRadius: 12,
+                  overflow: "hidden",
+                  zIndex: 30,
+                }}
+              >
+                {suggestions.map((suggestion, index) => (
+                  <button
+                    key={suggestion.placePrediction?.placeId ?? index}
+                    onMouseDown={(event) => event.preventDefault()}
+                    onClick={() => handleSelectSuggestion(suggestion)}
+                    style={{
+                      display: "block",
+                      width: "100%",
+                      textAlign: "left",
+                      padding: "10px 12px",
+                      background: "none",
+                      border: "none",
+                      borderBottom:
+                        index < suggestions.length - 1
+                          ? "1px solid var(--card-border)"
+                          : "none",
+                      fontSize: 14,
+                      color: "var(--navy)",
+                      cursor: "pointer",
+                      fontFamily: "inherit",
+                    }}
+                  >
+                    {suggestion.placePrediction?.text?.text}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
+
+          {geofenceStatus === "inside" && (
+            <span
+              style={{ fontSize: 13, fontWeight: 600, color: "var(--success-green)" }}
+            >
+              Perfetto, arriviamo fin qui.
+            </span>
+          )}
+
+          {geofenceStatus === "outside" && (
+            <div
+              style={{
+                fontSize: 13,
+                color: "var(--text-on-dark)",
+                background: "var(--surface-white)",
+                border: "1px solid var(--card-border)",
+                borderRadius: 8,
+                padding: 10,
+              }}
+            >
+              Qui purtroppo non arriviamo ancora.
+            </div>
+          )}
+
+          {geofenceStatus === "inside" && (
+            <div style={{ fontSize: 13, color: "var(--text-on-dark)" }}>
+              Delivery 2,50 € · Ordine minimo 15 €
+            </div>
+          )}
 
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             <label style={optionLabelStyle}>
