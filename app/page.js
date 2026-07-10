@@ -35,6 +35,32 @@ const ROLL_PRODUCTS = [
     ingredients:
       "Pollo e tacchino extra dose, peperoncino, tabulì, salsa all'aglio, melassa di melagrana",
   },
+  {
+    name: "Il Libanese",
+    price: "8,50 €",
+    spicy: "🌶️🌶️ Piccante",
+    ingredients:
+      "Pollo e tacchino, peperoncini, yogurt, tabulì, paté piccante, patate al vapore",
+  },
+  {
+    name: "Il Persiano",
+    price: "8,50 €",
+    ingredients:
+      "Pollo e tacchino, melanzane grigliate, insalata, taratour, hummus, crema di verdure arrosto, patate al vapore",
+  },
+  {
+    name: "L'Egiziano",
+    price: "8 €",
+    badge: "VEGAN",
+    ingredients: "Salsa all'aglio, babaganoush, tabulì",
+  },
+  {
+    name: "Il Cipriota",
+    price: "9 €",
+    badge: "VEGGIE",
+    ingredients:
+      "Melanzane grigliate, cetriolini, crema di verdure arrosto, hummus alle melanzane",
+  },
 ];
 
 function CategoryTabs() {
