@@ -15,28 +15,11 @@ export default function Home() {
           marginBottom: 20,
         }}
       >
-        <div>
-          <div
-            style={{
-              fontWeight: 800,
-              fontSize: 28,
-              color: "var(--brand-orange)",
-              lineHeight: 1,
-            }}
-          >
-            KM
-          </div>
-          <div
-            style={{
-              fontWeight: 700,
-              fontSize: 10,
-              letterSpacing: "0.06em",
-              color: "var(--navy)",
-            }}
-          >
-            KEBAB MEDITERRANEO
-          </div>
-        </div>
+        <img
+          src="/logo-wordmark.png"
+          alt="KM Kebab Mediterraneo"
+          style={{ height: 46, width: "auto" }}
+        />
         <div style={{ textAlign: "right" }}>
           <div
             style={{
