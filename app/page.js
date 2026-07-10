@@ -1,3 +1,7 @@
+"use client";
+
+import { useState } from "react";
+
 const CATEGORIES = [
   "ROLL",
   "BOWL",
@@ -10,7 +14,9 @@ const CATEGORIES = [
   "BIRRE",
 ];
 
-const ACTIVE_CATEGORY = "ROLL";
+// Uniche categorie con sezione già costruita: le altre tab restano
+// solo visive finché non arrivano i rispettivi contenuti.
+const TOGGLABLE_CATEGORIES = ["ROLL", "BOWL"];
 
 // Dati da MASTER_SPEC.md §19. Statici per ora, il DB arriva dopo.
 const ROLL_PRODUCTS = [
@@ -63,7 +69,23 @@ const ROLL_PRODUCTS = [
   },
 ];
 
-function CategoryTabs() {
+// §20: stesso nome, badge e piccantezza del Roll corrispondente, prezzo diverso.
+const BOWL_PRICES = {
+  "Il Turco": "11 €",
+  "Il Greco": "11 €",
+  "KM Special": "14 €",
+  "Il Libanese": "11,50 €",
+  "Il Persiano": "11,50 €",
+  "L'Egiziano": "11 €",
+  "Il Cipriota": "12 €",
+};
+
+const BOWL_PRODUCTS = ROLL_PRODUCTS.map((product) => ({
+  ...product,
+  price: BOWL_PRICES[product.name],
+}));
+
+function CategoryTabs({ activeCategory, onSelect }) {
   return (
     <nav
       style={{
@@ -79,10 +101,12 @@ function CategoryTabs() {
       }}
     >
       {CATEGORIES.map((category) => {
-        const isActive = category === ACTIVE_CATEGORY;
+        const isActive = category === activeCategory;
+        const isToggleable = TOGGLABLE_CATEGORIES.includes(category);
         return (
-          <span
+          <button
             key={category}
+            onClick={() => isToggleable && onSelect(category)}
             style={{
               flex: "0 0 auto",
               padding: "8px 14px",
@@ -93,10 +117,12 @@ function CategoryTabs() {
               fontWeight: 600,
               fontSize: 13,
               whiteSpace: "nowrap",
+              fontFamily: "inherit",
+              cursor: isToggleable ? "pointer" : "default",
             }}
           >
             {category}
-          </span>
+          </button>
         );
       })}
     </nav>
@@ -187,6 +213,10 @@ function ProductCard({ product }) {
 }
 
 export default function Home() {
+  const [activeCategory, setActiveCategory] = useState("ROLL");
+  const isBowl = activeCategory === "BOWL";
+  const products = isBowl ? BOWL_PRODUCTS : ROLL_PRODUCTS;
+
   return (
     <main
       style={{
@@ -248,7 +278,10 @@ export default function Home() {
         Ordina ora
       </h1>
 
-      <CategoryTabs />
+      <CategoryTabs
+        activeCategory={activeCategory}
+        onSelect={setActiveCategory}
+      />
 
       <h2
         style={{
@@ -258,11 +291,11 @@ export default function Home() {
           margin: "4px 0 12px",
         }}
       >
-        Roll
+        {isBowl ? "Bowl" : "Roll"}
       </h2>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-        {ROLL_PRODUCTS.map((product) => (
+        {products.map((product) => (
           <ProductCard key={product.name} product={product} />
         ))}
       </div>
