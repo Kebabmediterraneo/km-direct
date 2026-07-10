@@ -1199,6 +1199,150 @@ function MenuComboSection() {
   );
 }
 
+function FulfillmentSelector() {
+  const [mode, setMode] = useState("delivery");
+  const [address, setAddress] = useState("");
+  const [timingType, setTimingType] = useState("asap");
+  const [scheduledDay, setScheduledDay] = useState("today");
+
+  const optionLabelStyle = {
+    display: "flex",
+    alignItems: "center",
+    gap: 10,
+    fontSize: 14,
+    color: "var(--text-on-dark)",
+    cursor: "pointer",
+  };
+
+  function tabButtonStyle(isActive) {
+    return {
+      flex: 1,
+      padding: "8px 14px",
+      borderRadius: 10,
+      border: "1.5px solid var(--brand-orange)",
+      background: isActive ? "var(--brand-orange)" : "transparent",
+      color: isActive ? "var(--bg-warm)" : "var(--brand-orange)",
+      fontWeight: 600,
+      fontSize: 13,
+      fontFamily: "inherit",
+      cursor: "pointer",
+    };
+  }
+
+  return (
+    <div style={{ marginBottom: 20 }}>
+      <div style={{ display: "flex", gap: 8 }}>
+        <button
+          onClick={() => setMode("delivery")}
+          style={tabButtonStyle(mode === "delivery")}
+        >
+          DELIVERY
+        </button>
+        <button
+          onClick={() => setMode("pickup")}
+          style={tabButtonStyle(mode === "pickup")}
+        >
+          RITIRO
+        </button>
+      </div>
+
+      {mode === "pickup" ? (
+        <div
+          style={{
+            marginTop: 12,
+            fontSize: 14,
+            fontWeight: 600,
+            color: "var(--navy)",
+          }}
+        >
+          Ritiro da KM, Via San Mamolo 25/A, Bologna
+        </div>
+      ) : (
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 12,
+            marginTop: 12,
+          }}
+        >
+          {/* verifica reale indirizzo da implementare con Google Places */}
+          <input
+            type="text"
+            placeholder="Inserisci il tuo indirizzo"
+            value={address}
+            onChange={(event) => setAddress(event.target.value)}
+            style={{
+              padding: "10px 12px",
+              borderRadius: 8,
+              border: "1px solid var(--card-border)",
+              background: "var(--surface-white)",
+              color: "var(--navy)",
+              fontSize: 14,
+              fontFamily: "inherit",
+            }}
+          />
+
+          <div style={{ fontSize: 13, color: "var(--text-on-dark)" }}>
+            Delivery 2,50 € · Ordine minimo 15 €
+          </div>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            <label style={optionLabelStyle}>
+              <input
+                type="radio"
+                name="delivery-timing"
+                checked={timingType === "asap"}
+                onChange={() => setTimingType("asap")}
+              />
+              PRIMA POSSIBILE
+            </label>
+            <label style={optionLabelStyle}>
+              <input
+                type="radio"
+                name="delivery-timing"
+                checked={timingType === "scheduled"}
+                onChange={() => setTimingType("scheduled")}
+              />
+              CONSEGNA PROGRAMMATA
+            </label>
+          </div>
+
+          {timingType === "scheduled" && (
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: 10,
+                paddingLeft: 4,
+              }}
+            >
+              <label style={optionLabelStyle}>
+                <input
+                  type="radio"
+                  name="delivery-day"
+                  checked={scheduledDay === "today"}
+                  onChange={() => setScheduledDay("today")}
+                />
+                Oggi
+              </label>
+              <label style={optionLabelStyle}>
+                <input
+                  type="radio"
+                  name="delivery-day"
+                  checked={scheduledDay === "tomorrow"}
+                  onChange={() => setScheduledDay("tomorrow")}
+                />
+                Domani
+              </label>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function Home() {
   const [activeCategory, setActiveCategory] = useState("ROLL");
   const isMenuCombo = activeCategory === "MENU COMBO";
@@ -1264,6 +1408,8 @@ export default function Home() {
       >
         Ordina ora
       </h1>
+
+      <FulfillmentSelector />
 
       <CategoryTabs
         activeCategory={activeCategory}
