@@ -57,6 +57,22 @@ const ROLL_PRODUCTS = [
     price: "8 €",
     ingredients:
       "Pollo e tacchino, cipolla, pomodoro, insalata, feta, tzatziki, patatine",
+    config: {
+      basePrice: 8,
+      proteins: [
+        { id: "pollo-tacchino", label: "Pollo e tacchino", priceDelta: 0, included: true },
+        { id: "planted", label: "Planted", priceDelta: 1.5 },
+        { id: "adana", label: "Adana", priceDelta: 4.5 },
+      ],
+      removals: [
+        "Senza cipolla",
+        "Senza pomodoro",
+        "Senza insalata",
+        "Senza feta",
+        "Senza tzatziki",
+        "Senza patatine",
+      ],
+    },
   },
   {
     name: "KM Special",
@@ -65,6 +81,20 @@ const ROLL_PRODUCTS = [
     spicy: "🌶️🌶️ Piccante",
     ingredients:
       "Pollo e tacchino extra dose, peperoncino, tabulì, salsa all'aglio, melassa di melagrana",
+    config: {
+      basePrice: 11,
+      proteins: [
+        { id: "pollo-tacchino", label: "Pollo e tacchino extra dose", priceDelta: 0, included: true },
+        { id: "planted", label: "Planted (senza extra dose)", priceDelta: 0 },
+        { id: "adana", label: "Adana extra dose", priceDelta: 4.5 },
+      ],
+      removals: [
+        "Senza peperoncino",
+        "Senza tabulì",
+        "Senza salsa all'aglio",
+        "Senza melassa di melagrana",
+      ],
+    },
   },
   {
     name: "Il Libanese",
@@ -72,18 +102,53 @@ const ROLL_PRODUCTS = [
     spicy: "🌶️🌶️ Piccante",
     ingredients:
       "Pollo e tacchino, peperoncini, yogurt, tabulì, paté piccante, patate al vapore",
+    config: {
+      basePrice: 8.5,
+      proteins: [
+        { id: "pollo-tacchino", label: "Pollo e tacchino", priceDelta: 0, included: true },
+        { id: "planted", label: "Planted", priceDelta: 1.5 },
+        { id: "adana", label: "Adana", priceDelta: 4.5 },
+      ],
+      removals: [
+        "Senza peperoncini",
+        "Senza yogurt",
+        "Senza tabulì",
+        "Senza paté piccante",
+        "Senza patate al vapore",
+      ],
+    },
   },
   {
     name: "Il Persiano",
     price: "8,50 €",
     ingredients:
       "Pollo e tacchino, melanzane grigliate, insalata, taratour, hummus, crema di verdure arrosto, patate al vapore",
+    config: {
+      basePrice: 8.5,
+      proteins: [
+        { id: "pollo-tacchino", label: "Pollo e tacchino", priceDelta: 0, included: true },
+        { id: "planted", label: "Planted", priceDelta: 1.5 },
+        { id: "adana", label: "Adana", priceDelta: 4.5 },
+      ],
+      removals: [
+        "Senza melanzane grigliate",
+        "Senza insalata",
+        "Senza taratour",
+        "Senza hummus",
+        "Senza crema di verdure arrosto",
+        "Senza patate al vapore",
+      ],
+    },
   },
   {
     name: "L'Egiziano",
     price: "8 €",
     badge: "VEGAN",
     ingredients: "Salsa all'aglio, babaganoush, tabulì",
+    config: {
+      basePrice: 8,
+      removals: ["Senza salsa all'aglio", "Senza babaganoush", "Senza tabulì"],
+    },
   },
   {
     name: "Il Cipriota",
@@ -91,6 +156,15 @@ const ROLL_PRODUCTS = [
     badge: "VEGGIE",
     ingredients:
       "Melanzane grigliate, cetriolini, crema di verdure arrosto, hummus alle melanzane",
+    config: {
+      basePrice: 9,
+      removals: [
+        "Senza melanzane grigliate",
+        "Senza cetriolini",
+        "Senza crema di verdure arrosto",
+        "Senza hummus alle melanzane",
+      ],
+    },
   },
 ];
 
@@ -191,13 +265,18 @@ function CategoryTabs({ activeCategory, onSelect }) {
   );
 }
 
-function ProductConfigurator({ config }) {
-  const [proteinId, setProteinId] = useState(
-    config.proteins.find((p) => p.included)?.id ?? config.proteins[0].id
+function ProductConfigurator({ productKey, config }) {
+  const hasProteins = config.proteins && config.proteins.length > 0;
+  const [proteinId, setProteinId] = useState(() =>
+    hasProteins
+      ? config.proteins.find((p) => p.included)?.id ?? config.proteins[0].id
+      : null
   );
   const [removals, setRemovals] = useState(() => new Set());
 
-  const selectedProtein = config.proteins.find((p) => p.id === proteinId);
+  const selectedProtein = hasProteins
+    ? config.proteins.find((p) => p.id === proteinId)
+    : null;
   const total = config.basePrice + (selectedProtein?.priceDelta ?? 0);
 
   function toggleRemoval(label) {
@@ -223,35 +302,37 @@ function ProductConfigurator({ config }) {
         borderTop: "1px solid var(--card-border)",
       }}
     >
-      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-        <span style={{ fontWeight: 700, fontSize: 14, color: "var(--navy)" }}>
-          Proteina
-        </span>
-        {config.proteins.map((protein) => (
-          <label
-            key={protein.id}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 10,
-              fontSize: 14,
-              color: "var(--text-on-dark)",
-              cursor: "pointer",
-            }}
-          >
-            <input
-              type="radio"
-              name={`protein-${config.basePrice}`}
-              value={protein.id}
-              checked={proteinId === protein.id}
-              onChange={() => setProteinId(protein.id)}
-            />
-            {protein.label}
-            {protein.priceDelta > 0 && ` (+${formatPrice(protein.priceDelta)})`}
-            {protein.included && " (incluso)"}
-          </label>
-        ))}
-      </div>
+      {hasProteins && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          <span style={{ fontWeight: 700, fontSize: 14, color: "var(--navy)" }}>
+            Proteina
+          </span>
+          {config.proteins.map((protein) => (
+            <label
+              key={protein.id}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                fontSize: 14,
+                color: "var(--text-on-dark)",
+                cursor: "pointer",
+              }}
+            >
+              <input
+                type="radio"
+                name={`protein-${productKey}`}
+                value={protein.id}
+                checked={proteinId === protein.id}
+                onChange={() => setProteinId(protein.id)}
+              />
+              {protein.label}
+              {protein.priceDelta > 0 && ` (+${formatPrice(protein.priceDelta)})`}
+              {protein.included && " (incluso)"}
+            </label>
+          ))}
+        </div>
+      )}
 
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         <span style={{ fontWeight: 700, fontSize: 14, color: "var(--navy)" }}>
@@ -394,7 +475,7 @@ function ProductCard({ product }) {
       </button>
 
       {expanded && product.config && (
-        <ProductConfigurator config={product.config} />
+        <ProductConfigurator productKey={product.name} config={product.config} />
       )}
     </div>
   );
