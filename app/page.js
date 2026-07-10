@@ -33,7 +33,7 @@ const ROLL_PRODUCTS = [
     spicy: "🌶️ Leggermente piccante",
     ingredients:
       "Pollo e tacchino, hummus, ajvar, cetriolini, insalata, pomodoro, yogurt",
-    // Prototipo bottom sheet (§34-35): solo Il Turco per ora.
+    // Configurazione inline (§34-35): solo Il Turco per ora.
     config: {
       basePrice: 8,
       proteins: [
@@ -191,7 +191,128 @@ function CategoryTabs({ activeCategory, onSelect }) {
   );
 }
 
-function ProductCard({ product, onChoose }) {
+function ProductConfigurator({ config }) {
+  const [proteinId, setProteinId] = useState(
+    config.proteins.find((p) => p.included)?.id ?? config.proteins[0].id
+  );
+  const [removals, setRemovals] = useState(() => new Set());
+
+  const selectedProtein = config.proteins.find((p) => p.id === proteinId);
+  const total = config.basePrice + (selectedProtein?.priceDelta ?? 0);
+
+  function toggleRemoval(label) {
+    setRemovals((prev) => {
+      const next = new Set(prev);
+      if (next.has(label)) {
+        next.delete(label);
+      } else {
+        next.add(label);
+      }
+      return next;
+    });
+  }
+
+  return (
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        gap: 16,
+        marginTop: 4,
+        paddingTop: 12,
+        borderTop: "1px solid var(--card-border)",
+      }}
+    >
+      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        <span style={{ fontWeight: 700, fontSize: 14, color: "var(--navy)" }}>
+          Proteina
+        </span>
+        {config.proteins.map((protein) => (
+          <label
+            key={protein.id}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 10,
+              fontSize: 14,
+              color: "var(--text-on-dark)",
+              cursor: "pointer",
+            }}
+          >
+            <input
+              type="radio"
+              name={`protein-${config.basePrice}`}
+              value={protein.id}
+              checked={proteinId === protein.id}
+              onChange={() => setProteinId(protein.id)}
+            />
+            {protein.label}
+            {protein.priceDelta > 0 && ` (+${formatPrice(protein.priceDelta)})`}
+            {protein.included && " (incluso)"}
+          </label>
+        ))}
+      </div>
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        <span style={{ fontWeight: 700, fontSize: 14, color: "var(--navy)" }}>
+          Rimozioni
+        </span>
+        {config.removals.map((removal) => (
+          <label
+            key={removal}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 10,
+              fontSize: 14,
+              color: "var(--text-on-dark)",
+              cursor: "pointer",
+            }}
+          >
+            <input
+              type="checkbox"
+              checked={removals.has(removal)}
+              onChange={() => toggleRemoval(removal)}
+            />
+            {removal}
+          </label>
+        ))}
+      </div>
+
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          paddingTop: 8,
+          borderTop: "1px solid var(--card-border)",
+        }}
+      >
+        <span style={{ fontWeight: 700, fontSize: 18, color: "var(--navy)" }}>
+          {formatPrice(total)}
+        </span>
+        <button
+          style={{
+            background: "var(--brand-orange)",
+            color: "var(--bg-warm)",
+            border: "none",
+            borderRadius: 8,
+            padding: "10px 20px",
+            fontWeight: 600,
+            fontSize: 14,
+            cursor: "pointer",
+          }}
+        >
+          Aggiungi al carrello
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function ProductCard({ product }) {
+  const [expanded, setExpanded] = useState(false);
+
   return (
     <div
       style={{
@@ -255,7 +376,7 @@ function ProductCard({ product, onChoose }) {
       </p>
 
       <button
-        onClick={() => product.config && onChoose(product)}
+        onClick={() => product.config && setExpanded((prev) => !prev)}
         style={{
           alignSelf: "flex-start",
           marginTop: 4,
@@ -269,180 +390,18 @@ function ProductCard({ product, onChoose }) {
           cursor: "pointer",
         }}
       >
-        Scegli
+        {expanded ? "Chiudi" : "Scegli"}
       </button>
-    </div>
-  );
-}
 
-function ProductBottomSheet({ product, onClose }) {
-  const { config } = product;
-  const [proteinId, setProteinId] = useState(
-    config.proteins.find((p) => p.included)?.id ?? config.proteins[0].id
-  );
-  const [removals, setRemovals] = useState(() => new Set());
-
-  const selectedProtein = config.proteins.find((p) => p.id === proteinId);
-  const total = config.basePrice + (selectedProtein?.priceDelta ?? 0);
-
-  function toggleRemoval(label) {
-    setRemovals((prev) => {
-      const next = new Set(prev);
-      if (next.has(label)) {
-        next.delete(label);
-      } else {
-        next.add(label);
-      }
-      return next;
-    });
-  }
-
-  return (
-    <div
-      onClick={onClose}
-      style={{
-        position: "fixed",
-        inset: 0,
-        background: "rgba(19, 27, 103, 0.45)",
-        display: "flex",
-        alignItems: "flex-end",
-        justifyContent: "center",
-        zIndex: 100,
-      }}
-    >
-      <div
-        onClick={(event) => event.stopPropagation()}
-        style={{
-          width: "100%",
-          maxWidth: 480,
-          maxHeight: "85vh",
-          overflowY: "auto",
-          background: "var(--surface-white)",
-          borderRadius: "16px 16px 0 0",
-          padding: 20,
-          display: "flex",
-          flexDirection: "column",
-          gap: 20,
-        }}
-      >
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-          }}
-        >
-          <span style={{ fontWeight: 700, fontSize: 18, color: "var(--navy)" }}>
-            {product.name}
-          </span>
-          <button
-            onClick={onClose}
-            aria-label="Chiudi"
-            style={{
-              background: "none",
-              border: "none",
-              fontSize: 20,
-              lineHeight: 1,
-              color: "var(--navy)",
-              cursor: "pointer",
-              padding: 4,
-            }}
-          >
-            ✕
-          </button>
-        </div>
-
-        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          <span style={{ fontWeight: 700, fontSize: 14, color: "var(--navy)" }}>
-            Proteina
-          </span>
-          {config.proteins.map((protein) => (
-            <label
-              key={protein.id}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 10,
-                fontSize: 14,
-                color: "var(--text-on-dark)",
-                cursor: "pointer",
-              }}
-            >
-              <input
-                type="radio"
-                name="protein"
-                value={protein.id}
-                checked={proteinId === protein.id}
-                onChange={() => setProteinId(protein.id)}
-              />
-              {protein.label}
-              {protein.priceDelta > 0 && ` (+${formatPrice(protein.priceDelta)})`}
-              {protein.included && " (incluso)"}
-            </label>
-          ))}
-        </div>
-
-        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          <span style={{ fontWeight: 700, fontSize: 14, color: "var(--navy)" }}>
-            Rimozioni
-          </span>
-          {config.removals.map((removal) => (
-            <label
-              key={removal}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 10,
-                fontSize: 14,
-                color: "var(--text-on-dark)",
-                cursor: "pointer",
-              }}
-            >
-              <input
-                type="checkbox"
-                checked={removals.has(removal)}
-                onChange={() => toggleRemoval(removal)}
-              />
-              {removal}
-            </label>
-          ))}
-        </div>
-
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            paddingTop: 8,
-            borderTop: "1px solid var(--card-border)",
-          }}
-        >
-          <span style={{ fontWeight: 700, fontSize: 18, color: "var(--navy)" }}>
-            {formatPrice(total)}
-          </span>
-          <button
-            style={{
-              background: "var(--brand-orange)",
-              color: "var(--bg-warm)",
-              border: "none",
-              borderRadius: 8,
-              padding: "10px 20px",
-              fontWeight: 600,
-              fontSize: 14,
-              cursor: "pointer",
-            }}
-          >
-            Aggiungi al carrello
-          </button>
-        </div>
-      </div>
+      {expanded && product.config && (
+        <ProductConfigurator config={product.config} />
+      )}
     </div>
   );
 }
 
 export default function Home() {
   const [activeCategory, setActiveCategory] = useState("ROLL");
-  const [configuringProduct, setConfiguringProduct] = useState(null);
   const isBowl = activeCategory === "BOWL";
   const products = isBowl ? BOWL_PRODUCTS : ROLL_PRODUCTS;
 
@@ -525,20 +484,9 @@ export default function Home() {
 
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
         {products.map((product) => (
-          <ProductCard
-            key={product.name}
-            product={product}
-            onChoose={setConfiguringProduct}
-          />
+          <ProductCard key={product.name} product={product} />
         ))}
       </div>
-
-      {configuringProduct && (
-        <ProductBottomSheet
-          product={configuringProduct}
-          onClose={() => setConfiguringProduct(null)}
-        />
-      )}
     </main>
   );
 }
