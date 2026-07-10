@@ -25,6 +25,18 @@ function formatPrice(value) {
     : `${rounded.toFixed(2).replace(".", ",")} €`;
 }
 
+// §21: stessa lista per ogni Bowl, nessun default preselezionato.
+const BOWL_ACCOMPANIMENTS = [
+  "Bulgur (contiene glutine)",
+  "Riso integrale",
+  "No bulgur e no riso",
+];
+
+// §22: +100 g di carne, disponibile solo con proteina "Pollo e tacchino"
+// (incluso il KM Special Bowl, che può cumulare oltre alla propria
+// extra dose già inclusa).
+const EXTRA_MEAT_PRICE = 4;
+
 // Dati da MASTER_SPEC.md §19. Statici per ora, il DB arriva dopo.
 const ROLL_PRODUCTS = [
   {
@@ -178,12 +190,49 @@ const BOWL_PRODUCTS = [
     spicy: "🌶️ Leggermente piccante",
     ingredients:
       "Pollo e tacchino, hummus, ajvar, cetriolini, insalata, pomodoro, yogurt",
+    config: {
+      basePrice: 11,
+      proteins: [
+        { id: "pollo-tacchino", label: "Pollo e tacchino", priceDelta: 0, included: true },
+        { id: "planted", label: "Planted", priceDelta: 1.5 },
+        { id: "adana", label: "Adana", priceDelta: 4.5 },
+      ],
+      removals: [
+        "Non piccante",
+        "Senza hummus",
+        "Senza ajvar",
+        "Senza cetriolini",
+        "Senza insalata",
+        "Senza pomodoro",
+        "Senza yogurt",
+      ],
+      accompaniments: BOWL_ACCOMPANIMENTS,
+      allowExtraMeat: true,
+    },
   },
   {
     name: "Il Greco Bowl",
     price: "11 €",
     ingredients:
       "Pollo e tacchino, cipolla, pomodoro, insalata, feta, tzatziki, patatine",
+    config: {
+      basePrice: 11,
+      proteins: [
+        { id: "pollo-tacchino", label: "Pollo e tacchino", priceDelta: 0, included: true },
+        { id: "planted", label: "Planted", priceDelta: 1.5 },
+        { id: "adana", label: "Adana", priceDelta: 4.5 },
+      ],
+      removals: [
+        "Senza cipolla",
+        "Senza pomodoro",
+        "Senza insalata",
+        "Senza feta",
+        "Senza tzatziki",
+        "Senza patatine",
+      ],
+      accompaniments: BOWL_ACCOMPANIMENTS,
+      allowExtraMeat: true,
+    },
   },
   {
     name: "KM Special Bowl",
@@ -192,6 +241,22 @@ const BOWL_PRODUCTS = [
     spicy: "🌶️🌶️ Piccante",
     ingredients:
       "Pollo e tacchino extra dose, peperoncino, tabulì, salsa all'aglio, melassa di melagrana",
+    config: {
+      basePrice: 14,
+      proteins: [
+        { id: "pollo-tacchino", label: "Pollo e tacchino extra dose", priceDelta: 0, included: true },
+        { id: "planted", label: "Planted (senza extra dose)", priceDelta: 0 },
+        { id: "adana", label: "Adana extra dose", priceDelta: 4.5 },
+      ],
+      removals: [
+        "Senza peperoncino",
+        "Senza tabulì",
+        "Senza salsa all'aglio",
+        "Senza melassa di melagrana",
+      ],
+      accompaniments: BOWL_ACCOMPANIMENTS,
+      allowExtraMeat: true,
+    },
   },
   {
     name: "Il Libanese Bowl",
@@ -199,18 +264,58 @@ const BOWL_PRODUCTS = [
     spicy: "🌶️🌶️ Piccante",
     ingredients:
       "Pollo e tacchino, peperoncini, yogurt, tabulì, paté piccante, patate al vapore",
+    config: {
+      basePrice: 11.5,
+      proteins: [
+        { id: "pollo-tacchino", label: "Pollo e tacchino", priceDelta: 0, included: true },
+        { id: "planted", label: "Planted", priceDelta: 1.5 },
+        { id: "adana", label: "Adana", priceDelta: 4.5 },
+      ],
+      removals: [
+        "Senza peperoncini",
+        "Senza yogurt",
+        "Senza tabulì",
+        "Senza paté piccante",
+        "Senza patate al vapore",
+      ],
+      accompaniments: BOWL_ACCOMPANIMENTS,
+      allowExtraMeat: true,
+    },
   },
   {
     name: "Il Persiano Bowl",
     price: "11,50 €",
     ingredients:
       "Pollo e tacchino, melanzane grigliate, insalata, taratour, hummus, crema di verdure arrosto, patate al vapore",
+    config: {
+      basePrice: 11.5,
+      proteins: [
+        { id: "pollo-tacchino", label: "Pollo e tacchino", priceDelta: 0, included: true },
+        { id: "planted", label: "Planted", priceDelta: 1.5 },
+        { id: "adana", label: "Adana", priceDelta: 4.5 },
+      ],
+      removals: [
+        "Senza melanzane grigliate",
+        "Senza insalata",
+        "Senza taratour",
+        "Senza hummus",
+        "Senza crema di verdure arrosto",
+        "Senza patate al vapore",
+      ],
+      accompaniments: BOWL_ACCOMPANIMENTS,
+      allowExtraMeat: true,
+    },
   },
   {
     name: "L'Egiziano Bowl",
     price: "11 €",
     badge: "VEGAN",
     ingredients: "Salsa all'aglio, babaganoush, tabulì",
+    config: {
+      basePrice: 11,
+      removals: ["Senza salsa all'aglio", "Senza babaganoush", "Senza tabulì"],
+      accompaniments: BOWL_ACCOMPANIMENTS,
+    },
   },
   {
     name: "Il Cipriota Bowl",
@@ -218,6 +323,16 @@ const BOWL_PRODUCTS = [
     badge: "VEGGIE",
     ingredients:
       "Melanzane grigliate, cetriolini, crema di verdure arrosto, hummus alle melanzane",
+    config: {
+      basePrice: 12,
+      removals: [
+        "Senza melanzane grigliate",
+        "Senza cetriolini",
+        "Senza crema di verdure arrosto",
+        "Senza hummus alle melanzane",
+      ],
+      accompaniments: BOWL_ACCOMPANIMENTS,
+    },
   },
 ];
 
@@ -273,11 +388,18 @@ function ProductConfigurator({ productKey, config }) {
       : null
   );
   const [removals, setRemovals] = useState(() => new Set());
+  const [accompanimentId, setAccompanimentId] = useState(null);
+  const [extraMeat, setExtraMeat] = useState(false);
 
   const selectedProtein = hasProteins
     ? config.proteins.find((p) => p.id === proteinId)
     : null;
-  const total = config.basePrice + (selectedProtein?.priceDelta ?? 0);
+  const showExtraMeat =
+    config.allowExtraMeat && selectedProtein?.id === "pollo-tacchino";
+  const total =
+    config.basePrice +
+    (selectedProtein?.priceDelta ?? 0) +
+    (showExtraMeat && extraMeat ? EXTRA_MEAT_PRICE : 0);
 
   function toggleRemoval(label) {
     setRemovals((prev) => {
@@ -359,6 +481,56 @@ function ProductConfigurator({ productKey, config }) {
           </label>
         ))}
       </div>
+
+      {config.accompaniments && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          <span style={{ fontWeight: 700, fontSize: 14, color: "var(--navy)" }}>
+            Accompagnamento
+          </span>
+          {config.accompaniments.map((accompaniment) => (
+            <label
+              key={accompaniment}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                fontSize: 14,
+                color: "var(--text-on-dark)",
+                cursor: "pointer",
+              }}
+            >
+              <input
+                type="radio"
+                name={`accompaniment-${productKey}`}
+                value={accompaniment}
+                checked={accompanimentId === accompaniment}
+                onChange={() => setAccompanimentId(accompaniment)}
+              />
+              {accompaniment}
+            </label>
+          ))}
+        </div>
+      )}
+
+      {showExtraMeat && (
+        <label
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+            fontSize: 14,
+            color: "var(--text-on-dark)",
+            cursor: "pointer",
+          }}
+        >
+          <input
+            type="checkbox"
+            checked={extraMeat}
+            onChange={() => setExtraMeat((prev) => !prev)}
+          />
+          {`+100 g di carne (+${formatPrice(EXTRA_MEAT_PRICE)})`}
+        </label>
+      )}
 
       <div
         style={{
