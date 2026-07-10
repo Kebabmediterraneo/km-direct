@@ -159,6 +159,19 @@ Persiano 11,50 €, L'Egiziano 11 €, Il Cipriota 12 €. Stesse proteine,
 supplementi, rimozioni, badge e piccantezza del Roll corrispondente, ma
 articolo separato.
 
+**Nome visualizzato al cliente**: la Bowl si chiama "[Nome] Bowl" (es. "Il
+Turco Bowl", "KM Special Bowl") per distinguerla chiaramente dal Roll nel
+carrello, nella cucina e nello storico ordini. Il Roll resta senza suffisso
+(es. "Il Turco").
+
+**Nota tecnica (aggiunta dopo l'MVP iniziale)**: coerentemente col §16,
+Roll e Bowl NON vanno implementati come uno derivato dall'altro nel codice
+(es. un array che genera l'altro modificando solo il prezzo). Vanno definiti
+come due liste/record indipendenti fin dal frontend, anche se all'inizio i
+valori coincidono — perché in futuro potranno divergere (disponibilità,
+rimozioni, o altro) senza che questo richieda di "rompere" una dipendenza
+nascosta tra i due.
+
 ## 21. Accompagnamento Bowl
 
 Scelta obbligatoria singola, nessun default preselezionato: Bulgur
