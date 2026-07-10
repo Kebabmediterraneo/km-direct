@@ -16,7 +16,20 @@ const CATEGORIES = [
 
 // Uniche categorie con sezione già costruita: le altre tab restano
 // solo visive finché non arrivano i rispettivi contenuti.
-const TOGGLABLE_CATEGORIES = ["ROLL", "BOWL"];
+const TOGGLABLE_CATEGORIES = [
+  "ROLL",
+  "BOWL",
+  "FRITTI",
+  "SIDES",
+  "SALSE",
+  "DOLCI",
+  "DRINK",
+  "BIRRE",
+];
+
+function titleCase(value) {
+  return value.charAt(0) + value.slice(1).toLowerCase();
+}
 
 function formatPrice(value) {
   const rounded = Math.round(value * 100) / 100;
@@ -336,6 +349,113 @@ const BOWL_PRODUCTS = [
   },
 ];
 
+// Dati da MASTER_SPEC.md §27. Nessuna personalizzazione, pattern "+ Aggiungi".
+const FRITTI_PRODUCTS = [
+  { name: "Patatine", price: "4 €" },
+  { name: "Patatine KM", price: "4,50 €" },
+  { name: "Cicek Bites", price: "6 €" },
+  { name: "Habibites", price: "6 €" },
+  { name: "Halloumi Sticks", price: "6,50 €" },
+  { name: "Polpette di melanzane con yogurt", price: "6,50 €" },
+  { name: "Falafel", price: "6 €" },
+];
+
+// Dati da MASTER_SPEC.md §29.
+const SIDES_PRODUCTS = [
+  { name: "Dolmadakia", price: "4 €" },
+  { name: "Caviale di melanzane", price: "4 €" },
+  { name: "Babaganoush", price: "5 €" },
+  { name: "Tabulì", price: "5 €" },
+  { name: "Hummus", price: "5 €" },
+  { name: "Pane lavash", price: "3 €" },
+];
+
+// Dati da MASTER_SPEC.md §30.
+const SALSE_PRODUCTS = [
+  { name: "Ajvar", price: "1 €" },
+  { name: "Ajvar piccante", price: "1 €" },
+  { name: "Tzatziki", price: "1 €" },
+  { name: "Acuka", price: "1 €" },
+  { name: "Black KM", price: "1 €" },
+  { name: "Yogurt", price: "1 €" },
+  { name: "Salsa all'aglio", price: "1 €" },
+];
+
+// Dati da MASTER_SPEC.md §31. Cheesecake e Yogurt turco hanno scelta
+// obbligatoria singola: riusano il pattern "Scegli" + configuratore
+// inline già costruito per Roll/Bowl, non "+ Aggiungi".
+const DOLCI_PRODUCTS = [
+  { name: "Baklava", price: "5 €" },
+  {
+    name: "Cheesecake",
+    price: "5 €",
+    config: {
+      basePrice: 5,
+      choiceLabel: "Gusto",
+      proteins: [
+        { id: "baklava", label: "Baklava", priceDelta: 0 },
+        { id: "dubai-style", label: "Dubai Style", priceDelta: 0 },
+      ],
+    },
+  },
+  {
+    name: "Yogurt turco",
+    price: "5 €",
+    config: {
+      basePrice: 5,
+      choiceLabel: "Gusto",
+      proteins: [
+        { id: "frutti-di-bosco", label: "Frutti di bosco", priceDelta: 0 },
+        { id: "miele-frutta-secca", label: "Miele e frutta secca", priceDelta: 0 },
+      ],
+    },
+  },
+  { name: "Kaymak & miele", price: "4,50 €" },
+  { name: "Lokum", price: "0,50 €" },
+  { name: "Lokum con frutta secca", price: "1 €" },
+];
+
+// Dati da MASTER_SPEC.md §32.
+const DRINK_PRODUCTS = [
+  { name: "Coca-Cola lattina 33cl", price: "2,50 €" },
+  { name: "Coca-Cola Zero lattina 33cl", price: "2,50 €" },
+  { name: "Coca-Cola Zero Zero Zuccheri Zero Caffeina 33cl", price: "2,50 €" },
+  { name: "Fanta lattina 33cl", price: "2,50 €" },
+  { name: "Lemon Soda 33cl", price: "2,50 €" },
+  { name: "Tè freddo verde Zagara alla menta", price: "3,50 €" },
+  { name: "Tè freddo al limone", price: "3,50 €" },
+  { name: "Tè freddo bio alla pesca", price: "3,50 €" },
+  { name: "Melograno", price: "3,50 €" },
+  { name: "Chinotto", price: "3,50 €" },
+  { name: "Mandarino Bio", price: "3,50 €" },
+  { name: "Limonata", price: "3,50 €" },
+  { name: "Acqua frizzante 50cl", price: "1,50 €" },
+  { name: "Acqua naturale 50cl", price: "1,50 €" },
+  { name: "Ayran", price: "2 €" },
+];
+
+// Dati da MASTER_SPEC.md §33. Checkbox maggiore età fuori scope qui
+// (regola di checkout, §33 fine).
+const BIRRE_PRODUCTS = [
+  { name: "Moretti 66cl", price: "6 €" },
+  { name: "Mythos 33cl", price: "4 €" },
+  { name: "Peroncino 25cl", price: "3 €" },
+  { name: "Moretti 33cl", price: "3,50 €" },
+  { name: "Messina Vivace 33cl", price: "4 €" },
+  { name: "Ichnusa non filtrata 33cl", price: "4 €" },
+];
+
+const CATEGORY_PRODUCTS = {
+  ROLL: ROLL_PRODUCTS,
+  BOWL: BOWL_PRODUCTS,
+  FRITTI: FRITTI_PRODUCTS,
+  SIDES: SIDES_PRODUCTS,
+  SALSE: SALSE_PRODUCTS,
+  DOLCI: DOLCI_PRODUCTS,
+  DRINK: DRINK_PRODUCTS,
+  BIRRE: BIRRE_PRODUCTS,
+};
+
 function CategoryTabs({ activeCategory, onSelect }) {
   return (
     <nav
@@ -427,7 +547,7 @@ function ProductConfigurator({ productKey, config }) {
       {hasProteins && (
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           <span style={{ fontWeight: 700, fontSize: 14, color: "var(--navy)" }}>
-            Proteina
+            {config.choiceLabel ?? "Proteina"}
           </span>
           {config.proteins.map((protein) => (
             <label
@@ -456,31 +576,33 @@ function ProductConfigurator({ productKey, config }) {
         </div>
       )}
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-        <span style={{ fontWeight: 700, fontSize: 14, color: "var(--navy)" }}>
-          Rimozioni
-        </span>
-        {config.removals.map((removal) => (
-          <label
-            key={removal}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 10,
-              fontSize: 14,
-              color: "var(--text-on-dark)",
-              cursor: "pointer",
-            }}
-          >
-            <input
-              type="checkbox"
-              checked={removals.has(removal)}
-              onChange={() => toggleRemoval(removal)}
-            />
-            {removal}
-          </label>
-        ))}
-      </div>
+      {config.removals && config.removals.length > 0 && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          <span style={{ fontWeight: 700, fontSize: 14, color: "var(--navy)" }}>
+            Rimozioni
+          </span>
+          {config.removals.map((removal) => (
+            <label
+              key={removal}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                fontSize: 14,
+                color: "var(--text-on-dark)",
+                cursor: "pointer",
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={removals.has(removal)}
+                onChange={() => toggleRemoval(removal)}
+              />
+              {removal}
+            </label>
+          ))}
+        </div>
+      )}
 
       {config.accompaniments && (
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
@@ -617,16 +739,18 @@ function ProductCard({ product }) {
         </span>
       )}
 
-      <p
-        style={{
-          margin: 0,
-          fontSize: 13,
-          lineHeight: 1.5,
-          color: "var(--text-on-dark)",
-        }}
-      >
-        {product.ingredients}
-      </p>
+      {product.ingredients && (
+        <p
+          style={{
+            margin: 0,
+            fontSize: 13,
+            lineHeight: 1.5,
+            color: "var(--text-on-dark)",
+          }}
+        >
+          {product.ingredients}
+        </p>
+      )}
 
       <button
         onClick={() => product.config && setExpanded((prev) => !prev)}
@@ -653,10 +777,104 @@ function ProductCard({ product }) {
   );
 }
 
+function SimpleProductCard({ product }) {
+  const [quantity, setQuantity] = useState(0);
+
+  return (
+    <div
+      style={{
+        background: "var(--surface-white)",
+        border: "1px solid var(--card-border)",
+        borderRadius: 12,
+        padding: 14,
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        gap: 8,
+      }}
+    >
+      <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+        <span style={{ fontWeight: 700, fontSize: 16, color: "var(--navy)" }}>
+          {product.name}
+        </span>
+        <span style={{ fontWeight: 700, fontSize: 14, color: "var(--navy)" }}>
+          {product.price}
+        </span>
+      </div>
+
+      {quantity === 0 ? (
+        <button
+          onClick={() => setQuantity(1)}
+          style={{
+            background: "var(--brand-orange)",
+            color: "var(--bg-warm)",
+            border: "none",
+            borderRadius: 8,
+            padding: "8px 18px",
+            fontWeight: 600,
+            fontSize: 13,
+            cursor: "pointer",
+            whiteSpace: "nowrap",
+          }}
+        >
+          + Aggiungi
+        </button>
+      ) : (
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <button
+            onClick={() => setQuantity((q) => Math.max(0, q - 1))}
+            aria-label="Diminuisci quantità"
+            style={{
+              background: "var(--brand-orange)",
+              color: "var(--bg-warm)",
+              border: "none",
+              borderRadius: 8,
+              width: 32,
+              height: 32,
+              fontWeight: 700,
+              fontSize: 16,
+              cursor: "pointer",
+            }}
+          >
+            −
+          </button>
+          <span
+            style={{
+              minWidth: 16,
+              textAlign: "center",
+              fontWeight: 700,
+              fontSize: 15,
+              color: "var(--navy)",
+            }}
+          >
+            {quantity}
+          </span>
+          <button
+            onClick={() => setQuantity((q) => q + 1)}
+            aria-label="Aumenta quantità"
+            style={{
+              background: "var(--brand-orange)",
+              color: "var(--bg-warm)",
+              border: "none",
+              borderRadius: 8,
+              width: 32,
+              height: 32,
+              fontWeight: 700,
+              fontSize: 16,
+              cursor: "pointer",
+            }}
+          >
+            +
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function Home() {
   const [activeCategory, setActiveCategory] = useState("ROLL");
-  const isBowl = activeCategory === "BOWL";
-  const products = isBowl ? BOWL_PRODUCTS : ROLL_PRODUCTS;
+  const products = CATEGORY_PRODUCTS[activeCategory] ?? [];
 
   return (
     <main
@@ -732,13 +950,17 @@ export default function Home() {
           margin: "4px 0 12px",
         }}
       >
-        {isBowl ? "Bowl" : "Roll"}
+        {titleCase(activeCategory)}
       </h2>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-        {products.map((product) => (
-          <ProductCard key={product.name} product={product} />
-        ))}
+        {products.map((product) =>
+          product.config ? (
+            <ProductCard key={product.name} product={product} />
+          ) : (
+            <SimpleProductCard key={product.name} product={product} />
+          )
+        )}
       </div>
     </main>
   );
