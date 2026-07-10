@@ -55,6 +55,14 @@ const BOWL_ACCOMPANIMENTS = [
 // extra dose già inclusa).
 const EXTRA_MEAT_PRICE = 4;
 
+// §9: fee e minimo d'ordine, solo Delivery.
+const DELIVERY_FEE = 2.5;
+const DELIVERY_MINIMUM_ORDER = 15;
+
+// §14: valido sia Delivery sia Ritiro, sconto fisso su soglia prodotti.
+const GIVEMEFIVE_THRESHOLD = 25;
+const GIVEMEFIVE_DISCOUNT = 5;
+
 // Dati da MASTER_SPEC.md §19. Statici per ora, il DB arriva dopo.
 const ROLL_PRODUCTS = [
   {
@@ -1260,8 +1268,7 @@ function MenuComboSection({ onAddToCart }) {
   );
 }
 
-function FulfillmentSelector() {
-  const [mode, setMode] = useState("delivery");
+function FulfillmentSelector({ mode, onModeChange }) {
   const [address, setAddress] = useState("");
   const [timingType, setTimingType] = useState("asap");
   const [scheduledDay, setScheduledDay] = useState("today");
@@ -1294,13 +1301,13 @@ function FulfillmentSelector() {
     <div style={{ marginBottom: 20 }}>
       <div style={{ display: "flex", gap: 8 }}>
         <button
-          onClick={() => setMode("delivery")}
+          onClick={() => onModeChange("delivery")}
           style={tabButtonStyle(mode === "delivery")}
         >
           DELIVERY
         </button>
         <button
-          onClick={() => setMode("pickup")}
+          onClick={() => onModeChange("pickup")}
           style={tabButtonStyle(mode === "pickup")}
         >
           RITIRO
@@ -1404,9 +1411,319 @@ function FulfillmentSelector() {
   );
 }
 
+function CartItemRow({ item, onUpdateQuantity, onRemove }) {
+  const detailParts = [];
+  if (item.details) {
+    if (item.details.protein) detailParts.push(item.details.protein);
+    if (item.details.removals && item.details.removals.length > 0) {
+      detailParts.push(item.details.removals.join(", "));
+    }
+    if (item.details.accompaniment) detailParts.push(item.details.accompaniment);
+    if (item.details.extraMeat) detailParts.push("+100 g di carne");
+    if (item.details.side) detailParts.push(item.details.side);
+    if (item.details.drink) detailParts.push(item.details.drink);
+  }
+  const detailText = detailParts.join(" · ");
+
+  const stepperButtonStyle = {
+    background: "var(--brand-orange)",
+    color: "var(--bg-warm)",
+    border: "none",
+    borderRadius: 8,
+    width: 32,
+    height: 32,
+    fontWeight: 700,
+    fontSize: 16,
+    cursor: "pointer",
+  };
+
+  return (
+    <div
+      style={{
+        background: "var(--surface-white)",
+        border: "1px solid var(--card-border)",
+        borderRadius: 12,
+        padding: 14,
+        display: "flex",
+        flexDirection: "column",
+        gap: 8,
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "flex-start",
+          gap: 8,
+        }}
+      >
+        <span style={{ fontWeight: 700, fontSize: 15, color: "var(--navy)" }}>
+          {item.name}
+        </span>
+        <span style={{ fontWeight: 700, fontSize: 15, color: "var(--navy)" }}>
+          {formatPrice(item.price * item.quantity)}
+        </span>
+      </div>
+
+      {detailText && (
+        <p style={{ margin: 0, fontSize: 13, color: "var(--text-on-dark)" }}>
+          {detailText}
+        </p>
+      )}
+
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <button
+            onClick={() => onUpdateQuantity(item.key, -1)}
+            aria-label="Diminuisci quantità"
+            style={stepperButtonStyle}
+          >
+            −
+          </button>
+          <span
+            style={{
+              minWidth: 16,
+              textAlign: "center",
+              fontWeight: 700,
+              fontSize: 15,
+              color: "var(--navy)",
+            }}
+          >
+            {item.quantity}
+          </span>
+          <button
+            onClick={() => onUpdateQuantity(item.key, 1)}
+            aria-label="Aumenta quantità"
+            style={stepperButtonStyle}
+          >
+            +
+          </button>
+        </div>
+        <button
+          onClick={() => onRemove(item.key)}
+          style={{
+            background: "none",
+            border: "none",
+            color: "var(--text-on-dark)",
+            fontSize: 13,
+            textDecoration: "underline",
+            cursor: "pointer",
+            padding: 0,
+          }}
+        >
+          Rimuovi
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function CartScreen({
+  items,
+  fulfillmentMode,
+  giveMeFiveApplied,
+  onUpdateQuantity,
+  onRemove,
+  onApplyGiveMeFive,
+  onClose,
+}) {
+  const isDelivery = fulfillmentMode === "delivery";
+  const subtotal = items.reduce(
+    (sum, item) => sum + item.price * item.quantity,
+    0
+  );
+  const meetsMinimum = !isDelivery || subtotal >= DELIVERY_MINIMUM_ORDER;
+  const qualifiesForGiveMeFive = subtotal >= GIVEMEFIVE_THRESHOLD;
+  const giveMeFiveDiscount =
+    giveMeFiveApplied && qualifiesForGiveMeFive ? GIVEMEFIVE_DISCOUNT : 0;
+  const deliveryFee = isDelivery ? DELIVERY_FEE : 0;
+  const total = subtotal - giveMeFiveDiscount + deliveryFee;
+  const canCheckout = items.length > 0 && meetsMinimum;
+
+  const progressMessageStyle = {
+    fontSize: 13,
+    color: "var(--text-on-dark)",
+    background: "var(--surface-white)",
+    border: "1px solid var(--card-border)",
+    borderRadius: 12,
+    padding: 12,
+  };
+
+  return (
+    <div>
+      <button
+        onClick={onClose}
+        style={{
+          background: "none",
+          border: "none",
+          color: "var(--brand-orange)",
+          fontWeight: 600,
+          fontSize: 14,
+          cursor: "pointer",
+          padding: 0,
+          marginBottom: 16,
+        }}
+      >
+        ← Torna al menu
+      </button>
+
+      <h1
+        style={{
+          fontWeight: 800,
+          fontSize: 28,
+          color: "var(--brand-orange)",
+          margin: "0 0 20px",
+        }}
+      >
+        Il tuo carrello
+      </h1>
+
+      {items.length === 0 ? (
+        <p style={{ fontSize: 14, color: "var(--text-on-dark)" }}>
+          Il carrello è vuoto.
+        </p>
+      ) : (
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 12,
+            marginBottom: 20,
+          }}
+        >
+          {items.map((item) => (
+            <CartItemRow
+              key={item.key}
+              item={item}
+              onUpdateQuantity={onUpdateQuantity}
+              onRemove={onRemove}
+            />
+          ))}
+        </div>
+      )}
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 20 }}>
+        {isDelivery && !meetsMinimum && (
+          <div style={progressMessageStyle}>
+            {`Ti mancano ${formatPrice(
+              DELIVERY_MINIMUM_ORDER - subtotal
+            )} per raggiungere l'ordine minimo`}
+          </div>
+        )}
+
+        {qualifiesForGiveMeFive ? (
+          <div
+            style={{
+              ...progressMessageStyle,
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              gap: 8,
+            }}
+          >
+            <span>Hai sbloccato GIVEMEFIVE</span>
+            {!giveMeFiveApplied && (
+              <button
+                onClick={onApplyGiveMeFive}
+                style={{
+                  background: "var(--brand-orange)",
+                  color: "var(--bg-warm)",
+                  border: "none",
+                  borderRadius: 8,
+                  padding: "8px 14px",
+                  fontWeight: 600,
+                  fontSize: 13,
+                  cursor: "pointer",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                Applica GIVEMEFIVE
+              </button>
+            )}
+          </div>
+        ) : (
+          <div style={progressMessageStyle}>
+            {`Ti mancano ${formatPrice(
+              GIVEMEFIVE_THRESHOLD - subtotal
+            )} per usare GIVEMEFIVE e avere 5€ di benvenuto`}
+          </div>
+        )}
+      </div>
+
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          gap: 8,
+          paddingTop: 12,
+          borderTop: "1px solid var(--card-border)",
+          marginBottom: 20,
+        }}
+      >
+        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 14, color: "var(--text-on-dark)" }}>
+          <span>Subtotale</span>
+          <span>{formatPrice(subtotal)}</span>
+        </div>
+        {giveMeFiveDiscount > 0 && (
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 14, color: "var(--text-on-dark)" }}>
+            <span>GIVEMEFIVE</span>
+            <span>{`-${formatPrice(giveMeFiveDiscount)}`}</span>
+          </div>
+        )}
+        {isDelivery && (
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 14, color: "var(--text-on-dark)" }}>
+            <span>Fee delivery</span>
+            <span>{formatPrice(deliveryFee)}</span>
+          </div>
+        )}
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            fontWeight: 700,
+            fontSize: 18,
+            color: "var(--navy)",
+            paddingTop: 8,
+            borderTop: "1px solid var(--card-border)",
+          }}
+        >
+          <span>Totale</span>
+          <span>{formatPrice(total)}</span>
+        </div>
+      </div>
+
+      <button
+        disabled={!canCheckout}
+        style={{
+          width: "100%",
+          background: canCheckout ? "var(--brand-orange)" : "var(--card-border)",
+          color: canCheckout ? "var(--bg-warm)" : "var(--text-on-dark)",
+          border: "none",
+          borderRadius: 8,
+          padding: "14px 20px",
+          fontWeight: 600,
+          fontSize: 15,
+          cursor: canCheckout ? "pointer" : "not-allowed",
+        }}
+      >
+        Vai al checkout
+      </button>
+    </div>
+  );
+}
+
 export default function Home() {
   const [activeCategory, setActiveCategory] = useState("ROLL");
   const [cartItems, setCartItems] = useState([]);
+  const [fulfillmentMode, setFulfillmentMode] = useState("delivery");
+  const [cartOpen, setCartOpen] = useState(false);
+  const [giveMeFiveApplied, setGiveMeFiveApplied] = useState(false);
   const isMenuCombo = activeCategory === "MENU COMBO";
   const products = CATEGORY_PRODUCTS[activeCategory] ?? [];
 
@@ -1425,18 +1742,33 @@ export default function Home() {
     });
   }
 
+  function updateQuantity(key, delta) {
+    setCartItems((prev) =>
+      prev.map((item) =>
+        item.key === key
+          ? { ...item, quantity: Math.max(1, item.quantity + delta) }
+          : item
+      )
+    );
+  }
+
+  function removeItem(key) {
+    setCartItems((prev) => prev.filter((item) => item.key !== key));
+  }
+
   const cartCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
   const cartTotal = cartItems.reduce(
     (sum, item) => sum + item.price * item.quantity,
     0
   );
+  const showStickyBar = !cartOpen && cartCount > 0;
 
   return (
     <main
       style={{
         maxWidth: 480,
         margin: "0 auto",
-        padding: cartCount > 0 ? "24px 20px 90px" : "24px 20px",
+        padding: showStickyBar ? "24px 20px 90px" : "24px 20px",
       }}
     >
       <header
@@ -1481,54 +1813,71 @@ export default function Home() {
         </div>
       </header>
 
-      <h1
-        style={{
-          fontWeight: 800,
-          fontSize: 34,
-          color: "var(--brand-orange)",
-          margin: "0 0 20px",
-        }}
-      >
-        Ordina ora
-      </h1>
-
-      <FulfillmentSelector />
-
-      <CategoryTabs
-        activeCategory={activeCategory}
-        onSelect={setActiveCategory}
-      />
-
-      <h2
-        style={{
-          fontWeight: 700,
-          fontSize: 20,
-          color: "var(--navy)",
-          margin: "4px 0 12px",
-        }}
-      >
-        {titleCase(activeCategory)}
-      </h2>
-
-      {isMenuCombo ? (
-        <MenuComboSection onAddToCart={addToCart} />
+      {cartOpen ? (
+        <CartScreen
+          items={cartItems}
+          fulfillmentMode={fulfillmentMode}
+          giveMeFiveApplied={giveMeFiveApplied}
+          onUpdateQuantity={updateQuantity}
+          onRemove={removeItem}
+          onApplyGiveMeFive={() => setGiveMeFiveApplied(true)}
+          onClose={() => setCartOpen(false)}
+        />
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          {products.map((product) =>
-            product.config ? (
-              <ProductCard
-                key={product.name}
-                product={product}
-                onAddToCart={addToCart}
-              />
-            ) : (
-              <SimpleProductCard key={product.name} product={product} />
-            )
+        <>
+          <h1
+            style={{
+              fontWeight: 800,
+              fontSize: 34,
+              color: "var(--brand-orange)",
+              margin: "0 0 20px",
+            }}
+          >
+            Ordina ora
+          </h1>
+
+          <FulfillmentSelector
+            mode={fulfillmentMode}
+            onModeChange={setFulfillmentMode}
+          />
+
+          <CategoryTabs
+            activeCategory={activeCategory}
+            onSelect={setActiveCategory}
+          />
+
+          <h2
+            style={{
+              fontWeight: 700,
+              fontSize: 20,
+              color: "var(--navy)",
+              margin: "4px 0 12px",
+            }}
+          >
+            {titleCase(activeCategory)}
+          </h2>
+
+          {isMenuCombo ? (
+            <MenuComboSection onAddToCart={addToCart} />
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              {products.map((product) =>
+                product.config ? (
+                  <ProductCard
+                    key={product.name}
+                    product={product}
+                    onAddToCart={addToCart}
+                  />
+                ) : (
+                  <SimpleProductCard key={product.name} product={product} />
+                )
+              )}
+            </div>
           )}
-        </div>
+        </>
       )}
 
-      {cartCount > 0 && (
+      {showStickyBar && (
         <div
           style={{
             position: "fixed",
@@ -1556,6 +1905,7 @@ export default function Home() {
               {`${cartCount} ${cartCount === 1 ? "articolo" : "articoli"} · ${formatPrice(cartTotal)}`}
             </span>
             <button
+              onClick={() => setCartOpen(true)}
               style={{
                 background: "var(--brand-orange)",
                 color: "var(--bg-warm)",
