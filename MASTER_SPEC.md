@@ -196,9 +196,33 @@ oltre +0,50 €, birre escluse), 4) aggiungi al carrello come articolo unico
 con componenti figli. Shortcut "Fallo combo" dal dettaglio Roll apre lo
 stesso builder col Roll preselezionato, senza duplicare logica.
 
+**Decisione UI (presa dopo l'MVP iniziale, vincolante)**: il builder si
+presenta come un **unico pannello con i 3 step di scelta in sequenza
+verticale** (Roll → contorno → drink, uno sotto l'altro, si scorre per
+completarli), non uno step per schermata con avanti/indietro. Coerente con
+lo stesso principio "niente overlay/pop-up" già adottato per la
+configurazione prodotto (§34-35).
+
 ## 25. Prezzi Combo
 
-Standard 13 €, KM Special 16 €.
+Combo standard: 13 €. KM Special: 16 €. Questi sono prezzi base "tutto
+incluso" (Roll con proteina inclusa + contorno standard + drink incluso).
+
+**Supplementi che si sommano al prezzo base**, se scelti dentro il builder:
+- proteina Adana sul Roll del combo: stesso supplemento del Roll normale
+  (+4,50 €, da §19)
+- Patatine KM al posto delle standard: +0,50 € (già indicato al punto 2
+  sopra)
+- soft drink "premium" (oltre 2,50 €, cioè i tè freddi/succhi da 3,50 € del
+  §32): +0,50 €
+
+Planted non ha supplemento sul Roll normale (+1,50 €, da §19) e si applica
+allo stesso modo dentro il combo.
+
+## 26. Shortcut "Fallo combo"
+
+Vedi §23-26: apre lo stesso builder con il Roll già preselezionato, senza
+duplicare la logica.
 
 ## 27. FRITTI
 
