@@ -19,6 +19,7 @@ const CATEGORIES = [
 const TOGGLABLE_CATEGORIES = [
   "ROLL",
   "BOWL",
+  "MENU COMBO",
   "FRITTI",
   "SIDES",
   "SALSE",
@@ -28,7 +29,11 @@ const TOGGLABLE_CATEGORIES = [
 ];
 
 function titleCase(value) {
-  return value.charAt(0) + value.slice(1).toLowerCase();
+  return value
+    .toLowerCase()
+    .split(" ")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
 }
 
 function formatPrice(value) {
@@ -444,6 +449,26 @@ const BIRRE_PRODUCTS = [
   { name: "Messina Vivace 33cl", price: "4 €" },
   { name: "Ichnusa non filtrata 33cl", price: "4 €" },
 ];
+
+// Dati da MASTER_SPEC.md §23-26. Il Roll del combo riusa ROLL_PRODUCTS
+// (stessa proteina/rimozioni), il drink riusa DRINK_PRODUCTS: nessun
+// dato nuovo da inventare, solo le regole di prezzo del §25.
+const COMBO_BASE_PRICE = 13;
+const COMBO_KM_SPECIAL_BASE_PRICE = 16;
+
+const COMBO_SIDE_OPTIONS = [
+  { id: "standard", label: "Patatine standard", priceDelta: 0, included: true },
+  { id: "km", label: "Patatine KM", priceDelta: 0.5 },
+];
+
+const COMBO_PREMIUM_DRINK_THRESHOLD = 2.5;
+const COMBO_DRINK_PREMIUM = 0.5;
+
+const COMBO_DRINK_OPTIONS = DRINK_PRODUCTS.map((drink) => ({
+  name: drink.name,
+  premium:
+    parseFloat(drink.price.replace(",", ".")) > COMBO_PREMIUM_DRINK_THRESHOLD,
+}));
 
 const CATEGORY_PRODUCTS = {
   ROLL: ROLL_PRODUCTS,
@@ -872,8 +897,272 @@ function SimpleProductCard({ product }) {
   );
 }
 
+function ComboBuilder() {
+  const [rollName, setRollName] = useState(ROLL_PRODUCTS[0].name);
+  const selectedRoll = ROLL_PRODUCTS.find((r) => r.name === rollName);
+  const rollHasProteins =
+    selectedRoll.config.proteins && selectedRoll.config.proteins.length > 0;
+
+  const [proteinId, setProteinId] = useState(() =>
+    rollHasProteins
+      ? selectedRoll.config.proteins.find((p) => p.included)?.id ??
+        selectedRoll.config.proteins[0].id
+      : null
+  );
+  const [removals, setRemovals] = useState(() => new Set());
+  const [sideId, setSideId] = useState("standard");
+  const [drinkName, setDrinkName] = useState(COMBO_DRINK_OPTIONS[0].name);
+
+  function selectRoll(name) {
+    const roll = ROLL_PRODUCTS.find((r) => r.name === name);
+    const hasProteins = roll.config.proteins && roll.config.proteins.length > 0;
+    setRollName(name);
+    setProteinId(
+      hasProteins
+        ? roll.config.proteins.find((p) => p.included)?.id ??
+          roll.config.proteins[0].id
+        : null
+    );
+    setRemovals(new Set());
+  }
+
+  function toggleRemoval(label) {
+    setRemovals((prev) => {
+      const next = new Set(prev);
+      if (next.has(label)) {
+        next.delete(label);
+      } else {
+        next.add(label);
+      }
+      return next;
+    });
+  }
+
+  const selectedProtein = rollHasProteins
+    ? selectedRoll.config.proteins.find((p) => p.id === proteinId)
+    : null;
+  const selectedSide = COMBO_SIDE_OPTIONS.find((s) => s.id === sideId);
+  const selectedDrink = COMBO_DRINK_OPTIONS.find((d) => d.name === drinkName);
+
+  const comboBase =
+    rollName === "KM Special" ? COMBO_KM_SPECIAL_BASE_PRICE : COMBO_BASE_PRICE;
+  const total =
+    comboBase +
+    (selectedProtein?.priceDelta ?? 0) +
+    selectedSide.priceDelta +
+    (selectedDrink.premium ? COMBO_DRINK_PREMIUM : 0);
+
+  const stepTitleStyle = {
+    fontWeight: 700,
+    fontSize: 15,
+    color: "var(--navy)",
+  };
+  const optionLabelStyle = {
+    display: "flex",
+    alignItems: "center",
+    gap: 10,
+    fontSize: 14,
+    color: "var(--text-on-dark)",
+    cursor: "pointer",
+  };
+
+  return (
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        gap: 20,
+        marginTop: 16,
+        paddingTop: 16,
+        borderTop: "1px solid var(--card-border)",
+      }}
+    >
+      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        <span style={stepTitleStyle}>1. Scegli il Roll</span>
+        {ROLL_PRODUCTS.map((roll) => (
+          <label key={roll.name} style={optionLabelStyle}>
+            <input
+              type="radio"
+              name="combo-roll"
+              value={roll.name}
+              checked={rollName === roll.name}
+              onChange={() => selectRoll(roll.name)}
+            />
+            {roll.name}
+          </label>
+        ))}
+
+        {rollHasProteins && (
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 10,
+              marginTop: 8,
+              paddingLeft: 4,
+            }}
+          >
+            <span style={{ fontWeight: 700, fontSize: 13, color: "var(--navy)" }}>
+              Proteina
+            </span>
+            {selectedRoll.config.proteins.map((protein) => (
+              <label key={protein.id} style={optionLabelStyle}>
+                <input
+                  type="radio"
+                  name="combo-protein"
+                  value={protein.id}
+                  checked={proteinId === protein.id}
+                  onChange={() => setProteinId(protein.id)}
+                />
+                {protein.label}
+                {protein.priceDelta > 0 &&
+                  ` (+${formatPrice(protein.priceDelta)})`}
+                {protein.included && " (incluso)"}
+              </label>
+            ))}
+          </div>
+        )}
+
+        {selectedRoll.config.removals && selectedRoll.config.removals.length > 0 && (
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 10,
+              marginTop: 8,
+              paddingLeft: 4,
+            }}
+          >
+            <span style={{ fontWeight: 700, fontSize: 13, color: "var(--navy)" }}>
+              Rimozioni
+            </span>
+            {selectedRoll.config.removals.map((removal) => (
+              <label key={removal} style={optionLabelStyle}>
+                <input
+                  type="checkbox"
+                  checked={removals.has(removal)}
+                  onChange={() => toggleRemoval(removal)}
+                />
+                {removal}
+              </label>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        <span style={stepTitleStyle}>2. Scegli il contorno</span>
+        {COMBO_SIDE_OPTIONS.map((side) => (
+          <label key={side.id} style={optionLabelStyle}>
+            <input
+              type="radio"
+              name="combo-side"
+              value={side.id}
+              checked={sideId === side.id}
+              onChange={() => setSideId(side.id)}
+            />
+            {side.label}
+            {side.priceDelta > 0 && ` (+${formatPrice(side.priceDelta)})`}
+            {side.included && " (incluso)"}
+          </label>
+        ))}
+      </div>
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+        <span style={stepTitleStyle}>3. Scegli il drink</span>
+        {COMBO_DRINK_OPTIONS.map((drink) => (
+          <label key={drink.name} style={optionLabelStyle}>
+            <input
+              type="radio"
+              name="combo-drink"
+              value={drink.name}
+              checked={drinkName === drink.name}
+              onChange={() => setDrinkName(drink.name)}
+            />
+            {drink.name}
+            {drink.premium && ` (+${formatPrice(COMBO_DRINK_PREMIUM)})`}
+          </label>
+        ))}
+      </div>
+
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          paddingTop: 8,
+          borderTop: "1px solid var(--card-border)",
+        }}
+      >
+        <span style={{ fontWeight: 700, fontSize: 18, color: "var(--navy)" }}>
+          {formatPrice(total)}
+        </span>
+        <button
+          style={{
+            background: "var(--brand-orange)",
+            color: "var(--bg-warm)",
+            border: "none",
+            borderRadius: 8,
+            padding: "10px 20px",
+            fontWeight: 600,
+            fontSize: 14,
+            cursor: "pointer",
+          }}
+        >
+          Aggiungi al carrello
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function MenuComboSection() {
+  const [builderOpen, setBuilderOpen] = useState(false);
+
+  return (
+    <div
+      style={{
+        background: "var(--surface-white)",
+        border: "1px solid var(--card-border)",
+        borderRadius: 12,
+        padding: 14,
+        display: "flex",
+        flexDirection: "column",
+        gap: 8,
+      }}
+    >
+      <span style={{ fontWeight: 700, fontSize: 20, color: "var(--navy)" }}>
+        MENU COMBO
+      </span>
+      <span style={{ fontSize: 14, color: "var(--text-on-dark)" }}>
+        Componi il tuo menu KM
+      </span>
+      <button
+        onClick={() => setBuilderOpen((prev) => !prev)}
+        style={{
+          alignSelf: "flex-start",
+          marginTop: 4,
+          background: "var(--brand-orange)",
+          color: "var(--bg-warm)",
+          border: "none",
+          borderRadius: 8,
+          padding: "8px 18px",
+          fontWeight: 600,
+          fontSize: 13,
+          cursor: "pointer",
+        }}
+      >
+        {builderOpen ? "Chiudi" : "COMPONI"}
+      </button>
+
+      {builderOpen && <ComboBuilder />}
+    </div>
+  );
+}
+
 export default function Home() {
   const [activeCategory, setActiveCategory] = useState("ROLL");
+  const isMenuCombo = activeCategory === "MENU COMBO";
   const products = CATEGORY_PRODUCTS[activeCategory] ?? [];
 
   return (
@@ -953,15 +1242,19 @@ export default function Home() {
         {titleCase(activeCategory)}
       </h2>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-        {products.map((product) =>
-          product.config ? (
-            <ProductCard key={product.name} product={product} />
-          ) : (
-            <SimpleProductCard key={product.name} product={product} />
-          )
-        )}
-      </div>
+      {isMenuCombo ? (
+        <MenuComboSection />
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          {products.map((product) =>
+            product.config ? (
+              <ProductCard key={product.name} product={product} />
+            ) : (
+              <SimpleProductCard key={product.name} product={product} />
+            )
+          )}
+        </div>
+      )}
     </main>
   );
 }
