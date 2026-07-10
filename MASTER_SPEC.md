@@ -205,14 +205,22 @@ configurazione prodotto (§34-35).
 
 ## 25. Prezzi Combo
 
-Combo standard: 13 €. KM Special: 16 €. Questi sono prezzi base "tutto
-incluso" (Roll con proteina inclusa + contorno standard + drink incluso).
+Combo standard: 13 €. Questo è il prezzo base "tutto incluso" (Roll con
+proteina inclusa + contorno standard + drink incluso), valido per
+qualunque Roll scelto NELLA SUA VERSIONE BASE.
 
-**Supplementi che si sommano al prezzo base**, se scelti dentro il builder:
+**Supplemento KM Special**: se il Roll scelto nel combo è KM Special, si
+aggiunge un supplemento esplicito di **+3 €** (13 € + 3 € = 16 €), fedele
+alla dicitura del menu fisico ("CON KM SPECIAL +3"). Questo supplemento va
+mostrato come riga visibile nel riepilogo prezzo, con lo stesso trattamento
+grafico degli altri supplementi (Patatine KM +0,50€, drink premium
++0,50€) — NON va implementato come un semplice cambio silenzioso del
+prezzo base da 13€ a 16€.
+
+**Altri supplementi che si sommano**, se scelti dentro il builder:
 - proteina Adana sul Roll del combo: stesso supplemento del Roll normale
   (+4,50 €, da §19)
-- Patatine KM al posto delle standard: +0,50 € (già indicato al punto 2
-  sopra)
+- Patatine KM al posto delle standard: +0,50 €
 - soft drink "premium" (oltre 2,50 €, cioè i tè freddi/succhi da 3,50 € del
   §32): +0,50 €
 
