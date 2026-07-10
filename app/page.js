@@ -454,7 +454,8 @@ const BIRRE_PRODUCTS = [
 // (stessa proteina/rimozioni), il drink riusa DRINK_PRODUCTS: nessun
 // dato nuovo da inventare, solo le regole di prezzo del §25.
 const COMBO_BASE_PRICE = 13;
-const COMBO_KM_SPECIAL_BASE_PRICE = 16;
+// §25: supplemento esplicito, mai un cambio silenzioso del prezzo base.
+const COMBO_KM_SPECIAL_SURCHARGE = 3;
 
 const COMBO_SIDE_OPTIONS = [
   { id: "standard", label: "Patatine standard", priceDelta: 0, included: true },
@@ -943,14 +944,25 @@ function ComboBuilder() {
     : null;
   const selectedSide = COMBO_SIDE_OPTIONS.find((s) => s.id === sideId);
   const selectedDrink = COMBO_DRINK_OPTIONS.find((d) => d.name === drinkName);
+  const isKmSpecial = rollName === "KM Special";
 
-  const comboBase =
-    rollName === "KM Special" ? COMBO_KM_SPECIAL_BASE_PRICE : COMBO_BASE_PRICE;
+  const supplements = [];
+  if (isKmSpecial) {
+    supplements.push({ label: "KM Special", amount: COMBO_KM_SPECIAL_SURCHARGE });
+  }
+  if (selectedProtein && selectedProtein.priceDelta > 0) {
+    supplements.push({ label: selectedProtein.label, amount: selectedProtein.priceDelta });
+  }
+  if (selectedSide.priceDelta > 0) {
+    supplements.push({ label: selectedSide.label, amount: selectedSide.priceDelta });
+  }
+  if (selectedDrink.premium) {
+    supplements.push({ label: "Drink premium", amount: COMBO_DRINK_PREMIUM });
+  }
+
   const total =
-    comboBase +
-    (selectedProtein?.priceDelta ?? 0) +
-    selectedSide.priceDelta +
-    (selectedDrink.premium ? COMBO_DRINK_PREMIUM : 0);
+    COMBO_BASE_PRICE +
+    supplements.reduce((sum, supplement) => sum + supplement.amount, 0);
 
   const stepTitleStyle = {
     fontWeight: 700,
@@ -1088,29 +1100,56 @@ function ComboBuilder() {
       <div
         style={{
           display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          paddingTop: 8,
+          flexDirection: "column",
+          gap: 16,
+          paddingTop: 12,
           borderTop: "1px solid var(--card-border)",
         }}
       >
-        <span style={{ fontWeight: 700, fontSize: 18, color: "var(--navy)" }}>
-          {formatPrice(total)}
-        </span>
-        <button
+        {supplements.length > 0 && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            {supplements.map((supplement, index) => (
+              <div
+                key={`${supplement.label}-${index}`}
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  fontSize: 13,
+                  color: "var(--text-on-dark)",
+                }}
+              >
+                <span>{supplement.label}</span>
+                <span>{`+${formatPrice(supplement.amount)}`}</span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <div
           style={{
-            background: "var(--brand-orange)",
-            color: "var(--bg-warm)",
-            border: "none",
-            borderRadius: 8,
-            padding: "10px 20px",
-            fontWeight: 600,
-            fontSize: 14,
-            cursor: "pointer",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
           }}
         >
-          Aggiungi al carrello
-        </button>
+          <span style={{ fontWeight: 700, fontSize: 18, color: "var(--navy)" }}>
+            {formatPrice(total)}
+          </span>
+          <button
+            style={{
+              background: "var(--brand-orange)",
+              color: "var(--bg-warm)",
+              border: "none",
+              borderRadius: 8,
+              padding: "10px 20px",
+              fontWeight: 600,
+              fontSize: 14,
+              cursor: "pointer",
+            }}
+          >
+            Aggiungi al carrello
+          </button>
+        </div>
       </div>
     </div>
   );
