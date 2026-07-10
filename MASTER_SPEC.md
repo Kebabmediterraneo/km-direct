@@ -247,6 +247,14 @@ Prodotti con scelte: bottone "Scegli" (sempre per Roll/Bowl). Prodotti
 semplici: "+ Aggiungi", poi contatore "− 1 +". Piccantezza sempre con testo
 oltre all'icona 🌶️, mai solo icona/colore.
 
+**Decisione UI (presa dopo l'MVP iniziale, vincolante)**: il click su
+"Scegli" apre la configurazione del prodotto (proteina §17, rimozioni §18)
+in un **pannello che scorre da sotto (bottom sheet)**, coerente con
+l'impostazione mobile-first di tutto il progetto. Non una schermata
+separata, non un'espansione inline sotto la card. Questa regola vale per
+ogni prodotto configurabile (Roll, Bowl, Menu Combo), non solo per il primo
+implementato.
+
 ## 36-40. Carrello
 
 Barra sticky quando non vuoto ("N articoli · totale €" + "Vedi carrello").
