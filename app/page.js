@@ -526,7 +526,7 @@ function CategoryTabs({ activeCategory, onSelect }) {
   );
 }
 
-function ProductConfigurator({ productKey, config }) {
+function ProductConfigurator({ productKey, config, onAddToCart }) {
   const hasProteins = config.proteins && config.proteins.length > 0;
   const [proteinId, setProteinId] = useState(() =>
     hasProteins
@@ -542,10 +542,11 @@ function ProductConfigurator({ productKey, config }) {
     : null;
   const showExtraMeat =
     config.allowExtraMeat && selectedProtein?.id === "pollo-tacchino";
+  const appliedExtraMeat = showExtraMeat && extraMeat;
   const total =
     config.basePrice +
     (selectedProtein?.priceDelta ?? 0) +
-    (showExtraMeat && extraMeat ? EXTRA_MEAT_PRICE : 0);
+    (appliedExtraMeat ? EXTRA_MEAT_PRICE : 0);
 
   function toggleRemoval(label) {
     setRemovals((prev) => {
@@ -556,6 +557,27 @@ function ProductConfigurator({ productKey, config }) {
         next.add(label);
       }
       return next;
+    });
+  }
+
+  function handleAddToCart() {
+    const sortedRemovals = Array.from(removals).sort();
+    onAddToCart({
+      key: JSON.stringify({
+        name: productKey,
+        proteinId,
+        removals: sortedRemovals,
+        accompanimentId,
+        extraMeat: appliedExtraMeat,
+      }),
+      name: productKey,
+      price: total,
+      details: {
+        protein: selectedProtein?.label ?? null,
+        removals: sortedRemovals,
+        accompaniment: accompanimentId,
+        extraMeat: appliedExtraMeat,
+      },
     });
   }
 
@@ -693,6 +715,7 @@ function ProductConfigurator({ productKey, config }) {
           {formatPrice(total)}
         </span>
         <button
+          onClick={handleAddToCart}
           style={{
             background: "var(--brand-orange)",
             color: "var(--bg-warm)",
@@ -711,8 +734,13 @@ function ProductConfigurator({ productKey, config }) {
   );
 }
 
-function ProductCard({ product }) {
+function ProductCard({ product, onAddToCart }) {
   const [expanded, setExpanded] = useState(false);
+
+  function handleAddToCart(item) {
+    onAddToCart(item);
+    setExpanded(false);
+  }
 
   return (
     <div
@@ -797,7 +825,11 @@ function ProductCard({ product }) {
       </button>
 
       {expanded && product.config && (
-        <ProductConfigurator productKey={product.name} config={product.config} />
+        <ProductConfigurator
+          productKey={product.name}
+          config={product.config}
+          onAddToCart={handleAddToCart}
+        />
       )}
     </div>
   );
@@ -898,7 +930,7 @@ function SimpleProductCard({ product }) {
   );
 }
 
-function ComboBuilder() {
+function ComboBuilder({ onAdd }) {
   const [rollName, setRollName] = useState(ROLL_PRODUCTS[0].name);
   const selectedRoll = ROLL_PRODUCTS.find((r) => r.name === rollName);
   const rollHasProteins =
@@ -963,6 +995,29 @@ function ComboBuilder() {
   const total =
     COMBO_BASE_PRICE +
     supplements.reduce((sum, supplement) => sum + supplement.amount, 0);
+
+  function handleAddToCart() {
+    const sortedRemovals = Array.from(removals).sort();
+    onAdd({
+      key: JSON.stringify({
+        type: "combo",
+        rollName,
+        proteinId,
+        removals: sortedRemovals,
+        sideId,
+        drinkName,
+      }),
+      name: `Menu Combo · ${rollName}`,
+      price: total,
+      details: {
+        roll: rollName,
+        protein: selectedProtein?.label ?? null,
+        removals: sortedRemovals,
+        side: selectedSide.label,
+        drink: drinkName,
+      },
+    });
+  }
 
   const stepTitleStyle = {
     fontWeight: 700,
@@ -1136,6 +1191,7 @@ function ComboBuilder() {
             {formatPrice(total)}
           </span>
           <button
+            onClick={handleAddToCart}
             style={{
               background: "var(--brand-orange)",
               color: "var(--bg-warm)",
@@ -1155,8 +1211,13 @@ function ComboBuilder() {
   );
 }
 
-function MenuComboSection() {
+function MenuComboSection({ onAddToCart }) {
   const [builderOpen, setBuilderOpen] = useState(false);
+
+  function handleAdd(item) {
+    onAddToCart(item);
+    setBuilderOpen(false);
+  }
 
   return (
     <div
@@ -1194,7 +1255,7 @@ function MenuComboSection() {
         {builderOpen ? "Chiudi" : "COMPONI"}
       </button>
 
-      {builderOpen && <ComboBuilder />}
+      {builderOpen && <ComboBuilder onAdd={handleAdd} />}
     </div>
   );
 }
@@ -1345,15 +1406,37 @@ function FulfillmentSelector() {
 
 export default function Home() {
   const [activeCategory, setActiveCategory] = useState("ROLL");
+  const [cartItems, setCartItems] = useState([]);
   const isMenuCombo = activeCategory === "MENU COMBO";
   const products = CATEGORY_PRODUCTS[activeCategory] ?? [];
+
+  function addToCart(newItem) {
+    setCartItems((prev) => {
+      const existingIndex = prev.findIndex((item) => item.key === newItem.key);
+      if (existingIndex >= 0) {
+        const updated = [...prev];
+        updated[existingIndex] = {
+          ...updated[existingIndex],
+          quantity: updated[existingIndex].quantity + 1,
+        };
+        return updated;
+      }
+      return [...prev, { ...newItem, quantity: 1 }];
+    });
+  }
+
+  const cartCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
+  const cartTotal = cartItems.reduce(
+    (sum, item) => sum + item.price * item.quantity,
+    0
+  );
 
   return (
     <main
       style={{
         maxWidth: 480,
         margin: "0 auto",
-        padding: "24px 20px",
+        padding: cartCount > 0 ? "24px 20px 90px" : "24px 20px",
       }}
     >
       <header
@@ -1428,16 +1511,65 @@ export default function Home() {
       </h2>
 
       {isMenuCombo ? (
-        <MenuComboSection />
+        <MenuComboSection onAddToCart={addToCart} />
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           {products.map((product) =>
             product.config ? (
-              <ProductCard key={product.name} product={product} />
+              <ProductCard
+                key={product.name}
+                product={product}
+                onAddToCart={addToCart}
+              />
             ) : (
               <SimpleProductCard key={product.name} product={product} />
             )
           )}
+        </div>
+      )}
+
+      {cartCount > 0 && (
+        <div
+          style={{
+            position: "fixed",
+            bottom: 0,
+            left: 0,
+            right: 0,
+            display: "flex",
+            justifyContent: "center",
+            zIndex: 20,
+          }}
+        >
+          <div
+            style={{
+              width: "100%",
+              maxWidth: 480,
+              background: "var(--navy)",
+              color: "var(--bg-warm)",
+              padding: "14px 20px",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+            }}
+          >
+            <span style={{ fontWeight: 600, fontSize: 14 }}>
+              {`${cartCount} ${cartCount === 1 ? "articolo" : "articoli"} · ${formatPrice(cartTotal)}`}
+            </span>
+            <button
+              style={{
+                background: "var(--brand-orange)",
+                color: "var(--bg-warm)",
+                border: "none",
+                borderRadius: 8,
+                padding: "8px 18px",
+                fontWeight: 600,
+                fontSize: 13,
+                cursor: "pointer",
+              }}
+            >
+              Vedi carrello
+            </button>
+          </div>
         </div>
       )}
     </main>
