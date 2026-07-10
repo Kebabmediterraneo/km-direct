@@ -18,7 +18,7 @@ export default function Home() {
         <img
           src="/logo-wordmark.png"
           alt="KM Kebab Mediterraneo"
-          style={{ height: 46, width: "auto" }}
+          style={{ height: 64, width: "auto" }}
         />
         <div style={{ textAlign: "right" }}>
           <div
