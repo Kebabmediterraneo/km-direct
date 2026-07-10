@@ -43,6 +43,10 @@ function formatPrice(value) {
     : `${rounded.toFixed(2).replace(".", ",")} €`;
 }
 
+function parsePrice(priceLabel) {
+  return parseFloat(priceLabel.replace(",", ".").replace(" €", ""));
+}
+
 // §21: stessa lista per ogni Bowl, nessun default preselezionato.
 const BOWL_ACCOMPANIMENTS = [
   "Bulgur (contiene glutine)",
@@ -843,9 +847,7 @@ function ProductCard({ product, onAddToCart }) {
   );
 }
 
-function SimpleProductCard({ product }) {
-  const [quantity, setQuantity] = useState(0);
-
+function SimpleProductCard({ product, quantity, onIncrement, onDecrement }) {
   return (
     <div
       style={{
@@ -870,7 +872,7 @@ function SimpleProductCard({ product }) {
 
       {quantity === 0 ? (
         <button
-          onClick={() => setQuantity(1)}
+          onClick={onIncrement}
           style={{
             background: "var(--brand-orange)",
             color: "var(--bg-warm)",
@@ -888,7 +890,7 @@ function SimpleProductCard({ product }) {
       ) : (
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <button
-            onClick={() => setQuantity((q) => Math.max(0, q - 1))}
+            onClick={onDecrement}
             aria-label="Diminuisci quantità"
             style={{
               background: "var(--brand-orange)",
@@ -916,7 +918,7 @@ function SimpleProductCard({ product }) {
             {quantity}
           </span>
           <button
-            onClick={() => setQuantity((q) => q + 1)}
+            onClick={onIncrement}
             aria-label="Aumenta quantità"
             style={{
               background: "var(--brand-orange)",
@@ -1268,11 +1270,16 @@ function MenuComboSection({ onAddToCart }) {
   );
 }
 
-function FulfillmentSelector({ mode, onModeChange }) {
-  const [address, setAddress] = useState("");
-  const [timingType, setTimingType] = useState("asap");
-  const [scheduledDay, setScheduledDay] = useState("today");
-
+function FulfillmentSelector({
+  mode,
+  onModeChange,
+  address,
+  onAddressChange,
+  timingType,
+  onTimingTypeChange,
+  scheduledDay,
+  onScheduledDayChange,
+}) {
   const optionLabelStyle = {
     display: "flex",
     alignItems: "center",
@@ -1339,7 +1346,7 @@ function FulfillmentSelector({ mode, onModeChange }) {
             type="text"
             placeholder="Inserisci il tuo indirizzo"
             value={address}
-            onChange={(event) => setAddress(event.target.value)}
+            onChange={(event) => onAddressChange(event.target.value)}
             style={{
               padding: "10px 12px",
               borderRadius: 8,
@@ -1361,7 +1368,7 @@ function FulfillmentSelector({ mode, onModeChange }) {
                 type="radio"
                 name="delivery-timing"
                 checked={timingType === "asap"}
-                onChange={() => setTimingType("asap")}
+                onChange={() => onTimingTypeChange("asap")}
               />
               PRIMA POSSIBILE
             </label>
@@ -1370,7 +1377,7 @@ function FulfillmentSelector({ mode, onModeChange }) {
                 type="radio"
                 name="delivery-timing"
                 checked={timingType === "scheduled"}
-                onChange={() => setTimingType("scheduled")}
+                onChange={() => onTimingTypeChange("scheduled")}
               />
               CONSEGNA PROGRAMMATA
             </label>
@@ -1390,7 +1397,7 @@ function FulfillmentSelector({ mode, onModeChange }) {
                   type="radio"
                   name="delivery-day"
                   checked={scheduledDay === "today"}
-                  onChange={() => setScheduledDay("today")}
+                  onChange={() => onScheduledDayChange("today")}
                 />
                 Oggi
               </label>
@@ -1399,7 +1406,7 @@ function FulfillmentSelector({ mode, onModeChange }) {
                   type="radio"
                   name="delivery-day"
                   checked={scheduledDay === "tomorrow"}
-                  onChange={() => setScheduledDay("tomorrow")}
+                  onChange={() => onScheduledDayChange("tomorrow")}
                 />
                 Domani
               </label>
@@ -1532,6 +1539,7 @@ function CartScreen({
   onRemove,
   onApplyGiveMeFive,
   onClose,
+  onGoToCheckout,
 }) {
   const isDelivery = fulfillmentMode === "delivery";
   const subtotal = items.reduce(
@@ -1700,6 +1708,7 @@ function CartScreen({
 
       <button
         disabled={!canCheckout}
+        onClick={onGoToCheckout}
         style={{
           width: "100%",
           background: canCheckout ? "var(--brand-orange)" : "var(--card-border)",
@@ -1718,11 +1727,345 @@ function CartScreen({
   );
 }
 
+function CheckoutScreen({
+  items,
+  fulfillmentMode,
+  address,
+  timingType,
+  scheduledDay,
+  giveMeFiveApplied,
+  onBack,
+}) {
+  const isDelivery = fulfillmentMode === "delivery";
+  const hasBeer = items.some((item) =>
+    BIRRE_PRODUCTS.some((beer) => beer.name === item.name)
+  );
+
+  const [deliveryDetails, setDeliveryDetails] = useState({
+    address: "",
+    houseNumber: "",
+    intercom: "",
+    floorInterior: "",
+    buildingStaircase: "",
+    riderNotes: "",
+  });
+  const [customerDetails, setCustomerDetails] = useState({
+    firstName: "",
+    lastName: "",
+    phone: "",
+    email: "",
+  });
+  const [privacyAccepted, setPrivacyAccepted] = useState(false);
+  const [marketingOptIn, setMarketingOptIn] = useState(false);
+  const [ageConfirmed, setAgeConfirmed] = useState(false);
+
+  function updateDeliveryField(field, value) {
+    setDeliveryDetails((prev) => ({ ...prev, [field]: value }));
+  }
+
+  function updateCustomerField(field, value) {
+    setCustomerDetails((prev) => ({ ...prev, [field]: value }));
+  }
+
+  const subtotal = items.reduce(
+    (sum, item) => sum + item.price * item.quantity,
+    0
+  );
+  const qualifiesForGiveMeFive = subtotal >= GIVEMEFIVE_THRESHOLD;
+  const giveMeFiveDiscount =
+    giveMeFiveApplied && qualifiesForGiveMeFive ? GIVEMEFIVE_DISCOUNT : 0;
+  const deliveryFee = isDelivery ? DELIVERY_FEE : 0;
+  const total = subtotal - giveMeFiveDiscount + deliveryFee;
+
+  const canPay =
+    customerDetails.firstName.trim() !== "" &&
+    customerDetails.lastName.trim() !== "" &&
+    customerDetails.phone.trim() !== "" &&
+    privacyAccepted &&
+    (!isDelivery ||
+      (deliveryDetails.address.trim() !== "" &&
+        deliveryDetails.houseNumber.trim() !== "")) &&
+    (!hasBeer || ageConfirmed);
+
+  const sectionTitleStyle = {
+    fontWeight: 700,
+    fontSize: 15,
+    color: "var(--navy)",
+  };
+  const fieldStyle = {
+    padding: "10px 12px",
+    borderRadius: 8,
+    border: "1px solid var(--card-border)",
+    background: "var(--surface-white)",
+    color: "var(--navy)",
+    fontSize: 14,
+    fontFamily: "inherit",
+  };
+  const checkboxLabelStyle = {
+    display: "flex",
+    alignItems: "flex-start",
+    gap: 10,
+    fontSize: 13,
+    color: "var(--text-on-dark)",
+    cursor: "pointer",
+  };
+  const summaryRowStyle = {
+    display: "flex",
+    justifyContent: "space-between",
+    fontSize: 14,
+    color: "var(--text-on-dark)",
+  };
+
+  const timingSummary =
+    timingType === "asap"
+      ? "Prima possibile"
+      : `Consegna programmata · ${scheduledDay === "today" ? "Oggi" : "Domani"}`;
+
+  return (
+    <div>
+      <button
+        onClick={onBack}
+        style={{
+          background: "none",
+          border: "none",
+          color: "var(--brand-orange)",
+          fontWeight: 600,
+          fontSize: 14,
+          cursor: "pointer",
+          padding: 0,
+          marginBottom: 16,
+        }}
+      >
+        ← Torna al carrello
+      </button>
+
+      <h1
+        style={{
+          fontWeight: 800,
+          fontSize: 28,
+          color: "var(--brand-orange)",
+          margin: "0 0 20px",
+        }}
+      >
+        Checkout
+      </h1>
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+        <div
+          style={{
+            background: "var(--surface-white)",
+            border: "1px solid var(--card-border)",
+            borderRadius: 12,
+            padding: 14,
+            display: "flex",
+            flexDirection: "column",
+            gap: 6,
+          }}
+        >
+          <span style={sectionTitleStyle}>
+            {isDelivery ? "Delivery" : "Ritiro"}
+          </span>
+          {isDelivery ? (
+            <>
+              <span style={{ fontSize: 14, color: "var(--text-on-dark)" }}>
+                {address.trim() ? address : "Nessun indirizzo inserito"}
+              </span>
+              <span style={{ fontSize: 14, color: "var(--text-on-dark)" }}>
+                {timingSummary}
+              </span>
+            </>
+          ) : (
+            <span style={{ fontSize: 14, color: "var(--text-on-dark)" }}>
+              Ritiro da KM, Via San Mamolo 25/A, Bologna
+            </span>
+          )}
+        </div>
+
+        {isDelivery && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            <span style={sectionTitleStyle}>Dati delivery</span>
+            {/* Nessun campo coordinate: uso interno/geocoding, non compilato dal cliente */}
+            <input
+              type="text"
+              placeholder="Indirizzo"
+              value={deliveryDetails.address}
+              onChange={(event) => updateDeliveryField("address", event.target.value)}
+              style={fieldStyle}
+            />
+            <input
+              type="text"
+              placeholder="Civico"
+              value={deliveryDetails.houseNumber}
+              onChange={(event) => updateDeliveryField("houseNumber", event.target.value)}
+              style={fieldStyle}
+            />
+            <input
+              type="text"
+              placeholder="Citofono"
+              value={deliveryDetails.intercom}
+              onChange={(event) => updateDeliveryField("intercom", event.target.value)}
+              style={fieldStyle}
+            />
+            <input
+              type="text"
+              placeholder="Piano/interno"
+              value={deliveryDetails.floorInterior}
+              onChange={(event) => updateDeliveryField("floorInterior", event.target.value)}
+              style={fieldStyle}
+            />
+            <input
+              type="text"
+              placeholder="Edificio/scala"
+              value={deliveryDetails.buildingStaircase}
+              onChange={(event) => updateDeliveryField("buildingStaircase", event.target.value)}
+              style={fieldStyle}
+            />
+            <input
+              type="text"
+              placeholder="Note per il rider"
+              value={deliveryDetails.riderNotes}
+              onChange={(event) => updateDeliveryField("riderNotes", event.target.value)}
+              style={fieldStyle}
+            />
+          </div>
+        )}
+
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          <span style={sectionTitleStyle}>Dati cliente</span>
+          <input
+            type="text"
+            placeholder="Nome"
+            value={customerDetails.firstName}
+            onChange={(event) => updateCustomerField("firstName", event.target.value)}
+            style={fieldStyle}
+          />
+          <input
+            type="text"
+            placeholder="Cognome"
+            value={customerDetails.lastName}
+            onChange={(event) => updateCustomerField("lastName", event.target.value)}
+            style={fieldStyle}
+          />
+          <input
+            type="tel"
+            placeholder="Telefono"
+            value={customerDetails.phone}
+            onChange={(event) => updateCustomerField("phone", event.target.value)}
+            style={fieldStyle}
+          />
+          <input
+            type="email"
+            placeholder="Email (facoltativa)"
+            value={customerDetails.email}
+            onChange={(event) => updateCustomerField("email", event.target.value)}
+            style={fieldStyle}
+          />
+        </div>
+
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <label style={checkboxLabelStyle}>
+            <input
+              type="checkbox"
+              checked={privacyAccepted}
+              onChange={() => setPrivacyAccepted((prev) => !prev)}
+            />
+            Dichiaro di aver letto l'informativa privacy.
+          </label>
+
+          <label style={checkboxLabelStyle}>
+            <input
+              type="checkbox"
+              checked={marketingOptIn}
+              onChange={() => setMarketingOptIn((prev) => !prev)}
+            />
+            Sì, voglio ricevere novità, offerte e comunicazioni da KM Kebab
+            Mediterraneo.
+          </label>
+
+          {hasBeer && (
+            <label style={checkboxLabelStyle}>
+              <input
+                type="checkbox"
+                checked={ageConfirmed}
+                onChange={() => setAgeConfirmed((prev) => !prev)}
+              />
+              Dichiaro di avere almeno 18 anni.
+            </label>
+          )}
+        </div>
+
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 8,
+            paddingTop: 12,
+            borderTop: "1px solid var(--card-border)",
+          }}
+        >
+          <div style={summaryRowStyle}>
+            <span>Subtotale</span>
+            <span>{formatPrice(subtotal)}</span>
+          </div>
+          {giveMeFiveDiscount > 0 && (
+            <div style={summaryRowStyle}>
+              <span>GIVEMEFIVE</span>
+              <span>{`-${formatPrice(giveMeFiveDiscount)}`}</span>
+            </div>
+          )}
+          {isDelivery && (
+            <div style={summaryRowStyle}>
+              <span>Fee delivery</span>
+              <span>{formatPrice(deliveryFee)}</span>
+            </div>
+          )}
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              fontWeight: 700,
+              fontSize: 18,
+              color: "var(--navy)",
+              paddingTop: 8,
+              borderTop: "1px solid var(--card-border)",
+            }}
+          >
+            <span>Totale</span>
+            <span>{formatPrice(total)}</span>
+          </div>
+        </div>
+
+        {/* TODO: collegare Stripe qui — nessuna simulazione di pagamento per ora */}
+        <button
+          disabled={!canPay}
+          style={{
+            width: "100%",
+            background: canPay ? "var(--brand-orange)" : "var(--card-border)",
+            color: canPay ? "var(--bg-warm)" : "var(--text-on-dark)",
+            border: "none",
+            borderRadius: 8,
+            padding: "14px 20px",
+            fontWeight: 600,
+            fontSize: 15,
+            cursor: canPay ? "pointer" : "not-allowed",
+          }}
+        >
+          Paga ora
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function Home() {
   const [activeCategory, setActiveCategory] = useState("ROLL");
   const [cartItems, setCartItems] = useState([]);
   const [fulfillmentMode, setFulfillmentMode] = useState("delivery");
+  const [deliveryAddress, setDeliveryAddress] = useState("");
+  const [timingType, setTimingType] = useState("asap");
+  const [scheduledDay, setScheduledDay] = useState("today");
   const [cartOpen, setCartOpen] = useState(false);
+  const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [giveMeFiveApplied, setGiveMeFiveApplied] = useState(false);
   const isMenuCombo = activeCategory === "MENU COMBO";
   const products = CATEGORY_PRODUCTS[activeCategory] ?? [];
@@ -1756,12 +2099,34 @@ export default function Home() {
     setCartItems((prev) => prev.filter((item) => item.key !== key));
   }
 
+  function incrementSimpleProduct(product) {
+    addToCart({
+      key: product.name,
+      name: product.name,
+      price: parsePrice(product.price),
+      details: null,
+    });
+  }
+
+  function decrementSimpleProduct(product) {
+    setCartItems((prev) => {
+      const index = prev.findIndex((item) => item.key === product.name);
+      if (index === -1) return prev;
+      if (prev[index].quantity <= 1) {
+        return prev.filter((_, i) => i !== index);
+      }
+      const updated = [...prev];
+      updated[index] = { ...updated[index], quantity: updated[index].quantity - 1 };
+      return updated;
+    });
+  }
+
   const cartCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
   const cartTotal = cartItems.reduce(
     (sum, item) => sum + item.price * item.quantity,
     0
   );
-  const showStickyBar = !cartOpen && cartCount > 0;
+  const showStickyBar = !cartOpen && !checkoutOpen && cartCount > 0;
 
   return (
     <main
@@ -1813,7 +2178,20 @@ export default function Home() {
         </div>
       </header>
 
-      {cartOpen ? (
+      {checkoutOpen ? (
+        <CheckoutScreen
+          items={cartItems}
+          fulfillmentMode={fulfillmentMode}
+          address={deliveryAddress}
+          timingType={timingType}
+          scheduledDay={scheduledDay}
+          giveMeFiveApplied={giveMeFiveApplied}
+          onBack={() => {
+            setCheckoutOpen(false);
+            setCartOpen(true);
+          }}
+        />
+      ) : cartOpen ? (
         <CartScreen
           items={cartItems}
           fulfillmentMode={fulfillmentMode}
@@ -1822,6 +2200,10 @@ export default function Home() {
           onRemove={removeItem}
           onApplyGiveMeFive={() => setGiveMeFiveApplied(true)}
           onClose={() => setCartOpen(false)}
+          onGoToCheckout={() => {
+            setCartOpen(false);
+            setCheckoutOpen(true);
+          }}
         />
       ) : (
         <>
@@ -1839,6 +2221,12 @@ export default function Home() {
           <FulfillmentSelector
             mode={fulfillmentMode}
             onModeChange={setFulfillmentMode}
+            address={deliveryAddress}
+            onAddressChange={setDeliveryAddress}
+            timingType={timingType}
+            onTimingTypeChange={setTimingType}
+            scheduledDay={scheduledDay}
+            onScheduledDayChange={setScheduledDay}
           />
 
           <CategoryTabs
@@ -1869,7 +2257,16 @@ export default function Home() {
                     onAddToCart={addToCart}
                   />
                 ) : (
-                  <SimpleProductCard key={product.name} product={product} />
+                  <SimpleProductCard
+                    key={product.name}
+                    product={product}
+                    quantity={
+                      cartItems.find((item) => item.key === product.name)
+                        ?.quantity ?? 0
+                    }
+                    onIncrement={() => incrementSimpleProduct(product)}
+                    onDecrement={() => decrementSimpleProduct(product)}
+                  />
                 )
               )}
             </div>
