@@ -1,3 +1,165 @@
+const CATEGORIES = [
+  "ROLL",
+  "BOWL",
+  "MENU COMBO",
+  "FRITTI",
+  "SIDES",
+  "SALSE",
+  "DOLCI",
+  "DRINK",
+  "BIRRE",
+];
+
+const ACTIVE_CATEGORY = "ROLL";
+
+// Dati da MASTER_SPEC.md §19. Statici per ora, il DB arriva dopo.
+const ROLL_PRODUCTS = [
+  {
+    name: "Il Turco",
+    price: "8 €",
+    spicy: "🌶️ Leggermente piccante",
+    ingredients:
+      "Pollo e tacchino, hummus, ajvar, cetriolini, insalata, pomodoro, yogurt",
+  },
+  {
+    name: "Il Greco",
+    price: "8 €",
+    ingredients:
+      "Pollo e tacchino, cipolla, pomodoro, insalata, feta, tzatziki, patatine",
+  },
+  {
+    name: "KM Special",
+    price: "11 €",
+    badge: "TOP CHOICE",
+    spicy: "🌶️🌶️ Piccante",
+    ingredients:
+      "Pollo e tacchino extra dose, peperoncino, tabulì, salsa all'aglio, melassa di melagrana",
+  },
+];
+
+function CategoryTabs() {
+  return (
+    <nav
+      style={{
+        display: "flex",
+        gap: 8,
+        overflowX: "auto",
+        padding: "4px 0 12px",
+        marginBottom: 8,
+        position: "sticky",
+        top: 0,
+        background: "var(--bg-warm)",
+        zIndex: 10,
+      }}
+    >
+      {CATEGORIES.map((category) => {
+        const isActive = category === ACTIVE_CATEGORY;
+        return (
+          <span
+            key={category}
+            style={{
+              flex: "0 0 auto",
+              padding: "8px 14px",
+              borderRadius: 10,
+              border: "1.5px solid var(--brand-orange)",
+              background: isActive ? "var(--brand-orange)" : "transparent",
+              color: isActive ? "var(--bg-warm)" : "var(--brand-orange)",
+              fontWeight: 600,
+              fontSize: 13,
+              whiteSpace: "nowrap",
+            }}
+          >
+            {category}
+          </span>
+        );
+      })}
+    </nav>
+  );
+}
+
+function ProductCard({ product }) {
+  return (
+    <div
+      style={{
+        background: "var(--surface-white)",
+        border: "1px solid var(--card-border)",
+        borderRadius: 12,
+        padding: 14,
+        display: "flex",
+        flexDirection: "column",
+        gap: 8,
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "flex-start",
+          gap: 8,
+        }}
+      >
+        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+          <span style={{ fontWeight: 700, fontSize: 16, color: "var(--navy)" }}>
+            {product.name}
+          </span>
+          {product.badge && (
+            <span
+              style={{
+                alignSelf: "flex-start",
+                background: "var(--brand-orange)",
+                color: "var(--bg-warm)",
+                fontWeight: 600,
+                fontSize: 11,
+                padding: "2px 8px",
+                borderRadius: 6,
+              }}
+            >
+              {product.badge}
+            </span>
+          )}
+        </div>
+        <span style={{ fontWeight: 700, fontSize: 16, color: "var(--navy)" }}>
+          {product.price}
+        </span>
+      </div>
+
+      {product.spicy && (
+        <span style={{ fontSize: 13, fontWeight: 600, color: "#D97423" }}>
+          {product.spicy}
+        </span>
+      )}
+
+      <p
+        style={{
+          margin: 0,
+          fontSize: 13,
+          lineHeight: 1.5,
+          color: "var(--text-on-dark)",
+        }}
+      >
+        {product.ingredients}
+      </p>
+
+      <button
+        style={{
+          alignSelf: "flex-start",
+          marginTop: 4,
+          background: "var(--brand-orange)",
+          color: "var(--bg-warm)",
+          border: "none",
+          borderRadius: 8,
+          padding: "8px 18px",
+          fontWeight: 600,
+          fontSize: 13,
+          cursor: "pointer",
+        }}
+      >
+        Scegli
+      </button>
+    </div>
+  );
+}
+
 export default function Home() {
   return (
     <main
@@ -60,20 +222,23 @@ export default function Home() {
         Ordina ora
       </h1>
 
-      <div
+      <CategoryTabs />
+
+      <h2
         style={{
-          background: "var(--surface-white)",
-          border: "1px solid var(--card-border)",
-          borderRadius: 12,
-          padding: 20,
-          fontSize: 14,
-          lineHeight: 1.6,
-          color: "var(--text-on-dark)",
+          fontWeight: 700,
+          fontSize: 20,
+          color: "var(--navy)",
+          margin: "4px 0 12px",
         }}
       >
-        Questa è la primissima pagina di KM Direct, online per verificare che
-        GitHub e Vercel siano collegati correttamente. Il vero menu arriva nei
-        prossimi passi.
+        Roll
+      </h2>
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        {ROLL_PRODUCTS.map((product) => (
+          <ProductCard key={product.name} product={product} />
+        ))}
       </div>
     </main>
   );
