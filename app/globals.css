@@ -1,0 +1,30 @@
+:root {
+  --bg-warm: #FBF5ED;
+  --brand-orange: #E44301;
+  --brand-orange-hover: #C93A00;
+  --navy: #131B67;
+  --success-green: #3F7D4A;
+  --card-border: #EAD6C9;
+  --text-on-dark: #5C2A02;
+  --surface-white: #FFFFFF;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg-warm);
+  color: var(--navy);
+  /* NOTA: font Termina non ancora collegato. Va aggiunto lo snippet
+     Adobe Fonts nel <head> (vedi app/layout.js) appena avremo il
+     web project ID da Adobe Fonts. Nel frattempo usiamo un
+     sans-serif di sistema, molto bold, come sostituto temporaneo. */
+  font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+a {
+  color: inherit;
+}
