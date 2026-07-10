@@ -69,21 +69,58 @@ const ROLL_PRODUCTS = [
   },
 ];
 
-// §20: stesso nome, badge e piccantezza del Roll corrispondente, prezzo diverso.
-const BOWL_PRICES = {
-  "Il Turco": "11 €",
-  "Il Greco": "11 €",
-  "KM Special": "14 €",
-  "Il Libanese": "11,50 €",
-  "Il Persiano": "11,50 €",
-  "L'Egiziano": "11 €",
-  "Il Cipriota": "12 €",
-};
-
-const BOWL_PRODUCTS = ROLL_PRODUCTS.map((product) => ({
-  ...product,
-  price: BOWL_PRICES[product.name],
-}));
+// Dati da MASTER_SPEC.md §20. Lista indipendente dal Roll (vedi nota
+// tecnica §20): stesse proteine/rimozioni/badge/piccantezza di oggi, ma
+// definite come record propri così da poter divergere in futuro.
+const BOWL_PRODUCTS = [
+  {
+    name: "Il Turco Bowl",
+    price: "11 €",
+    spicy: "🌶️ Leggermente piccante",
+    ingredients:
+      "Pollo e tacchino, hummus, ajvar, cetriolini, insalata, pomodoro, yogurt",
+  },
+  {
+    name: "Il Greco Bowl",
+    price: "11 €",
+    ingredients:
+      "Pollo e tacchino, cipolla, pomodoro, insalata, feta, tzatziki, patatine",
+  },
+  {
+    name: "KM Special Bowl",
+    price: "14 €",
+    badge: "TOP CHOICE",
+    spicy: "🌶️🌶️ Piccante",
+    ingredients:
+      "Pollo e tacchino extra dose, peperoncino, tabulì, salsa all'aglio, melassa di melagrana",
+  },
+  {
+    name: "Il Libanese Bowl",
+    price: "11,50 €",
+    spicy: "🌶️🌶️ Piccante",
+    ingredients:
+      "Pollo e tacchino, peperoncini, yogurt, tabulì, paté piccante, patate al vapore",
+  },
+  {
+    name: "Il Persiano Bowl",
+    price: "11,50 €",
+    ingredients:
+      "Pollo e tacchino, melanzane grigliate, insalata, taratour, hummus, crema di verdure arrosto, patate al vapore",
+  },
+  {
+    name: "L'Egiziano Bowl",
+    price: "11 €",
+    badge: "VEGAN",
+    ingredients: "Salsa all'aglio, babaganoush, tabulì",
+  },
+  {
+    name: "Il Cipriota Bowl",
+    price: "12 €",
+    badge: "VEGGIE",
+    ingredients:
+      "Melanzane grigliate, cetriolini, crema di verdure arrosto, hummus alle melanzane",
+  },
+];
 
 function CategoryTabs({ activeCategory, onSelect }) {
   return (
