@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
 import { supabaseAdmin } from "../../../lib/supabase-admin";
+import { getActiveStore } from "../../../lib/get-active-store";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
@@ -233,16 +234,8 @@ export async function POST(request) {
     return NextResponse.json({ error: "Indirizzo delivery incompleto." }, { status: 400 });
   }
 
-  const { data: store, error: storeError } = await supabaseAdmin
-    .from("stores")
-    .select("id")
-    .eq("is_active", true)
-    .limit(1)
-    .single();
-
-  if (storeError || !store) {
-    return NextResponse.json({ error: "Store non trovato." }, { status: 404 });
-  }
+  const { store, errorResponse } = await getActiveStore();
+  if (errorResponse) return errorResponse;
 
   // §46, non negoziabile: ogni prezzo viene ricalcolato qui, ignorando
   // qualsiasi prezzo arrivato dal client.

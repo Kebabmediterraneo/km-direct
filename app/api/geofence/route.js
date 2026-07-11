@@ -1,20 +1,13 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "../../../lib/supabase-admin";
+import { getActiveStore } from "../../../lib/get-active-store";
 
 // §10: store_geofences è amministrativa (mai esposta con la publishable
 // key). Questa route gira lato server con la secret key ed espone al
 // client solo il poligono, nient'altro.
 export async function GET() {
-  const { data: store, error: storeError } = await supabaseAdmin
-    .from("stores")
-    .select("id")
-    .eq("is_active", true)
-    .limit(1)
-    .single();
-
-  if (storeError || !store) {
-    return NextResponse.json({ error: "Store non trovato" }, { status: 404 });
-  }
+  const { store, errorResponse } = await getActiveStore();
+  if (errorResponse) return errorResponse;
 
   const { data: geofence, error: geofenceError } = await supabaseAdmin
     .from("store_geofences")
