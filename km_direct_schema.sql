@@ -136,12 +136,18 @@ create table products (
 
 comment on table products is 'Roll e Bowl sono righe separate (category = roll / bowl), anche per la stessa ricetta concettuale (§16, §20).';
 
--- Scelta proteina, singola, mai multipla (§17). Non tutti i prodotti la hanno
--- (es. L''Egiziano e Il Cipriota non hanno scelta proteina, §19).
-create table product_protein_options (
+-- Scelta singola obbligatoria, mai multipla (§17), generica: copre sia la
+-- proteina (Roll/Bowl, §17) sia altre scelte non-proteina come il "Gusto"
+-- di Cheesecake/Yogurt turco (§31). choice_key è testo libero apposta:
+-- un enum chiuso pensato solo per Pollo/Planted/Adana non può rappresentare
+-- "baklava"/"dubai-style" senza forzature (§31, nota tecnica).
+-- Non tutti i prodotti hanno questa scelta (es. L''Egiziano e Il Cipriota
+-- non hanno scelta proteina, §19).
+create table product_choice_options (
   id uuid primary key default gen_random_uuid(),
   product_id uuid not null references products(id) on delete cascade,
-  protein protein_key not null,
+  choice_label text not null default 'Proteina', -- es. "Proteina", "Gusto"
+  choice_key text not null,                     -- es. "pollo_tacchino", "baklava"
   label text not null,                          -- es. "Adana"
   price_delta numeric(6,2) not null default 0,  -- es. +4.50
   is_default boolean not null default false,
