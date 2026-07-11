@@ -415,6 +415,11 @@ export async function POST(request) {
       { idempotencyKey: order.id }
     );
   } catch (err) {
+    console.error("[POST /api/checkout] Errore nella creazione della Stripe Checkout Session:", {
+      type: err.type,
+      code: err.code,
+      message: err.message,
+    });
     return NextResponse.json({ error: "Errore nella creazione del pagamento." }, { status: 500 });
   }
 
