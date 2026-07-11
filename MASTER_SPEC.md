@@ -257,6 +257,17 @@ Baklava 5 € (miele e frutta secca). Cheesecake 5 € (scelta: Baklava / Dubai
 Style). Yogurt turco 5 € (scelta: frutti di bosco / miele e frutta secca).
 Kaymak & miele 4,50 €. Lokum 0,50 €. Lokum con frutta secca 1 €.
 
+**Nota tecnica sullo schema (corretta dopo la migrazione a Supabase)**: la
+scelta "gusto" di Cheesecake e Yogurt turco NON è una scelta proteina e
+non va forzata nella tabella `product_protein_options` (pensata solo per
+Pollo/Planted/Adana/nessuna). Lo schema va corretto con una tabella
+generica per scelte singole obbligatorie non-proteina (es.
+`product_choice_options`, con `choice_label` configurabile — "Proteina",
+"Gusto", ecc. — e `option_label` libero, non vincolato a un enum), oppure
+rendendo `protein_key` un campo testo libero invece di un enum chiuso.
+Questa è una correzione allo schema originale, non una nuova regola di
+prodotto.
+
 ## 32. DRINK
 
 Coca-Cola / Coca-Cola Zero lattina 33cl 2,50 €, Coca-Cola Zero Zero
