@@ -1,6 +1,7 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { supabase } from "../lib/supabase";
 
 const CATEGORIES = [
   "ROLL",
@@ -52,34 +53,9 @@ function parsePrice(priceLabel) {
 const STORE_LOCATION = { lat: 44.4855346, lng: 11.3393718 };
 const STORE_BIAS_RADIUS_METERS = 15000;
 
-// §10: area di consegna, coppie [longitudine, latitudine]. TEMPORANEA:
-// va spostata su Supabase quando colleghiamo il database.
-const DELIVERY_GEOFENCE = [
-  [11.3191308, 44.5274196],
-  [11.2849702, 44.5037955],
-  [11.2729539, 44.4763648],
-  [11.2870301, 44.4747725],
-  [11.311921, 44.487755],
-  [11.3132943, 44.4810191],
-  [11.3284005, 44.4851832],
-  [11.3340654, 44.4837136],
-  [11.3326921, 44.473915],
-  [11.3359536, 44.4740375],
-  [11.3393869, 44.4769773],
-  [11.3424768, 44.4722001],
-  [11.3536348, 44.4767323],
-  [11.3695993, 44.4625221],
-  [11.3943185, 44.4610519],
-  [11.4010133, 44.4730576],
-  [11.4030732, 44.4951024],
-  [11.4023866, 44.5176284],
-  [11.3907136, 44.5339054],
-  [11.356038, 44.5516458],
-  [11.3409318, 44.5353738],
-  [11.3191308, 44.5274196],
-];
-
-// Ray casting standard: point e polygon come coppie [lng, lat].
+// Ray casting standard: point e polygon come coppie [lng, lat]. Il
+// poligono ora arriva da store_geofences (via /api/geofence), non più
+// come costante fissa nel codice.
 function isPointInPolygon([x, y], polygon) {
   let inside = false;
   for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
@@ -91,13 +67,6 @@ function isPointInPolygon([x, y], polygon) {
   }
   return inside;
 }
-
-// §21: stessa lista per ogni Bowl, nessun default preselezionato.
-const BOWL_ACCOMPANIMENTS = [
-  "Bulgur (contiene glutine)",
-  "Riso integrale",
-  "No bulgur e no riso",
-];
 
 // §22: +100 g di carne, disponibile solo con proteina "Pollo e tacchino"
 // (incluso il KM Special Bowl, che può cumulare oltre alla propria
@@ -112,432 +81,149 @@ const DELIVERY_MINIMUM_ORDER = 15;
 const GIVEMEFIVE_THRESHOLD = 25;
 const GIVEMEFIVE_DISCOUNT = 5;
 
-// Dati da MASTER_SPEC.md §19. Statici per ora, il DB arriva dopo.
-const ROLL_PRODUCTS = [
-  {
-    name: "Il Turco",
-    price: "8 €",
-    spicy: "🌶️ Leggermente piccante",
-    ingredients:
-      "Pollo e tacchino, hummus, ajvar, cetriolini, insalata, pomodoro, yogurt",
-    // Configurazione inline (§34-35): solo Il Turco per ora.
-    config: {
-      basePrice: 8,
-      proteins: [
-        { id: "pollo-tacchino", label: "Pollo e tacchino", priceDelta: 0, included: true },
-        { id: "planted", label: "Planted", priceDelta: 1.5 },
-        { id: "adana", label: "Adana", priceDelta: 4.5 },
-      ],
-      removals: [
-        "Non piccante",
-        "Senza hummus",
-        "Senza ajvar",
-        "Senza cetriolini",
-        "Senza insalata",
-        "Senza pomodoro",
-        "Senza yogurt",
-      ],
-    },
-  },
-  {
-    name: "Il Greco",
-    price: "8 €",
-    ingredients:
-      "Pollo e tacchino, cipolla, pomodoro, insalata, feta, tzatziki, patatine",
-    config: {
-      basePrice: 8,
-      proteins: [
-        { id: "pollo-tacchino", label: "Pollo e tacchino", priceDelta: 0, included: true },
-        { id: "planted", label: "Planted", priceDelta: 1.5 },
-        { id: "adana", label: "Adana", priceDelta: 4.5 },
-      ],
-      removals: [
-        "Senza cipolla",
-        "Senza pomodoro",
-        "Senza insalata",
-        "Senza feta",
-        "Senza tzatziki",
-        "Senza patatine",
-      ],
-    },
-  },
-  {
-    name: "KM Special",
-    price: "11 €",
-    badge: "TOP CHOICE",
-    spicy: "🌶️🌶️ Piccante",
-    ingredients:
-      "Pollo e tacchino extra dose, peperoncino, tabulì, salsa all'aglio, melassa di melagrana",
-    config: {
-      basePrice: 11,
-      proteins: [
-        { id: "pollo-tacchino", label: "Pollo e tacchino extra dose", priceDelta: 0, included: true },
-        { id: "planted", label: "Planted (senza extra dose)", priceDelta: 0 },
-        { id: "adana", label: "Adana extra dose", priceDelta: 4.5 },
-      ],
-      removals: [
-        "Senza peperoncino",
-        "Senza tabulì",
-        "Senza salsa all'aglio",
-        "Senza melassa di melagrana",
-      ],
-    },
-  },
-  {
-    name: "Il Libanese",
-    price: "8,50 €",
-    spicy: "🌶️🌶️ Piccante",
-    ingredients:
-      "Pollo e tacchino, peperoncini, yogurt, tabulì, paté piccante, patate al vapore",
-    config: {
-      basePrice: 8.5,
-      proteins: [
-        { id: "pollo-tacchino", label: "Pollo e tacchino", priceDelta: 0, included: true },
-        { id: "planted", label: "Planted", priceDelta: 1.5 },
-        { id: "adana", label: "Adana", priceDelta: 4.5 },
-      ],
-      removals: [
-        "Senza peperoncini",
-        "Senza yogurt",
-        "Senza tabulì",
-        "Senza paté piccante",
-        "Senza patate al vapore",
-      ],
-    },
-  },
-  {
-    name: "Il Persiano",
-    price: "8,50 €",
-    ingredients:
-      "Pollo e tacchino, melanzane grigliate, insalata, taratour, hummus, crema di verdure arrosto, patate al vapore",
-    config: {
-      basePrice: 8.5,
-      proteins: [
-        { id: "pollo-tacchino", label: "Pollo e tacchino", priceDelta: 0, included: true },
-        { id: "planted", label: "Planted", priceDelta: 1.5 },
-        { id: "adana", label: "Adana", priceDelta: 4.5 },
-      ],
-      removals: [
-        "Senza melanzane grigliate",
-        "Senza insalata",
-        "Senza taratour",
-        "Senza hummus",
-        "Senza crema di verdure arrosto",
-        "Senza patate al vapore",
-      ],
-    },
-  },
-  {
-    name: "L'Egiziano",
-    price: "8 €",
-    badge: "VEGAN",
-    ingredients: "Salsa all'aglio, babaganoush, tabulì",
-    config: {
-      basePrice: 8,
-      removals: ["Senza salsa all'aglio", "Senza babaganoush", "Senza tabulì"],
-    },
-  },
-  {
-    name: "Il Cipriota",
-    price: "9 €",
-    badge: "VEGGIE",
-    ingredients:
-      "Melanzane grigliate, cetriolini, crema di verdure arrosto, hummus alle melanzane",
-    config: {
-      basePrice: 9,
-      removals: [
-        "Senza melanzane grigliate",
-        "Senza cetriolini",
-        "Senza crema di verdure arrosto",
-        "Senza hummus alle melanzane",
-      ],
-    },
-  },
-];
-
-// Dati da MASTER_SPEC.md §20. Lista indipendente dal Roll (vedi nota
-// tecnica §20): stesse proteine/rimozioni/badge/piccantezza di oggi, ma
-// definite come record propri così da poter divergere in futuro.
-const BOWL_PRODUCTS = [
-  {
-    name: "Il Turco Bowl",
-    price: "11 €",
-    spicy: "🌶️ Leggermente piccante",
-    ingredients:
-      "Pollo e tacchino, hummus, ajvar, cetriolini, insalata, pomodoro, yogurt",
-    config: {
-      basePrice: 11,
-      proteins: [
-        { id: "pollo-tacchino", label: "Pollo e tacchino", priceDelta: 0, included: true },
-        { id: "planted", label: "Planted", priceDelta: 1.5 },
-        { id: "adana", label: "Adana", priceDelta: 4.5 },
-      ],
-      removals: [
-        "Non piccante",
-        "Senza hummus",
-        "Senza ajvar",
-        "Senza cetriolini",
-        "Senza insalata",
-        "Senza pomodoro",
-        "Senza yogurt",
-      ],
-      accompaniments: BOWL_ACCOMPANIMENTS,
-      allowExtraMeat: true,
-    },
-  },
-  {
-    name: "Il Greco Bowl",
-    price: "11 €",
-    ingredients:
-      "Pollo e tacchino, cipolla, pomodoro, insalata, feta, tzatziki, patatine",
-    config: {
-      basePrice: 11,
-      proteins: [
-        { id: "pollo-tacchino", label: "Pollo e tacchino", priceDelta: 0, included: true },
-        { id: "planted", label: "Planted", priceDelta: 1.5 },
-        { id: "adana", label: "Adana", priceDelta: 4.5 },
-      ],
-      removals: [
-        "Senza cipolla",
-        "Senza pomodoro",
-        "Senza insalata",
-        "Senza feta",
-        "Senza tzatziki",
-        "Senza patatine",
-      ],
-      accompaniments: BOWL_ACCOMPANIMENTS,
-      allowExtraMeat: true,
-    },
-  },
-  {
-    name: "KM Special Bowl",
-    price: "14 €",
-    badge: "TOP CHOICE",
-    spicy: "🌶️🌶️ Piccante",
-    ingredients:
-      "Pollo e tacchino extra dose, peperoncino, tabulì, salsa all'aglio, melassa di melagrana",
-    config: {
-      basePrice: 14,
-      proteins: [
-        { id: "pollo-tacchino", label: "Pollo e tacchino extra dose", priceDelta: 0, included: true },
-        { id: "planted", label: "Planted (senza extra dose)", priceDelta: 0 },
-        { id: "adana", label: "Adana extra dose", priceDelta: 4.5 },
-      ],
-      removals: [
-        "Senza peperoncino",
-        "Senza tabulì",
-        "Senza salsa all'aglio",
-        "Senza melassa di melagrana",
-      ],
-      accompaniments: BOWL_ACCOMPANIMENTS,
-      allowExtraMeat: true,
-    },
-  },
-  {
-    name: "Il Libanese Bowl",
-    price: "11,50 €",
-    spicy: "🌶️🌶️ Piccante",
-    ingredients:
-      "Pollo e tacchino, peperoncini, yogurt, tabulì, paté piccante, patate al vapore",
-    config: {
-      basePrice: 11.5,
-      proteins: [
-        { id: "pollo-tacchino", label: "Pollo e tacchino", priceDelta: 0, included: true },
-        { id: "planted", label: "Planted", priceDelta: 1.5 },
-        { id: "adana", label: "Adana", priceDelta: 4.5 },
-      ],
-      removals: [
-        "Senza peperoncini",
-        "Senza yogurt",
-        "Senza tabulì",
-        "Senza paté piccante",
-        "Senza patate al vapore",
-      ],
-      accompaniments: BOWL_ACCOMPANIMENTS,
-      allowExtraMeat: true,
-    },
-  },
-  {
-    name: "Il Persiano Bowl",
-    price: "11,50 €",
-    ingredients:
-      "Pollo e tacchino, melanzane grigliate, insalata, taratour, hummus, crema di verdure arrosto, patate al vapore",
-    config: {
-      basePrice: 11.5,
-      proteins: [
-        { id: "pollo-tacchino", label: "Pollo e tacchino", priceDelta: 0, included: true },
-        { id: "planted", label: "Planted", priceDelta: 1.5 },
-        { id: "adana", label: "Adana", priceDelta: 4.5 },
-      ],
-      removals: [
-        "Senza melanzane grigliate",
-        "Senza insalata",
-        "Senza taratour",
-        "Senza hummus",
-        "Senza crema di verdure arrosto",
-        "Senza patate al vapore",
-      ],
-      accompaniments: BOWL_ACCOMPANIMENTS,
-      allowExtraMeat: true,
-    },
-  },
-  {
-    name: "L'Egiziano Bowl",
-    price: "11 €",
-    badge: "VEGAN",
-    ingredients: "Salsa all'aglio, babaganoush, tabulì",
-    config: {
-      basePrice: 11,
-      removals: ["Senza salsa all'aglio", "Senza babaganoush", "Senza tabulì"],
-      accompaniments: BOWL_ACCOMPANIMENTS,
-    },
-  },
-  {
-    name: "Il Cipriota Bowl",
-    price: "12 €",
-    badge: "VEGGIE",
-    ingredients:
-      "Melanzane grigliate, cetriolini, crema di verdure arrosto, hummus alle melanzane",
-    config: {
-      basePrice: 12,
-      removals: [
-        "Senza melanzane grigliate",
-        "Senza cetriolini",
-        "Senza crema di verdure arrosto",
-        "Senza hummus alle melanzane",
-      ],
-      accompaniments: BOWL_ACCOMPANIMENTS,
-    },
-  },
-];
-
-// Dati da MASTER_SPEC.md §27. Nessuna personalizzazione, pattern "+ Aggiungi".
-const FRITTI_PRODUCTS = [
-  { name: "Patatine", price: "4 €" },
-  { name: "Patatine KM", price: "4,50 €" },
-  { name: "Cicek Bites", price: "6 €" },
-  { name: "Habibites", price: "6 €" },
-  { name: "Halloumi Sticks", price: "6,50 €" },
-  { name: "Polpette di melanzane con yogurt", price: "6,50 €" },
-  { name: "Falafel", price: "6 €" },
-];
-
-// Dati da MASTER_SPEC.md §29.
-const SIDES_PRODUCTS = [
-  { name: "Dolmadakia", price: "4 €" },
-  { name: "Caviale di melanzane", price: "4 €" },
-  { name: "Babaganoush", price: "5 €" },
-  { name: "Tabulì", price: "5 €" },
-  { name: "Hummus", price: "5 €" },
-  { name: "Pane lavash", price: "3 €" },
-];
-
-// Dati da MASTER_SPEC.md §30.
-const SALSE_PRODUCTS = [
-  { name: "Ajvar", price: "1 €" },
-  { name: "Ajvar piccante", price: "1 €" },
-  { name: "Tzatziki", price: "1 €" },
-  { name: "Acuka", price: "1 €" },
-  { name: "Black KM", price: "1 €" },
-  { name: "Yogurt", price: "1 €" },
-  { name: "Salsa all'aglio", price: "1 €" },
-];
-
-// Dati da MASTER_SPEC.md §31. Cheesecake e Yogurt turco hanno scelta
-// obbligatoria singola: riusano il pattern "Scegli" + configuratore
-// inline già costruito per Roll/Bowl, non "+ Aggiungi".
-const DOLCI_PRODUCTS = [
-  { name: "Baklava", price: "5 €" },
-  {
-    name: "Cheesecake",
-    price: "5 €",
-    config: {
-      basePrice: 5,
-      choiceLabel: "Gusto",
-      proteins: [
-        { id: "baklava", label: "Baklava", priceDelta: 0 },
-        { id: "dubai-style", label: "Dubai Style", priceDelta: 0 },
-      ],
-    },
-  },
-  {
-    name: "Yogurt turco",
-    price: "5 €",
-    config: {
-      basePrice: 5,
-      choiceLabel: "Gusto",
-      proteins: [
-        { id: "frutti-di-bosco", label: "Frutti di bosco", priceDelta: 0 },
-        { id: "miele-frutta-secca", label: "Miele e frutta secca", priceDelta: 0 },
-      ],
-    },
-  },
-  { name: "Kaymak & miele", price: "4,50 €" },
-  { name: "Lokum", price: "0,50 €" },
-  { name: "Lokum con frutta secca", price: "1 €" },
-];
-
-// Dati da MASTER_SPEC.md §32.
-const DRINK_PRODUCTS = [
-  { name: "Coca-Cola lattina 33cl", price: "2,50 €" },
-  { name: "Coca-Cola Zero lattina 33cl", price: "2,50 €" },
-  { name: "Coca-Cola Zero Zero Zuccheri Zero Caffeina 33cl", price: "2,50 €" },
-  { name: "Fanta lattina 33cl", price: "2,50 €" },
-  { name: "Lemon Soda 33cl", price: "2,50 €" },
-  { name: "Tè freddo verde Zagara alla menta", price: "3,50 €" },
-  { name: "Tè freddo al limone", price: "3,50 €" },
-  { name: "Tè freddo bio alla pesca", price: "3,50 €" },
-  { name: "Melograno", price: "3,50 €" },
-  { name: "Chinotto", price: "3,50 €" },
-  { name: "Mandarino Bio", price: "3,50 €" },
-  { name: "Limonata", price: "3,50 €" },
-  { name: "Acqua frizzante 50cl", price: "1,50 €" },
-  { name: "Acqua naturale 50cl", price: "1,50 €" },
-  { name: "Ayran", price: "2 €" },
-];
-
-// Dati da MASTER_SPEC.md §33. Checkbox maggiore età fuori scope qui
-// (regola di checkout, §33 fine).
-const BIRRE_PRODUCTS = [
-  { name: "Moretti 66cl", price: "6 €" },
-  { name: "Mythos 33cl", price: "4 €" },
-  { name: "Peroncino 25cl", price: "3 €" },
-  { name: "Moretti 33cl", price: "3,50 €" },
-  { name: "Messina Vivace 33cl", price: "4 €" },
-  { name: "Ichnusa non filtrata 33cl", price: "4 €" },
-];
-
-// Dati da MASTER_SPEC.md §23-26. Il Roll del combo riusa ROLL_PRODUCTS
-// (stessa proteina/rimozioni), il drink riusa DRINK_PRODUCTS: nessun
-// dato nuovo da inventare, solo le regole di prezzo del §25.
-const COMBO_BASE_PRICE = 13;
-// §25: supplemento esplicito, mai un cambio silenzioso del prezzo base.
-const COMBO_KM_SPECIAL_SURCHARGE = 3;
-
-const COMBO_SIDE_OPTIONS = [
-  { id: "standard", label: "Patatine standard", priceDelta: 0, included: true },
-  { id: "km", label: "Patatine KM", priceDelta: 0.5 },
-];
-
-const COMBO_PREMIUM_DRINK_THRESHOLD = 2.5;
-const COMBO_DRINK_PREMIUM = 0.5;
-
-const COMBO_DRINK_OPTIONS = DRINK_PRODUCTS.map((drink) => ({
-  name: drink.name,
-  premium:
-    parseFloat(drink.price.replace(",", ".")) > COMBO_PREMIUM_DRINK_THRESHOLD,
-}));
-
-const CATEGORY_PRODUCTS = {
-  ROLL: ROLL_PRODUCTS,
-  BOWL: BOWL_PRODUCTS,
-  FRITTI: FRITTI_PRODUCTS,
-  SIDES: SIDES_PRODUCTS,
-  SALSE: SALSE_PRODUCTS,
-  DOLCI: DOLCI_PRODUCTS,
-  DRINK: DRINK_PRODUCTS,
-  BIRRE: BIRRE_PRODUCTS,
+const CATEGORY_DB_KEY = {
+  ROLL: "roll",
+  BOWL: "bowl",
+  FRITTI: "fritti",
+  SIDES: "sides",
+  DOLCI: "dolci",
+  DRINK: "drink",
+  BIRRE: "birre",
 };
+
+function groupBy(rows, key) {
+  const map = {};
+  for (const row of rows ?? []) {
+    (map[row[key]] ??= []).push(row);
+  }
+  return map;
+}
+
+function spicyLabel(spiceLevel, spiceLabel) {
+  if (!spiceLevel) return undefined;
+  return `${"🌶️".repeat(spiceLevel)} ${spiceLabel ?? ""}`.trim();
+}
+
+// Ricostruisce da Supabase lo stesso identico "shape" che i componenti
+// già si aspettano (product.config con proteins/removals/accompaniments),
+// così la resa visiva e il comportamento restano invariati (§19-§33):
+// questa è una migrazione della fonte dati, non un cambio di funzionalità.
+function buildCatalogProduct(product, choicesByProduct, removalsByProduct, accompanimentsByProduct, addonsByProduct) {
+  const choices = choicesByProduct[product.id] ?? [];
+  const removals = (removalsByProduct[product.id] ?? []).map((r) => r.label);
+  const accompaniments = (accompanimentsByProduct[product.id] ?? []).map((a) => a.label);
+  const hasExtraMeatAddon = (addonsByProduct[product.id] ?? []).length > 0;
+  const hasConfig = choices.length > 0 || removals.length > 0 || accompaniments.length > 0;
+
+  const base = {
+    name: product.name,
+    price: formatPrice(Number(product.base_price)),
+    badge: product.badge ?? undefined,
+    spicy: spicyLabel(product.spice_level, product.spice_label),
+    ingredients: product.description ?? undefined,
+  };
+
+  if (!hasConfig) return base;
+
+  return {
+    ...base,
+    config: {
+      basePrice: Number(product.base_price),
+      choiceLabel: choices[0]?.choice_label,
+      proteins:
+        choices.length > 0
+          ? choices.map((c) => ({
+              // choice_key in DB arriva dall'ex enum protein_key (underscore,
+              // es. "pollo_tacchino"); normalizzato a trattino per combaciare
+              // con l'id "pollo-tacchino" già atteso dal resto del codice.
+              id: c.choice_key.replace(/_/g, "-"),
+              label: c.label,
+              priceDelta: Number(c.price_delta),
+              included: c.is_default,
+            }))
+          : undefined,
+      removals: removals.length > 0 ? removals : undefined,
+      accompaniments: accompaniments.length > 0 ? accompaniments : undefined,
+      allowExtraMeat: hasExtraMeatAddon || undefined,
+    },
+  };
+}
+
+// Legge l'intero catalogo menu da Supabase (client-side, publishable key,
+// sola lettura) e lo trasforma nello stesso formato usato finora dai
+// componenti statici (§19-§33, §23-26).
+async function fetchMenuData() {
+  const [
+    { data: products, error: productsError },
+    { data: choices },
+    { data: removals },
+    { data: accompaniments },
+    { data: addons },
+    { data: sauces },
+    { data: comboSides },
+    { data: comboDrinks },
+    { data: comboPricing },
+  ] = await Promise.all([
+    supabase.from("products").select("*").order("sort_order"),
+    supabase.from("product_choice_options").select("*").order("sort_order"),
+    supabase.from("product_removals").select("*").order("sort_order"),
+    supabase.from("product_accompaniments").select("*").order("sort_order"),
+    supabase.from("product_addons").select("*"),
+    supabase.from("sauces").select("*").order("sort_order"),
+    supabase.from("combo_side_options").select("*").order("sort_order"),
+    supabase.from("combo_drink_options").select("*, products(name, base_price)").order("sort_order"),
+    supabase.from("combo_pricing").select("*, products(name)"),
+  ]);
+
+  if (productsError) throw productsError;
+
+  const choicesByProduct = groupBy(choices, "product_id");
+  const removalsByProduct = groupBy(removals, "product_id");
+  const accompanimentsByProduct = groupBy(accompaniments, "product_id");
+  const addonsByProduct = groupBy(addons, "product_id");
+
+  const categoryProducts = {};
+  for (const [uiCategory, dbCategory] of Object.entries(CATEGORY_DB_KEY)) {
+    categoryProducts[uiCategory] = (products ?? [])
+      .filter((p) => p.category === dbCategory)
+      .map((p) =>
+        buildCatalogProduct(p, choicesByProduct, removalsByProduct, accompanimentsByProduct, addonsByProduct)
+      );
+  }
+  categoryProducts.SALSE = (sauces ?? []).map((s) => ({
+    name: s.name,
+    price: formatPrice(Number(s.price)),
+  }));
+
+  const rollProducts = categoryProducts.ROLL;
+
+  const comboSideOptions = (comboSides ?? []).map((s) => ({
+    id: s.id,
+    label: s.label,
+    priceDelta: Number(s.price_delta),
+    included: s.is_default,
+  }));
+
+  const comboDrinkOptions = (comboDrinks ?? []).map((d) => ({
+    name: d.products.name,
+    priceDelta: Number(d.price_delta),
+  }));
+
+  const comboPricingByRoll = {};
+  for (const row of comboPricing ?? []) {
+    comboPricingByRoll[row.products.name] = Number(row.combo_base_price);
+  }
+  const comboBaseStandard = Math.min(...Object.values(comboPricingByRoll));
+
+  return {
+    categoryProducts,
+    rollProducts,
+    comboSideOptions,
+    comboDrinkOptions,
+    comboPricingByRoll,
+    comboBaseStandard,
+  };
+}
 
 function CategoryTabs({ activeCategory, onSelect }) {
   return (
@@ -985,9 +671,16 @@ function SimpleProductCard({ product, quantity, onIncrement, onDecrement }) {
   );
 }
 
-function ComboBuilder({ onAdd }) {
-  const [rollName, setRollName] = useState(ROLL_PRODUCTS[0].name);
-  const selectedRoll = ROLL_PRODUCTS.find((r) => r.name === rollName);
+function ComboBuilder({
+  rollProducts,
+  comboSideOptions,
+  comboDrinkOptions,
+  comboPricingByRoll,
+  comboBaseStandard,
+  onAdd,
+}) {
+  const [rollName, setRollName] = useState(rollProducts[0].name);
+  const selectedRoll = rollProducts.find((r) => r.name === rollName);
   const rollHasProteins =
     selectedRoll.config.proteins && selectedRoll.config.proteins.length > 0;
 
@@ -998,11 +691,13 @@ function ComboBuilder({ onAdd }) {
       : null
   );
   const [removals, setRemovals] = useState(() => new Set());
-  const [sideId, setSideId] = useState("standard");
-  const [drinkName, setDrinkName] = useState(COMBO_DRINK_OPTIONS[0].name);
+  const [sideId, setSideId] = useState(
+    comboSideOptions.find((s) => s.included)?.id ?? comboSideOptions[0].id
+  );
+  const [drinkName, setDrinkName] = useState(comboDrinkOptions[0].name);
 
   function selectRoll(name) {
-    const roll = ROLL_PRODUCTS.find((r) => r.name === name);
+    const roll = rollProducts.find((r) => r.name === name);
     const hasProteins = roll.config.proteins && roll.config.proteins.length > 0;
     setRollName(name);
     setProteinId(
@@ -1029,13 +724,14 @@ function ComboBuilder({ onAdd }) {
   const selectedProtein = rollHasProteins
     ? selectedRoll.config.proteins.find((p) => p.id === proteinId)
     : null;
-  const selectedSide = COMBO_SIDE_OPTIONS.find((s) => s.id === sideId);
-  const selectedDrink = COMBO_DRINK_OPTIONS.find((d) => d.name === drinkName);
-  const isKmSpecial = rollName === "KM Special";
+  const selectedSide = comboSideOptions.find((s) => s.id === sideId);
+  const selectedDrink = comboDrinkOptions.find((d) => d.name === drinkName);
+  const rollSurcharge =
+    (comboPricingByRoll[rollName] ?? comboBaseStandard) - comboBaseStandard;
 
   const supplements = [];
-  if (isKmSpecial) {
-    supplements.push({ label: "KM Special", amount: COMBO_KM_SPECIAL_SURCHARGE });
+  if (rollSurcharge > 0) {
+    supplements.push({ label: rollName, amount: rollSurcharge });
   }
   if (selectedProtein && selectedProtein.priceDelta > 0) {
     supplements.push({ label: selectedProtein.label, amount: selectedProtein.priceDelta });
@@ -1043,12 +739,12 @@ function ComboBuilder({ onAdd }) {
   if (selectedSide.priceDelta > 0) {
     supplements.push({ label: selectedSide.label, amount: selectedSide.priceDelta });
   }
-  if (selectedDrink.premium) {
-    supplements.push({ label: "Drink premium", amount: COMBO_DRINK_PREMIUM });
+  if (selectedDrink.priceDelta > 0) {
+    supplements.push({ label: "Drink premium", amount: selectedDrink.priceDelta });
   }
 
   const total =
-    COMBO_BASE_PRICE +
+    comboBaseStandard +
     supplements.reduce((sum, supplement) => sum + supplement.amount, 0);
 
   function handleAddToCart() {
@@ -1101,7 +797,7 @@ function ComboBuilder({ onAdd }) {
     >
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         <span style={stepTitleStyle}>1. Scegli il Roll</span>
-        {ROLL_PRODUCTS.map((roll) => (
+        {rollProducts.map((roll) => (
           <label key={roll.name} style={optionLabelStyle}>
             <input
               type="radio"
@@ -1174,7 +870,7 @@ function ComboBuilder({ onAdd }) {
 
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         <span style={stepTitleStyle}>2. Scegli il contorno</span>
-        {COMBO_SIDE_OPTIONS.map((side) => (
+        {comboSideOptions.map((side) => (
           <label key={side.id} style={optionLabelStyle}>
             <input
               type="radio"
@@ -1192,7 +888,7 @@ function ComboBuilder({ onAdd }) {
 
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         <span style={stepTitleStyle}>3. Scegli il drink</span>
-        {COMBO_DRINK_OPTIONS.map((drink) => (
+        {comboDrinkOptions.map((drink) => (
           <label key={drink.name} style={optionLabelStyle}>
             <input
               type="radio"
@@ -1202,7 +898,7 @@ function ComboBuilder({ onAdd }) {
               onChange={() => setDrinkName(drink.name)}
             />
             {drink.name}
-            {drink.premium && ` (+${formatPrice(COMBO_DRINK_PREMIUM)})`}
+            {drink.priceDelta > 0 && ` (+${formatPrice(drink.priceDelta)})`}
           </label>
         ))}
       </div>
@@ -1266,7 +962,14 @@ function ComboBuilder({ onAdd }) {
   );
 }
 
-function MenuComboSection({ onAddToCart }) {
+function MenuComboSection({
+  rollProducts,
+  comboSideOptions,
+  comboDrinkOptions,
+  comboPricingByRoll,
+  comboBaseStandard,
+  onAddToCart,
+}) {
   const [builderOpen, setBuilderOpen] = useState(false);
 
   function handleAdd(item) {
@@ -1310,7 +1013,16 @@ function MenuComboSection({ onAddToCart }) {
         {builderOpen ? "Chiudi" : "COMPONI"}
       </button>
 
-      {builderOpen && <ComboBuilder onAdd={handleAdd} />}
+      {builderOpen && (
+        <ComboBuilder
+          rollProducts={rollProducts}
+          comboSideOptions={comboSideOptions}
+          comboDrinkOptions={comboDrinkOptions}
+          comboPricingByRoll={comboPricingByRoll}
+          comboBaseStandard={comboBaseStandard}
+          onAdd={handleAdd}
+        />
+      )}
     </div>
   );
 }
@@ -1324,6 +1036,7 @@ function FulfillmentSelector({
   onTimingTypeChange,
   scheduledDay,
   onScheduledDayChange,
+  geofence,
 }) {
   const [suggestions, setSuggestions] = useState([]);
   const [geofenceStatus, setGeofenceStatus] = useState(null);
@@ -1370,7 +1083,7 @@ function FulfillmentSelector({
     setSuggestions([]);
     sessionTokenRef.current = null;
 
-    if (place.location) {
+    if (place.location && geofence) {
       const lat =
         typeof place.location.lat === "function"
           ? place.location.lat()
@@ -1379,7 +1092,7 @@ function FulfillmentSelector({
         typeof place.location.lng === "function"
           ? place.location.lng()
           : place.location.lng;
-      const inside = isPointInPolygon([lng, lat], DELIVERY_GEOFENCE);
+      const inside = isPointInPolygon([lng, lat], geofence);
       setGeofenceStatus(inside ? "inside" : "outside");
     }
   }
@@ -1910,11 +1623,12 @@ function CheckoutScreen({
   timingType,
   scheduledDay,
   giveMeFiveApplied,
+  birreProducts,
   onBack,
 }) {
   const isDelivery = fulfillmentMode === "delivery";
   const hasBeer = items.some((item) =>
-    BIRRE_PRODUCTS.some((beer) => beer.name === item.name)
+    birreProducts.some((beer) => beer.name === item.name)
   );
 
   const [deliveryDetails, setDeliveryDetails] = useState({
@@ -2243,8 +1957,21 @@ export default function Home() {
   const [cartOpen, setCartOpen] = useState(false);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [giveMeFiveApplied, setGiveMeFiveApplied] = useState(false);
+  const [menuData, setMenuData] = useState(null);
+  const [geofence, setGeofence] = useState(null);
   const isMenuCombo = activeCategory === "MENU COMBO";
-  const products = CATEGORY_PRODUCTS[activeCategory] ?? [];
+  const products = menuData?.categoryProducts[activeCategory] ?? [];
+
+  useEffect(() => {
+    fetchMenuData()
+      .then(setMenuData)
+      .catch((err) => console.error("Errore caricamento menu da Supabase:", err));
+
+    fetch("/api/geofence")
+      .then((res) => res.json())
+      .then((data) => setGeofence(data.polygon ?? null))
+      .catch((err) => console.error("Errore caricamento geofence:", err));
+  }, []);
 
   function addToCart(newItem) {
     setCartItems((prev) => {
@@ -2354,7 +2081,11 @@ export default function Home() {
         </div>
       </header>
 
-      {checkoutOpen ? (
+      {!menuData ? (
+        <p style={{ fontSize: 14, color: "var(--text-on-dark)" }}>
+          Caricamento menu…
+        </p>
+      ) : checkoutOpen ? (
         <CheckoutScreen
           items={cartItems}
           fulfillmentMode={fulfillmentMode}
@@ -2362,6 +2093,7 @@ export default function Home() {
           timingType={timingType}
           scheduledDay={scheduledDay}
           giveMeFiveApplied={giveMeFiveApplied}
+          birreProducts={menuData.categoryProducts.BIRRE}
           onBack={() => {
             setCheckoutOpen(false);
             setCartOpen(true);
@@ -2403,6 +2135,7 @@ export default function Home() {
             onTimingTypeChange={setTimingType}
             scheduledDay={scheduledDay}
             onScheduledDayChange={setScheduledDay}
+            geofence={geofence}
           />
 
           <CategoryTabs
@@ -2422,7 +2155,14 @@ export default function Home() {
           </h2>
 
           {isMenuCombo ? (
-            <MenuComboSection onAddToCart={addToCart} />
+            <MenuComboSection
+              rollProducts={menuData.rollProducts}
+              comboSideOptions={menuData.comboSideOptions}
+              comboDrinkOptions={menuData.comboDrinkOptions}
+              comboPricingByRoll={menuData.comboPricingByRoll}
+              comboBaseStandard={menuData.comboBaseStandard}
+              onAddToCart={addToCart}
+            />
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
               {products.map((product) =>
