@@ -116,6 +116,7 @@ function buildCatalogProduct(product, choicesByProduct, removalsByProduct, accom
   const hasConfig = choices.length > 0 || removals.length > 0 || accompaniments.length > 0;
 
   const base = {
+    id: product.id,
     name: product.name,
     price: formatPrice(Number(product.base_price)),
     badge: product.badge ?? undefined,
@@ -191,6 +192,7 @@ async function fetchMenuData() {
       );
   }
   categoryProducts.SALSE = (sauces ?? []).map((s) => ({
+    id: s.id,
     name: s.name,
     price: formatPrice(Number(s.price)),
   }));
@@ -269,7 +271,7 @@ function CategoryTabs({ activeCategory, onSelect }) {
   );
 }
 
-function ProductConfigurator({ productKey, config, onAddToCart }) {
+function ProductConfigurator({ productKey, productId, config, onAddToCart }) {
   const hasProteins = config.proteins && config.proteins.length > 0;
   const [proteinId, setProteinId] = useState(() =>
     hasProteins
@@ -319,6 +321,14 @@ function ProductConfigurator({ productKey, config, onAddToCart }) {
         protein: selectedProtein?.label ?? null,
         removals: sortedRemovals,
         accompaniment: accompanimentId,
+        extraMeat: appliedExtraMeat,
+      },
+      ref: {
+        kind: "product",
+        id: productId,
+        proteinLabel: selectedProtein?.label ?? null,
+        removals: sortedRemovals,
+        accompanimentLabel: accompanimentId,
         extraMeat: appliedExtraMeat,
       },
     });
@@ -570,6 +580,7 @@ function ProductCard({ product, onAddToCart }) {
       {expanded && product.config && (
         <ProductConfigurator
           productKey={product.name}
+          productId={product.id}
           config={product.config}
           onAddToCart={handleAddToCart}
         />
@@ -766,6 +777,14 @@ function ComboBuilder({
         removals: sortedRemovals,
         side: selectedSide.label,
         drink: drinkName,
+      },
+      ref: {
+        kind: "combo",
+        rollProductId: selectedRoll.id,
+        proteinLabel: selectedProtein?.label ?? null,
+        removals: sortedRemovals,
+        sideLabel: selectedSide.label,
+        drinkName,
       },
     });
   }
@@ -1648,6 +1667,8 @@ function CheckoutScreen({
   const [privacyAccepted, setPrivacyAccepted] = useState(false);
   const [marketingOptIn, setMarketingOptIn] = useState(false);
   const [ageConfirmed, setAgeConfirmed] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [payError, setPayError] = useState(null);
 
   function updateDeliveryField(field, value) {
     setDeliveryDetails((prev) => ({ ...prev, [field]: value }));
@@ -1676,6 +1697,47 @@ function CheckoutScreen({
       (deliveryDetails.address.trim() !== "" &&
         deliveryDetails.houseNumber.trim() !== "")) &&
     (!hasBeer || ageConfirmed);
+
+  async function handlePay() {
+    setPayError(null);
+    setIsSubmitting(true);
+    try {
+      const response = await fetch("/api/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          items: items.map((item) => ({ ref: item.ref, quantity: item.quantity })),
+          fulfillment: fulfillmentMode,
+          delivery: isDelivery
+            ? {
+                address: deliveryDetails.address,
+                houseNumber: deliveryDetails.houseNumber,
+                intercom: deliveryDetails.intercom,
+                floorInterior: deliveryDetails.floorInterior,
+                buildingStaircase: deliveryDetails.buildingStaircase,
+                riderNotes: deliveryDetails.riderNotes,
+                timingType,
+                scheduledDay,
+              }
+            : null,
+          customer: customerDetails,
+          privacyAccepted,
+          marketingOptIn,
+          ageConfirmed,
+          giveMeFiveRequested: giveMeFiveApplied,
+        }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || "Errore durante la creazione dell'ordine.");
+      }
+      window.location.href = data.url;
+    } catch (err) {
+      setPayError(err.message);
+      setIsSubmitting(false);
+    }
+  }
 
   const sectionTitleStyle = {
     fontWeight: 700,
@@ -1925,22 +1987,25 @@ function CheckoutScreen({
           </div>
         </div>
 
-        {/* TODO: collegare Stripe qui — nessuna simulazione di pagamento per ora */}
+        {payError && (
+          <p style={{ margin: 0, fontSize: 13, color: "#C0392B" }}>{payError}</p>
+        )}
         <button
-          disabled={!canPay}
+          onClick={handlePay}
+          disabled={!canPay || isSubmitting}
           style={{
             width: "100%",
-            background: canPay ? "var(--brand-orange)" : "var(--card-border)",
-            color: canPay ? "var(--bg-warm)" : "var(--text-on-dark)",
+            background: canPay && !isSubmitting ? "var(--brand-orange)" : "var(--card-border)",
+            color: canPay && !isSubmitting ? "var(--bg-warm)" : "var(--text-on-dark)",
             border: "none",
             borderRadius: 8,
             padding: "14px 20px",
             fontWeight: 600,
             fontSize: 15,
-            cursor: canPay ? "pointer" : "not-allowed",
+            cursor: canPay && !isSubmitting ? "pointer" : "not-allowed",
           }}
         >
-          Paga ora
+          {isSubmitting ? "Attendere…" : "Paga ora"}
         </button>
       </div>
     </div>
@@ -2008,6 +2073,10 @@ export default function Home() {
       name: product.name,
       price: parsePrice(product.price),
       details: null,
+      ref: {
+        kind: activeCategory === "SALSE" ? "sauce" : "product",
+        id: product.id,
+      },
     });
   }
 
