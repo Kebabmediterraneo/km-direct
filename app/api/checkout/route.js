@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import Stripe from "stripe";
 import { supabaseAdmin } from "../../../lib/supabase-admin";
 import { getActiveStore } from "../../../lib/get-active-store";
+import { getStoreGeofencePolygon } from "../../../lib/get-store-geofence";
+import { isPointInPolygon } from "../../../lib/geo";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
@@ -234,8 +236,28 @@ export async function POST(request) {
     return NextResponse.json({ error: "Indirizzo delivery incompleto." }, { status: 400 });
   }
 
+  const deliveryLatitude = isDelivery ? Number(delivery?.latitude) : null;
+  const deliveryLongitude = isDelivery ? Number(delivery?.longitude) : null;
+  if (isDelivery && (!Number.isFinite(deliveryLatitude) || !Number.isFinite(deliveryLongitude))) {
+    return NextResponse.json({ error: "Coordinate indirizzo mancanti." }, { status: 400 });
+  }
+
   const { store, errorResponse } = await getActiveStore();
   if (errorResponse) return errorResponse;
+
+  // §10/§41-45: l'indirizzo è verificato lato client (autocomplete +
+  // point-in-polygon) e mostrato in sola lettura al checkout, ma un client
+  // malevolo potrebbe comunque chiamare questa route direttamente con
+  // coordinate manomesse — qui lo store lo impedisce, non solo la UI.
+  if (isDelivery) {
+    const polygon = await getStoreGeofencePolygon(store.id);
+    if (!polygon || !isPointInPolygon([deliveryLongitude, deliveryLatitude], polygon)) {
+      return NextResponse.json(
+        { error: "Indirizzo fuori dalla zona di consegna." },
+        { status: 400 }
+      );
+    }
+  }
 
   // §46, non negoziabile: ogni prezzo viene ricalcolato qui, ignorando
   // qualsiasi prezzo arrivato dal client.
@@ -364,6 +386,8 @@ export async function POST(request) {
     delivery_piano_interno: isDelivery ? delivery?.floorInterior?.trim() || null : null,
     delivery_edificio_scala: isDelivery ? delivery?.buildingStaircase?.trim() || null : null,
     delivery_note_rider: isDelivery ? delivery?.riderNotes?.trim() || null : null,
+    delivery_latitude: deliveryLatitude,
+    delivery_longitude: deliveryLongitude,
     status: "nuovo",
     delivery_status: isDelivery ? "da_richiedere" : null,
     subtotal,

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "../lib/supabase";
+import { isPointInPolygon } from "../lib/geo";
 
 const CATEGORIES = [
   "ROLL",
@@ -52,21 +53,6 @@ function parsePrice(priceLabel) {
 // suggerimenti indirizzo.
 const STORE_LOCATION = { lat: 44.4855346, lng: 11.3393718 };
 const STORE_BIAS_RADIUS_METERS = 15000;
-
-// Ray casting standard: point e polygon come coppie [lng, lat]. Il
-// poligono ora arriva da store_geofences (via /api/geofence), non più
-// come costante fissa nel codice.
-function isPointInPolygon([x, y], polygon) {
-  let inside = false;
-  for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
-    const [xi, yi] = polygon[i];
-    const [xj, yj] = polygon[j];
-    const intersect =
-      yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi;
-    if (intersect) inside = !inside;
-  }
-  return inside;
-}
 
 // §22: +100 g di carne, disponibile solo con proteina "Pollo e tacchino"
 // (incluso il KM Special Bowl, che può cumulare oltre alla propria
@@ -1051,6 +1037,7 @@ function FulfillmentSelector({
   onModeChange,
   address,
   onAddressChange,
+  onAddressDetailsChange,
   timingType,
   onTimingTypeChange,
   scheduledDay,
@@ -1089,6 +1076,10 @@ function FulfillmentSelector({
 
   function handleAddressInputChange(value) {
     onAddressChange(value);
+    // §41-45: digitare a mano invalida la verifica precedente — il civico
+    // e le coordinate mostrati al checkout devono venire solo da una
+    // selezione autocomplete fresca, mai da testo libero.
+    onAddressDetailsChange(null);
     setGeofenceStatus(null);
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => fetchSuggestions(value), 300);
@@ -1096,13 +1087,15 @@ function FulfillmentSelector({
 
   async function handleSelectSuggestion(suggestion) {
     const place = suggestion.placePrediction.toPlace();
-    await place.fetchFields({ fields: ["formattedAddress", "location"] });
+    await place.fetchFields({
+      fields: ["formattedAddress", "location", "addressComponents"],
+    });
 
     onAddressChange(place.formattedAddress ?? "");
     setSuggestions([]);
     sessionTokenRef.current = null;
 
-    if (place.location && geofence) {
+    if (place.location) {
       const lat =
         typeof place.location.lat === "function"
           ? place.location.lat()
@@ -1111,8 +1104,20 @@ function FulfillmentSelector({
         typeof place.location.lng === "function"
           ? place.location.lng()
           : place.location.lng;
-      const inside = isPointInPolygon([lng, lat], geofence);
-      setGeofenceStatus(inside ? "inside" : "outside");
+
+      const civico =
+        (place.addressComponents ?? []).find((component) =>
+          component.types?.includes("street_number")
+        )?.longText ?? "";
+
+      onAddressDetailsChange({ civico, lat, lng });
+
+      if (geofence) {
+        const inside = isPointInPolygon([lng, lat], geofence);
+        setGeofenceStatus(inside ? "inside" : "outside");
+      }
+    } else {
+      onAddressDetailsChange(null);
     }
   }
 
@@ -1639,11 +1644,14 @@ function CheckoutScreen({
   items,
   fulfillmentMode,
   address,
+  civico,
+  coords,
   timingType,
   scheduledDay,
   giveMeFiveApplied,
   birreProducts,
   onBack,
+  onChangeAddress,
 }) {
   const isDelivery = fulfillmentMode === "delivery";
   const hasBeer = items.some((item) =>
@@ -1651,8 +1659,6 @@ function CheckoutScreen({
   );
 
   const [deliveryDetails, setDeliveryDetails] = useState({
-    address: "",
-    houseNumber: "",
     intercom: "",
     floorInterior: "",
     buildingStaircase: "",
@@ -1693,9 +1699,7 @@ function CheckoutScreen({
     customerDetails.lastName.trim() !== "" &&
     customerDetails.phone.trim() !== "" &&
     privacyAccepted &&
-    (!isDelivery ||
-      (deliveryDetails.address.trim() !== "" &&
-        deliveryDetails.houseNumber.trim() !== "")) &&
+    (!isDelivery || (address.trim() !== "" && civico.trim() !== "" && coords)) &&
     (!hasBeer || ageConfirmed);
 
   async function handlePay() {
@@ -1710,8 +1714,10 @@ function CheckoutScreen({
           fulfillment: fulfillmentMode,
           delivery: isDelivery
             ? {
-                address: deliveryDetails.address,
-                houseNumber: deliveryDetails.houseNumber,
+                address,
+                houseNumber: civico,
+                latitude: coords?.lat,
+                longitude: coords?.lng,
                 intercom: deliveryDetails.intercom,
                 floorInterior: deliveryDetails.floorInterior,
                 buildingStaircase: deliveryDetails.buildingStaircase,
@@ -1836,21 +1842,39 @@ function CheckoutScreen({
         {isDelivery && (
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             <span style={sectionTitleStyle}>Dati delivery</span>
-            {/* Nessun campo coordinate: uso interno/geocoding, non compilato dal cliente */}
+            {/* §41-45: indirizzo e civico sono già verificati (autocomplete +
+                geofence) in FulfillmentSelector — qui solo in sola lettura,
+                mai riscrivibili a mano al checkout. */}
             <input
               type="text"
               placeholder="Indirizzo"
-              value={deliveryDetails.address}
-              onChange={(event) => updateDeliveryField("address", event.target.value)}
-              style={fieldStyle}
+              value={address}
+              readOnly
+              style={{ ...fieldStyle, background: "var(--bg-warm)", color: "var(--text-on-dark)" }}
             />
             <input
               type="text"
               placeholder="Civico"
-              value={deliveryDetails.houseNumber}
-              onChange={(event) => updateDeliveryField("houseNumber", event.target.value)}
-              style={fieldStyle}
+              value={civico}
+              readOnly
+              style={{ ...fieldStyle, background: "var(--bg-warm)", color: "var(--text-on-dark)" }}
             />
+            <button
+              type="button"
+              onClick={onChangeAddress}
+              style={{
+                alignSelf: "flex-start",
+                background: "none",
+                border: "none",
+                color: "var(--brand-orange)",
+                fontWeight: 600,
+                fontSize: 13,
+                cursor: "pointer",
+                padding: 0,
+              }}
+            >
+              Cambia indirizzo
+            </button>
             <input
               type="text"
               placeholder="Citofono"
@@ -2017,6 +2041,7 @@ export default function Home() {
   const [cartItems, setCartItems] = useState([]);
   const [fulfillmentMode, setFulfillmentMode] = useState("delivery");
   const [deliveryAddress, setDeliveryAddress] = useState("");
+  const [deliveryAddressDetails, setDeliveryAddressDetails] = useState(null);
   const [timingType, setTimingType] = useState("asap");
   const [scheduledDay, setScheduledDay] = useState("today");
   const [cartOpen, setCartOpen] = useState(false);
@@ -2159,6 +2184,12 @@ export default function Home() {
           items={cartItems}
           fulfillmentMode={fulfillmentMode}
           address={deliveryAddress}
+          civico={deliveryAddressDetails?.civico ?? ""}
+          coords={
+            deliveryAddressDetails
+              ? { lat: deliveryAddressDetails.lat, lng: deliveryAddressDetails.lng }
+              : null
+          }
           timingType={timingType}
           scheduledDay={scheduledDay}
           giveMeFiveApplied={giveMeFiveApplied}
@@ -2166,6 +2197,10 @@ export default function Home() {
           onBack={() => {
             setCheckoutOpen(false);
             setCartOpen(true);
+          }}
+          onChangeAddress={() => {
+            setCheckoutOpen(false);
+            setCartOpen(false);
           }}
         />
       ) : cartOpen ? (
@@ -2200,6 +2235,7 @@ export default function Home() {
             onModeChange={setFulfillmentMode}
             address={deliveryAddress}
             onAddressChange={setDeliveryAddress}
+            onAddressDetailsChange={setDeliveryAddressDetails}
             timingType={timingType}
             onTimingTypeChange={setTimingType}
             scheduledDay={scheduledDay}
