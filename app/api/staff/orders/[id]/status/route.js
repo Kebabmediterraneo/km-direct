@@ -3,13 +3,16 @@ import { supabaseAdmin } from "../../../../../../lib/supabase-admin";
 import { requireStaffSession } from "../../../../../../lib/require-staff-session";
 
 // §54: stato ordine (cucina) e stato consegna (rider) separati — questa
-// route avanza solo lo stato ordine. "Pronto" ha senso solo per Ritiro,
-// "Consegnato al rider" solo per Delivery: qui niente integrazione Glovo
-// reale, solo cambio di stato manuale (§57-61, fase 1).
+// route avanza solo lo stato ordine. Da "pronto" in poi i due fulfillment
+// divergono verso stati finali esclusivi ed escludenti: "ritirato" solo
+// per Ritiro, "consegnato_al_rider" solo per Delivery, mai mescolati
+// (§52-56). Niente integrazione Glovo reale, solo cambio di stato manuale
+// (§57-61, fase 1).
 const ALLOWED_TRANSITIONS = {
   nuovo: ["in_preparazione"],
-  in_preparazione: {
-    pickup: ["pronto"],
+  in_preparazione: ["pronto"],
+  pronto: {
+    pickup: ["ritirato"],
     delivery: ["consegnato_al_rider"],
   },
 };

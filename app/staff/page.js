@@ -1,13 +1,29 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { createSupabaseBrowserClient } from "../../lib/supabase-browser";
 
 const POLL_INTERVAL_MS = 12000;
 
+const SECTIONS = [
+  { key: "nuovi", label: "Nuovi" },
+  { key: "attivi", label: "Attivi" },
+  { key: "storico", label: "Storico" },
+];
+
 const FULFILLMENT_LABEL = {
   delivery: "Delivery",
   pickup: "Ritiro",
+};
+
+const STATUS_LABEL = {
+  nuovo: "Nuovo",
+  in_preparazione: "In preparazione",
+  pronto: "Pronto",
+  ritirato: "Ritirato",
+  consegnato_al_rider: "Consegnato al rider",
+  problema: "Problema",
+  annullato: "Annullato",
 };
 
 function formatPrice(value) {
@@ -20,6 +36,24 @@ function formatTime(isoString) {
     hour: "2-digit",
     minute: "2-digit",
   });
+}
+
+// §54: da "pronto" in poi Ritiro e Delivery divergono verso stati finali
+// esclusivi — mai mostrare l'azione dell'altro fulfillment (§52-56).
+function getNextAction(order) {
+  if (order.status === "nuovo") {
+    return { label: "Segna in preparazione", nextStatus: "in_preparazione" };
+  }
+  if (order.status === "in_preparazione") {
+    return { label: "Segna pronto", nextStatus: "pronto" };
+  }
+  if (order.status === "pronto" && order.fulfillment === "pickup") {
+    return { label: "Segna ritirato", nextStatus: "ritirato" };
+  }
+  if (order.status === "pronto" && order.fulfillment === "delivery") {
+    return { label: "Segna consegnato al rider", nextStatus: "consegnato_al_rider" };
+  }
+  return null;
 }
 
 // §56: le modifiche rispetto agli ingredienti standard devono risaltare,
@@ -98,10 +132,12 @@ function OrderCard({ order, onAdvance }) {
   const customerName = customer
     ? `${customer.first_name} ${customer.last_name}`
     : "Cliente sconosciuto";
+  const action = getNextAction(order);
 
   async function handleAdvance() {
+    if (!action) return;
     setIsAdvancing(true);
-    await onAdvance(order.id, "in_preparazione");
+    await onAdvance(order.id, action.nextStatus);
     setIsAdvancing(false);
   }
 
@@ -123,7 +159,8 @@ function OrderCard({ order, onAdvance }) {
             {order.pickup_code}
           </span>
           <span style={{ fontSize: 13, color: "var(--text-on-dark)" }}>
-            {formatTime(order.created_at)} · {FULFILLMENT_LABEL[order.fulfillment] ?? order.fulfillment}
+            {formatTime(order.created_at)} · {FULFILLMENT_LABEL[order.fulfillment] ?? order.fulfillment} ·{" "}
+            {STATUS_LABEL[order.status] ?? order.status}
           </span>
         </div>
         <span style={{ fontWeight: 700, fontSize: 16, color: "var(--navy)" }}>
@@ -142,37 +179,76 @@ function OrderCard({ order, onAdvance }) {
         ))}
       </div>
 
-      <button
-        onClick={handleAdvance}
-        disabled={isAdvancing}
-        style={{
-          alignSelf: "flex-start",
-          marginTop: 4,
-          background: "var(--brand-orange)",
-          color: "var(--bg-warm)",
-          border: "none",
-          borderRadius: 8,
-          padding: "8px 16px",
-          fontWeight: 600,
-          fontSize: 13,
-          cursor: isAdvancing ? "not-allowed" : "pointer",
-        }}
-      >
-        {isAdvancing ? "Aggiornamento…" : "Segna in preparazione"}
-      </button>
+      {action && (
+        <button
+          onClick={handleAdvance}
+          disabled={isAdvancing}
+          style={{
+            alignSelf: "flex-start",
+            marginTop: 4,
+            background: "var(--brand-orange)",
+            color: "var(--bg-warm)",
+            border: "none",
+            borderRadius: 8,
+            padding: "8px 16px",
+            fontWeight: 600,
+            fontSize: 13,
+            cursor: isAdvancing ? "not-allowed" : "pointer",
+          }}
+        >
+          {isAdvancing ? "Aggiornamento…" : action.label}
+        </button>
+      )}
+    </div>
+  );
+}
+
+// §52-56: Storico è sola lettura, forma compatta — non serve la stessa
+// profondità operativa delle sezioni attive (niente elenco articoli).
+function HistoryRow({ order }) {
+  const customer = order.customers;
+  const customerName = customer
+    ? `${customer.first_name} ${customer.last_name}`
+    : "Cliente sconosciuto";
+
+  return (
+    <div
+      style={{
+        background: "var(--surface-white)",
+        border: "1px solid var(--card-border)",
+        borderRadius: 10,
+        padding: "10px 14px",
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        gap: 12,
+      }}
+    >
+      <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+        <span style={{ fontWeight: 700, fontSize: 14, color: "var(--navy)" }}>
+          {order.pickup_code} · {customerName}
+        </span>
+        <span style={{ fontSize: 12, color: "var(--text-on-dark)" }}>
+          {formatTime(order.created_at)} · {FULFILLMENT_LABEL[order.fulfillment] ?? order.fulfillment} ·{" "}
+          {STATUS_LABEL[order.status] ?? order.status}
+        </span>
+      </div>
+      <span style={{ fontWeight: 700, fontSize: 14, color: "var(--navy)" }}>
+        {formatPrice(order.total)}
+      </span>
     </div>
   );
 }
 
 export default function StaffDashboardPage() {
+  const [activeSection, setActiveSection] = useState("nuovi");
   const [orders, setOrders] = useState([]);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
-  const pollRef = useRef(null);
 
-  async function fetchOrders() {
+  async function fetchOrders(section) {
     try {
-      const response = await fetch("/api/staff/orders");
+      const response = await fetch(`/api/staff/orders?section=${section}`);
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Errore nel caricamento ordini.");
       setOrders(data.orders ?? []);
@@ -185,10 +261,11 @@ export default function StaffDashboardPage() {
   }
 
   useEffect(() => {
-    fetchOrders();
-    pollRef.current = setInterval(fetchOrders, POLL_INTERVAL_MS);
-    return () => clearInterval(pollRef.current);
-  }, []);
+    setLoading(true);
+    fetchOrders(activeSection);
+    const interval = setInterval(() => fetchOrders(activeSection), POLL_INTERVAL_MS);
+    return () => clearInterval(interval);
+  }, [activeSection]);
 
   async function handleAdvance(orderId, nextStatus) {
     try {
@@ -199,7 +276,7 @@ export default function StaffDashboardPage() {
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Errore nell'aggiornamento.");
-      await fetchOrders();
+      await fetchOrders(activeSection);
     } catch (err) {
       setError(err.message);
     }
@@ -211,11 +288,17 @@ export default function StaffDashboardPage() {
     window.location.href = "/staff/login";
   }
 
+  const emptyLabel = {
+    nuovi: "Nessun nuovo ordine.",
+    attivi: "Nessun ordine attivo.",
+    storico: "Nessun ordine nello storico.",
+  }[activeSection];
+
   return (
     <main style={{ maxWidth: 700, margin: "0 auto", padding: "24px 20px" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
         <h1 style={{ fontWeight: 800, fontSize: 28, color: "var(--brand-orange)", margin: 0 }}>
-          Nuovi ordini
+          Ordini
         </h1>
         <button
           onClick={handleLogout}
@@ -234,6 +317,31 @@ export default function StaffDashboardPage() {
         </button>
       </div>
 
+      <nav style={{ display: "flex", gap: 8, marginBottom: 20 }}>
+        {SECTIONS.map((section) => {
+          const isActive = section.key === activeSection;
+          return (
+            <button
+              key={section.key}
+              onClick={() => setActiveSection(section.key)}
+              style={{
+                padding: "8px 14px",
+                borderRadius: 10,
+                border: "1.5px solid var(--brand-orange)",
+                background: isActive ? "var(--brand-orange)" : "transparent",
+                color: isActive ? "var(--bg-warm)" : "var(--brand-orange)",
+                fontWeight: 600,
+                fontSize: 13,
+                fontFamily: "inherit",
+                cursor: "pointer",
+              }}
+            >
+              {section.label}
+            </button>
+          );
+        })}
+      </nav>
+
       {error && (
         <p style={{ fontSize: 14, color: "#C0392B", marginBottom: 16 }}>{error}</p>
       )}
@@ -241,7 +349,13 @@ export default function StaffDashboardPage() {
       {loading ? (
         <p style={{ fontSize: 14, color: "var(--text-on-dark)" }}>Caricamento…</p>
       ) : orders.length === 0 ? (
-        <p style={{ fontSize: 14, color: "var(--text-on-dark)" }}>Nessun nuovo ordine.</p>
+        <p style={{ fontSize: 14, color: "var(--text-on-dark)" }}>{emptyLabel}</p>
+      ) : activeSection === "storico" ? (
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {orders.map((order) => (
+            <HistoryRow key={order.id} order={order} />
+          ))}
+        </div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           {orders.map((order) => (

@@ -29,8 +29,11 @@ create type product_category as enum (
   'roll', 'bowl', 'menu_combo', 'fritti', 'sides', 'salse', 'dolci', 'drink', 'birre'
 );
 
+-- 'ritirato' è lo stato finale esclusivo del Ritiro (raggiungibile solo da
+-- ordini con fulfillment='pickup'), parallelo a 'consegnato_al_rider' che
+-- resta esclusivo della Delivery — mai mescolati (§52-56, correzione spec).
 create type order_status as enum (
-  'nuovo', 'in_preparazione', 'pronto', 'consegnato_al_rider', 'problema', 'annullato'
+  'nuovo', 'in_preparazione', 'pronto', 'ritirato', 'consegnato_al_rider', 'problema', 'annullato'
 );
 
 -- Rilevante solo per ordini Delivery. Per Ritiro lo stato "delivery" resta NULL.
