@@ -321,6 +321,23 @@ coordinate — mai un unico campo disordinato. Privacy: checkbox obbligatoria.
 Marketing: checkbox facoltativa, non preselezionata, salvando sì/no +
 timestamp + versione testo.
 
+**Correzione di integrità (trovata dopo l'MVP iniziale, vincolante)**:
+indirizzo e civico mostrati al checkout devono essere quelli GIÀ
+verificati con la geofence nel selettore Delivery (§9-10) — **sola
+lettura, non un campo libero riscrivibile**. Solo citofono, piano/interno,
+edificio/scala e note rider restano campi liberi al checkout (non
+influenzano la posizione geografica, quindi non serve verificarli).
+
+Se il cliente vuole un indirizzo diverso, deve tornare al selettore
+indirizzo iniziale e rifare la verifica — non può aggirarla scrivendo un
+indirizzo diverso direttamente al checkout.
+
+In aggiunta, coerentemente col principio del §46 ("mai fidarsi del
+browser"): la route server-side che crea l'ordine deve ri-verificare essa
+stessa che le coordinate dell'indirizzo usato ricadano nella geofence,
+non limitarsi a fidarsi del fatto che il client abbia già mostrato
+"Perfetto, arriviamo fin qui" in una fase precedente.
+
 ## 46. Pagamento
 
 Stripe. Regole non negoziabili: prezzo ricalcolato server-side (mai fidarsi
@@ -341,12 +358,24 @@ irrisolti.
 
 Navigazione: Ordini, Storico, Menu, Impostazioni. Dashboard: Nuovi / Attivi
 / Storico. Stati separati: stato ordine (Nuovo, In preparazione, Pronto,
-Consegnato al rider, Problema, Annullato) e stato consegna (Da richiedere,
-Rider richiesto, Problema rider, Consegnato al rider) — cucina e rider
-procedono in parallelo. Alert nuovo ordine: suono + persistente, idealmente
-anche WhatsApp a `staff_notification_phone` configurabile. Vista cucina:
-modifiche (rimozioni, "SENZA HUMMUS", "NON PICCANTE") visivamente forti,
-non annegate tra gli ingredienti standard.
+Consegnato al rider, Ritirato, Problema, Annullato) e stato consegna (Da
+richiedere, Rider richiesto, Problema rider, Consegnato al rider) — cucina
+e rider procedono in parallelo.
+
+**Correzione schema (trovata dopo l'MVP iniziale, vincolante)**: l'enum
+`order_status` del database inizialmente non prevedeva uno stato finale
+per il Ritiro — solo `consegnato_al_rider` per la Delivery. Aggiunto
+`ritirato` come stato finale equivalente, esclusivo del Ritiro. Regola
+ferrea: `ritirato` è raggiungibile SOLO da ordini con fulfillment=pickup,
+`consegnato_al_rider` SOLO da ordini con fulfillment=delivery — mai
+mescolati, né nell'enum né nella UI del pannello (che deve mostrare solo
+l'azione di stato pertinente alla modalità dell'ordine, come già avviene
+per la transizione `pronto`/`consegnato_al_rider`).
+
+Alert nuovo ordine: suono + persistente, idealmente anche WhatsApp a
+`staff_notification_phone` configurabile. Vista cucina: modifiche
+(rimozioni, "SENZA HUMMUS", "NON PICCANTE") visivamente forti, non
+annegate tra gli ingredienti standard.
 
 ## 57-61. Glovo On-Demand (fase 1, manuale)
 
