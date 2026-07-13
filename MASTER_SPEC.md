@@ -377,6 +377,18 @@ Alert nuovo ordine: suono + persistente, idealmente anche WhatsApp a
 (rimozioni, "SENZA HUMMUS", "NON PICCANTE") visivamente forti, non
 annegate tra gli ingredienti standard.
 
+**Decisione operativa (presa dopo l'MVP iniziale, vincolante)**: ogni
+avanzamento di stato ordine deve poter essere annullato con un'azione
+"Torna indietro", che riporta allo stato immediatamente precedente
+(`in_preparazione`→`nuovo`, `pronto`→`in_preparazione`,
+`ritirato`→`pronto` solo Ritiro, `consegnato_al_rider`→`pronto` solo
+Delivery) — un click sbagliato al banco è normale ed è meglio poterlo
+correggere subito dal pannello che dover intervenire a mano sul database.
+Ogni "torna indietro" va comunque registrato in `order_status_history`
+(stesso audit trail degli avanzamenti, §66), così resta tracciabile anche
+l'inversione. Non si applica a `problema`/`annullato`, che restano gestiti
+da un flusso dedicato non ancora costruito (§65).
+
 ## 57-61. Glovo On-Demand (fase 1, manuale)
 
 Sezione "Dati per la consegna" nel pannello con pulsanti copia singoli
