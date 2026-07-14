@@ -56,6 +56,25 @@ function getNextAction(order) {
   return null;
 }
 
+// §52-56, decisione operativa: ogni avanzamento è annullabile verso lo
+// stato immediatamente precedente — non si applica a "nuovo" (niente
+// prima) né a problema/annullato (flusso dedicato non ancora costruito).
+function getPreviousAction(order) {
+  if (order.status === "in_preparazione") {
+    return { label: "Torna indietro", prevStatus: "nuovo" };
+  }
+  if (order.status === "pronto") {
+    return { label: "Torna indietro", prevStatus: "in_preparazione" };
+  }
+  if (order.status === "ritirato" && order.fulfillment === "pickup") {
+    return { label: "Torna indietro", prevStatus: "pronto" };
+  }
+  if (order.status === "consegnato_al_rider" && order.fulfillment === "delivery") {
+    return { label: "Torna indietro", prevStatus: "pronto" };
+  }
+  return null;
+}
+
 // §56: le modifiche rispetto agli ingredienti standard devono risaltare,
 // non annegare nel resto — qui separate dalle info di configurazione
 // "normali" (proteina scelta, accompagnamento, contorno, drink).
@@ -126,19 +145,19 @@ function OrderItemRow({ item }) {
   );
 }
 
-function OrderCard({ order, onAdvance }) {
-  const [isAdvancing, setIsAdvancing] = useState(false);
+function OrderCard({ order, onChangeStatus }) {
+  const [isUpdating, setIsUpdating] = useState(false);
   const customer = order.customers;
   const customerName = customer
     ? `${customer.first_name} ${customer.last_name}`
     : "Cliente sconosciuto";
-  const action = getNextAction(order);
+  const nextAction = getNextAction(order);
+  const previousAction = getPreviousAction(order);
 
-  async function handleAdvance() {
-    if (!action) return;
-    setIsAdvancing(true);
-    await onAdvance(order.id, action.nextStatus);
-    setIsAdvancing(false);
+  async function handleChange(status) {
+    setIsUpdating(true);
+    await onChangeStatus(order.id, status);
+    setIsUpdating(false);
   }
 
   return (
@@ -179,25 +198,45 @@ function OrderCard({ order, onAdvance }) {
         ))}
       </div>
 
-      {action && (
-        <button
-          onClick={handleAdvance}
-          disabled={isAdvancing}
-          style={{
-            alignSelf: "flex-start",
-            marginTop: 4,
-            background: "var(--brand-orange)",
-            color: "var(--bg-warm)",
-            border: "none",
-            borderRadius: 8,
-            padding: "8px 16px",
-            fontWeight: 600,
-            fontSize: 13,
-            cursor: isAdvancing ? "not-allowed" : "pointer",
-          }}
-        >
-          {isAdvancing ? "Aggiornamento…" : action.label}
-        </button>
+      {(nextAction || previousAction) && (
+        <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
+          {previousAction && (
+            <button
+              onClick={() => handleChange(previousAction.prevStatus)}
+              disabled={isUpdating}
+              style={{
+                background: "none",
+                color: "var(--navy)",
+                border: "1px solid var(--card-border)",
+                borderRadius: 8,
+                padding: "8px 16px",
+                fontWeight: 600,
+                fontSize: 13,
+                cursor: isUpdating ? "not-allowed" : "pointer",
+              }}
+            >
+              {previousAction.label}
+            </button>
+          )}
+          {nextAction && (
+            <button
+              onClick={() => handleChange(nextAction.nextStatus)}
+              disabled={isUpdating}
+              style={{
+                background: "var(--brand-orange)",
+                color: "var(--bg-warm)",
+                border: "none",
+                borderRadius: 8,
+                padding: "8px 16px",
+                fontWeight: 600,
+                fontSize: 13,
+                cursor: isUpdating ? "not-allowed" : "pointer",
+              }}
+            >
+              {isUpdating ? "Aggiornamento…" : nextAction.label}
+            </button>
+          )}
+        </div>
       )}
     </div>
   );
@@ -205,11 +244,22 @@ function OrderCard({ order, onAdvance }) {
 
 // §52-56: Storico è sola lettura, forma compatta — non serve la stessa
 // profondità operativa delle sezioni attive (niente elenco articoli).
-function HistoryRow({ order }) {
+// Unica azione ammessa: "Torna indietro" per ritirato/consegnato_al_rider
+// (mai per problema/annullato, §52-56 decisione operativa).
+function HistoryRow({ order, onChangeStatus }) {
+  const [isUpdating, setIsUpdating] = useState(false);
   const customer = order.customers;
   const customerName = customer
     ? `${customer.first_name} ${customer.last_name}`
     : "Cliente sconosciuto";
+  const previousAction = getPreviousAction(order);
+
+  async function handleChange() {
+    if (!previousAction) return;
+    setIsUpdating(true);
+    await onChangeStatus(order.id, previousAction.prevStatus);
+    setIsUpdating(false);
+  }
 
   return (
     <div
@@ -233,9 +283,30 @@ function HistoryRow({ order }) {
           {STATUS_LABEL[order.status] ?? order.status}
         </span>
       </div>
-      <span style={{ fontWeight: 700, fontSize: 14, color: "var(--navy)" }}>
-        {formatPrice(order.total)}
-      </span>
+      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        {previousAction && (
+          <button
+            onClick={handleChange}
+            disabled={isUpdating}
+            style={{
+              background: "none",
+              color: "var(--navy)",
+              border: "1px solid var(--card-border)",
+              borderRadius: 8,
+              padding: "6px 12px",
+              fontWeight: 600,
+              fontSize: 12,
+              cursor: isUpdating ? "not-allowed" : "pointer",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {isUpdating ? "…" : previousAction.label}
+          </button>
+        )}
+        <span style={{ fontWeight: 700, fontSize: 14, color: "var(--navy)" }}>
+          {formatPrice(order.total)}
+        </span>
+      </div>
     </div>
   );
 }
@@ -267,12 +338,12 @@ export default function StaffDashboardPage() {
     return () => clearInterval(interval);
   }, [activeSection]);
 
-  async function handleAdvance(orderId, nextStatus) {
+  async function handleChangeStatus(orderId, status) {
     try {
       const response = await fetch(`/api/staff/orders/${orderId}/status`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: nextStatus }),
+        body: JSON.stringify({ status }),
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Errore nell'aggiornamento.");
@@ -353,13 +424,13 @@ export default function StaffDashboardPage() {
       ) : activeSection === "storico" ? (
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {orders.map((order) => (
-            <HistoryRow key={order.id} order={order} />
+            <HistoryRow key={order.id} order={order} onChangeStatus={handleChangeStatus} />
           ))}
         </div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           {orders.map((order) => (
-            <OrderCard key={order.id} order={order} onAdvance={handleAdvance} />
+            <OrderCard key={order.id} order={order} onChangeStatus={handleChangeStatus} />
           ))}
         </div>
       )}

@@ -3,12 +3,12 @@ import { supabaseAdmin } from "../../../../../../lib/supabase-admin";
 import { requireStaffSession } from "../../../../../../lib/require-staff-session";
 
 // §54: stato ordine (cucina) e stato consegna (rider) separati — questa
-// route avanza solo lo stato ordine. Da "pronto" in poi i due fulfillment
+// route cambia solo lo stato ordine. Da "pronto" in poi i due fulfillment
 // divergono verso stati finali esclusivi ed escludenti: "ritirato" solo
 // per Ritiro, "consegnato_al_rider" solo per Delivery, mai mescolati
 // (§52-56). Niente integrazione Glovo reale, solo cambio di stato manuale
 // (§57-61, fase 1).
-const ALLOWED_TRANSITIONS = {
+const FORWARD_TRANSITIONS = {
   nuovo: ["in_preparazione"],
   in_preparazione: ["pronto"],
   pronto: {
@@ -16,6 +16,26 @@ const ALLOWED_TRANSITIONS = {
     delivery: ["consegnato_al_rider"],
   },
 };
+
+// §52-56, decisione operativa: ogni avanzamento è annullabile con "Torna
+// indietro", verso lo stato immediatamente precedente. Non si applica a
+// problema/annullato (assenti qui apposta), gestiti da un flusso dedicato
+// non ancora costruito.
+const BACKWARD_TRANSITIONS = {
+  in_preparazione: { pickup: "nuovo", delivery: "nuovo" },
+  pronto: { pickup: "in_preparazione", delivery: "in_preparazione" },
+  ritirato: { pickup: "pronto" },
+  consegnato_al_rider: { delivery: "pronto" },
+};
+
+function isValidTransition(currentStatus, fulfillment, nextStatus) {
+  const forwardAllowed = FORWARD_TRANSITIONS[currentStatus];
+  const forwardList = Array.isArray(forwardAllowed) ? forwardAllowed : forwardAllowed?.[fulfillment];
+  if (forwardList?.includes(nextStatus)) return true;
+
+  const backwardTarget = BACKWARD_TRANSITIONS[currentStatus]?.[fulfillment];
+  return backwardTarget === nextStatus;
+}
 
 export async function POST(request, { params }) {
   const { user, errorResponse } = await requireStaffSession();
@@ -35,12 +55,7 @@ export async function POST(request, { params }) {
     return NextResponse.json({ error: "Ordine non trovato." }, { status: 404 });
   }
 
-  const allowedFromCurrent = ALLOWED_TRANSITIONS[order.status];
-  const allowedNext = Array.isArray(allowedFromCurrent)
-    ? allowedFromCurrent
-    : allowedFromCurrent?.[order.fulfillment];
-
-  if (!allowedNext || !allowedNext.includes(nextStatus)) {
+  if (!isValidTransition(order.status, order.fulfillment, nextStatus)) {
     return NextResponse.json(
       { error: `Transizione di stato non valida (${order.status} → ${nextStatus}).` },
       { status: 400 }
