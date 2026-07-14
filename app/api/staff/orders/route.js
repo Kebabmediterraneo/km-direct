@@ -7,12 +7,14 @@ export const dynamic = "force-dynamic";
 // §53: le tre sezioni della dashboard, come insiemi di status ordine.
 // Nuovi/Attivi sono operative (le più recenti prima, da lavorare in
 // ordine); Storico è sola lettura (le più recenti prima, limitate: non
-// serve la stessa profondità operativa, §52-56).
+// serve la stessa profondità operativa, §52-56). "problema" resta in
+// Attivi (non è concluso, va ancora risolto o annullato, §62b) — solo
+// "annullato" e i due stati finali normali vanno in Storico.
 const SECTIONS = {
   nuovi: { statuses: ["nuovo"], ascending: true },
-  attivi: { statuses: ["in_preparazione", "pronto"], ascending: true },
+  attivi: { statuses: ["in_preparazione", "pronto", "problema"], ascending: true },
   storico: {
-    statuses: ["ritirato", "consegnato_al_rider", "problema", "annullato"],
+    statuses: ["ritirato", "consegnato_al_rider", "annullato"],
     ascending: false,
     limit: 50,
   },
@@ -31,7 +33,7 @@ export async function GET(request) {
   let query = supabaseAdmin
     .from("orders")
     .select(
-      "id, pickup_code, status, fulfillment, total, created_at, customers(first_name, last_name, phone), order_items(product_name_snapshot, category_snapshot, quantity, unit_price_snapshot, line_total, is_combo, configuration)"
+      "id, pickup_code, status, fulfillment, total, payment_status, coupon_code, created_at, customers(first_name, last_name, phone), order_items(product_name_snapshot, category_snapshot, quantity, unit_price_snapshot, line_total, is_combo, configuration)"
     )
     .in("status", config.statuses)
     .order("created_at", { ascending: config.ascending });

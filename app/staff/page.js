@@ -124,6 +124,76 @@ function getNormalDetails(configuration) {
   return details;
 }
 
+// §62b: form inline riusato sia per "Segnala problema" sia per "Annulla
+// ordine" — in entrambi i casi il motivo (testo libero) è obbligatorio.
+function ReasonForm({ label, placeholder, isSubmitting, onSubmit, onCancel }) {
+  const [reason, setReason] = useState("");
+
+  function handleSubmit(event) {
+    event.preventDefault();
+    const trimmed = reason.trim();
+    if (!trimmed) return;
+    onSubmit(trimmed);
+  }
+
+  return (
+    <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 4 }}>
+      <textarea
+        value={reason}
+        onChange={(event) => setReason(event.target.value)}
+        placeholder={placeholder}
+        required
+        rows={2}
+        style={{
+          padding: "8px 10px",
+          borderRadius: 8,
+          border: "1px solid var(--card-border)",
+          background: "var(--surface-white)",
+          color: "var(--navy)",
+          fontSize: 13,
+          fontFamily: "inherit",
+          resize: "vertical",
+        }}
+      />
+      <div style={{ display: "flex", gap: 8 }}>
+        <button
+          type="submit"
+          disabled={isSubmitting || !reason.trim()}
+          style={{
+            background: "var(--brand-orange)",
+            color: "var(--bg-warm)",
+            border: "none",
+            borderRadius: 8,
+            padding: "8px 16px",
+            fontWeight: 600,
+            fontSize: 13,
+            cursor: isSubmitting || !reason.trim() ? "not-allowed" : "pointer",
+          }}
+        >
+          {isSubmitting ? "Invio…" : label}
+        </button>
+        <button
+          type="button"
+          onClick={onCancel}
+          disabled={isSubmitting}
+          style={{
+            background: "none",
+            color: "var(--navy)",
+            border: "1px solid var(--card-border)",
+            borderRadius: 8,
+            padding: "8px 16px",
+            fontWeight: 600,
+            fontSize: 13,
+            cursor: isSubmitting ? "not-allowed" : "pointer",
+          }}
+        >
+          Annulla
+        </button>
+      </div>
+    </form>
+  );
+}
+
 function OrderItemRow({ item }) {
   const strongModifications = getStrongModifications(item.configuration);
   const normalDetails = getNormalDetails(item.configuration);
@@ -160,19 +230,44 @@ function OrderItemRow({ item }) {
   );
 }
 
-function OrderCard({ order, onChangeStatus }) {
+function OrderCard({ order, onChangeStatus, onReportProblem, onResolve, onCancelOrder }) {
   const [isUpdating, setIsUpdating] = useState(false);
+  const [activeForm, setActiveForm] = useState(null); // null | "problema" | "annulla"
   const customer = order.customers;
   const customerName = customer
     ? `${customer.first_name} ${customer.last_name}`
     : "Cliente sconosciuto";
   const nextAction = getNextAction(order);
   const previousAction = getPreviousAction(order);
+  const isProblem = order.status === "problema";
+  // §62b: "Segnala problema" ha senso solo su un ordine ancora attivo e non
+  // già segnalato — da "problema" si passa a Risolvi/Annulla, non di nuovo qui.
+  const canReportProblem = ["nuovo", "in_preparazione", "pronto"].includes(order.status);
 
   async function handleChange(status) {
     setIsUpdating(true);
     await onChangeStatus(order.id, status);
     setIsUpdating(false);
+  }
+
+  async function handleResolveClick() {
+    setIsUpdating(true);
+    await onResolve(order.id);
+    setIsUpdating(false);
+  }
+
+  async function handleReportSubmit(reason) {
+    setIsUpdating(true);
+    await onReportProblem(order.id, reason);
+    setIsUpdating(false);
+    setActiveForm(null);
+  }
+
+  async function handleCancelSubmit(reason) {
+    setIsUpdating(true);
+    await onCancelOrder(order.id, reason);
+    setIsUpdating(false);
+    setActiveForm(null);
   }
 
   return (
@@ -213,11 +308,11 @@ function OrderCard({ order, onChangeStatus }) {
         ))}
       </div>
 
-      {(nextAction || previousAction) && (
-        <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
-          {previousAction && (
+      {isProblem ? (
+        <>
+          <div style={{ display: "flex", gap: 8, marginTop: 4 }}>
             <button
-              onClick={() => handleChange(previousAction.prevStatus)}
+              onClick={handleResolveClick}
               disabled={isUpdating}
               style={{
                 background: "none",
@@ -230,16 +325,14 @@ function OrderCard({ order, onChangeStatus }) {
                 cursor: isUpdating ? "not-allowed" : "pointer",
               }}
             >
-              {previousAction.label}
+              {isUpdating ? "…" : "Risolvi"}
             </button>
-          )}
-          {nextAction && (
             <button
-              onClick={() => handleChange(nextAction.nextStatus)}
+              onClick={() => setActiveForm(activeForm === "annulla" ? null : "annulla")}
               disabled={isUpdating}
               style={{
-                background: "var(--brand-orange)",
-                color: "var(--bg-warm)",
+                background: "#B00020",
+                color: "#fff",
                 border: "none",
                 borderRadius: 8,
                 padding: "8px 16px",
@@ -248,10 +341,89 @@ function OrderCard({ order, onChangeStatus }) {
                 cursor: isUpdating ? "not-allowed" : "pointer",
               }}
             >
-              {isUpdating ? "Aggiornamento…" : nextAction.label}
+              Annulla ordine
             </button>
+          </div>
+          {activeForm === "annulla" && (
+            <ReasonForm
+              label="Conferma annullamento"
+              placeholder="Motivo dell'annullamento…"
+              isSubmitting={isUpdating}
+              onSubmit={handleCancelSubmit}
+              onCancel={() => setActiveForm(null)}
+            />
           )}
-        </div>
+        </>
+      ) : (
+        <>
+          {(nextAction || previousAction || canReportProblem) && (
+            <div style={{ display: "flex", gap: 8, marginTop: 4, flexWrap: "wrap" }}>
+              {previousAction && (
+                <button
+                  onClick={() => handleChange(previousAction.prevStatus)}
+                  disabled={isUpdating}
+                  style={{
+                    background: "none",
+                    color: "var(--navy)",
+                    border: "1px solid var(--card-border)",
+                    borderRadius: 8,
+                    padding: "8px 16px",
+                    fontWeight: 600,
+                    fontSize: 13,
+                    cursor: isUpdating ? "not-allowed" : "pointer",
+                  }}
+                >
+                  {previousAction.label}
+                </button>
+              )}
+              {nextAction && (
+                <button
+                  onClick={() => handleChange(nextAction.nextStatus)}
+                  disabled={isUpdating}
+                  style={{
+                    background: "var(--brand-orange)",
+                    color: "var(--bg-warm)",
+                    border: "none",
+                    borderRadius: 8,
+                    padding: "8px 16px",
+                    fontWeight: 600,
+                    fontSize: 13,
+                    cursor: isUpdating ? "not-allowed" : "pointer",
+                  }}
+                >
+                  {isUpdating ? "Aggiornamento…" : nextAction.label}
+                </button>
+              )}
+              {canReportProblem && (
+                <button
+                  onClick={() => setActiveForm(activeForm === "problema" ? null : "problema")}
+                  disabled={isUpdating}
+                  style={{
+                    background: "none",
+                    color: "#B00020",
+                    border: "1px solid #F1B0B0",
+                    borderRadius: 8,
+                    padding: "8px 16px",
+                    fontWeight: 600,
+                    fontSize: 13,
+                    cursor: isUpdating ? "not-allowed" : "pointer",
+                  }}
+                >
+                  Segnala problema
+                </button>
+              )}
+            </div>
+          )}
+          {activeForm === "problema" && (
+            <ReasonForm
+              label="Conferma segnalazione"
+              placeholder="Motivo del problema…"
+              isSubmitting={isUpdating}
+              onSubmit={handleReportSubmit}
+              onCancel={() => setActiveForm(null)}
+            />
+          )}
+        </>
       )}
     </div>
   );
@@ -268,6 +440,9 @@ function HistoryRow({ order, onChangeStatus }) {
     ? `${customer.first_name} ${customer.last_name}`
     : "Cliente sconosciuto";
   const previousAction = getPreviousAction(order);
+  // §62b: ordine annullato senza rimborso automatico (aveva già superato
+  // in_preparazione) — il pannello deve segnalarlo chiaramente.
+  const needsManualRefund = order.status === "annullato" && order.payment_status === "succeeded";
 
   async function handleChange() {
     if (!previousAction) return;
@@ -297,6 +472,23 @@ function HistoryRow({ order, onChangeStatus }) {
           {formatTime(order.created_at)} · {FULFILLMENT_LABEL[order.fulfillment] ?? order.fulfillment} ·{" "}
           {STATUS_LABEL[order.status] ?? order.status}
         </span>
+        {needsManualRefund && (
+          <span
+            style={{
+              alignSelf: "flex-start",
+              fontSize: 11,
+              fontWeight: 800,
+              color: "#B00020",
+              background: "#FCE8E8",
+              border: "1px solid #F1B0B0",
+              borderRadius: 6,
+              padding: "2px 8px",
+              marginTop: 2,
+            }}
+          >
+            Rimborso da gestire manualmente
+          </span>
+        )}
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
         {previousAction && (
@@ -506,6 +698,47 @@ export default function StaffDashboardPage() {
     }
   }
 
+  async function handleReportProblem(orderId, reason) {
+    try {
+      const response = await fetch(`/api/staff/orders/${orderId}/status`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: "problema", reason }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Errore nella segnalazione.");
+      await fetchOrders(activeSection);
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
+  async function handleResolve(orderId) {
+    try {
+      const response = await fetch(`/api/staff/orders/${orderId}/resolve`, { method: "POST" });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Errore nella risoluzione.");
+      await fetchOrders(activeSection);
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
+  async function handleCancelOrder(orderId, reason) {
+    try {
+      const response = await fetch(`/api/staff/orders/${orderId}/cancel`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reason }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Errore nell'annullamento.");
+      await fetchOrders(activeSection);
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
   async function handleLogout() {
     const supabase = createSupabaseBrowserClient();
     await supabase.auth.signOut();
@@ -585,7 +818,14 @@ export default function StaffDashboardPage() {
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           {orders.map((order) => (
-            <OrderCard key={order.id} order={order} onChangeStatus={handleChangeStatus} />
+            <OrderCard
+              key={order.id}
+              order={order}
+              onChangeStatus={handleChangeStatus}
+              onReportProblem={handleReportProblem}
+              onResolve={handleResolve}
+              onCancelOrder={handleCancelOrder}
+            />
           ))}
         </div>
       )}
