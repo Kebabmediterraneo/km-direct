@@ -372,11 +372,6 @@ mescolati, né nell'enum né nella UI del pannello (che deve mostrare solo
 l'azione di stato pertinente alla modalità dell'ordine, come già avviene
 per la transizione `pronto`/`consegnato_al_rider`).
 
-Alert nuovo ordine: suono + persistente, idealmente anche WhatsApp a
-`staff_notification_phone` configurabile. Vista cucina: modifiche
-(rimozioni, "SENZA HUMMUS", "NON PICCANTE") visivamente forti, non
-annegate tra gli ingredienti standard.
-
 **Decisione operativa (presa dopo l'MVP iniziale, vincolante)**: ogni
 avanzamento di stato ordine deve poter essere annullato con un'azione
 "Torna indietro", che riporta allo stato immediatamente precedente
@@ -388,6 +383,11 @@ Ogni "torna indietro" va comunque registrato in `order_status_history`
 (stesso audit trail degli avanzamenti, §66), così resta tracciabile anche
 l'inversione. Non si applica a `problema`/`annullato`, che restano gestiti
 da un flusso dedicato non ancora costruito (§65).
+
+Alert nuovo ordine: suono + persistente, idealmente anche WhatsApp a
+`staff_notification_phone` configurabile. Vista cucina: modifiche
+(rimozioni, "SENZA HUMMUS", "NON PICCANTE") visivamente forti, non
+annegate tra gli ingredienti standard.
 
 ## 57-61. Glovo On-Demand (fase 1, manuale)
 
@@ -407,6 +407,17 @@ Disponibile/esaurito per articolo, Roll e Bowl indipendenti, niente
 propagazioni automatiche in fase 1. Multi-store: predisporre `store_id`,
 filtro store, disponibilità/orari/fee/geofence/Glovo outlet ID per store —
 ma niente UI multi-store complessa adesso.
+
+**Decisione operativa (presa dopo l'MVP iniziale, vincolante)**: tutti i
+prodotti e le salse segnati "esaurito" tornano automaticamente
+"disponibile" una volta al giorno, prima del possibile orario di
+apertura (§13: apertura più presto delle 11:45) — non serve intervento
+manuale per riattivarli ogni mattina. Implementato con un cron job
+giornaliero (compatibile col piano gratuito di Vercel, che supporta
+un'esecuzione al giorno), che gira in orario sicuro prima di qualunque
+apertura possibile. Lo staff può comunque segnare di nuovo esaurito un
+prodotto durante la giornata in qualsiasi momento — questo reset avviene
+solo una volta, la mattina.
 
 ## 65. Analytics dal giorno 1
 
