@@ -108,6 +108,7 @@ function buildCatalogProduct(product, choicesByProduct, removalsByProduct, accom
     badge: product.badge ?? undefined,
     spicy: spicyLabel(product.spice_level, product.spice_label),
     ingredients: product.description ?? undefined,
+    isAvailable: product.is_available,
   };
 
   if (!hasConfig) return base;
@@ -181,9 +182,12 @@ async function fetchMenuData() {
     id: s.id,
     name: s.name,
     price: formatPrice(Number(s.price)),
+    isAvailable: s.is_available,
   }));
 
-  const rollProducts = categoryProducts.ROLL;
+  // §63: un Roll esaurito non deve restare acquistabile nemmeno tramite
+  // il Menu Combo (stesso prodotto, percorso diverso).
+  const rollProducts = categoryProducts.ROLL.filter((r) => r.isAvailable);
 
   const comboSideOptions = (comboSides ?? []).map((s) => ({
     id: s.id,
@@ -520,6 +524,21 @@ function ProductCard({ product, onAddToCart }) {
               {product.badge}
             </span>
           )}
+          {product.isAvailable === false && (
+            <span
+              style={{
+                alignSelf: "flex-start",
+                background: "var(--card-border)",
+                color: "var(--text-on-dark)",
+                fontWeight: 600,
+                fontSize: 11,
+                padding: "2px 8px",
+                borderRadius: 6,
+              }}
+            >
+              Esaurito
+            </span>
+          )}
         </div>
         <span style={{ fontWeight: 700, fontSize: 16, color: "var(--navy)" }}>
           {product.price}
@@ -546,21 +565,22 @@ function ProductCard({ product, onAddToCart }) {
       )}
 
       <button
-        onClick={() => product.config && setExpanded((prev) => !prev)}
+        onClick={() => product.isAvailable !== false && product.config && setExpanded((prev) => !prev)}
+        disabled={product.isAvailable === false}
         style={{
           alignSelf: "flex-start",
           marginTop: 4,
-          background: "var(--brand-orange)",
-          color: "var(--bg-warm)",
+          background: product.isAvailable === false ? "var(--card-border)" : "var(--brand-orange)",
+          color: product.isAvailable === false ? "var(--text-on-dark)" : "var(--bg-warm)",
           border: "none",
           borderRadius: 8,
           padding: "8px 18px",
           fontWeight: 600,
           fontSize: 13,
-          cursor: "pointer",
+          cursor: product.isAvailable === false ? "not-allowed" : "pointer",
         }}
       >
-        {expanded ? "Chiudi" : "Scegli"}
+        {product.isAvailable === false ? "Esaurito" : expanded ? "Chiudi" : "Scegli"}
       </button>
 
       {expanded && product.config && (
@@ -598,7 +618,24 @@ function SimpleProductCard({ product, quantity, onIncrement, onDecrement }) {
         </span>
       </div>
 
-      {quantity === 0 ? (
+      {product.isAvailable === false ? (
+        <button
+          disabled
+          style={{
+            background: "var(--card-border)",
+            color: "var(--text-on-dark)",
+            border: "none",
+            borderRadius: 8,
+            padding: "8px 18px",
+            fontWeight: 600,
+            fontSize: 13,
+            cursor: "not-allowed",
+            whiteSpace: "nowrap",
+          }}
+        >
+          Esaurito
+        </button>
+      ) : quantity === 0 ? (
         <button
           onClick={onIncrement}
           style={{

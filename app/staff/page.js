@@ -9,7 +9,22 @@ const SECTIONS = [
   { key: "nuovi", label: "Nuovi" },
   { key: "attivi", label: "Attivi" },
   { key: "storico", label: "Storico" },
+  { key: "menu", label: "Menu" },
 ];
+
+// §63: stesse categorie mostrate al cliente, nell'ordine del menu — Menu
+// Combo non ha righe proprie in `products` (è composto da Roll +
+// combo_side_options/combo_drink_options), quindi non compare qui.
+const PRODUCT_CATEGORY_LABEL = {
+  roll: "Roll",
+  bowl: "Bowl",
+  fritti: "Fritti",
+  sides: "Sides",
+  dolci: "Dolci",
+  drink: "Drink",
+  birre: "Birre",
+};
+const PRODUCT_CATEGORY_ORDER = ["roll", "bowl", "fritti", "sides", "dolci", "drink", "birre"];
 
 const FULFILLMENT_LABEL = {
   delivery: "Delivery",
@@ -311,6 +326,143 @@ function HistoryRow({ order, onChangeStatus }) {
   );
 }
 
+function MenuItemRow({ label, price, isAvailable, isUpdating, onToggle }) {
+  return (
+    <div
+      style={{
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        gap: 12,
+        padding: "10px 14px",
+        background: "var(--surface-white)",
+        border: "1px solid var(--card-border)",
+        borderRadius: 10,
+      }}
+    >
+      <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+        <span style={{ fontWeight: 600, fontSize: 14, color: "var(--navy)" }}>{label}</span>
+        <span style={{ fontSize: 13, color: "var(--text-on-dark)" }}>{formatPrice(price)}</span>
+      </div>
+      <button
+        onClick={onToggle}
+        disabled={isUpdating}
+        style={{
+          background: isAvailable ? "var(--success-green)" : "var(--card-border)",
+          color: isAvailable ? "var(--bg-warm)" : "var(--text-on-dark)",
+          border: "none",
+          borderRadius: 8,
+          padding: "8px 14px",
+          fontWeight: 600,
+          fontSize: 12,
+          cursor: isUpdating ? "not-allowed" : "pointer",
+          whiteSpace: "nowrap",
+        }}
+      >
+        {isUpdating ? "…" : isAvailable ? "Disponibile" : "Esaurito"}
+      </button>
+    </div>
+  );
+}
+
+// §63: disponibile/esaurito per articolo, Roll e Bowl indipendenti,
+// niente propagazioni automatiche — ogni riga si aggiorna da sola.
+function MenuSection() {
+  const [products, setProducts] = useState([]);
+  const [sauces, setSauces] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [updatingId, setUpdatingId] = useState(null);
+
+  async function fetchMenu() {
+    try {
+      const response = await fetch("/api/staff/menu");
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Errore nel caricamento del menu.");
+      setProducts(data.products ?? []);
+      setSauces(data.sauces ?? []);
+      setError(null);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    fetchMenu();
+  }, []);
+
+  async function handleToggle(kind, id, currentAvailable) {
+    setUpdatingId(id);
+    try {
+      const response = await fetch("/api/staff/menu/availability", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ kind, id, isAvailable: !currentAvailable }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Errore nell'aggiornamento.");
+      await fetchMenu();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setUpdatingId(null);
+    }
+  }
+
+  if (loading) {
+    return <p style={{ fontSize: 14, color: "var(--text-on-dark)" }}>Caricamento…</p>;
+  }
+
+  const productsByCategory = {};
+  for (const product of products) {
+    (productsByCategory[product.category] ??= []).push(product);
+  }
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+      {error && <p style={{ fontSize: 14, color: "#C0392B", margin: 0 }}>{error}</p>}
+
+      {PRODUCT_CATEGORY_ORDER.filter((category) => productsByCategory[category]?.length > 0).map(
+        (category) => (
+          <div key={category} style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            <h2 style={{ fontWeight: 700, fontSize: 16, color: "var(--navy)", margin: 0 }}>
+              {PRODUCT_CATEGORY_LABEL[category]}
+            </h2>
+            {productsByCategory[category].map((product) => (
+              <MenuItemRow
+                key={product.id}
+                label={product.name}
+                price={product.base_price}
+                isAvailable={product.is_available}
+                isUpdating={updatingId === product.id}
+                onToggle={() => handleToggle("product", product.id, product.is_available)}
+              />
+            ))}
+          </div>
+        )
+      )}
+
+      {sauces.length > 0 && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <h2 style={{ fontWeight: 700, fontSize: 16, color: "var(--navy)", margin: 0 }}>Salse</h2>
+          {sauces.map((sauce) => (
+            <MenuItemRow
+              key={sauce.id}
+              label={sauce.name}
+              price={sauce.price}
+              isAvailable={sauce.is_available}
+              isUpdating={updatingId === sauce.id}
+              onToggle={() => handleToggle("sauce", sauce.id, sauce.is_available)}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function StaffDashboardPage() {
   const [activeSection, setActiveSection] = useState("nuovi");
   const [orders, setOrders] = useState([]);
@@ -332,6 +484,7 @@ export default function StaffDashboardPage() {
   }
 
   useEffect(() => {
+    if (activeSection === "menu") return;
     setLoading(true);
     fetchOrders(activeSection);
     const interval = setInterval(() => fetchOrders(activeSection), POLL_INTERVAL_MS);
@@ -413,11 +566,13 @@ export default function StaffDashboardPage() {
         })}
       </nav>
 
-      {error && (
+      {error && activeSection !== "menu" && (
         <p style={{ fontSize: 14, color: "#C0392B", marginBottom: 16 }}>{error}</p>
       )}
 
-      {loading ? (
+      {activeSection === "menu" ? (
+        <MenuSection />
+      ) : loading ? (
         <p style={{ fontSize: 14, color: "var(--text-on-dark)" }}>Caricamento…</p>
       ) : orders.length === 0 ? (
         <p style={{ fontSize: 14, color: "var(--text-on-dark)" }}>{emptyLabel}</p>
