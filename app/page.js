@@ -85,6 +85,112 @@ function groupBy(rows, key) {
   return map;
 }
 
+// §40: risale alla categoria UI di una riga carrello a partire dal suo
+// `ref` — serve solo per decidere quali regole di upsell scattano, non
+// per il calcolo prezzi (già fatto altrove).
+function getItemCategory(item, categoryProducts) {
+  if (item.ref?.kind === "sauce") return "SALSE";
+  // Un Menu Combo è sempre costruito attorno a un Roll (§23-26).
+  if (item.ref?.kind === "combo") return "ROLL";
+  if (item.ref?.kind === "product") {
+    for (const category of ["ROLL", "BOWL", "FRITTI", "SIDES", "DOLCI", "DRINK", "BIRRE"]) {
+      if (categoryProducts[category]?.some((p) => p.id === item.ref.id)) {
+        return category;
+      }
+    }
+  }
+  return null;
+}
+
+// §40: upsell "no AI", 3 regole semplici in ordine di priorità (Roll
+// senza fritto è l'occasione più grande, poi fritto senza salsa, poi la
+// spinta verso la soglia GIVEMEFIVE) — al massimo 4 prodotti suggeriti in
+// tutto, ripartiti tra le regole che scattano rispettando l'ordine.
+// Solo prodotti semplici (senza config): sono gli unici con un tap unico
+// "+ Aggiungi" già esistente, richiesto per il suggerimento.
+function buildUpsellGroups(items, categoryProducts, subtotal) {
+  const cartCategories = new Set(
+    items.map((item) => getItemCategory(item, categoryProducts))
+  );
+  const hasRollOrBowl = cartCategories.has("ROLL") || cartCategories.has("BOWL");
+  const hasFritti = cartCategories.has("FRITTI");
+  const hasSalsa = cartCategories.has("SALSE");
+
+  function simpleAvailable(category, kind) {
+    return (categoryProducts[category] ?? [])
+      .filter((p) => p.isAvailable !== false && !p.config)
+      .map((p) => ({ ...p, kind }));
+  }
+
+  const candidateGroups = [];
+  // Evita di ripetere lo stesso prodotto in due regole diverse
+  // contemporaneamente (es. una salsa già suggerita per accompagnare il
+  // fritto non va riproposta anche per la soglia GIVEMEFIVE).
+  const alreadySuggested = new Set(items.map((item) => item.key));
+
+  if (hasRollOrBowl && !hasFritti) {
+    const options = simpleAvailable("FRITTI", "product")
+      .filter((p) => !alreadySuggested.has(p.name))
+      .slice(0, 2);
+    if (options.length > 0) {
+      candidateGroups.push({
+        key: "fritto",
+        message: "Completa con qualcosa di sfizioso",
+        products: options,
+      });
+      options.forEach((p) => alreadySuggested.add(p.name));
+    }
+  }
+
+  if (hasFritti && !hasSalsa) {
+    const options = simpleAvailable("SALSE", "sauce")
+      .filter((p) => !alreadySuggested.has(p.name))
+      .slice(0, 2);
+    if (options.length > 0) {
+      candidateGroups.push({
+        key: "salsa",
+        message: "Una salsa per accompagnare?",
+        products: options,
+      });
+      options.forEach((p) => alreadySuggested.add(p.name));
+    }
+  }
+
+  if (subtotal >= 20 && subtotal < GIVEMEFIVE_THRESHOLD) {
+    const pool = [
+      ...simpleAvailable("FRITTI", "product"),
+      ...simpleAvailable("SIDES", "product"),
+      ...simpleAvailable("SALSE", "sauce"),
+      ...simpleAvailable("DOLCI", "product"),
+      ...simpleAvailable("DRINK", "product"),
+    ].filter((p) => !alreadySuggested.has(p.name));
+    const options = pool
+      .sort((a, b) => parsePrice(a.price) - parsePrice(b.price))
+      .slice(0, 2);
+    if (options.length > 0) {
+      candidateGroups.push({
+        key: "soglia",
+        message: `Ti mancano ${formatPrice(
+          GIVEMEFIVE_THRESHOLD - subtotal
+        )} per sbloccare GIVEMEFIVE, aggiungi:`,
+        products: options,
+      });
+      options.forEach((p) => alreadySuggested.add(p.name));
+    }
+  }
+
+  const MAX_TOTAL_SUGGESTIONS = 4;
+  const visibleGroups = [];
+  let remaining = MAX_TOTAL_SUGGESTIONS;
+  for (const group of candidateGroups) {
+    if (remaining <= 0) break;
+    const products = group.products.slice(0, remaining);
+    visibleGroups.push({ ...group, products });
+    remaining -= products.length;
+  }
+  return visibleGroups;
+}
+
 function spicyLabel(spiceLevel, spiceLabel) {
   if (!spiceLevel) return undefined;
   return `${"🌶️".repeat(spiceLevel)} ${spiceLabel ?? ""}`.trim();
@@ -1481,13 +1587,77 @@ function CartItemRow({ item, onUpdateQuantity, onRemove }) {
   );
 }
 
+// §40: card discreta, coerente col resto del carrello — niente banner,
+// solo un piccolo suggerimento con prodotti reali e un tap per aggiungere.
+function UpsellSuggestions({ groups, onQuickAdd }) {
+  if (groups.length === 0) return null;
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 20 }}>
+      {groups.map((group) => (
+        <div
+          key={group.key}
+          style={{
+            background: "var(--surface-white)",
+            border: "1px dashed var(--card-border)",
+            borderRadius: 12,
+            padding: 12,
+            display: "flex",
+            flexDirection: "column",
+            gap: 8,
+          }}
+        >
+          <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text-on-dark)" }}>
+            {group.message}
+          </span>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {group.products.map((product) => (
+              <div
+                key={product.name}
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  gap: 8,
+                }}
+              >
+                <span style={{ fontSize: 14, color: "var(--navy)" }}>
+                  {product.name} · {product.price}
+                </span>
+                <button
+                  onClick={() => onQuickAdd(product, product.kind)}
+                  style={{
+                    background: "none",
+                    border: "1.5px solid var(--brand-orange)",
+                    color: "var(--brand-orange)",
+                    borderRadius: 8,
+                    padding: "6px 14px",
+                    fontWeight: 600,
+                    fontSize: 12,
+                    cursor: "pointer",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  + Aggiungi
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function CartScreen({
   items,
   fulfillmentMode,
   giveMeFiveApplied,
+  categoryProducts,
   onUpdateQuantity,
   onRemove,
   onApplyGiveMeFive,
+  onQuickAdd,
   onClose,
   onGoToCheckout,
 }) {
@@ -1503,6 +1673,8 @@ function CartScreen({
   const deliveryFee = isDelivery ? DELIVERY_FEE : 0;
   const total = subtotal - giveMeFiveDiscount + deliveryFee;
   const canCheckout = items.length > 0 && meetsMinimum;
+  const upsellGroups =
+    items.length > 0 ? buildUpsellGroups(items, categoryProducts, subtotal) : [];
 
   const progressMessageStyle = {
     fontSize: 13,
@@ -1565,6 +1737,8 @@ function CartScreen({
           ))}
         </div>
       )}
+
+      <UpsellSuggestions groups={upsellGroups} onQuickAdd={onQuickAdd} />
 
       <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 20 }}>
         {isDelivery && !meetsMinimum && (
@@ -2155,6 +2329,18 @@ export default function Home() {
     });
   }
 
+  // §40: stesso meccanismo a un tap di incrementSimpleProduct, usato dai
+  // suggerimenti di upsell nel carrello (che non dipendono da activeCategory).
+  function quickAddToCart(product, kind) {
+    addToCart({
+      key: product.name,
+      name: product.name,
+      price: parsePrice(product.price),
+      details: null,
+      ref: { kind, id: product.id },
+    });
+  }
+
   const cartCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
   const cartTotal = cartItems.reduce(
     (sum, item) => sum + item.price * item.quantity,
@@ -2245,9 +2431,11 @@ export default function Home() {
           items={cartItems}
           fulfillmentMode={fulfillmentMode}
           giveMeFiveApplied={giveMeFiveApplied}
+          categoryProducts={menuData.categoryProducts}
           onUpdateQuantity={updateQuantity}
           onRemove={removeItem}
           onApplyGiveMeFive={() => setGiveMeFiveApplied(true)}
+          onQuickAdd={quickAddToCart}
           onClose={() => setCartOpen(false)}
           onGoToCheckout={() => {
             setCartOpen(false);
