@@ -382,7 +382,8 @@ correggere subito dal pannello che dover intervenire a mano sul database.
 Ogni "torna indietro" va comunque registrato in `order_status_history`
 (stesso audit trail degli avanzamenti, §66), così resta tracciabile anche
 l'inversione. Non si applica a `problema`/`annullato`, che restano gestiti
-da un flusso dedicato non ancora costruito (§65).
+da un flusso dedicato non ancora costruito (vedi nuova sezione "Gestione
+Problema/Annullamento").
 
 Alert nuovo ordine: suono + persistente, idealmente anche WhatsApp a
 `staff_notification_phone` configurabile. Vista cucina: modifiche
@@ -400,6 +401,36 @@ visibile al cliente. Prima di annullare un ordine con rider già richiesto,
 lo staff deve verificare lo stato su Glovo (dopo accettazione rider la
 cancellazione può avere costi). Se nessun rider disponibile: messaggio
 cliente senza mai nominare Glovo, GIVEMEFIVE non consumato.
+
+## 62b. Gestione Problema/Annullamento ordini (aggiunta dopo l'MVP iniziale)
+
+Due azioni distinte, disponibili sugli ordini attivi dal pannello staff:
+
+**Segnala problema**: segna l'ordine come `problema` con un motivo
+(testo libero), registrato in `order_status_history`. Non tocca il
+pagamento. Da questo stato, lo staff può risolvere il problema tornando
+allo stato immediatamente precedente (stesso meccanismo di "torna
+indietro" già esistente) oppure procedere ad annullare l'ordine.
+
+**Annulla ordine**: segna l'ordine come `annullato` con un motivo (testo
+libero), registrato in `order_status_history`. Regola sul rimborso,
+basata su quanto l'ordine era già stato lavorato:
+
+- Se l'ordine **non ha mai raggiunto lo stato `in_preparazione`**
+  (verificabile controllando `order_status_history`: nessuna riga con
+  quel valore) → **rimborso automatico e completo via Stripe**
+  (`payment_status` diventa `refunded`), perché nessun lavoro/rider è
+  stato ancora impegnato.
+- Se l'ordine **ha già raggiunto `in_preparazione` o oltre** → **nessun
+  rimborso automatico** (`payment_status` resta invariato); il rimborso,
+  se dovuto, va gestito manualmente fuori dal sistema (dashboard Stripe,
+  altro canale). Il pannello deve mostrare chiaramente che in questo caso
+  serve un intervento manuale.
+
+**GIVEMEFIVE**: se l'ordine annullato aveva applicato GIVEMEFIVE, la
+riga in `promo_redemptions` va eliminata in ogni caso (indipendentemente
+dallo stadio raggiunto) — il cliente deve poter riutilizzare il codice
+su un ordine futuro, dato che quello originale non si è concluso.
 
 ## 63-64. Menu e multi-store admin
 
