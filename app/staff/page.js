@@ -54,6 +54,48 @@ function formatTime(isoString) {
   });
 }
 
+function getRomeDateParts(date) {
+  const formatter = new Intl.DateTimeFormat("en-US", {
+    timeZone: "Europe/Rome",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hourCycle: "h23",
+  });
+  const parts = Object.fromEntries(formatter.formatToParts(date).map((p) => [p.type, p.value]));
+  return { year: Number(parts.year), month: Number(parts.month), day: Number(parts.day) };
+}
+
+// Differenza in giorni di calendario (Europe/Rome, mai UTC del server) tra
+// due istanti — confronta le sole date, non le ore, così un ordine
+// programmato per stanotte alle 00:10 e "adesso" alle 23:50 dello stesso
+// giorno solare non vengono scambiati per giorni diversi per errore.
+function daysBetweenRomeDates(fromDate, toDate) {
+  const a = getRomeDateParts(fromDate);
+  const b = getRomeDateParts(toDate);
+  const utcA = Date.UTC(a.year, a.month - 1, a.day);
+  const utcB = Date.UTC(b.year, b.month - 1, b.day);
+  return Math.round((utcB - utcA) / 86400000);
+}
+
+// §12/§52-56: il badge deve dire esplicitamente "Oggi"/"Domani", non solo
+// l'ora — altrimenti è ambiguo per lo staff quale dei due giorni intende.
+function formatScheduledDeliveryLabel(isoString) {
+  const scheduledDate = new Date(isoString);
+  const time = formatTime(isoString);
+  const diffDays = daysBetweenRomeDates(new Date(), scheduledDate);
+
+  if (diffDays === 0) return `Oggi alle ${time}`;
+  if (diffDays === 1) return `Domani alle ${time}`;
+
+  const dateLabel = new Intl.DateTimeFormat("it-IT", {
+    timeZone: "Europe/Rome",
+    day: "2-digit",
+    month: "2-digit",
+  }).format(scheduledDate);
+  return `${dateLabel} alle ${time}`;
+}
+
 // §54: da "pronto" in poi Ritiro e Delivery divergono verso stati finali
 // esclusivi — mai mostrare l'azione dell'altro fulfillment (§52-56).
 function getNextAction(order) {
@@ -306,7 +348,7 @@ function OrderCard({ order, onChangeStatus, onReportProblem, onResolve, onCancel
                 marginTop: 2,
               }}
             >
-              {`Consegna programmata per le ${formatTime(order.scheduled_delivery_at)}`}
+              {`Consegna programmata: ${formatScheduledDeliveryLabel(order.scheduled_delivery_at)}`}
             </span>
           )}
         </div>
@@ -489,7 +531,7 @@ function HistoryRow({ order, onChangeStatus }) {
         <span style={{ fontSize: 12, color: "var(--text-on-dark)" }}>
           {formatTime(order.created_at)} · {FULFILLMENT_LABEL[order.fulfillment] ?? order.fulfillment} ·{" "}
           {STATUS_LABEL[order.status] ?? order.status}
-          {order.scheduled_delivery_at && ` · Programmata per le ${formatTime(order.scheduled_delivery_at)}`}
+          {order.scheduled_delivery_at && ` · Programmata: ${formatScheduledDeliveryLabel(order.scheduled_delivery_at)}`}
         </span>
         {needsManualRefund && (
           <span
