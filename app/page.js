@@ -67,6 +67,13 @@ const DELIVERY_MINIMUM_ORDER = 15;
 const GIVEMEFIVE_THRESHOLD = 25;
 const GIVEMEFIVE_DISCOUNT = 5;
 
+// §7: colori del semaforo stato-servizio, puramente informativo.
+const SERVICE_STATUS_COLORS = {
+  green: "var(--success-green)",
+  yellow: "var(--warning-yellow)",
+  red: "var(--danger-red)",
+};
+
 const CATEGORY_DB_KEY = {
   ROLL: "roll",
   BOWL: "bowl",
@@ -2260,6 +2267,7 @@ export default function Home() {
   const [giveMeFiveApplied, setGiveMeFiveApplied] = useState(false);
   const [menuData, setMenuData] = useState(null);
   const [geofence, setGeofence] = useState(null);
+  const [serviceStatus, setServiceStatus] = useState(null);
   const isMenuCombo = activeCategory === "MENU COMBO";
   const products = menuData?.categoryProducts[activeCategory] ?? [];
 
@@ -2272,6 +2280,21 @@ export default function Home() {
       .then((res) => res.json())
       .then((data) => setGeofence(data.polygon ?? null))
       .catch((err) => console.error("Errore caricamento geofence:", err));
+  }, []);
+
+  // §7: semaforo puramente informativo — ricalcolato a intervalli perché
+  // può cambiare fascia mentre la pagina resta aperta (es. passaggio da
+  // "Preordina ora" a "Ordina ora" all'orario di apertura).
+  useEffect(() => {
+    function loadServiceStatus() {
+      fetch("/api/service-status")
+        .then((res) => res.json())
+        .then((data) => setServiceStatus(data.phase ? data : null))
+        .catch((err) => console.error("Errore caricamento stato servizio:", err));
+    }
+    loadServiceStatus();
+    const interval = setInterval(loadServiceStatus, 60000);
+    return () => clearInterval(interval);
   }, []);
 
   function addToCart(newItem) {
@@ -2369,33 +2392,35 @@ export default function Home() {
           alt="KM Kebab Mediterraneo"
           style={{ height: 64, width: "auto" }}
         />
-        <div style={{ textAlign: "right" }}>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 6,
-              justifyContent: "flex-end",
-              color: "var(--success-green)",
-              fontWeight: 700,
-              fontSize: 13,
-            }}
-          >
-            <span
+        {serviceStatus && (
+          <div style={{ textAlign: "right" }}>
+            <div
               style={{
-                width: 8,
-                height: 8,
-                borderRadius: "50%",
-                background: "var(--success-green)",
-                display: "inline-block",
+                display: "flex",
+                alignItems: "center",
+                gap: 6,
+                justifyContent: "flex-end",
+                color: SERVICE_STATUS_COLORS[serviceStatus.phase],
+                fontWeight: 700,
+                fontSize: 13,
               }}
-            />
-            Aperti
+            >
+              <span
+                style={{
+                  width: 8,
+                  height: 8,
+                  borderRadius: "50%",
+                  background: SERVICE_STATUS_COLORS[serviceStatus.phase],
+                  display: "inline-block",
+                }}
+              />
+              {serviceStatus.label}
+            </div>
+            <div style={{ fontSize: 12, color: "var(--navy)", marginTop: 2 }}>
+              {serviceStatus.message}
+            </div>
           </div>
-          <div style={{ fontSize: 12, color: "var(--navy)", marginTop: 2 }}>
-            Chiudiamo alle 23:00
-          </div>
-        </div>
+        )}
       </header>
 
       {!menuData ? (
