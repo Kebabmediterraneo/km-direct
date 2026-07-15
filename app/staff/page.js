@@ -50,6 +50,7 @@ function formatTime(isoString) {
   return new Date(isoString).toLocaleTimeString("it-IT", {
     hour: "2-digit",
     minute: "2-digit",
+    timeZone: "Europe/Rome",
   });
 }
 
@@ -291,6 +292,23 @@ function OrderCard({ order, onChangeStatus, onReportProblem, onResolve, onCancel
             {formatTime(order.created_at)} · {FULFILLMENT_LABEL[order.fulfillment] ?? order.fulfillment} ·{" "}
             {STATUS_LABEL[order.status] ?? order.status}
           </span>
+          {order.scheduled_delivery_at && (
+            <span
+              style={{
+                alignSelf: "flex-start",
+                fontSize: 12,
+                fontWeight: 800,
+                color: "var(--navy)",
+                background: "#FFF1DC",
+                border: "1px solid var(--brand-orange)",
+                borderRadius: 6,
+                padding: "2px 8px",
+                marginTop: 2,
+              }}
+            >
+              {`Consegna programmata per le ${formatTime(order.scheduled_delivery_at)}`}
+            </span>
+          )}
         </div>
         <span style={{ fontWeight: 700, fontSize: 16, color: "var(--navy)" }}>
           {formatPrice(order.total)}
@@ -471,6 +489,7 @@ function HistoryRow({ order, onChangeStatus }) {
         <span style={{ fontSize: 12, color: "var(--text-on-dark)" }}>
           {formatTime(order.created_at)} · {FULFILLMENT_LABEL[order.fulfillment] ?? order.fulfillment} ·{" "}
           {STATUS_LABEL[order.status] ?? order.status}
+          {order.scheduled_delivery_at && ` · Programmata per le ${formatTime(order.scheduled_delivery_at)}`}
         </span>
         {needsManualRefund && (
           <span

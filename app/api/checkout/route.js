@@ -4,6 +4,7 @@ import { supabaseAdmin } from "../../../lib/supabase-admin";
 import { getActiveStore } from "../../../lib/get-active-store";
 import { getStoreGeofencePolygon } from "../../../lib/get-store-geofence";
 import { isPointInPolygon } from "../../../lib/geo";
+import { computeScheduledDeliveryAt } from "../../../lib/scheduled-slots";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
@@ -242,6 +243,20 @@ export async function POST(request) {
     return NextResponse.json({ error: "Coordinate indirizzo mancanti." }, { status: 400 });
   }
 
+  // §12: quando il cliente ha scelto "Consegna programmata", il timestamp
+  // reale va calcolato qui — mai fidarsi di un timestamp pronto arrivato
+  // dal client (§46) — da scheduledDay/scheduledTime.
+  let scheduledDeliveryAt = null;
+  if (isDelivery && delivery?.timingType === "scheduled") {
+    scheduledDeliveryAt = computeScheduledDeliveryAt(delivery?.scheduledDay, delivery?.scheduledTime);
+    if (!scheduledDeliveryAt) {
+      return NextResponse.json(
+        { error: "Orario di consegna programmata non valido." },
+        { status: 400 }
+      );
+    }
+  }
+
   const { store, errorResponse } = await getActiveStore();
   if (errorResponse) return errorResponse;
 
@@ -380,6 +395,7 @@ export async function POST(request) {
     customer_id: customerRow.id,
     fulfillment,
     delivery_timing: isDelivery ? delivery?.timingType ?? "asap" : null,
+    scheduled_delivery_at: scheduledDeliveryAt ? scheduledDeliveryAt.toISOString() : null,
     delivery_address: isDelivery ? delivery.address.trim() : null,
     delivery_civico: isDelivery ? delivery.houseNumber.trim() : null,
     delivery_citofono: isDelivery ? delivery?.intercom?.trim() || null : null,
