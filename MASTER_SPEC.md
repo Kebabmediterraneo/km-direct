@@ -103,8 +103,36 @@ ricevuto, In preparazione, Pronto per il ritiro.
 ## 12. Timing Delivery
 
 `delivery_timing_type`: `asap` (default) o `scheduled`. Se programmata:
-giorno, orario, solo slot validi, massimo 2 giorni in anticipo. Granularità
-slot configurabile, non hardcodare 15/30 minuti.
+giorno, orario, solo slot validi, massimo 2 giorni in anticipo.
+
+**Decisione definitiva su slot e disponibilità ASAP (sostituisce la
+cautela iniziale "non hardcodare 15/30 minuti finché non verificato
+Glovo" — scelta consapevole di procedere comunque, accettando il rischio
+di dover rivedere questa parte se il comportamento reale di Glovo
+divergesse)**:
+
+- Granularità slot: **15 minuti**, sui quarti d'ora (:00, :15, :30, :45).
+- **Semaforo verde ("Ordina ora", §7)**: entrambe le opzioni disponibili,
+  "PRIMA POSSIBILE" (default) e "CONSEGNA PROGRAMMATA".
+- **Semaforo giallo ("Preordina ora") o rosso ("Chiusi"), §7**: "PRIMA
+  POSSIBILE" va **rimossa del tutto** dall'interfaccia — resta visibile
+  solo "CONSEGNA PROGRAMMATA" (oggi/domani, entro il limite di 2 giorni).
+  In questi casi, mostra anche un avviso esplicito vicino al riepilogo/
+  pagamento (non solo nell'header) che il locale è chiuso ora e l'ordine
+  verrà preparato all'orario scelto.
+- **Primo slot selezionabile**, con regola diversa a seconda dello stato
+  attuale (§7):
+  - **Semaforo verde** (locale già aperto e operativo): primo slot =
+    momento attuale + **45 minuti** (tempo di preparazione più consegna),
+    arrotondato al quarto d'ora successivo. Se questo istante cade fuori
+    dalla finestra di apertura corrente (dopo la chiusura, o nella pausa
+    tra pranzo e cena), si applica la regola del semaforo giallo/rosso
+    qui sotto, calcolata sulla finestra successiva.
+  - **Semaforo giallo o rosso** (locale non ancora operativo): primo
+    slot = orario di apertura della prossima finestra + **30 minuti**
+    (tempo minimo perché la cucina si avvii), non 45 minuti dal momento
+    attuale — la cucina non è ancora al lavoro, quindi il riferimento è
+    l'apertura, non "adesso".
 
 ## 13. Orari ordini Delivery
 
@@ -115,7 +143,7 @@ Domenica–Giovedì: 12:00–14:30, 19:00–22:30.
 Venerdì–Sabato: 12:00–14:30, 19:00–23:00.
 
 Questi stessi orari sono la fonte per il calcolo dinamico dello stato del
-servizio (§7).
+servizio (§7) e per gli slot di consegna programmata (§12).
 
 ## 14. Promo GIVEMEFIVE
 
