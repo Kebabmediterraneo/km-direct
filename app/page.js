@@ -1192,6 +1192,9 @@ function FulfillmentSelector({
   onTimingTypeChange,
   scheduledDay,
   onScheduledDayChange,
+  scheduledTime,
+  onScheduledTimeChange,
+  serviceStatus,
   geofence,
 }) {
   const [suggestions, setSuggestions] = useState([]);
@@ -1425,26 +1428,36 @@ function FulfillmentSelector({
             </div>
           )}
 
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            <label style={optionLabelStyle}>
-              <input
-                type="radio"
-                name="delivery-timing"
-                checked={timingType === "asap"}
-                onChange={() => onTimingTypeChange("asap")}
-              />
-              PRIMA POSSIBILE
-            </label>
-            <label style={optionLabelStyle}>
-              <input
-                type="radio"
-                name="delivery-timing"
-                checked={timingType === "scheduled"}
-                onChange={() => onTimingTypeChange("scheduled")}
-              />
-              CONSEGNA PROGRAMMATA
-            </label>
-          </div>
+          {/* §12: a semaforo verde entrambe le opzioni; a giallo/rosso
+              "PRIMA POSSIBILE" non è offerta (locale non operativo) —
+              mentre lo stato è ancora in caricamento si assume verde per
+              non far comparire e sparire l'opzione. */}
+          {(!serviceStatus || serviceStatus.phase === "green") ? (
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              <label style={optionLabelStyle}>
+                <input
+                  type="radio"
+                  name="delivery-timing"
+                  checked={timingType === "asap"}
+                  onChange={() => onTimingTypeChange("asap")}
+                />
+                PRIMA POSSIBILE
+              </label>
+              <label style={optionLabelStyle}>
+                <input
+                  type="radio"
+                  name="delivery-timing"
+                  checked={timingType === "scheduled"}
+                  onChange={() => onTimingTypeChange("scheduled")}
+                />
+                CONSEGNA PROGRAMMATA
+              </label>
+            </div>
+          ) : (
+            <div style={{ fontSize: 14, fontWeight: 600, color: "var(--navy)" }}>
+              Consegna programmata
+            </div>
+          )}
 
           {timingType === "scheduled" && (
             <div
@@ -1455,24 +1468,50 @@ function FulfillmentSelector({
                 paddingLeft: 4,
               }}
             >
-              <label style={optionLabelStyle}>
-                <input
-                  type="radio"
-                  name="delivery-day"
-                  checked={scheduledDay === "today"}
-                  onChange={() => onScheduledDayChange("today")}
-                />
-                Oggi
-              </label>
-              <label style={optionLabelStyle}>
-                <input
-                  type="radio"
-                  name="delivery-day"
-                  checked={scheduledDay === "tomorrow"}
-                  onChange={() => onScheduledDayChange("tomorrow")}
-                />
-                Domani
-              </label>
+              {serviceStatus?.slots?.today?.length > 0 && (
+                <label style={optionLabelStyle}>
+                  <input
+                    type="radio"
+                    name="delivery-day"
+                    checked={scheduledDay === "today"}
+                    onChange={() => onScheduledDayChange("today")}
+                  />
+                  Oggi
+                </label>
+              )}
+              {serviceStatus?.slots?.tomorrow?.length > 0 && (
+                <label style={optionLabelStyle}>
+                  <input
+                    type="radio"
+                    name="delivery-day"
+                    checked={scheduledDay === "tomorrow"}
+                    onChange={() => onScheduledDayChange("tomorrow")}
+                  />
+                  Domani
+                </label>
+              )}
+
+              {(serviceStatus?.slots?.[scheduledDay]?.length ?? 0) > 0 && (
+                <select
+                  value={scheduledTime ?? ""}
+                  onChange={(event) => onScheduledTimeChange(event.target.value)}
+                  style={{
+                    padding: "10px 12px",
+                    borderRadius: 8,
+                    border: "1px solid var(--card-border)",
+                    background: "var(--surface-white)",
+                    color: "var(--navy)",
+                    fontSize: 14,
+                    fontFamily: "inherit",
+                  }}
+                >
+                  {serviceStatus.slots[scheduledDay].map((slot) => (
+                    <option key={slot} value={slot}>
+                      {slot}
+                    </option>
+                  ))}
+                </select>
+              )}
             </div>
           )}
         </div>
@@ -1866,6 +1905,8 @@ function CheckoutScreen({
   coords,
   timingType,
   scheduledDay,
+  scheduledTime,
+  serviceStatus,
   giveMeFiveApplied,
   birreProducts,
   onBack,
@@ -1942,6 +1983,7 @@ function CheckoutScreen({
                 riderNotes: deliveryDetails.riderNotes,
                 timingType,
                 scheduledDay,
+                scheduledTime,
               }
             : null,
           customer: customerDetails,
@@ -1995,7 +2037,9 @@ function CheckoutScreen({
   const timingSummary =
     timingType === "asap"
       ? "Prima possibile"
-      : `Consegna programmata · ${scheduledDay === "today" ? "Oggi" : "Domani"}`;
+      : `Consegna programmata · ${scheduledDay === "today" ? "Oggi" : "Domani"}${
+          scheduledTime ? ` · ${scheduledTime}` : ""
+        }`;
 
   return (
     <div>
@@ -2229,6 +2273,26 @@ function CheckoutScreen({
           </div>
         </div>
 
+        {/* §12: avviso esplicito vicino al riepilogo/CTA pagamento (non solo
+            nell'header) quando il locale non è operativo — il checkout resta
+            comunque utilizzabile (§7), qui si informa solo il cliente. */}
+        {isDelivery && serviceStatus && serviceStatus.phase !== "green" && (
+          <div
+            style={{
+              fontSize: 13,
+              color: "var(--text-on-dark)",
+              background: "var(--surface-white)",
+              border: `1px solid ${SERVICE_STATUS_COLORS[serviceStatus.phase]}`,
+              borderRadius: 8,
+              padding: 10,
+            }}
+          >
+            {`Il locale è chiuso ora, il tuo ordine sarà preparato a partire dalle ${
+              scheduledTime ?? serviceStatus.firstSlotLabel ?? ""
+            }.`}
+          </div>
+        )}
+
         {payError && (
           <p style={{ margin: 0, fontSize: 13, color: "#C0392B" }}>{payError}</p>
         )}
@@ -2262,6 +2326,7 @@ export default function Home() {
   const [deliveryAddressDetails, setDeliveryAddressDetails] = useState(null);
   const [timingType, setTimingType] = useState("asap");
   const [scheduledDay, setScheduledDay] = useState("today");
+  const [scheduledTime, setScheduledTime] = useState(null);
   const [cartOpen, setCartOpen] = useState(false);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [giveMeFiveApplied, setGiveMeFiveApplied] = useState(false);
@@ -2296,6 +2361,37 @@ export default function Home() {
     const interval = setInterval(loadServiceStatus, 60000);
     return () => clearInterval(interval);
   }, []);
+
+  // §12: se il giorno/orario scelto per la consegna programmata non è (più)
+  // tra gli slot reali correnti — al primo caricamento, o perché il
+  // semaforo è cambiato fascia mentre la pagina era aperta — si riallinea
+  // al primo slot secondo la regola raffinata (45 min da verde, 30 min
+  // dall'apertura da giallo/rosso). Non tocca una scelta manuale ancora
+  // valida.
+  useEffect(() => {
+    if (!serviceStatus) return;
+    const daySlots = serviceStatus.slots?.[scheduledDay] ?? [];
+    if (scheduledTime && daySlots.includes(scheduledTime)) return;
+    if (serviceStatus.firstSlotDay) {
+      setScheduledDay(serviceStatus.firstSlotDay);
+      setScheduledTime(serviceStatus.firstSlotLabel);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- reagisce solo
+    // ai cambi di serviceStatus, non ogni volta che l'utente cambia giorno/ora
+  }, [serviceStatus]);
+
+  // §12: a semaforo giallo/rosso "PRIMA POSSIBILE" non è più un'opzione.
+  useEffect(() => {
+    if (serviceStatus && serviceStatus.phase !== "green" && timingType === "asap") {
+      setTimingType("scheduled");
+    }
+  }, [serviceStatus, timingType]);
+
+  function handleScheduledDayChange(day) {
+    setScheduledDay(day);
+    const daySlots = serviceStatus?.slots?.[day] ?? [];
+    setScheduledTime(daySlots[0] ?? null);
+  }
 
   function addToCart(newItem) {
     setCartItems((prev) => {
@@ -2440,6 +2536,8 @@ export default function Home() {
           }
           timingType={timingType}
           scheduledDay={scheduledDay}
+          scheduledTime={scheduledTime}
+          serviceStatus={serviceStatus}
           giveMeFiveApplied={giveMeFiveApplied}
           birreProducts={menuData.categoryProducts.BIRRE}
           onBack={() => {
@@ -2489,7 +2587,10 @@ export default function Home() {
             timingType={timingType}
             onTimingTypeChange={setTimingType}
             scheduledDay={scheduledDay}
-            onScheduledDayChange={setScheduledDay}
+            onScheduledDayChange={handleScheduledDayChange}
+            scheduledTime={scheduledTime}
+            onScheduledTimeChange={setScheduledTime}
+            serviceStatus={serviceStatus}
             geofence={geofence}
           />
 
