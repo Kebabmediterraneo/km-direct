@@ -52,6 +52,27 @@ Stati: aperto, chiuso per orario, pausa manuale, indisponibilità globale. Il
 menu resta visibile anche fuori orario. Header mostra "● Aperti" o
 "● Chiusi · Riapriamo alle HH:MM".
 
+**Logica dinamica del semaforo (aggiunta dopo l'MVP iniziale, vincolante)**:
+lo stato va calcolato in tempo reale confrontando l'ora attuale con gli
+orari reali di `store_order_windows` (§13), con quattro fasce:
+
+1. **Oltre 30 minuti prima della prossima apertura** → luce rossa,
+   "Chiusi", "Apriamo alle [orario prossima apertura]".
+2. **Da 30 minuti a 1 minuto prima dell'apertura** → luce gialla,
+   "Preordina ora", "Prepareremo il tuo ordine dalle [orario apertura]".
+3. **Dall'apertura fino a 15 minuti prima della chiusura** → luce verde,
+   "Ordina ora", "Puoi ordinare fino alle [orario chiusura − 15 min]".
+4. **Dagli ultimi 15 minuti prima della chiusura fino a 30 minuti prima
+   della prossima apertura** → luce rossa, "Chiusi", "Apriamo alle
+   [orario prossima apertura]" (stessa fascia del punto 1).
+
+**Importante**: questo stato è puramente informativo. Il checkout NON va
+mai bloccato in base all'orario, in nessuna delle quattro fasce — il
+cliente può sempre completare un ordine, indipendentemente da cosa mostra
+il semaforo. Questa logica riguarda solo il messaggio "ASAP"; la consegna
+programmata (§12, fino a 2 giorni) segue le sue regole indipendenti già
+definite.
+
 ## 8. Selettore Delivery/Ritiro
 
 Due tab, Delivery attivo di default. Il cambio tab non ricarica la pagina e
@@ -87,8 +108,14 @@ slot configurabile, non hardcodare 15/30 minuti.
 
 ## 13. Orari ordini Delivery
 
-Lun–Gio: 11:45–14:15, 18:45–22:15. Ven–Sab: 11:45–14:15, 18:45–22:45.
-Domenica: non ancora definita — non inventarla.
+**Orari definitivi (aggiunti dopo l'MVP iniziale, risolvono il buco
+lasciato aperto all'inizio sulla domenica)**:
+
+Domenica–Giovedì: 12:00–14:30, 19:00–22:30.
+Venerdì–Sabato: 12:00–14:30, 19:00–23:00.
+
+Questi stessi orari sono la fonte per il calcolo dinamico dello stato del
+servizio (§7).
 
 ## 14. Promo GIVEMEFIVE
 
@@ -372,6 +399,11 @@ mescolati, né nell'enum né nella UI del pannello (che deve mostrare solo
 l'azione di stato pertinente alla modalità dell'ordine, come già avviene
 per la transizione `pronto`/`consegnato_al_rider`).
 
+Alert nuovo ordine: suono + persistente, idealmente anche WhatsApp a
+`staff_notification_phone` configurabile. Vista cucina: modifiche
+(rimozioni, "SENZA HUMMUS", "NON PICCANTE") visivamente forti, non
+annegate tra gli ingredienti standard.
+
 **Decisione operativa (presa dopo l'MVP iniziale, vincolante)**: ogni
 avanzamento di stato ordine deve poter essere annullato con un'azione
 "Torna indietro", che riporta allo stato immediatamente precedente
@@ -384,11 +416,6 @@ Ogni "torna indietro" va comunque registrato in `order_status_history`
 l'inversione. Non si applica a `problema`/`annullato`, che restano gestiti
 da un flusso dedicato non ancora costruito (vedi nuova sezione "Gestione
 Problema/Annullamento").
-
-Alert nuovo ordine: suono + persistente, idealmente anche WhatsApp a
-`staff_notification_phone` configurabile. Vista cucina: modifiche
-(rimozioni, "SENZA HUMMUS", "NON PICCANTE") visivamente forti, non
-annegate tra gli ingredienti standard.
 
 ## 57-61. Glovo On-Demand (fase 1, manuale)
 
