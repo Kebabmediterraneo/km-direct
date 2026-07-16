@@ -5,16 +5,18 @@ import { supabaseAdmin } from "../../../../lib/supabase-admin";
 // Next.js mette in cache la risposta GET e il polling della pagina di
 // conferma continuerebbe a vedere 'pending' anche dopo l'aggiornamento reale.
 export const dynamic = "force-dynamic";
+export const fetchCache = "force-no-store";
 
 // order_token è pensato per essere non prevedibile (§66) e non lega a dati
-// sensibili: qui esponiamo solo pickup_code e payment_status, il minimo che
-// serve alla pagina di conferma per capire se il pagamento è confermato.
+// sensibili: qui esponiamo solo il minimo che serve alla pagina di stato
+// persistente (§47-51) per mostrare il messaggio giusto — pickup_code,
+// status e fulfillment (per distinguere "pronto" Ritiro/Delivery).
 export async function GET(request, { params }) {
   const { token } = params;
 
   const { data: order, error } = await supabaseAdmin
     .from("orders")
-    .select("pickup_code, payment_status")
+    .select("pickup_code, payment_status, status, fulfillment")
     .eq("order_token", token)
     .single();
 
@@ -25,5 +27,7 @@ export async function GET(request, { params }) {
   return NextResponse.json({
     pickupCode: order.pickup_code,
     paymentStatus: order.payment_status,
+    status: order.status,
+    fulfillment: order.fulfillment,
   });
 }
