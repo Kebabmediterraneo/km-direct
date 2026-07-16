@@ -446,11 +446,13 @@ ordine viene creato su database (`status='nuovo'`) PRIMA che il cliente
 completi il pagamento su Stripe — se il cliente abbandona il checkout o
 il pagamento fallisce, l'ordine resta `payment_status='pending'`
 indefinitamente. Il pannello staff (Nuovi, Attivi, Storico — tutte e tre
-le sezioni) deve mostrare **esclusivamente ordini con
-`payment_status='succeeded'`**, mai ordini `pending`/`failed`. Nessuna
-eccezione: un ordine non pagato non deve mai essere visibile alla cucina,
-per evitare che venga preparato un ordine che il cliente non ha davvero
-pagato o ha abbandonato.
+le sezioni) deve mostrare **esclusivamente ordini realmente pagati in
+origine**, cioè `payment_status IN ('succeeded', 'refunded')` — mai
+`pending`/`failed`. Il caso `refunded` resta visibile (specialmente in
+Storico) perché rappresenta un ordine che è stato davvero pagato e poi
+restituito (es. annullamento §62b), non un carrello mai completato — la
+distinzione che conta è "mai pagato" vs "pagato, poi eventualmente
+rimborsato", non semplicemente lo stato attuale del pagamento.
 
 **Requisito futuro per "Impostazioni" (annotato, non ancora costruito)**:
 la sezione Impostazioni dovrà permettere allo staff di modificare gli
