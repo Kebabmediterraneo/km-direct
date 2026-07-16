@@ -30,12 +30,21 @@ export async function GET(request) {
     return NextResponse.json({ error: "Sezione non valida." }, { status: 400 });
   }
 
+  // §52-56, correzione critica: un ordine esiste su database (status='nuovo')
+  // ancora prima che il pagamento Stripe sia confermato — se il cliente
+  // abbandona o il pagamento fallisce, resta payment_status='pending'
+  // indefinitamente. Nessuna delle tre sezioni deve mai mostrare un ordine
+  // non pagato, quindi il filtro è qui, condiviso da tutte. "refunded" resta
+  // incluso: un ordine rimborsato (§62b) è stato pagato con successo e poi
+  // restituito — è un evento reale che deve restare visibile in Storico,
+  // non un ordine "mai pagato" da nascondere insieme a pending/failed.
   let query = supabaseAdmin
     .from("orders")
     .select(
       "id, pickup_code, status, fulfillment, total, payment_status, coupon_code, created_at, delivery_timing, scheduled_delivery_at, customers(first_name, last_name, phone), order_items(product_name_snapshot, category_snapshot, quantity, unit_price_snapshot, line_total, is_combo, configuration)"
     )
     .in("status", config.statuses)
+    .in("payment_status", ["succeeded", "refunded"])
     .order("created_at", { ascending: config.ascending });
 
   if (config.limit) {
