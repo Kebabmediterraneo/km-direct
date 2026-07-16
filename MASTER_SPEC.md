@@ -441,6 +441,17 @@ Consegnato al rider, Ritirato, Problema, Annullato) e stato consegna (Da
 richiedere, Rider richiesto, Problema rider, Consegnato al rider) — cucina
 e rider procedono in parallelo.
 
+**Correzione critica (trovata dopo l'MVP iniziale, vincolante)**: un
+ordine viene creato su database (`status='nuovo'`) PRIMA che il cliente
+completi il pagamento su Stripe — se il cliente abbandona il checkout o
+il pagamento fallisce, l'ordine resta `payment_status='pending'`
+indefinitamente. Il pannello staff (Nuovi, Attivi, Storico — tutte e tre
+le sezioni) deve mostrare **esclusivamente ordini con
+`payment_status='succeeded'`**, mai ordini `pending`/`failed`. Nessuna
+eccezione: un ordine non pagato non deve mai essere visibile alla cucina,
+per evitare che venga preparato un ordine che il cliente non ha davvero
+pagato o ha abbandonato.
+
 **Requisito futuro per "Impostazioni" (annotato, non ancora costruito)**:
 la sezione Impostazioni dovrà permettere allo staff di modificare gli
 orari di apertura/chiusura senza intervento nostro, in due modi:
