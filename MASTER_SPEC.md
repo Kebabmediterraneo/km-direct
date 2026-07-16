@@ -404,10 +404,34 @@ pending, ordine storico con snapshot prezzi immutabile, procedura rimborso.
 Messaggio cliente: "Ordine ricevuto" / "Ora prepariamo tutto e organizziamo
 la consegna." — **mai nominare Glovo lato cliente**. Stati cliente Delivery:
 Ordine ricevuto → In preparazione → In consegna (interno: "Consegnato al
-rider"). Nessun ETA promesso all'inizio (raccogliere prima storico reale).
-Feedback cliente 90 minuti dopo "Consegnato al rider", con logica quiet
-hours per non scrivere a tarda notte; mai per ordini annullati o problemi
-irrisolti.
+rider"). Stati cliente Ritiro: Ordine ricevuto → In preparazione → Pronto
+per il ritiro (§11). Nessun ETA promesso all'inizio (raccogliere prima
+storico reale). Feedback cliente 90 minuti dopo "Consegnato al rider", con
+logica quiet hours per non scrivere a tarda notte; mai per ordini annullati
+o problemi irrisolti.
+
+**Decisione (presa dopo l'MVP iniziale, vincolante)**: la schermata di
+conferma diventa una **pagina di stato persistente**, raggiungibile in
+qualsiasi momento con lo stesso link/order_token ricevuto dopo il
+pagamento (non solo subito dopo l'acquisto). Si aggiorna da sola (polling,
+stesso principio già usato nel pannello staff) riflettendo lo stato reale
+dell'ordine:
+
+- `nuovo` → "Ordine ricevuto"
+- `in_preparazione` → "In preparazione"
+- `pronto` (Ritiro) → "Pronto per il ritiro"
+- `pronto`/`consegnato_al_rider` (Delivery) → "In preparazione" fino a
+  `consegnato_al_rider`, poi "In consegna"
+- `ritirato`/`consegnato_al_rider` → resta sull'ultimo messaggio
+  significativo raggiunto ("Pronto per il ritiro"/"In consegna"), con una
+  breve chiusura di cortesia (es. "Grazie, buon appetito!"), senza
+  inventare nuovi stati non previsti
+- `problema` → **testo esatto**: "Stiamo verificando un dettaglio del tuo
+  ordine, ti contatteremo a breve se necessario."
+- `annullato` → **testo esatto**: "Siamo spiacenti, il tuo ordine è
+  stato annullato per un problema tecnico. Riceverai il rimborso
+  completo sul metodo di pagamento utilizzato. Eventuali sconti
+  utilizzati tornano validi per il tuo prossimo ordine, a presto!"
 
 ## 52-56. Pannello staff/admin
 
@@ -416,6 +440,23 @@ Navigazione: Ordini, Storico, Menu, Impostazioni. Dashboard: Nuovi / Attivi
 Consegnato al rider, Ritirato, Problema, Annullato) e stato consegna (Da
 richiedere, Rider richiesto, Problema rider, Consegnato al rider) — cucina
 e rider procedono in parallelo.
+
+**Requisito futuro per "Impostazioni" (annotato, non ancora costruito)**:
+la sezione Impostazioni dovrà permettere allo staff di modificare gli
+orari di apertura/chiusura senza intervento nostro, in due modi:
+- **Orari base per giorno della settimana**: editare le finestre già in
+  `store_order_windows` (§13) per ciascun giorno, con un checkbox
+  "Chiuso tutto il giorno" per disattivare un giorno intero (es. lunedì
+  di riposo).
+- **Date specifiche/eccezioni**: indicare date singole (Natale, Ferragosto,
+  eventi, chiusure straordinarie) che sovrascrivono l'orario base solo per
+  quel giorno — richiede una nuova tabella non ancora presente nello
+  schema (es. `store_schedule_exceptions`: data, chiuso tutto il giorno
+  sì/no, orari alternativi opzionali).
+
+Questo requisito impatta anche il calcolo dinamico del semaforo (§7) e
+degli slot di consegna programmata (§12), che dovranno consultare anche
+le eccezioni quando esisteranno, non solo `store_order_windows`.
 
 **Correzione schema (trovata dopo l'MVP iniziale, vincolante)**: l'enum
 `order_status` del database inizialmente non prevedeva uno stato finale
