@@ -890,6 +890,18 @@ export default function StaffDashboardPage() {
           ))}
         </div>
       )}
+
+      {/* §65: link volutamente discreto, non una tab principale — pagina
+          statistica interna, non un'area operativa da confondere con
+          Nuovi/Attivi/Storico/Menu. */}
+      <div style={{ marginTop: 32, textAlign: "center" }}>
+        <a
+          href="/staff/abbandonati"
+          style={{ fontSize: 12, color: "var(--text-on-dark)", textDecoration: "underline" }}
+        >
+          Carrelli abbandonati
+        </a>
+      </div>
     </main>
   );
 }
