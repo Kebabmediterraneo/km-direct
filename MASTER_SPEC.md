@@ -566,6 +566,28 @@ prodotto aggiunto, soglia 15€ raggiunta, soglia 25€ raggiunta, GIVEMEFIVE
 applicato, checkout iniziato, pagamento completato, ordine annullato +
 motivo, tempi tra le fasi dell'ordine.
 
+**Pagina "Carrelli abbandonati" (decisione presa dopo l'MVP iniziale,
+vincolante)**: pagina dedicata nel pannello staff, volutamente **meno in
+evidenza** delle sezioni operative (Nuovi/Attivi/Storico/Menu) per non
+generare confusione con gli ordini reali da lavorare. Mostra gli ordini
+rimasti `payment_status='pending'` (checkout iniziato ma mai completato),
+con:
+- numeri aggregati: quanti carrelli abbandonati, in che periodo, valore
+  medio e totale perso;
+- **contenuto dei carrelli**: quali prodotti erano dentro, per capire se
+  ci sono prodotti o prezzi che fanno perdere clienti in modo ricorrente.
+
+**Vincolo legale non negoziabile**: questi dati servono ESCLUSIVAMENTE a
+scopo statistico interno. È vietato usarli per ricontattare i clienti a
+fini di marketing (SMS, email, WhatsApp, chiamate) — il consenso
+marketing (§45) è facoltativo e non spuntato di default, quindi la
+maggior parte di queste persone non lo ha dato, e ricontattarle sarebbe
+una violazione GDPR. Per questo motivo la pagina **non deve mostrare
+nome, cognome, telefono o email** del cliente: solo dati aggregati e
+contenuto del carrello. Se in futuro FAME Srl volesse valutare azioni di
+ricontatto, servirà prima una validazione legale esplicita e una revisione
+di questa regola.
+
 ## 66. Sicurezza
 
 URL ordine con token non prevedibile, admin autenticato, snapshot ordine
