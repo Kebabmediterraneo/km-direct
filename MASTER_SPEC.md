@@ -123,14 +123,17 @@ divergesse)**:
 - **Primo slot selezionabile**, con regola diversa a seconda dello stato
   attuale (§7):
   - **Semaforo verde** (locale già aperto e operativo): primo slot =
-    momento attuale + **45 minuti** (tempo di preparazione più consegna),
-    arrotondato al quarto d'ora successivo. Se questo istante cade fuori
-    dalla finestra di apertura corrente (dopo la chiusura, o nella pausa
-    tra pranzo e cena), si applica la regola del semaforo giallo/rosso
-    qui sotto, calcolata sulla finestra successiva.
+    momento attuale + **60 minuti**, arrotondato al quarto d'ora
+    successivo. (Era 45 minuti nella prima stesura; alzato a 60 dopo
+    aver verificato che Glovo On-Demand accetta preordini solo da 55
+    minuti in avanti — 60 dà anche un margine di sicurezza oltre il
+    minimo tecnico.) Se questo istante cade fuori dalla finestra di
+    apertura corrente (dopo la chiusura, o nella pausa tra pranzo e
+    cena), si applica la regola del semaforo giallo/rosso qui sotto,
+    calcolata sulla finestra successiva.
   - **Semaforo giallo o rosso** (locale non ancora operativo): primo
     slot = orario di apertura della prossima finestra + **30 minuti**
-    (tempo minimo perché la cucina si avvii), non 45 minuti dal momento
+    (tempo minimo perché la cucina si avvii), non 60 minuti dal momento
     attuale — la cucina non è ancora al lavoro, quindi il riferimento è
     l'apertura, non "adesso".
 
@@ -510,6 +513,44 @@ visibile al cliente. Prima di annullare un ordine con rider già richiesto,
 lo staff deve verificare lo stato su Glovo (dopo accettazione rider la
 cancellazione può avere costi). Se nessun rider disponibile: messaggio
 cliente senza mai nominare Glovo, GIVEMEFIVE non consumato.
+
+**Indirizzo Glovo On-Demand (confermato dopo l'MVP iniziale)**:
+`https://ondemand-it.glovoapp.com/request-a-rider/a-ixqr` — il codice
+finale `a-ixqr` è l'identificativo fisso del punto vendita KM San Mamolo
+(verificato come permanente, non legato alla sessione). Va salvato nel
+campo `stores.glovo_outlet_id` già previsto nello schema (o comunque
+letto da database, non scritto fisso nel codice), così un eventuale
+secondo store potrà avere il proprio indirizzo senza modifiche al
+codice (§64).
+
+**Sostituzione dell'approccio "pulsanti copia" (decisione presa dopo
+l'MVP iniziale, vincolante)**: Glovo On-Demand fornisce un template
+`.xlsx` per il caricamento degli ordini. Invece dei pulsanti copia
+singoli originariamente previsti (§57-58) — lenti e soggetti a errori di
+trascrizione campo per campo — il pannello staff genera **direttamente un
+file .xlsx già compilato** per l'ordine, tramite un pulsante **"Scarica
+dati Glovo"** su ogni ordine Delivery. Lo staff scarica il file e lo
+carica su Glovo, senza copiare nulla a mano.
+
+Colonne del template Glovo e relativa origine dei dati:
+
+| Colonna | Origine | Note |
+|---|---|---|
+| `recipient_name` | nome + cognome cliente | obbligatorio |
+| `recipient_phone_number` | telefono cliente | obbligatorio, con prefisso `+39` |
+| `latitude` / `longitude` | `delivery_latitude`/`delivery_longitude` | obbligatorio |
+| `recipient_address` | indirizzo + civico | obbligatorio |
+| `recipient_notes` | citofono, piano/interno, edificio/scala, note rider uniti | opzionale, max 2048 caratteri |
+| `payment_method` | sempre `PAID` | il pagamento è sempre online |
+| `amount` | totale ordine | obbligatorio |
+| `description` | riepilogo articoli | obbligatorio, max 200 caratteri |
+| `preordered_for` | `scheduled_delivery_at` se presente | formato `YYYY-MM-DD HH:MM`, solo quarti d'ora; vuoto se ASAP |
+| `pickup_code` | `pickup_code` (es. `KM-0042`) | opzionale, max 30 caratteri |
+
+Il pulsante compare solo sugli ordini Delivery (mai sui Ritiro, nessun
+rider coinvolto). Resta il pulsante "Apri Glovo On-Demand" (§59), solo
+interno, mai visibile al cliente, e il campo per registrare a mano
+l'`external_delivery_id` restituito da Glovo dopo il caricamento.
 
 ## 62b. Gestione Problema/Annullamento ordini (aggiunta dopo l'MVP iniziale)
 
