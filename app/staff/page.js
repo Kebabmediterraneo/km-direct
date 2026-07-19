@@ -273,7 +273,113 @@ function OrderItemRow({ item }) {
   );
 }
 
-function OrderCard({ order, onChangeStatus, onReportProblem, onResolve, onCancelOrder }) {
+// §57-61: sezione Glovo On-Demand, solo su ordini Delivery (mai Ritiro,
+// nessun rider coinvolto) — file .xlsx pronto da caricare, link diretto al
+// portale (indirizzo letto da stores.glovo_outlet_id, mai fisso nel codice)
+// e campo per registrare a mano l'external_delivery_id restituito da Glovo.
+function GlovoDeliverySection({ order, onSaveExternalDeliveryId }) {
+  const [externalDeliveryId, setExternalDeliveryId] = useState(order.external_delivery_id ?? "");
+  const [isSaving, setIsSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const glovoOutletUrl = order.stores?.glovo_outlet_id;
+
+  async function handleSave() {
+    setIsSaving(true);
+    setSaved(false);
+    await onSaveExternalDeliveryId(order.id, externalDeliveryId.trim());
+    setIsSaving(false);
+    setSaved(true);
+  }
+
+  return (
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        gap: 8,
+        paddingTop: 6,
+        borderTop: "1px solid var(--card-border)",
+      }}
+    >
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+        <a
+          href={`/api/staff/orders/${order.id}/glovo-xlsx`}
+          style={{
+            background: "var(--navy)",
+            color: "var(--bg-warm)",
+            border: "none",
+            borderRadius: 8,
+            padding: "8px 16px",
+            fontWeight: 600,
+            fontSize: 13,
+            textDecoration: "none",
+          }}
+        >
+          Scarica dati Glovo
+        </a>
+        {glovoOutletUrl && (
+          <a
+            href={glovoOutletUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              background: "none",
+              color: "var(--navy)",
+              border: "1px solid var(--card-border)",
+              borderRadius: 8,
+              padding: "8px 16px",
+              fontWeight: 600,
+              fontSize: 13,
+              textDecoration: "none",
+            }}
+          >
+            Apri Glovo On-Demand
+          </a>
+        )}
+      </div>
+      <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+        <input
+          type="text"
+          value={externalDeliveryId}
+          onChange={(event) => {
+            setExternalDeliveryId(event.target.value);
+            setSaved(false);
+          }}
+          placeholder="ID consegna Glovo"
+          style={{
+            flex: 1,
+            padding: "8px 10px",
+            borderRadius: 8,
+            border: "1px solid var(--card-border)",
+            background: "var(--surface-white)",
+            color: "var(--navy)",
+            fontSize: 13,
+            fontFamily: "inherit",
+          }}
+        />
+        <button
+          onClick={handleSave}
+          disabled={isSaving}
+          style={{
+            background: "none",
+            color: "var(--navy)",
+            border: "1px solid var(--card-border)",
+            borderRadius: 8,
+            padding: "8px 14px",
+            fontWeight: 600,
+            fontSize: 13,
+            cursor: isSaving ? "not-allowed" : "pointer",
+            whiteSpace: "nowrap",
+          }}
+        >
+          {isSaving ? "Salvataggio…" : saved ? "Salvato ✓" : "Salva"}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function OrderCard({ order, onChangeStatus, onReportProblem, onResolve, onCancelOrder, onSaveExternalDeliveryId }) {
   const [isUpdating, setIsUpdating] = useState(false);
   const [activeForm, setActiveForm] = useState(null); // null | "problema" | "annulla"
   const customer = order.customers;
@@ -367,6 +473,10 @@ function OrderCard({ order, onChangeStatus, onReportProblem, onResolve, onCancel
           <OrderItemRow key={index} item={item} />
         ))}
       </div>
+
+      {order.fulfillment === "delivery" && (
+        <GlovoDeliverySection order={order} onSaveExternalDeliveryId={onSaveExternalDeliveryId} />
+      )}
 
       {isProblem ? (
         <>
@@ -800,6 +910,21 @@ export default function StaffDashboardPage() {
     }
   }
 
+  async function handleSaveExternalDeliveryId(orderId, externalDeliveryId) {
+    try {
+      const response = await fetch(`/api/staff/orders/${orderId}/external-delivery`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ externalDeliveryId }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Errore nel salvataggio.");
+      await fetchOrders(activeSection);
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
   async function handleLogout() {
     const supabase = createSupabaseBrowserClient();
     await supabase.auth.signOut();
@@ -886,6 +1011,7 @@ export default function StaffDashboardPage() {
               onReportProblem={handleReportProblem}
               onResolve={handleResolve}
               onCancelOrder={handleCancelOrder}
+              onSaveExternalDeliveryId={handleSaveExternalDeliveryId}
             />
           ))}
         </div>

@@ -41,7 +41,7 @@ export async function GET(request) {
   let query = supabaseAdmin
     .from("orders")
     .select(
-      "id, pickup_code, status, fulfillment, total, payment_status, coupon_code, created_at, delivery_timing, scheduled_delivery_at, customers(first_name, last_name, phone), order_items(product_name_snapshot, category_snapshot, quantity, unit_price_snapshot, line_total, is_combo, configuration)"
+      "id, pickup_code, status, fulfillment, total, payment_status, coupon_code, created_at, delivery_timing, scheduled_delivery_at, external_delivery_id, customers(first_name, last_name, phone), order_items(product_name_snapshot, category_snapshot, quantity, unit_price_snapshot, line_total, is_combo, configuration), stores(glovo_outlet_id)"
     )
     .in("status", config.statuses)
     .in("payment_status", ["succeeded", "refunded"])
