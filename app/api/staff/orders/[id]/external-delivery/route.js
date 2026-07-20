@@ -2,9 +2,11 @@ import { NextResponse } from "next/server";
 import { supabaseAdmin } from "../../../../../../lib/supabase-admin";
 import { requireStaffSession } from "../../../../../../lib/require-staff-session";
 
-// §57-58: external_delivery_id è l'ID assegnato da Glovo On-Demand dopo il
-// caricamento del file — registrato a mano dallo staff, nessuna automazione
-// API in questa fase.
+// §57-61: external_delivery_id è l'identificativo univoco che KM comunica a
+// Glovo per la consegna (NON un codice restituito da Glovo). Default = codice
+// ordine (pickup_code); resta modificabile per la ri-richiesta di un rider
+// (suffisso progressivo KM-0001-B, …, dato che Glovo rifiuta duplicati).
+// Nessuna automazione API in questa fase: lo staff salva a mano.
 export async function POST(request, { params }) {
   const { user, errorResponse } = await requireStaffSession();
   if (errorResponse) return errorResponse;

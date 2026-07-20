@@ -508,7 +508,8 @@ Sezione "Dati per la consegna" nel pannello con pulsanti copia singoli
 (codice ritiro, indirizzo, piano/interno, note rider, nome, telefono,
 dettagli articoli, valore, coordinate) + "Copia tutto". Codice ritiro
 formato `KM-0042` salvato come ID interno leggibile; `external_delivery_id`
-separato per l'ID Glovo. Pulsante "Apri Glovo On-Demand" solo interno, mai
+separato come identificativo univoco comunicato a Glovo (vedi sotto).
+Pulsante "Apri Glovo On-Demand" solo interno, mai
 visibile al cliente. Prima di annullare un ordine con rider già richiesto,
 lo staff deve verificare lo stato su Glovo (dopo accettazione rider la
 cancellazione può avere costi). Se nessun rider disponibile: messaggio
@@ -545,12 +546,38 @@ Colonne del template Glovo e relativa origine dei dati:
 | `amount` | totale ordine | obbligatorio |
 | `description` | riepilogo articoli | obbligatorio, max 200 caratteri |
 | `preordered_for` | `scheduled_delivery_at` se presente | formato `YYYY-MM-DD HH:MM`, solo quarti d'ora; vuoto se ASAP |
-| `pickup_code` | `pickup_code` (es. `KM-0042`) | opzionale, max 30 caratteri |
+| `pickup_code` | `external_delivery_id` se valorizzato, altrimenti `pickup_code` (es. `KM-0042`) | opzionale, max 30 caratteri; è l'identificativo univoco comunicato a Glovo (vedi sotto) |
 
 Il pulsante compare solo sugli ordini Delivery (mai sui Ritiro, nessun
 rider coinvolto). Resta il pulsante "Apri Glovo On-Demand" (§59), solo
-interno, mai visibile al cliente, e il campo per registrare a mano
-l'`external_delivery_id` restituito da Glovo dopo il caricamento.
+interno, mai visibile al cliente, e il campo per impostare
+l'`external_delivery_id` comunicato a Glovo (vedi sotto).
+
+**`external_delivery_id` — identificativo univoco per Glovo (correzione
+di un fraintendimento precedente, vincolante)**: `external_delivery_id`
+NON è un codice che Glovo restituisce a noi dopo il caricamento. È
+l'identificativo univoco che **KM comunica a Glovo** per la consegna, e
+deve essere univoco lato Glovo (Glovo rifiuta identificativi duplicati).
+
+- **Valore di default**: il codice ordine interno (`pickup_code`, es.
+  `KM-0001`). Lo staff non deve digitarlo: quando `external_delivery_id`
+  è ancora vuoto, il pannello propone già il codice ordine come valore
+  iniziale del campo, modificabile.
+- **Nessuna scrittura automatica in database**: il valore proposto è solo
+  un default dell'interfaccia. La scrittura di `external_delivery_id`
+  avviene solo se lo staff modifica il campo e salva esplicitamente.
+- **Unico caso d'uso della modifica**: la ri-richiesta di un rider per lo
+  stesso ordine (rider annullato, indirizzo errato, ecc.). Poiché Glovo
+  rifiuta un identificativo già usato, in quel caso lo staff aggiunge un
+  suffisso progressivo (`KM-0001-B`, `KM-0001-C`, …) prima di rigenerare
+  e ricaricare il file.
+- **Nel file .xlsx**: l'identificativo comunicato a Glovo viene scritto
+  nella colonna `pickup_code` del template (l'unica colonna che porta il
+  codice KM verso Glovo, §57-61): usa `external_delivery_id` se
+  valorizzato, altrimenti il codice ordine (`pickup_code`) come fallback
+  — mai vuota.
+- **Nessun campo nuovo in database** (`external_delivery_id` esiste già
+  nello schema) e **nessun backfill** dei dati esistenti.
 
 ## 62b. Gestione Problema/Annullamento ordini (aggiunta dopo l'MVP iniziale)
 

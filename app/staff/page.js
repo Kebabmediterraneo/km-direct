@@ -276,9 +276,21 @@ function OrderItemRow({ item }) {
 // §57-61: sezione Glovo On-Demand, solo su ordini Delivery (mai Ritiro,
 // nessun rider coinvolto) — file .xlsx pronto da caricare, link diretto al
 // portale (indirizzo letto da stores.glovo_outlet_id, mai fisso nel codice)
-// e campo per registrare a mano l'external_delivery_id restituito da Glovo.
+// e campo per l'external_delivery_id, l'identificativo univoco che KM
+// comunica a Glovo (NON un codice restituito da Glovo).
+//
+// §57-61: default = codice ordine interno (pickup_code, es. KM-0001). Quando
+// external_delivery_id è ancora vuoto il campo mostra già il codice ordine
+// come valore iniziale, modificabile — è solo un default dell'interfaccia:
+// nessuna scrittura automatica in DB, la persistenza avviene solo se lo
+// staff modifica e preme "Salva". La modifica serve al caso della
+// ri-richiesta di un rider (rider annullato, indirizzo errato): Glovo
+// rifiuta identificativi duplicati, quindi lo staff aggiunge un suffisso
+// progressivo (KM-0001-B, KM-0001-C, …).
 function GlovoDeliverySection({ order, onSaveExternalDeliveryId }) {
-  const [externalDeliveryId, setExternalDeliveryId] = useState(order.external_delivery_id ?? "");
+  const [externalDeliveryId, setExternalDeliveryId] = useState(
+    order.external_delivery_id || order.pickup_code || ""
+  );
   const [isSaving, setIsSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const glovoOutletUrl = order.stores?.glovo_outlet_id;
@@ -345,7 +357,7 @@ function GlovoDeliverySection({ order, onSaveExternalDeliveryId }) {
             setExternalDeliveryId(event.target.value);
             setSaved(false);
           }}
-          placeholder="ID consegna Glovo"
+          placeholder="ID Glovo (default: codice ordine)"
           style={{
             flex: 1,
             padding: "8px 10px",

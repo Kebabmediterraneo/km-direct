@@ -14,7 +14,7 @@ export async function GET(request, { params }) {
   const { data: order, error } = await supabaseAdmin
     .from("orders")
     .select(
-      "id, pickup_code, fulfillment, total, scheduled_delivery_at, delivery_address, delivery_civico, delivery_citofono, delivery_piano_interno, delivery_edificio_scala, delivery_note_rider, delivery_latitude, delivery_longitude, customers(first_name, last_name, phone), order_items(product_name_snapshot, quantity)"
+      "id, pickup_code, external_delivery_id, fulfillment, total, scheduled_delivery_at, delivery_address, delivery_civico, delivery_citofono, delivery_piano_interno, delivery_edificio_scala, delivery_note_rider, delivery_latitude, delivery_longitude, customers(first_name, last_name, phone), order_items(product_name_snapshot, quantity)"
     )
     .eq("id", id)
     .single();
