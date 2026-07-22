@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createSupabaseBrowserClient } from "../../lib/supabase-browser";
 
 const POLL_INTERVAL_MS = 12000;
@@ -838,11 +838,104 @@ function MenuSection() {
   );
 }
 
+// §52-56 "Alert nuovo ordine": lo stato "ordini già notificati" è interamente
+// lato client, in sessionStorage — sopravvive al refresh (niente ri-notifica),
+// non alla chiusura del tab (alla riapertura gli ordini "Nuovi" ancora in lista
+// sono trattati come preesistenti). Nessuna tabella/colonna nuova nel database.
+const NOTIFIED_IDS_KEY = "km_staff_notified_order_ids";
+
+function loadNotifiedIds() {
+  if (typeof window === "undefined") return new Set();
+  try {
+    const raw = window.sessionStorage.getItem(NOTIFIED_IDS_KEY);
+    return new Set(raw ? JSON.parse(raw) : []);
+  } catch {
+    return new Set();
+  }
+}
+
+function persistNotifiedIds(ids) {
+  if (typeof window === "undefined") return;
+  try {
+    window.sessionStorage.setItem(NOTIFIED_IDS_KEY, JSON.stringify([...ids]));
+  } catch {
+    /* sessionStorage non disponibile: il pannello continua a funzionare */
+  }
+}
+
+// Suono di alert: doppio tono breve sintetizzato via Web Audio API, nessun
+// file audio esterno né dipendenza da asset scaricati (§52-56).
+function playDoubleTone(ctx) {
+  if (!ctx) return;
+  if (ctx.state === "suspended") ctx.resume();
+  const start = ctx.currentTime;
+  const beep = (frequency, at) => {
+    const oscillator = ctx.createOscillator();
+    const gain = ctx.createGain();
+    oscillator.type = "sine";
+    oscillator.frequency.setValueAtTime(frequency, at);
+    gain.gain.setValueAtTime(0.0001, at);
+    gain.gain.exponentialRampToValueAtTime(0.3, at + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.0001, at + 0.18);
+    oscillator.connect(gain);
+    gain.connect(ctx.destination);
+    oscillator.start(at);
+    oscillator.stop(at + 0.2);
+  };
+  beep(880, start);
+  beep(1245, start + 0.22);
+}
+
+// Notifica browser nativa: titolo "Nuovo ordine KM-XXXX", corpo con importo e
+// tipo consegna (Delivery/Ritiro). Compare anche col tab in background (§52-56).
+function showOrderNotification(order) {
+  if (typeof Notification === "undefined" || Notification.permission !== "granted") return;
+  const type = order.fulfillment === "delivery" ? "Delivery" : "Ritiro";
+  try {
+    new Notification(`Nuovo ordine ${order.pickup_code}`, {
+      body: `${formatPrice(order.total)} · ${type}`,
+    });
+  } catch {
+    /* alcuni browser lanciano fuori da contesto sicuro: si ignora */
+  }
+}
+
+// Notifica cumulativa emessa al primo click sul banner, per gli ordini
+// arrivati tra l'apertura del pannello e lo sblocco (§52-56): titolo esatto
+// "N nuovi ordini in attesa" (o "1 nuovo ordine in attesa" se N=1), corpo con
+// l'elenco dei codici KM-XXXX.
+function showCumulativeNotification(pickupCodes) {
+  if (typeof Notification === "undefined" || Notification.permission !== "granted") return;
+  const count = pickupCodes.length;
+  const title = count === 1 ? "1 nuovo ordine in attesa" : `${count} nuovi ordini in attesa`;
+  try {
+    new Notification(title, { body: pickupCodes.join(", ") });
+  } catch {
+    /* alcuni browser lanciano fuori da contesto sicuro: si ignora */
+  }
+}
+
 export default function StaffDashboardPage() {
   const [activeSection, setActiveSection] = useState("nuovi");
   const [orders, setOrders] = useState([]);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
+
+  // §52-56 "Alert nuovo ordine": alert (suono + notifica) per gli ordini
+  // "Nuovi" comparsi dopo l'apertura del pannello. L'attivazione avviene dal
+  // banner (gesto utente: sblocca l'audio e chiede il permesso Notification).
+  // Nessun controllo di silenziamento.
+  const [mounted, setMounted] = useState(false);
+  const [audioUnlocked, setAudioUnlocked] = useState(false);
+  const [notificationPermission, setNotificationPermission] = useState(null);
+  const audioContextRef = useRef(null);
+  const audioUnlockedRef = useRef(false);
+  const notifiedIdsRef = useRef(null);
+  const seededRef = useRef(false);
+  // §52-56: id → pickup_code degli ordini arrivati dopo il mount ma prima
+  // dello sblocco. In memoria (non sessionStorage): dopo un refresh ricompaiono
+  // in lista come "preesistenti al mount" e vanno trattati come silenziosi.
+  const pendingOrdersRef = useRef(new Map());
 
   async function fetchOrders(section) {
     try {
@@ -865,6 +958,108 @@ export default function StaffDashboardPage() {
     const interval = setInterval(() => fetchOrders(activeSection), POLL_INTERVAL_MS);
     return () => clearInterval(interval);
   }, [activeSection]);
+
+  // §52-56 "Alert nuovo ordine": evita il mismatch di hydration (Notification/
+  // audio esistono solo lato client) e allinea lo stato del permesso attuale.
+  useEffect(() => {
+    setMounted(true);
+    if (typeof Notification !== "undefined") setNotificationPermission(Notification.permission);
+  }, []);
+
+  // §52-56 "Alert nuovo ordine": poll dedicato ogni 12 secondi esatti sulla
+  // sezione "Nuovi" (stesso filtro payment_status del pannello), indipendente
+  // dalla sezione visualizzata. Instradamento di ogni id nuovo: al primo giro
+  // (mount) → "già visto" silenzioso; ai giri successivi con avvisi attivi →
+  // alert singolo immediato; con banner non ancora sbloccato → "in attesa",
+  // per l'alert cumulativo emesso al click sul banner.
+  useEffect(() => {
+    let cancelled = false;
+    notifiedIdsRef.current = loadNotifiedIds();
+
+    async function pollNuoviForAlerts() {
+      try {
+        const response = await fetch("/api/staff/orders?section=nuovi");
+        if (!response.ok) return;
+        const data = await response.json();
+        if (cancelled) return;
+        const nuoviOrders = data.orders ?? [];
+        const notified = notifiedIdsRef.current;
+        const pending = pendingOrdersRef.current;
+        const isSeedingRun = !seededRef.current;
+        for (const order of nuoviOrders) {
+          if (notified.has(order.id) || pending.has(order.id)) continue;
+          if (isSeedingRun) {
+            // Ordini presenti al mount: "già visti" in modo silenzioso, per sempre.
+            notified.add(order.id);
+          } else if (audioUnlockedRef.current) {
+            // Avvisi attivi: alert singolo immediato.
+            playDoubleTone(audioContextRef.current);
+            showOrderNotification(order);
+            notified.add(order.id);
+          } else {
+            // Banner mostrato ma non ancora sbloccato: in attesa dell'alert
+            // cumulativo emesso al click sul banner (§52-56).
+            pending.set(order.id, order.pickup_code);
+          }
+        }
+        seededRef.current = true;
+        persistNotifiedIds(notified);
+      } catch {
+        /* errore di rete transitorio: il prossimo poll riprova */
+      }
+    }
+
+    pollNuoviForAlerts();
+    const interval = setInterval(pollNuoviForAlerts, POLL_INTERVAL_MS);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, []);
+
+  // §52-56 "Alert nuovo ordine": attivazione dal banner. Serve un gesto utente
+  // per sbloccare l'audio (policy autoplay dei browser) e per chiedere il
+  // permesso Notification.
+  async function handleActivateAlerts() {
+    const AudioCtx =
+      typeof window !== "undefined" ? window.AudioContext || window.webkitAudioContext : null;
+    if (AudioCtx) {
+      if (!audioContextRef.current) audioContextRef.current = new AudioCtx();
+      try {
+        await audioContextRef.current.resume();
+      } catch {
+        /* resume può fallire: l'utente può ricliccare il banner */
+      }
+      audioUnlockedRef.current = true;
+      setAudioUnlocked(true);
+    }
+    if (typeof Notification !== "undefined") {
+      try {
+        const permission =
+          Notification.permission === "default"
+            ? await Notification.requestPermission()
+            : Notification.permission;
+        setNotificationPermission(permission);
+      } catch {
+        /* requestPermission non supportata: resta comunque il suono */
+      }
+    }
+
+    // §52-56: alert cumulativo per gli ordini arrivati prima dello sblocco —
+    // un solo doppio tono + una sola notifica "N nuovi ordini in attesa". Se il
+    // permesso Notification è negato suona solo l'audio; in ogni caso gli id
+    // passano da "in attesa" a "già notificati" per non ri-suonare al giro dopo.
+    const pending = pendingOrdersRef.current;
+    if (pending.size > 0) {
+      playDoubleTone(audioContextRef.current);
+      showCumulativeNotification([...pending.values()]);
+      const notified = notifiedIdsRef.current ?? new Set();
+      for (const id of pending.keys()) notified.add(id);
+      notifiedIdsRef.current = notified;
+      pending.clear();
+      persistNotifiedIds(notified);
+    }
+  }
 
   async function handleChangeStatus(orderId, status) {
     try {
@@ -971,6 +1166,46 @@ export default function StaffDashboardPage() {
           Esci
         </button>
       </div>
+
+      {/* §52-56 "Alert nuovo ordine": banner "Attiva avvisi sonori", mostrato
+          finché l'audio non è sbloccato in questa sessione o il permesso
+          Notification non è 'granted'. Nessun controllo di silenziamento. */}
+      {mounted && (!audioUnlocked || notificationPermission !== "granted") && (
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            gap: 12,
+            flexWrap: "wrap",
+            background: "#FFF1DC",
+            border: "1px solid var(--brand-orange)",
+            borderRadius: 10,
+            padding: "10px 14px",
+            marginBottom: 16,
+          }}
+        >
+          <span style={{ fontSize: 13, color: "var(--navy)" }}>
+            Attiva suono e notifiche per i nuovi ordini in arrivo.
+          </span>
+          <button
+            onClick={handleActivateAlerts}
+            style={{
+              background: "var(--brand-orange)",
+              color: "var(--bg-warm)",
+              border: "none",
+              borderRadius: 8,
+              padding: "8px 16px",
+              fontWeight: 600,
+              fontSize: 13,
+              cursor: "pointer",
+              whiteSpace: "nowrap",
+            }}
+          >
+            Attiva avvisi sonori
+          </button>
+        </div>
+      )}
 
       <nav style={{ display: "flex", gap: 8, marginBottom: 20 }}>
         {SECTIONS.map((section) => {
