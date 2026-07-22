@@ -568,6 +568,27 @@ notifica WhatsApp a `staff_notification_phone` resta un futuro possibile
   stessa sessione; la chiusura del browser (o del tab) chiude la sessione,
   e alla riapertura gli ordini "Nuovi" ancora in lista vengono trattati
   come preesistenti (vedi punto precedente) e non generano alert.
+- **Troubleshooting go-live (nota operativa, non è un vincolo di
+  codice)**: se al banco l'audio del doppio tono si sente ma la
+  notifica non compare a schermo, oppure viceversa non si sente
+  nulla nonostante il banner sia stato cliccato e il permesso
+  concesso, il problema è quasi sempre a livello di sistema
+  operativo o browser, non del codice. Punti da controllare in
+  ordine: (a) su macOS, Impostazioni di Sistema → Notifiche → il
+  browser in uso deve essere "Consenti notifiche" e non in Focus/
+  Non disturbare; (b) su Windows, Impostazioni → Sistema → Notifiche
+  → il browser deve essere abilitato e la modalità Assistente
+  notifiche disattivata; (c) nel browser stesso, permessi del sito
+  su ordina.kebabmediterraneo.it → Notifiche = Consenti, Audio =
+  Consenti; (d) volume di sistema alzato e uscita audio corretta
+  (non cuffie disconnesse, non uscita HDMI vuota). Il codice
+  costruisce correttamente sia `new Notification` sia il tono Web
+  Audio; se la costruzione avviene ma nulla arriva a schermo/altoparlanti,
+  è uno di questi quattro strati. Verificato durante il collaudo:
+  finché macOS bloccava le notifiche di Chrome a livello di sistema,
+  il codice funzionava (oggetto Notification istanziato con contenuto
+  corretto) ma nulla compariva a schermo — sbloccato il livello
+  macOS, tutto ha funzionato immediatamente.
 
 ## 57-61. Glovo On-Demand (fase 1, manuale)
 
