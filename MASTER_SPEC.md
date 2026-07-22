@@ -773,6 +773,7 @@ Nuova tabella `store_schedule_exceptions`:
 
 - `id` uuid PK
 - `store_id` uuid NOT NULL, FK → `stores.id`
+- `exception_group_id` uuid NOT NULL
 - `date` date NOT NULL
 - `closure_type` text NOT NULL, valori ammessi: `full_day`, `lunch`, `dinner`
 - `reason` text NULL
@@ -780,16 +781,31 @@ Nuova tabella `store_schedule_exceptions`:
 - `updated_at` timestamptz DEFAULT `now()`
 - `created_by` uuid NULL (id staff user, per audit)
 
+Il campo `exception_group_id` è il collante logico dell'eccezione. Tutte
+le righe generate da una singola operazione dello staff (es. "Ferie dal
+10 al 20 agosto, tutto il giorno" → 11 righe) condividono lo stesso
+`exception_group_id`. La UI di gestione (§68.3) mostra e modifica
+eccezioni **a livello di gruppo**, non riga per riga; il DB tiene una
+riga per giorno per semplicità delle query di calcolo (§68.4). Se lo
+staff crea due eccezioni distinte con le stesse date e turni (caso di
+scuola, improbabile), esse restano gruppi separati con
+`exception_group_id` diversi.
+
 Vincoli:
 
-- `UNIQUE(store_id, date, closure_type)` — impedisce duplicati identici.
+- `UNIQUE(store_id, date, closure_type)` — impedisce duplicati identici
+  anche appartenenti a gruppi diversi.
+- Indice su `(store_id, date)` per lookup rapidi nelle query di calcolo
+  delle finestre.
+- Indice su `(store_id, exception_group_id)` per operazioni di gruppo.
 - Regola applicativa (validata a livello API/UI, non come SQL constraint):
   per una stessa coppia `(store_id, date)`, o esiste **una** riga
   `full_day`, oppure esistono **al più due** righe distinte con
   `closure_type` `lunch` e/o `dinner`. Non è mai lecito avere
   contemporaneamente `full_day` e turni parziali per lo stesso giorno.
   Al salvataggio di una nuova eccezione l'API deve rifiutare il caso
-  contraddittorio.
+  contraddittorio, con motivazione che indichi il giorno o i giorni in
+  conflitto e le eccezioni preesistenti.
 
 ### 68.2. Tipi di chiusura supportati (basati sui turni di §13)
 
@@ -808,11 +824,16 @@ dell'enum andranno rivisti.
 
 **Elenco eccezioni**:
 
-- Ordinato per data crescente, eccezioni future in cima.
-- Ogni riga mostra: data, tipo di chiusura ("Tutto il giorno" / "Solo
-  pranzo" / "Solo cena"), motivo se presente, pulsanti Modifica / Elimina.
-- Filtro implicito: eccezioni passate (`date < CURRENT_DATE`) nascoste di
-  default, con toggle "Mostra passate" per revisione storica.
+- Le eccezioni sono mostrate **raggruppate per `exception_group_id`**:
+  una eccezione multi-giorno appare come **una singola riga**, non come
+  N righe distinte. La riga mostra l'intervallo (`data inizio – data
+  fine`, oppure singola data se il gruppo copre un solo giorno), tipo
+  di chiusura ("Tutto il giorno" / "Solo pranzo" / "Solo cena"), motivo
+  se presente, pulsanti Modifica / Elimina.
+- Ordinato per `data inizio` crescente, eccezioni future in cima.
+- Filtro implicito: eccezioni interamente passate (tutte le righe del
+  gruppo con `date < CURRENT_DATE`) nascoste di default, con toggle
+  "Mostra passate" per revisione storica.
 
 **Modale "Nuova eccezione"**:
 
@@ -822,12 +843,12 @@ dell'enum andranno rivisti.
 - **Turno**: radio button "Tutto il giorno" (default) / "Solo pranzo" /
   "Solo cena". La scelta si applica a **tutti** i giorni dell'intervallo
   (es. "solo cena dal 24 al 26 dicembre" → 3 righe, tutte `dinner`,
-  stesso motivo).
+  stesso motivo, stesso `exception_group_id`).
 - **Motivo** opzionale, campo testo libero, visibile **solo allo staff**.
   Il cliente non vede mai il motivo.
 - Al salvataggio: creazione di N righe in `store_schedule_exceptions`,
-  una per giorno dell'intervallo, con lo stesso `closure_type` e lo
-  stesso `reason`.
+  una per giorno dell'intervallo, con lo stesso `closure_type`, lo
+  stesso `reason` e lo stesso `exception_group_id`.
 
 **Avviso ordini colpiti** (obbligatorio, prima di salvare):
 
@@ -842,15 +863,20 @@ dell'enum andranno rivisti.
      successiva.
   2. **Annullare** la creazione dell'eccezione.
 
-**Modifica eccezione**: consente di cambiare motivo, turno o intervallo
-di date. Se cambia l'intervallo, le righe DB corrispondenti vengono
-ricreate, con lo stesso controllo "avviso ordini colpiti" del punto
-precedente.
+**Modifica eccezione**: opera **a livello di gruppo**
+(`exception_group_id`). Consente di cambiare motivo, turno o intervallo
+di date dell'intera eccezione con una singola operazione. Se cambia
+l'intervallo, le righe DB del gruppo vengono ricreate coerentemente
+(cancellazione delle righe fuori dal nuovo intervallo, inserimento
+delle nuove, aggiornamento delle rimanenti). Le validazioni sono le
+stesse della creazione (regola applicativa §68.1, vincolo UNIQUE), e
+il controllo "avviso ordini colpiti" viene rieseguito considerando la
+nuova configurazione.
 
-**Eliminazione eccezione**: rimuove la riga (o l'insieme di righe se
-l'eccezione era stata creata come intervallo). Nessun impatto retroattivo
-sugli ordini — la cancellazione riapre semplicemente la finestra per gli
-ordini futuri.
+**Eliminazione eccezione**: opera **a livello di gruppo**
+(`exception_group_id`). Rimuove tutte le righe appartenenti al gruppo
+con una singola operazione. Nessun impatto retroattivo sugli ordini —
+la cancellazione riapre semplicemente la finestra per gli ordini futuri.
 
 ### 68.4. Effetti lato cliente durante una chiusura eccezionale
 
