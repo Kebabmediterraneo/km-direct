@@ -502,6 +502,51 @@ l'inversione. Non si applica a `problema`/`annullato`, che restano gestiti
 da un flusso dedicato non ancora costruito (vedi nuova sezione "Gestione
 Problema/Annullamento").
 
+**Alert nuovo ordine — specifica operativa (decisione presa dopo l'MVP
+iniziale, vincolante)**: espande la menzione iniziale ("suono + persistente,
+idealmente anche WhatsApp") con le regole definitive per la fase 1. La
+notifica WhatsApp a `staff_notification_phone` resta un futuro possibile
+(fase 1.1 / §71), non fa parte di questa specifica.
+
+- **Polling**: il pannello staff controlla ogni **12 secondi esatti** la
+  presenza di nuovi ordini nella sezione "Nuovi", usando lo stesso filtro
+  `payment_status IN ('succeeded','refunded')` già in uso nel pannello.
+- **Alert per ordine mai visto in sessione**: per ogni `id` ordine non
+  ancora notificato in questa sessione del browser, vengono emessi
+  contestualmente:
+  - un **suono**, doppio tono sintetizzato via Web Audio API — nessun file
+    audio esterno, nessuna dipendenza da asset scaricati;
+  - una **notifica browser nativa** via Notification API, con titolo
+    `Nuovo ordine KM-XXXX` e corpo contenente importo e tipo consegna
+    (Delivery / Ritiro). La notifica compare anche quando il tab è in
+    background.
+- **Attivazione (banner al primo caricamento)**: al primo caricamento del
+  pannello in una sessione del browser viene mostrato un banner **"Attiva
+  avvisi sonori"**. Al click:
+  1. viene sbloccato l'audio (gesto utente richiesto dalle policy di
+     autoplay dei browser);
+  2. viene richiesto il permesso Notification al browser.
+
+  Finché il banner non viene cliccato, i nuovi ordini restano visibili
+  normalmente in lista ma **senza suono e senza notifica**. Il banner
+  scompare una volta completata l'attivazione, e viene rimostrato
+  all'inizio di ogni nuova sessione se l'audio non è ancora sbloccato in
+  quella sessione o se il permesso Notification non è `granted`.
+- **Nessun silenziamento**: non esiste alcun controllo (pulsante, toggle,
+  impostazione) per silenziare o disattivare l'audio dal pannello. Una
+  volta sbloccato, resta attivo per tutta la durata della sessione.
+- **Ordini preesistenti al mount**: al montaggio del pannello, gli ordini
+  "Nuovi" già presenti in lista vengono immediatamente segnati come "già
+  visti" **senza generare alert**. L'alert scatta esclusivamente per
+  ordini che compaiono in lista *dopo* l'apertura del pannello.
+- **Stato lato client**: nessuna nuova tabella e nessuna nuova colonna nel
+  database. Lo stato "ordini già notificati" è interamente lato client, in
+  `sessionStorage` del browser. Conseguenze deliberate: un refresh
+  accidentale della pagina non ri-notifica gli ordini già visti nella
+  stessa sessione; la chiusura del browser (o del tab) chiude la sessione,
+  e alla riapertura gli ordini "Nuovi" ancora in lista vengono trattati
+  come preesistenti (vedi punto precedente) e non generano alert.
+
 ## 57-61. Glovo On-Demand (fase 1, manuale)
 
 Sezione "Dati per la consegna" nel pannello con pulsanti copia singoli
