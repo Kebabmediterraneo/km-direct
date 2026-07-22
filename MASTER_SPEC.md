@@ -757,6 +757,170 @@ extra). Già confermati: Bulgur → glutine; Polpette melanzane → lattosio;
 Acuka → frutta secca; Egiziano → vegan; Salsa all'aglio → vegan; Black KM →
 non vegan. Elenco completo da fornire prima del go-live.
 
+## 68. Sezione Impostazioni pannello staff — chiusure eccezionali (aggiunta dopo l'MVP iniziale, vincolante)
+
+Prima parte costruita della "Sezione Impostazioni" prevista in §52-56.
+Introduce nel pannello staff la nuova tab **Impostazioni** (accessibile
+dalla stessa navigazione di Ordini/Storico/Menu). In questa fase la tab
+contiene esclusivamente la gestione delle chiusure eccezionali; la
+modifica degli orari base per giorno della settimana (§52-56, "Orari
+base") resta un requisito futuro non ancora implementato e non fa parte
+di questa specifica.
+
+### 68.1. Modello dati
+
+Nuova tabella `store_schedule_exceptions`:
+
+- `id` uuid PK
+- `store_id` uuid NOT NULL, FK → `stores.id`
+- `date` date NOT NULL
+- `closure_type` text NOT NULL, valori ammessi: `full_day`, `lunch`, `dinner`
+- `reason` text NULL
+- `created_at` timestamptz DEFAULT `now()`
+- `updated_at` timestamptz DEFAULT `now()`
+- `created_by` uuid NULL (id staff user, per audit)
+
+Vincoli:
+
+- `UNIQUE(store_id, date, closure_type)` — impedisce duplicati identici.
+- Regola applicativa (validata a livello API/UI, non come SQL constraint):
+  per una stessa coppia `(store_id, date)`, o esiste **una** riga
+  `full_day`, oppure esistono **al più due** righe distinte con
+  `closure_type` `lunch` e/o `dinner`. Non è mai lecito avere
+  contemporaneamente `full_day` e turni parziali per lo stesso giorno.
+  Al salvataggio di una nuova eccezione l'API deve rifiutare il caso
+  contraddittorio.
+
+### 68.2. Tipi di chiusura supportati (basati sui turni di §13)
+
+- **Tutto il giorno** (`full_day`): chiude entrambe le finestre pranzo e
+  cena della data.
+- **Solo pranzo** (`lunch`): chiude la finestra 12:00–14:30 della data.
+- **Solo cena** (`dinner`): chiude la finestra 19:00–22:30 (Dom–Gio) o
+  19:00–23:00 (Ven–Sab) della data.
+
+I turni "pranzo" e "cena" corrispondono rispettivamente alla prima e alla
+seconda finestra di `store_order_windows` (§13). Se in futuro §13 verrà
+esteso a più di due finestre giornaliere, la nomenclatura e i valori
+dell'enum andranno rivisti.
+
+### 68.3. UI Impostazioni — gestione eccezioni
+
+**Elenco eccezioni**:
+
+- Ordinato per data crescente, eccezioni future in cima.
+- Ogni riga mostra: data, tipo di chiusura ("Tutto il giorno" / "Solo
+  pranzo" / "Solo cena"), motivo se presente, pulsanti Modifica / Elimina.
+- Filtro implicito: eccezioni passate (`date < CURRENT_DATE`) nascoste di
+  default, con toggle "Mostra passate" per revisione storica.
+
+**Modale "Nuova eccezione"**:
+
+- **Data inizio** obbligatoria, minimo = oggi.
+- **Data fine** obbligatoria, default = data inizio, deve essere ≥ data
+  inizio.
+- **Turno**: radio button "Tutto il giorno" (default) / "Solo pranzo" /
+  "Solo cena". La scelta si applica a **tutti** i giorni dell'intervallo
+  (es. "solo cena dal 24 al 26 dicembre" → 3 righe, tutte `dinner`,
+  stesso motivo).
+- **Motivo** opzionale, campo testo libero, visibile **solo allo staff**.
+  Il cliente non vede mai il motivo.
+- Al salvataggio: creazione di N righe in `store_schedule_exceptions`,
+  una per giorno dell'intervallo, con lo stesso `closure_type` e lo
+  stesso `reason`.
+
+**Avviso ordini colpiti** (obbligatorio, prima di salvare):
+
+- Il sistema controlla se esistono ordini con `scheduled_delivery_at`
+  cadente in un turno che verrà chiuso e con
+  `payment_status IN ('succeeded','refunded')`.
+- Se ne trova, mostra un modale di conferma con la lista degli ordini
+  colpiti: codice ordine (`KM-XXXX`), data e ora della consegna
+  programmata, importo, nome cliente. Lo staff può:
+  1. **Confermare** la creazione dell'eccezione. Gli ordini restano in
+     database nel loro stato attuale — vedi §68.5 sulla gestione
+     successiva.
+  2. **Annullare** la creazione dell'eccezione.
+
+**Modifica eccezione**: consente di cambiare motivo, turno o intervallo
+di date. Se cambia l'intervallo, le righe DB corrispondenti vengono
+ricreate, con lo stesso controllo "avviso ordini colpiti" del punto
+precedente.
+
+**Eliminazione eccezione**: rimuove la riga (o l'insieme di righe se
+l'eccezione era stata creata come intervallo). Nessun impatto retroattivo
+sugli ordini — la cancellazione riapre semplicemente la finestra per gli
+ordini futuri.
+
+### 68.4. Effetti lato cliente durante una chiusura eccezionale
+
+**Semaforo (§7)**:
+
+- Nei turni chiusi da un'eccezione, il semaforo passa a **rosso** con
+  testo dedicato:
+  - `Chiuso – Riapriremo alle [HH:MM]` se la prossima apertura utile
+    cade nella giornata in corso.
+  - `Chiuso – Riapriremo [giorno data]` (es. `Chiuso – Riapriremo
+    lunedì 25 dicembre`) se la prossima apertura utile cade in un giorno
+    successivo. Formato data: nome del giorno + numero + nome del mese in
+    italiano, senza anno.
+- Il calcolo della "prossima apertura utile" scandaglia in avanti nel
+  tempo saltando: i giorni chiusi dagli orari base (§13, es. futuri
+  giorni di riposo settimanali quando saranno editabili) e tutti i turni
+  chiusi da eccezioni presenti in `store_schedule_exceptions`.
+- Nei turni **non** interessati da eccezioni, il semaforo mantiene la
+  logica standard di §7. Il cliente non vede alcuna differenza rispetto
+  a una giornata normale.
+- Il motivo dell'eccezione **non** viene mai mostrato al cliente.
+
+**Consegna ASAP (§12)**:
+
+- Nei turni chiusi eccezionalmente, l'opzione "PRIMA POSSIBILE" viene
+  rimossa dall'interfaccia (stesso comportamento già in vigore per il
+  semaforo giallo/rosso, §12).
+
+**Consegna programmata (§12)**:
+
+- Il selettore giorno mostra solo giorni con **almeno un turno aperto**
+  nell'arco dei prossimi 2 giorni (limite Glovo, §12).
+- All'interno di un giorno aperto solo parzialmente, gli slot mostrati
+  appartengono solo ai turni non chiusi. Esempio: se in un giorno solo
+  il pranzo è chiuso, il selettore mostra unicamente slot cena; se solo
+  la cena è chiusa, mostra solo slot pranzo.
+- Se sia oggi sia domani sono interamente chiusi (per orari base o per
+  eccezioni), la consegna programmata non ha giorni disponibili.
+
+**Ordine impossibile (checkout bloccato — unico caso previsto)**:
+
+- Se al momento del checkout non è disponibile né ASAP né alcun
+  giorno/turno di consegna programmata nei prossimi 2 giorni, il cliente
+  vede un messaggio esplicito nel checkout: `Al momento non stiamo
+  ricevendo ordini. La prossima apertura è [giorno data] alle [HH:MM].`
+  Il pulsante di pagamento è disabilitato. Il carrello resta comunque
+  salvato per quando riapriremo (§9).
+- Questo è l'**unico caso in cui il checkout viene bloccato** in base
+  allo stato del servizio. §7 stabilisce che il checkout non venga
+  bloccato in base all'orario del semaforo standard: qui la motivazione
+  è diversa — non esiste alcuna consegna possibile nel raggio temporale
+  operativo (2 giorni), quindi accettare l'ordine sarebbe una promessa
+  che non possiamo mantenere.
+
+### 68.5. Ordini programmati per giorni che diventano chiusi
+
+Come stabilito al momento della creazione dell'eccezione (§68.3, "Avviso
+ordini colpiti"), gli ordini con `scheduled_delivery_at` cadente in un
+turno chiuso restano in database nel loro stato attuale, **non vengono
+annullati automaticamente**. Lo staff dovrà contattare manualmente i
+clienti coinvolti (telefono già presente in ordine) e, a seconda del
+caso, riprogrammare l'ordine concordando un nuovo orario oppure
+annullarlo con la procedura §62b (rimborso automatico se non ancora in
+preparazione, GIVEMEFIVE rilasciato).
+
+Nessun cliente riceve automaticamente comunicazioni: la comunicazione
+resta un'azione umana esplicita. La scelta protegge dai casi in cui un
+cliente riceverebbe un annullamento algoritmico senza contesto, mentre
+in realtà la situazione è recuperabile con un semplice contatto.
+
 ## 70. Esplicitamente NON nell'MVP
 
 Account/login cliente, punti/loyalty, referral, app nativa, integrazione
