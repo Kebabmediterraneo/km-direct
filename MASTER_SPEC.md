@@ -511,6 +511,13 @@ notifica WhatsApp a `staff_notification_phone` resta un futuro possibile
 - **Polling**: il pannello staff controlla ogni **12 secondi esatti** la
   presenza di nuovi ordini nella sezione "Nuovi", usando lo stesso filtro
   `payment_status IN ('succeeded','refunded')` già in uso nel pannello.
+  Il polling degli alert è **sempre attivo, indipendentemente dalla tab
+  correntemente visualizzata** (Nuovi / Attivi / Storico / Menu): al banco
+  lo staff lavora spesso su "Attivi" mentre nuovi ordini continuano ad
+  arrivare, quindi gli avvisi non possono essere legati alla tab visibile.
+  Costo accettato: quando la tab visibile è "Nuovi", ci sono due fetch
+  contemporanei allo stesso endpoint ogni 12 secondi (uno per la lista
+  visibile, uno per gli alert) — trascurabile.
 - **Alert per ordine mai visto in sessione**: per ogni `id` ordine non
   ancora notificato in questa sessione del browser, vengono emessi
   contestualmente:
@@ -539,6 +546,21 @@ notifica WhatsApp a `staff_notification_phone` resta un futuro possibile
   "Nuovi" già presenti in lista vengono immediatamente segnati come "già
   visti" **senza generare alert**. L'alert scatta esclusivamente per
   ordini che compaiono in lista *dopo* l'apertura del pannello.
+- **Ordini arrivati con banner attivo ma non ancora sbloccato (alert
+  cumulativo)**: se uno o più ordini nuovi compaiono in lista tra
+  l'apertura del pannello e il click sul banner "Attiva avvisi sonori",
+  i loro id vengono comunque tracciati come "in attesa di notifica"
+  (distinti dagli "ordini preesistenti al mount", che sono invece già
+  visti in modo silenzioso). Al primo click sul banner, se il set di
+  ordini "in attesa" non è vuoto, viene emesso **un unico alert
+  cumulativo**: doppio tono standard (identico all'alert singolo) + una
+  sola notifica browser con titolo `N nuovi ordini in attesa` (o
+  `1 nuovo ordine in attesa` se N=1) e corpo elencante i codici KM-XXXX
+  degli ordini coinvolti. Dopo questo alert cumulativo, tutti gli id in
+  attesa vengono spostati nel set "già notificati" (sessionStorage) e
+  non genereranno ulteriori alert. Da quel momento in poi vale il
+  comportamento normale: un alert singolo per ogni nuovo ordine che
+  compare successivamente.
 - **Stato lato client**: nessuna nuova tabella e nessuna nuova colonna nel
   database. Lo stato "ordini già notificati" è interamente lato client, in
   `sessionStorage` del browser. Conseguenze deliberate: un refresh
