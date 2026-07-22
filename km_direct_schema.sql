@@ -505,3 +505,33 @@ insert into stores (name, slug, address, latitude, longitude)
 values ('KM San Mamolo', 'san-mamolo', 'Via San Mamolo 25/A, Bologna', 44.4900, 11.3350);
 -- NB: latitude/longitude segnaposto, da sostituire con le coordinate esatte
 -- del locale prima del go-live (necessarie per il calcolo geofence, §10).
+
+-- ============================================================================
+-- 14. CHIUSURE ECCEZIONALI PROGRAMMATE (§68)
+-- ============================================================================
+-- Turni chiusi per data specifica (ferie, festività, eventi). Una riga per
+-- giorno/turno; tutte le righe generate da una singola operazione dello staff
+-- condividono lo stesso exception_group_id (collante logico, §68.1). La UI
+-- (§68.3) gestisce le eccezioni a livello di gruppo; il DB tiene una riga per
+-- giorno per semplicità delle query di calcolo finestre (§68.4).
+
+create table store_schedule_exceptions (
+  id                  uuid primary key default gen_random_uuid(),
+  store_id            uuid not null references stores(id) on delete cascade,
+  exception_group_id  uuid not null,
+  date                date not null,
+  closure_type        text not null check (closure_type in ('full_day', 'lunch', 'dinner')),
+  reason              text,                          -- visibile solo allo staff, mai al cliente (§68.3)
+  created_at          timestamptz not null default now(),
+  updated_at          timestamptz not null default now(),
+  created_by          uuid,                          -- id staff user (auth.users), per audit
+  unique (store_id, date, closure_type)              -- §68.1: no duplicati identici, anche fra gruppi
+);
+
+create index idx_store_schedule_exceptions_store_date
+  on store_schedule_exceptions (store_id, date);
+create index idx_store_schedule_exceptions_store_group
+  on store_schedule_exceptions (store_id, exception_group_id);
+
+create trigger trg_store_schedule_exceptions_updated_at before update on store_schedule_exceptions
+  for each row execute function set_updated_at();
