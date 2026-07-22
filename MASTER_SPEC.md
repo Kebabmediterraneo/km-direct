@@ -873,6 +873,27 @@ stesse della creazione (regola applicativa §68.1, vincolo UNIQUE), e
 il controllo "avviso ordini colpiti" viene rieseguito considerando la
 nuova configurazione.
 
+**Nota implementativa sull'atomicità della PATCH (decisione operativa
+accettata, non vincolante)**: la riconciliazione delle righe di un
+gruppo è implementata validate-first (tutte le validazioni prima di
+qualunque scrittura) seguita da una sequenza ordinata di
+DELETE → INSERT → UPDATE via client PostgREST — che non supporta
+transazioni multi-statement. In condizioni normali (rete stabile, DB
+raggiungibile) il risultato è indistinguibile da un'operazione atomica.
+In caso di errore intermedio raro (interruzione di rete a metà
+sequenza, timeout del DB tra due chiamate) il gruppo può restare
+parzialmente riscritto: alcune date cancellate ma non ricreate, oppure
+nuove date inserite ma metadati vecchi non ancora aggiornati.
+Comportamento accettato: (a) l'errore viene restituito all'UI staff,
+(b) al ricaricamento della pagina lo stato reale del gruppo è
+visibile, (c) lo staff può correggere manualmente (modifica o
+elimina + ricrea). Non c'è impatto sui clienti: il calcolo del
+semaforo e degli slot legge sempre lo stato attuale del DB, senza
+dipendere dalla "correttezza" logica dell'ultima PATCH. Un upgrade a
+funzione RPC Postgres (che porterebbe la riconciliazione lato DB con
+transazione garantita) resta un miglioramento futuro se dovessero
+mai emergere problemi ricorrenti sul campo.
+
 **Eliminazione eccezione**: opera **a livello di gruppo**
 (`exception_group_id`). Rimuove tutte le righe appartenenti al gruppo
 con una singola operazione. Nessun impatto retroattivo sugli ordini —
