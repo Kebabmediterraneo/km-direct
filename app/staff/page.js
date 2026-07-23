@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { createSupabaseBrowserClient } from "../../lib/supabase-browser";
+import ImpostazioniSection from "./impostazioni-section";
 
 const POLL_INTERVAL_MS = 12000;
 
@@ -10,6 +11,7 @@ const SECTIONS = [
   { key: "attivi", label: "Attivi" },
   { key: "storico", label: "Storico" },
   { key: "menu", label: "Menu" },
+  { key: "impostazioni", label: "Impostazioni" },
 ];
 
 // §63: stesse categorie mostrate al cliente, nell'ordine del menu — Menu
@@ -952,7 +954,9 @@ export default function StaffDashboardPage() {
   }
 
   useEffect(() => {
-    if (activeSection === "menu") return;
+    // Menu e Impostazioni gestiscono da soli il proprio fetch/stato: qui non
+    // si carica la lista ordini (§63, §68.3).
+    if (activeSection === "menu" || activeSection === "impostazioni") return;
     setLoading(true);
     fetchOrders(activeSection);
     const interval = setInterval(() => fetchOrders(activeSection), POLL_INTERVAL_MS);
@@ -1232,12 +1236,14 @@ export default function StaffDashboardPage() {
         })}
       </nav>
 
-      {error && activeSection !== "menu" && (
+      {error && activeSection !== "menu" && activeSection !== "impostazioni" && (
         <p style={{ fontSize: 14, color: "#C0392B", marginBottom: 16 }}>{error}</p>
       )}
 
       {activeSection === "menu" ? (
         <MenuSection />
+      ) : activeSection === "impostazioni" ? (
+        <ImpostazioniSection />
       ) : loading ? (
         <p style={{ fontSize: 14, color: "var(--text-on-dark)" }}>Caricamento…</p>
       ) : orders.length === 0 ? (
