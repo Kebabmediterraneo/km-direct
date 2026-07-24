@@ -4,7 +4,12 @@ import { supabaseAdmin } from "../../../lib/supabase-admin";
 import { getActiveStore } from "../../../lib/get-active-store";
 import { getStoreGeofencePolygon } from "../../../lib/get-store-geofence";
 import { isPointInPolygon } from "../../../lib/geo";
-import { computeScheduledDeliveryAt } from "../../../lib/scheduled-slots";
+import { computeScheduledDeliveryAt, getScheduledSlots } from "../../../lib/scheduled-slots";
+import {
+  todayRomeDate,
+  computeExceptionEffects,
+  classifyScheduledSlot,
+} from "../../../lib/schedule-exceptions";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
@@ -271,6 +276,77 @@ export async function POST(request) {
         { error: "Indirizzo fuori dalla zona di consegna." },
         { status: 400 }
       );
+    }
+  }
+
+  // §68.4/§46: finora il blocco del checkout durante una chiusura (orari base
+  // §7/§13 o eccezione §68) vive solo lato client — un client malevolo o una
+  // pagina stantia potrebbe comunque POSTare un ordine in un turno chiuso.
+  // Qui lo riverifichiamo server-side con le stesse funzioni pure di
+  // /api/service-status (unica fonte di verità) e rifiutiamo l'ordine se il
+  // timing richiesto non è realmente disponibile. Solo Delivery: il pickup non
+  // ha timing (nessun ASAP/programmata) e §68.4 limita il blocco alla Delivery.
+  if (isDelivery) {
+    const { data: windows, error: windowsError } = await supabaseAdmin
+      .from("store_order_windows")
+      .select("day_of_week, opens_at, closes_at, is_defined")
+      .eq("store_id", store.id);
+
+    if (windowsError) {
+      return NextResponse.json(
+        { error: "Errore nella verifica della disponibilità." },
+        { status: 500 }
+      );
+    }
+
+    // Stessa finestra di service-status (oggi..+31gg) così la "prossima
+    // apertura" del messaggio ASAP è coerente.
+    const now = new Date();
+    const fromDate = todayRomeDate(now);
+    const toDate = todayRomeDate(new Date(now.getTime() + 31 * 86400000));
+    const { data: exceptionRows, error: exceptionsError } = await supabaseAdmin
+      .from("store_schedule_exceptions")
+      .select("date, closure_type")
+      .eq("store_id", store.id)
+      .gte("date", fromDate)
+      .lte("date", toDate);
+
+    if (exceptionsError) {
+      return NextResponse.json(
+        { error: "Errore nella verifica della disponibilità." },
+        { status: 500 }
+      );
+    }
+
+    const exceptions = exceptionRows ?? [];
+
+    if (delivery?.timingType === "scheduled") {
+      // §46b/§68: lo slot programmato deve cadere in una finestra base reale non
+      // chiusa da eccezione, e nel futuro. Non ci fidiamo dello slot mostrato
+      // dal client. Le due stringhe §46b distinguono "passato/non più
+      // disponibile" da "fuori apertura o turno chiuso".
+      const verdict = classifyScheduledSlot(scheduledDeliveryAt, now, windows, exceptions);
+      if (verdict !== "ok") {
+        const error =
+          verdict === "past"
+            ? "L'orario che hai scelto non è più disponibile. Scegline un altro tra quelli proposti."
+            : "In quell'orario siamo chiusi. Scegli un altro orario tra quelli proposti.";
+        return NextResponse.json({ error }, { status: 409 });
+      }
+    } else {
+      // §46b: ASAP disponibile solo se il turno corrente è aperto (verde) e non
+      // chiuso da un'eccezione — esattamente asapAvailable di §68.4.
+      const status = getScheduledSlots(windows, now, exceptions);
+      const effects = computeExceptionEffects(status, now, windows, exceptions);
+      if (!effects.asapAvailable) {
+        return NextResponse.json(
+          {
+            error:
+              "Non possiamo più accettare ordini immediati in questo momento. Scegli un orario tra quelli disponibili.",
+          },
+          { status: 409 }
+        );
+      }
     }
   }
 

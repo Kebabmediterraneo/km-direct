@@ -18,6 +18,7 @@ import {
   filterAffectedOrders,
   closedShiftKeys,
   computeReconciliation,
+  classifyScheduledSlot,
   nextOpenSlot,
   computeExceptionEffects,
 } from "../lib/schedule-exceptions.js";
@@ -346,6 +347,38 @@ for (let dow = 0; dow <= 6; dow++) {
     base.slots.today.length === 0 && base.slots.tomorrow.length === 0 &&
       base.firstSlotDay === null && base.firstSlotLabel === null,
     "t3) oggi+domani chiusi → firstSlotDay=null, firstSlotLabel=null"
+  );
+}
+
+// ---- Task D: classifyScheduledSlot (guard checkout server-side §46b/§68.4) ----
+// WINDOWS: lunch 12:00-14:30, dinner 19:00-22:30 (ogni giorno). Agosto = CEST
+// (UTC+2): Roma 13:00 = 11:00Z (lunch), Roma 20:00 = 18:00Z (dinner),
+// Roma 16:00 = 14:00Z (fuori finestra). now = 09:00Z (Roma 11:00, pre-lunch).
+{
+  const now = new Date("2026-08-15T09:00:00Z");
+  assert(
+    classifyScheduledSlot("2026-08-15T11:00:00Z", now, WINDOWS, []) === "ok",
+    "u1) slot lunch futuro, nessuna eccezione → ok"
+  );
+  assert(
+    classifyScheduledSlot("2026-08-15T18:00:00Z", now, WINDOWS, []) === "ok",
+    "u2) slot dinner futuro, nessuna eccezione → ok"
+  );
+  assert(
+    classifyScheduledSlot("2026-08-15T11:00:00Z", now, WINDOWS, [{ date: "2026-08-15", closure_type: "lunch" }]) === "closed",
+    "u3) slot lunch ma lunch chiuso da eccezione → closed"
+  );
+  assert(
+    classifyScheduledSlot("2026-08-15T18:00:00Z", now, WINDOWS, [{ date: "2026-08-15", closure_type: "full_day" }]) === "closed",
+    "u4) slot dinner ma full_day → closed"
+  );
+  assert(
+    classifyScheduledSlot("2026-08-15T14:00:00Z", now, WINDOWS, []) === "closed",
+    "u5) slot fuori da ogni finestra base (Roma 16:00) → closed"
+  );
+  assert(
+    classifyScheduledSlot("2026-08-15T08:00:00Z", now, WINDOWS, []) === "past",
+    "u6) slot nel passato (Roma 10:00, prima di now) → past"
   );
 }
 
