@@ -1182,6 +1182,91 @@ function MenuComboSection({
   );
 }
 
+// §12/§12b: selettore giorno/orario riutilizzabile, estratto dal ramo delivery
+// di FulfillmentSelector (§12b Task B1). Presentazionale e senza stato: legge
+// `slots` ({today,tomorrow}) e riporta le scelte via onDayChange/onTimeChange.
+// Delivery e Ritiro lo alimentano con sorgenti diverse (serviceStatus.slots vs
+// serviceStatus.pickup.slots) ma lo stesso identico markup.
+//   - `radioName`: isola il gruppo radio giorno tra istanze diverse.
+//   - `allowEmpty`: solo Ritiro. Quando la selezione è azzerata (caso 3 §12b,
+//     slot scaduto) mostra un placeholder non selezionabile invece di far
+//     apparire scelto il primo orario. Per la Delivery resta false → markup
+//     identico all'originale.
+function ScheduledSlotPicker({ slots, day, time, onDayChange, onTimeChange, radioName, allowEmpty = false }) {
+  const optionLabelStyle = {
+    display: "flex",
+    alignItems: "center",
+    gap: 10,
+    fontSize: 14,
+    color: "var(--text-on-dark)",
+    cursor: "pointer",
+  };
+  const todaySlots = slots?.today ?? [];
+  const tomorrowSlots = slots?.tomorrow ?? [];
+  const daySlots = slots?.[day] ?? [];
+
+  return (
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        gap: 10,
+        paddingLeft: 4,
+      }}
+    >
+      {todaySlots.length > 0 && (
+        <label style={optionLabelStyle}>
+          <input
+            type="radio"
+            name={radioName}
+            checked={day === "today"}
+            onChange={() => onDayChange("today")}
+          />
+          Oggi
+        </label>
+      )}
+      {tomorrowSlots.length > 0 && (
+        <label style={optionLabelStyle}>
+          <input
+            type="radio"
+            name={radioName}
+            checked={day === "tomorrow"}
+            onChange={() => onDayChange("tomorrow")}
+          />
+          Domani
+        </label>
+      )}
+
+      {daySlots.length > 0 && (
+        <select
+          value={time ?? ""}
+          onChange={(event) => onTimeChange(event.target.value)}
+          style={{
+            padding: "10px 12px",
+            borderRadius: 8,
+            border: "1px solid var(--card-border)",
+            background: "var(--surface-white)",
+            color: "var(--navy)",
+            fontSize: 14,
+            fontFamily: "inherit",
+          }}
+        >
+          {allowEmpty && time == null && (
+            <option value="" disabled>
+              Scegli un orario…
+            </option>
+          )}
+          {daySlots.map((slot) => (
+            <option key={slot} value={slot}>
+              {slot}
+            </option>
+          ))}
+        </select>
+      )}
+    </div>
+  );
+}
+
 function FulfillmentSelector({
   mode,
   onModeChange,
@@ -1194,6 +1279,11 @@ function FulfillmentSelector({
   onScheduledDayChange,
   scheduledTime,
   onScheduledTimeChange,
+  pickupDay,
+  onPickupDayChange,
+  pickupTime,
+  onPickupTimeChange,
+  pickupSlotExpired,
   serviceStatus,
   geofence,
 }) {
@@ -1316,15 +1406,30 @@ function FulfillmentSelector({
       </div>
 
       {mode === "pickup" ? (
-        <div
-          style={{
-            marginTop: 12,
-            fontSize: 14,
-            fontWeight: 600,
-            color: "var(--navy)",
-          }}
-        >
-          Ritiro da KM, Via San Mamolo 25/A, Bologna
+        <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 12 }}>
+          <div style={{ fontSize: 14, fontWeight: 600, color: "var(--navy)" }}>
+            Ritiro da KM, Via San Mamolo 25/A, Bologna
+          </div>
+          {/* §12b: nessun ASAP per il Ritiro — il cliente sceglie sempre giorno
+              e orario. Alimentato dal blocco `pickup` di /api/service-status. */}
+          <span style={{ fontSize: 13, fontWeight: 600, color: "var(--navy)" }}>
+            Quando vuoi ritirare?
+          </span>
+          <ScheduledSlotPicker
+            slots={serviceStatus?.pickup?.slots}
+            day={pickupDay}
+            time={pickupTime}
+            onDayChange={onPickupDayChange}
+            onTimeChange={onPickupTimeChange}
+            radioName="pickup-day-selector"
+            allowEmpty
+          />
+          {pickupSlotExpired && (
+            <p style={{ margin: 0, fontSize: 13, color: "#C0392B" }}>
+              L&apos;orario che hai scelto non è più disponibile. Scegline un altro
+              tra quelli proposti.
+            </p>
+          )}
         </div>
       ) : (
         <div
@@ -1460,59 +1565,14 @@ function FulfillmentSelector({
           )}
 
           {timingType === "scheduled" && (
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: 10,
-                paddingLeft: 4,
-              }}
-            >
-              {serviceStatus?.slots?.today?.length > 0 && (
-                <label style={optionLabelStyle}>
-                  <input
-                    type="radio"
-                    name="delivery-day"
-                    checked={scheduledDay === "today"}
-                    onChange={() => onScheduledDayChange("today")}
-                  />
-                  Oggi
-                </label>
-              )}
-              {serviceStatus?.slots?.tomorrow?.length > 0 && (
-                <label style={optionLabelStyle}>
-                  <input
-                    type="radio"
-                    name="delivery-day"
-                    checked={scheduledDay === "tomorrow"}
-                    onChange={() => onScheduledDayChange("tomorrow")}
-                  />
-                  Domani
-                </label>
-              )}
-
-              {(serviceStatus?.slots?.[scheduledDay]?.length ?? 0) > 0 && (
-                <select
-                  value={scheduledTime ?? ""}
-                  onChange={(event) => onScheduledTimeChange(event.target.value)}
-                  style={{
-                    padding: "10px 12px",
-                    borderRadius: 8,
-                    border: "1px solid var(--card-border)",
-                    background: "var(--surface-white)",
-                    color: "var(--navy)",
-                    fontSize: 14,
-                    fontFamily: "inherit",
-                  }}
-                >
-                  {serviceStatus.slots[scheduledDay].map((slot) => (
-                    <option key={slot} value={slot}>
-                      {slot}
-                    </option>
-                  ))}
-                </select>
-              )}
-            </div>
+            <ScheduledSlotPicker
+              slots={serviceStatus?.slots}
+              day={scheduledDay}
+              time={scheduledTime}
+              onDayChange={onScheduledDayChange}
+              onTimeChange={onScheduledTimeChange}
+              radioName="delivery-day"
+            />
           )}
         </div>
       )}
@@ -1906,6 +1966,11 @@ function CheckoutScreen({
   timingType,
   scheduledDay,
   scheduledTime,
+  pickupDay,
+  pickupTime,
+  onPickupDayChange,
+  onPickupTimeChange,
+  pickupSlotExpired,
   serviceStatus,
   giveMeFiveApplied,
   birreProducts,
@@ -1958,12 +2023,18 @@ function CheckoutScreen({
   // 2 giorni (calcolato server-side in /api/service-status). Solo Delivery.
   const checkoutBlocked = isDelivery && !!serviceStatus?.checkoutBlocked;
 
+  // §12b/§5: in modalità Ritiro il pagamento è impossibile senza uno slot
+  // valido selezionato (lo slot scelto deve essere ancora tra quelli proposti).
+  const pickupDaySlots = serviceStatus?.pickup?.slots?.[pickupDay] ?? [];
+  const pickupSlotValid = pickupTime != null && pickupDaySlots.includes(pickupTime);
+
   const canPay =
     customerDetails.firstName.trim() !== "" &&
     customerDetails.lastName.trim() !== "" &&
     customerDetails.phone.trim() !== "" &&
     privacyAccepted &&
     (!isDelivery || (address.trim() !== "" && civico.trim() !== "" && coords)) &&
+    (isDelivery || pickupSlotValid) &&
     (!hasBeer || ageConfirmed) &&
     !checkoutBlocked;
 
@@ -2106,6 +2177,31 @@ function CheckoutScreen({
             </span>
           )}
         </div>
+
+        {/* §12b/§41-45: il Ritiro sceglie giorno e orario nella stessa pagina
+            di checkout, con lo STESSO stato del selettore in pagina principale
+            (mai due orari divergenti). Nessun selettore Ritiro qui per la
+            Delivery: l'allineamento UI Delivery è un lavoro successivo (§12). */}
+        {!isDelivery && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            <span style={sectionTitleStyle}>Orario di ritiro</span>
+            <ScheduledSlotPicker
+              slots={serviceStatus?.pickup?.slots}
+              day={pickupDay}
+              time={pickupTime}
+              onDayChange={onPickupDayChange}
+              onTimeChange={onPickupTimeChange}
+              radioName="pickup-day-checkout"
+              allowEmpty
+            />
+            {pickupSlotExpired && (
+              <p style={{ margin: 0, fontSize: 13, color: "#C0392B" }}>
+                L&apos;orario che hai scelto non è più disponibile. Scegline un
+                altro tra quelli proposti.
+              </p>
+            )}
+          </div>
+        )}
 
         {isDelivery && (
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
@@ -2351,6 +2447,14 @@ export default function Home() {
   const [timingType, setTimingType] = useState("asap");
   const [scheduledDay, setScheduledDay] = useState("today");
   const [scheduledTime, setScheduledTime] = useState(null);
+  // §12b: stato Ritiro, separato dalla Delivery. `pickupTimeExplicit` ricorda
+  // se l'orario corrente è una preselezione automatica o una scelta esplicita
+  // del cliente (serve per la regola di scadenza slot §12b). `pickupSlotExpired`
+  // segnala il caso 3 (scelta esplicita non più valida → messaggio §46b).
+  const [pickupDay, setPickupDay] = useState("today");
+  const [pickupTime, setPickupTime] = useState(null);
+  const [pickupTimeExplicit, setPickupTimeExplicit] = useState(false);
+  const [pickupSlotExpired, setPickupSlotExpired] = useState(false);
   const [cartOpen, setCartOpen] = useState(false);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [giveMeFiveApplied, setGiveMeFiveApplied] = useState(false);
@@ -2416,6 +2520,49 @@ export default function Home() {
     const daySlots = serviceStatus?.slots?.[day] ?? [];
     setScheduledTime(daySlots[0] ?? null);
   }
+
+  // §12b: qualsiasi interazione col selettore Ritiro (giorno o orario) è una
+  // scelta esplicita del cliente — da quel momento la scadenza slot segue i
+  // casi 2/3 (mai spostamento silenzioso). Cambiare giorno preseleziona il
+  // primo slot di quel giorno.
+  function handlePickupDayChange(day) {
+    setPickupDay(day);
+    const daySlots = serviceStatus?.pickup?.slots?.[day] ?? [];
+    setPickupTime(daySlots[0] ?? null);
+    setPickupTimeExplicit(true);
+    setPickupSlotExpired(false);
+  }
+
+  function handlePickupTimeChange(time) {
+    setPickupTime(time);
+    setPickupTimeExplicit(true);
+    setPickupSlotExpired(false);
+  }
+
+  // §12b — scadenza slot Ritiro. Reagisce solo ai cambi di serviceStatus (poll
+  // 60s), come l'effetto Delivery. Tre casi:
+  //  1. selezione automatica (mai toccata) → segue in silenzio il primo slot
+  //     utile corrente;
+  //  2. selezione esplicita ancora valida → non tocca nulla;
+  //  3. selezione esplicita non più valida → azzera + segnala scadenza (§46b),
+  //     mai spostare di nascosto il cliente su un altro orario.
+  useEffect(() => {
+    const pickup = serviceStatus?.pickup;
+    if (!pickup) return;
+    const daySlots = pickup.slots?.[pickupDay] ?? [];
+    const stillValid = pickupTime != null && daySlots.includes(pickupTime);
+
+    if (!pickupTimeExplicit) {
+      if (pickup.firstSlotDay !== pickupDay) setPickupDay(pickup.firstSlotDay ?? "today");
+      if (pickup.firstSlotLabel !== pickupTime) setPickupTime(pickup.firstSlotLabel ?? null);
+      return;
+    }
+    if (stillValid) return;
+    setPickupTime(null);
+    setPickupSlotExpired(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- reagisce solo ai
+    // cambi di serviceStatus, non a ogni modifica di pickupDay/pickupTime
+  }, [serviceStatus]);
 
   function addToCart(newItem) {
     setCartItems((prev) => {
@@ -2561,6 +2708,11 @@ export default function Home() {
           timingType={timingType}
           scheduledDay={scheduledDay}
           scheduledTime={scheduledTime}
+          pickupDay={pickupDay}
+          pickupTime={pickupTime}
+          onPickupDayChange={handlePickupDayChange}
+          onPickupTimeChange={handlePickupTimeChange}
+          pickupSlotExpired={pickupSlotExpired}
           serviceStatus={serviceStatus}
           giveMeFiveApplied={giveMeFiveApplied}
           birreProducts={menuData.categoryProducts.BIRRE}
@@ -2614,6 +2766,11 @@ export default function Home() {
             onScheduledDayChange={handleScheduledDayChange}
             scheduledTime={scheduledTime}
             onScheduledTimeChange={setScheduledTime}
+            pickupDay={pickupDay}
+            onPickupDayChange={handlePickupDayChange}
+            pickupTime={pickupTime}
+            onPickupTimeChange={handlePickupTimeChange}
+            pickupSlotExpired={pickupSlotExpired}
             serviceStatus={serviceStatus}
             geofence={geofence}
           />
