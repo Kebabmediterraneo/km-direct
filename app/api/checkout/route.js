@@ -24,6 +24,17 @@ function round2(value) {
   return Math.round(value * 100) / 100;
 }
 
+// §46b: rifiuto 409 di uno slot programmato (Delivery o Ritiro) in base al
+// verdetto di classifyScheduledSlot. Stringhe §46b: "past" → orario non più
+// disponibile; "closed" → fuori apertura o turno chiuso.
+function scheduledRejection(verdict) {
+  const error =
+    verdict === "past"
+      ? "L'orario che hai scelto non è più disponibile. Scegline un altro tra quelli proposti."
+      : "In quell'orario siamo chiusi. Scegli un altro orario tra quelli proposti.";
+  return NextResponse.json({ error }, { status: 409 });
+}
+
 // §46: ricalcola il prezzo di un prodotto (Roll/Bowl/Fritti/Sides/Dolci/
 // Drink/Birre) interrogando Supabase — mai fidarsi del prezzo del client.
 async function resolveProduct(ref) {
@@ -213,6 +224,7 @@ export async function POST(request) {
     items,
     fulfillment,
     delivery,
+    pickup,
     customer,
     privacyAccepted,
     marketingOptIn,
@@ -248,15 +260,25 @@ export async function POST(request) {
     return NextResponse.json({ error: "Coordinate indirizzo mancanti." }, { status: 400 });
   }
 
-  // §12: quando il cliente ha scelto "Consegna programmata", il timestamp
-  // reale va calcolato qui — mai fidarsi di un timestamp pronto arrivato
-  // dal client (§46) — da scheduledDay/scheduledTime.
+  // §12/§12b: il timestamp reale dell'orario concordato va calcolato qui —
+  // mai fidarsi di un timestamp pronto arrivato dal client (§46) — da
+  // scheduledDay/scheduledTime. Vale per la Delivery programmata e per il
+  // Ritiro (§12b: il Ritiro sceglie sempre giorno e orario, mai ASAP).
   let scheduledDeliveryAt = null;
   if (isDelivery && delivery?.timingType === "scheduled") {
     scheduledDeliveryAt = computeScheduledDeliveryAt(delivery?.scheduledDay, delivery?.scheduledTime);
     if (!scheduledDeliveryAt) {
       return NextResponse.json(
         { error: "Orario di consegna programmata non valido." },
+        { status: 400 }
+      );
+    }
+  }
+  if (!isDelivery) {
+    scheduledDeliveryAt = computeScheduledDeliveryAt(pickup?.scheduledDay, pickup?.scheduledTime);
+    if (!scheduledDeliveryAt) {
+      return NextResponse.json(
+        { error: "Orario di ritiro non valido." },
         { status: 400 }
       );
     }
@@ -279,14 +301,13 @@ export async function POST(request) {
     }
   }
 
-  // §68.4/§46: finora il blocco del checkout durante una chiusura (orari base
-  // §7/§13 o eccezione §68) vive solo lato client — un client malevolo o una
-  // pagina stantia potrebbe comunque POSTare un ordine in un turno chiuso.
-  // Qui lo riverifichiamo server-side con le stesse funzioni pure di
-  // /api/service-status (unica fonte di verità) e rifiutiamo l'ordine se il
-  // timing richiesto non è realmente disponibile. Solo Delivery: il pickup non
-  // ha timing (nessun ASAP/programmata) e §68.4 limita il blocco alla Delivery.
-  if (isDelivery) {
+  // §68.4/§46b: il blocco del checkout durante una chiusura (orari base §7/§13
+  // o eccezione §68) vive lato client — un client malevolo o una pagina stantia
+  // potrebbe comunque POSTare un ordine in un turno chiuso. Qui lo riverifichiamo
+  // server-side con le stesse funzioni pure di /api/service-status (unica fonte
+  // di verità) e rifiutiamo l'ordine se il timing richiesto non è disponibile.
+  // Vale per entrambe le modalità: Delivery (ASAP/programmata) e Ritiro (§12b).
+  {
     const { data: windows, error: windowsError } = await supabaseAdmin
       .from("store_order_windows")
       .select("day_of_week, opens_at, closes_at, is_defined")
@@ -320,19 +341,18 @@ export async function POST(request) {
 
     const exceptions = exceptionRows ?? [];
 
-    if (delivery?.timingType === "scheduled") {
+    if (!isDelivery) {
+      // §12b/§46b: il Ritiro è sempre programmato (mai ASAP). Lo slot deve
+      // cadere in una finestra base reale non chiusa da eccezione, e nel
+      // futuro — con chiusura INCLUSA (un ritiro all'orario di chiusura è
+      // valido, §12b). Stesse stringhe §46b della Delivery programmata.
+      const verdict = classifyScheduledSlot(scheduledDeliveryAt, now, windows, exceptions, true);
+      if (verdict !== "ok") return scheduledRejection(verdict);
+    } else if (delivery?.timingType === "scheduled") {
       // §46b/§68: lo slot programmato deve cadere in una finestra base reale non
-      // chiusa da eccezione, e nel futuro. Non ci fidiamo dello slot mostrato
-      // dal client. Le due stringhe §46b distinguono "passato/non più
-      // disponibile" da "fuori apertura o turno chiuso".
+      // chiusa da eccezione, e nel futuro (chiusura esclusa, come §12).
       const verdict = classifyScheduledSlot(scheduledDeliveryAt, now, windows, exceptions);
-      if (verdict !== "ok") {
-        const error =
-          verdict === "past"
-            ? "L'orario che hai scelto non è più disponibile. Scegline un altro tra quelli proposti."
-            : "In quell'orario siamo chiusi. Scegli un altro orario tra quelli proposti.";
-        return NextResponse.json({ error }, { status: 409 });
-      }
+      if (verdict !== "ok") return scheduledRejection(verdict);
     } else {
       // §46b: ASAP disponibile solo se il turno corrente è aperto (verde) e non
       // chiuso da un'eccezione — esattamente asapAvailable di §68.4.
@@ -470,7 +490,8 @@ export async function POST(request) {
     store_id: store.id,
     customer_id: customerRow.id,
     fulfillment,
-    delivery_timing: isDelivery ? delivery?.timingType ?? "asap" : null,
+    // §12b: il Ritiro è sempre programmato (mai ASAP) → delivery_timing="scheduled".
+    delivery_timing: isDelivery ? delivery?.timingType ?? "asap" : "scheduled",
     scheduled_delivery_at: scheduledDeliveryAt ? scheduledDeliveryAt.toISOString() : null,
     delivery_address: isDelivery ? delivery.address.trim() : null,
     delivery_civico: isDelivery ? delivery.houseNumber.trim() : null,

@@ -22,7 +22,7 @@ import {
   nextOpenSlot,
   computeExceptionEffects,
 } from "../lib/schedule-exceptions.js";
-import { getScheduledSlots, getPickupSlots } from "../lib/scheduled-slots.js";
+import { getScheduledSlots, getPickupSlots, computeScheduledDeliveryAt } from "../lib/scheduled-slots.js";
 
 let failures = 0;
 function assert(cond, msg) {
@@ -453,6 +453,54 @@ for (let dow = 0; dow <= 6; dow++) {
       p6.firstSlotDay === null && p6.firstSlotLabel === null &&
       p6.checkoutBlocked === true && typeof p6.blockMessage === "string" && p6.blockMessage.length > 0,
     "pk6) Ritiro oggi+domani chiusi → blocked, firstSlotDay/label null, blockMessage presente"
+  );
+}
+
+// ---- §12b Task C: guard Ritiro (classifyScheduledSlot con closingInclusive) ----
+// WINDOWS: lunch 12:00-14:30, dinner 19:00-22:30. Agosto = CEST (UTC+2):
+// Roma 14:30 (chiusura pranzo) = 12:30 UTC; Roma 13:00 = 11:00 UTC.
+// now = 09:00Z (Roma 11:00).
+{
+  const now = new Date("2026-08-15T09:00:00Z");
+  const atClose = "2026-08-15T12:30:00Z"; // Roma 14:30 = orario di chiusura pranzo
+
+  // gc1) CASO CHIAVE: orario esattamente alla chiusura. Ritiro (chiusura
+  // inclusa) → valido; Delivery (chiusura esclusa, default) → closed.
+  assert(
+    classifyScheduledSlot(atClose, now, WINDOWS, [], true) === "ok",
+    "gc1a) Ritiro slot alla chiusura (14:30) con closingInclusive=true → ok"
+  );
+  assert(
+    classifyScheduledSlot(atClose, now, WINDOWS, []) === "closed",
+    "gc1b) Delivery invariata: stesso slot 14:30 (default esclusivo) → closed"
+  );
+
+  // gc2) slot Ritiro interno alla finestra → ok (sanity closingInclusive).
+  assert(
+    classifyScheduledSlot("2026-08-15T11:00:00Z", now, WINDOWS, [], true) === "ok",
+    "gc2) Ritiro slot 13:00 dentro pranzo → ok"
+  );
+
+  // gc3) slot Ritiro alla chiusura ma turno chiuso da eccezione → closed
+  // (l'inclusività non aggira le eccezioni).
+  assert(
+    classifyScheduledSlot(atClose, now, WINDOWS, [{ date: "2026-08-15", closure_type: "lunch" }], true) === "closed",
+    "gc3) Ritiro slot 14:30 ma pranzo chiuso da eccezione → closed"
+  );
+
+  // gc4) orario mancante/invalido → computeScheduledDeliveryAt null (meccanismo
+  // del rifiuto 400 nella route, coerente con la Delivery programmata).
+  assert(
+    computeScheduledDeliveryAt(undefined, undefined) === null,
+    "gc4a) orario ritiro assente → computeScheduledDeliveryAt null (→ 400)"
+  );
+  assert(
+    computeScheduledDeliveryAt("today", undefined) === null,
+    "gc4b) giorno senza orario → null (→ 400)"
+  );
+  assert(
+    computeScheduledDeliveryAt("today", "14:30") instanceof Date,
+    "gc4c) giorno+orario validi → Date (non 400)"
   );
 }
 

@@ -2063,6 +2063,9 @@ function CheckoutScreen({
                 scheduledTime,
               }
             : null,
+          // §12b Task C: orario di ritiro (giorno+slot già in stato pickupDay/
+          // pickupTime) — il timestamp reale è ricalcolato server-side (§46).
+          pickup: isDelivery ? null : { scheduledDay: pickupDay, scheduledTime: pickupTime },
           customer: customerDetails,
           privacyAccepted,
           marketingOptIn,
