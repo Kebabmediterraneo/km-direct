@@ -1,10 +1,25 @@
 # KM DIRECT — MASTER SPECIFICATION
 
-**Versione 14** — sostituisce la v13.
+**Versione 15** — sostituisce la v14.
 
 Documento di riferimento definitivo per lo sviluppo. Le decisioni qui
 contenute sono approvate: non vanno reinterpretate senza un motivo concreto
 (vedi §73). Ogni file di codice del progetto deve rispettare queste regole.
+
+**Novità della v15** (tutte vincolanti):
+
+1. §12 — messa in spec la regola dell'**ultimo slot Delivery** (l'ultimo
+   quarto d'ora prima della chiusura, chiusura esclusa). Era il
+   comportamento del codice fin dall'inizio, ma non era scritto da nessuna
+   parte, e ora convive con la regola opposta del Ritiro (§12b, chiusura
+   inclusa): l'asimmetria va documentata, non lasciata implicita.
+2. §12b — nuova regola per lo **slot che scade mentre il cliente compila il
+   checkout**, con comportamento diverso a seconda che lo slot sia stato
+   preselezionato dal sistema o scelto dal cliente. La stessa regola vale
+   per la consegna programmata (§12), dove è ancora da implementare.
+3. Correzione di nomenclatura: la colonna del database si chiama
+   `delivery_timing`; `delivery_timing_type` è il nome del tipo enumerato,
+   non della colonna.
 
 **Novità della v14** (tutte vincolanti):
 
@@ -138,7 +153,8 @@ Questa sezione vale **solo per la modalità Delivery**. Il Ritiro ha regole
 proprie, simmetriche ma non identiche, in §12b. Nulla di §12 è cambiato in
 v14.
 
-`delivery_timing_type`: `asap` (default) o `scheduled`. Se programmata:
+Colonna `delivery_timing` (di tipo `delivery_timing_type`): `asap`
+(default) o `scheduled`. Se programmata:
 giorno, orario, solo slot validi, massimo 2 giorni in anticipo. Per gli
 ordini Ritiro questo campo vale **sempre** `scheduled` (§12b).
 
@@ -173,6 +189,25 @@ divergesse)**:
     (tempo minimo perché la cucina si avvii), non 60 minuti dal momento
     attuale — la cucina non è ancora al lavoro, quindi il riferimento è
     l'apertura, non "adesso".
+- **Ultimo slot selezionabile** di una finestra (esplicitato in v15): è
+  l'ultimo quarto d'ora **strettamente precedente** la chiusura, cioè la
+  chiusura è **esclusa**. Con finestra 12:00–14:30 l'ultimo slot Delivery è
+  **14:15**. È il comportamento presente nel codice fin dall'inizio, mai
+  messo in spec prima d'ora; viene confermato perché la consegna richiede
+  rider e tragitto, quindi promettere una consegna all'orario esatto di
+  chiusura significherebbe promettere un arrivo dopo la chiusura.
+
+  **Asimmetria voluta con il Ritiro**: §12b usa la regola opposta (chiusura
+  **inclusa**, ultimo slot 14:30), perché il ritiro avviene in negozio e i
+  15 minuti previsti da §7 coprono esattamente la preparazione. Le due
+  regole devono restare diverse: non vanno uniformate credendo a una
+  svista.
+
+- **Slot che scade durante la compilazione**: vale la stessa regola
+  definita in §12b per il Ritiro, applicata alla consegna programmata.
+  **Stato di implementazione**: al momento della v15 è implementata solo
+  per il Ritiro (§12b Task B); l'allineamento della UI Delivery è un lavoro
+  successivo, ancora da pianificare.
 
 ## 12b. Timing Ritiro (aggiunto in v14, vincolante)
 
@@ -232,6 +267,31 @@ implicita, ed è ciò che rende possibile il controllo server-side di §46b.
 - **Giorni e slot mostrati**: valgono le regole di §68.4 — solo giorni con
   almeno un turno aperto e, dentro un giorno, solo gli slot dei turni non
   chiusi da eccezioni.
+- **Slot che scade mentre il cliente compila il checkout (aggiunto in
+  v15)**: il client aggiorna periodicamente lo stato del servizio, quindi
+  uno slot valido al momento della selezione può non esserlo più pochi
+  minuti dopo (esempio tipico: slot delle 14:15 preselezionato alle 14:10,
+  cliente che compila i dati per otto minuti). Il comportamento dipende da
+  **chi** ha scelto quello slot:
+  1. Il cliente **non ha mai toccato** il selettore, quindi è attiva solo
+     la preselezione automatica → il sistema si riposiziona in silenzio sul
+     nuovo primo slot utile. Non si sta cambiando una scelta del cliente,
+     si sta aggiornando un valore predefinito.
+  2. Il cliente **ha scelto esplicitamente** un orario e quell'orario è
+     ancora disponibile → non si tocca nulla, in nessun caso.
+  3. Il cliente **ha scelto esplicitamente** un orario e quell'orario non è
+     più disponibile → la selezione viene azzerata, il pagamento è
+     bloccato finché non ne sceglie un altro, e compare il messaggio già
+     previsto da §46b: `L'orario che hai scelto non è più disponibile.
+     Scegline un altro tra quelli proposti.`
+
+  Il caso 3 non va **mai** risolto spostando automaticamente il cliente su
+  un altro orario. Cambiare di nascosto l'orario poco prima del pagamento
+  significa fargli comprare una promessa diversa da quella che aveva
+  accettato.
+
+  Richiede di tenere memoria del fatto che la selezione corrente sia
+  automatica oppure esplicita: è l'unico dato aggiuntivo necessario.
 
 **Modello dati**: l'orario concordato del Ritiro va salvato nella colonna
 **già esistente** `scheduled_delivery_at`, che dalla v14 si legge come
