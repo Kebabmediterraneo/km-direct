@@ -22,7 +22,7 @@ import {
   nextOpenSlot,
   computeExceptionEffects,
 } from "../lib/schedule-exceptions.js";
-import { getScheduledSlots } from "../lib/scheduled-slots.js";
+import { getScheduledSlots, getPickupSlots } from "../lib/scheduled-slots.js";
 
 let failures = 0;
 function assert(cond, msg) {
@@ -379,6 +379,80 @@ for (let dow = 0; dow <= 6; dow++) {
   assert(
     classifyScheduledSlot("2026-08-15T08:00:00Z", now, WINDOWS, []) === "past",
     "u6) slot nel passato (Roma 10:00, prima di now) → past"
+  );
+}
+
+// ---- §12b Task A: calcolo slot Ritiro (getPickupSlots) ----
+// WINROWS: lunch 12:00-14:30, dinner 19:00-22:30 (ogni giorno). Agosto = CEST
+// (UTC+2): Roma HH:00 = (HH-2):00 UTC.
+{
+  // pk1) verde, arrotondamento non-esatto: Roma 12:07 → +15 = 12:22 → 12:30.
+  const p1 = getPickupSlots(WINROWS, new Date("2026-08-15T10:07:00Z"));
+  assert(
+    p1.firstSlotDay === "today" && p1.firstSlotLabel === "12:30" && p1.slots.today[0] === "12:30",
+    "pk1) Ritiro verde 12:07 → primo slot 12:30 (arrotondamento avanti)"
+  );
+
+  // pk2) verde, quarto esatto tenuto: Roma 12:00 → +15 = 12:15 (tenuto).
+  const p2 = getPickupSlots(WINROWS, new Date("2026-08-15T10:00:00Z"));
+  assert(
+    p2.firstSlotLabel === "12:15" && p2.slots.today[0] === "12:15",
+    "pk2) Ritiro verde 12:00 → primo slot 12:15 (quarto esatto tenuto)"
+  );
+
+  // pk3) chiusura inclusa (Ritiro) vs esclusa (Delivery), stesso now = Roma 12:00.
+  const d2 = getScheduledSlots(WINROWS, new Date("2026-08-15T10:00:00Z"));
+  assert(
+    p2.slots.today.includes("14:30") === true,
+    "pk3a) Ritiro: ultimo slot pranzo = 14:30 (chiusura inclusa)"
+  );
+  assert(
+    d2.slots.today.includes("14:30") === false && d2.slots.today.includes("14:15") === true,
+    "pk3b) Delivery invariata: ultimo slot pranzo = 14:15 (chiusura esclusa)"
+  );
+
+  // pk4) CASO CHE DISTINGUE LE DUE MODALITÀ (§12b): locale aperto, Roma 14:00,
+  // mancano 30 min alla chiusura pranzo (14:30). Delivery (+60) slitta a cena
+  // 19:30; Ritiro (+15) resta a 14:15 nel pranzo.
+  const now4 = new Date("2026-08-15T12:00:00Z");
+  const d4 = getScheduledSlots(WINROWS, now4);
+  const p4 = getPickupSlots(WINROWS, now4);
+  assert(
+    d4.firstSlotDay === "today" && d4.firstSlotLabel === "19:30" && d4.slots.today.includes("14:15") === false,
+    "pk4a) Delivery 14:00 → slitta alla cena, primo slot 19:30"
+  );
+  assert(
+    p4.firstSlotDay === "today" && p4.firstSlotLabel === "14:15" && p4.slots.today.includes("14:30") === true,
+    "pk4b) Ritiro 14:00 → resta nel pranzo, primo slot 14:15 (fino a 14:30)"
+  );
+
+  // pk5) giallo/rosso: apertura + 15 (Ritiro) vs + 30 (Delivery). Roma 11:45,
+  // prima dell'apertura pranzo (12:00).
+  const now5 = new Date("2026-08-15T09:45:00Z");
+  const p5 = getPickupSlots(WINROWS, now5);
+  const d5 = getScheduledSlots(WINROWS, now5);
+  assert(
+    p5.firstSlotLabel === "12:15",
+    "pk5a) Ritiro pre-apertura → apertura 12:00 + 15 = 12:15"
+  );
+  assert(
+    d5.firstSlotLabel === "12:30",
+    "pk5b) Delivery invariata pre-apertura → apertura 12:00 + 30 = 12:30"
+  );
+
+  // pk6) oggi+domani interamente chiusi → nessuno slot: checkout Ritiro
+  // bloccato e coerenza firstSlotDay/label = null (no regressione bug Task C).
+  const now6 = new Date("2026-08-12T06:00:00Z");
+  const exc6 = [
+    { date: "2026-08-12", closure_type: "full_day" },
+    { date: "2026-08-13", closure_type: "full_day" },
+  ];
+  const p6 = getPickupSlots(WINROWS, now6, exc6);
+  assert(
+    p6.slots.today.length === 0 && p6.slots.tomorrow.length === 0 &&
+      p6.firstSlotDay === null && p6.firstSlotLabel === null &&
+      p6.checkoutBlocked === true && typeof p6.blockMessage === "string" && p6.blockMessage.length > 0,
+    "pk6) Ritiro oggi+domani chiusi → blocked, firstSlotDay/label null, blockMessage presente"
   );
 }
 

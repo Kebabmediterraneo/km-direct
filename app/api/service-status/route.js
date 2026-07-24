@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getActiveStore } from "../../../lib/get-active-store";
 import { supabaseAdmin } from "../../../lib/supabase-admin";
-import { getScheduledSlots } from "../../../lib/scheduled-slots";
+import { getScheduledSlots, getPickupSlots } from "../../../lib/scheduled-slots";
 import { todayRomeDate, computeExceptionEffects } from "../../../lib/schedule-exceptions";
 
 export const dynamic = "force-dynamic";
@@ -64,5 +64,11 @@ export async function GET(request) {
   // Additivo: senza eccezioni sul turno rilevante, i campi restano invariati.
   const effects = computeExceptionEffects(result, referenceDate, windows, exceptionRows);
 
-  return NextResponse.json({ ...result, ...effects });
+  // §12b: blocco Ritiro, additivo. Le chiavi top-level (semaforo Delivery,
+  // asap/checkout Delivery) restano invariate per retrocompatibilità: il
+  // client odierno non vede alcuna differenza. Il Ritiro condivide lo stesso
+  // semaforo §7 (top-level), quindi qui servono solo slot/primo-slot/blocco.
+  const pickup = getPickupSlots(windows, referenceDate, exceptionRows);
+
+  return NextResponse.json({ ...result, ...effects, pickup });
 }
