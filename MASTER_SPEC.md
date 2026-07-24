@@ -1,8 +1,25 @@
 # KM DIRECT — MASTER SPECIFICATION
 
+**Versione 14** — sostituisce la v13.
+
 Documento di riferimento definitivo per lo sviluppo. Le decisioni qui
 contenute sono approvate: non vanno reinterpretate senza un motivo concreto
 (vedi §73). Ogni file di codice del progetto deve rispettare queste regole.
+
+**Novità della v14** (tutte vincolanti):
+
+1. Il **Ritiro acquisisce un orario**: il cliente sceglie sempre giorno e
+   slot, come per una consegna programmata. Nuovo §12b, con impatti su §2,
+   §7, §11, §13, §41-45, §47-51, §52-56, §68.4, §68.5.
+2. Nuovo **§46b**: obbligo di riverifica server-side di tutte le condizioni
+   di accettabilità di un ordine, e prima definizione in spec delle
+   convenzioni di errore delle route API (status code e formato).
+3. Il blocco del checkout di §68.4 vale ora per **entrambe** le modalità.
+   Fino alla v13 era descritto in termini di sola consegna e implementato
+   solo per la Delivery: un ordine di Ritiro passava anche a locale chiuso.
+
+La Delivery **non** cambia: ASAP e programmata, primo slot a +60 minuti,
+restano esattamente come in v13 (§12).
 
 ## 1. Visione del progetto
 
@@ -18,7 +35,8 @@ crescere (multi-store, account cliente, automazioni) senza essere rifatta.
 ## 2. Modello operativo fase 1
 
 Cliente: entra → sceglie Delivery/Ritiro → (se Delivery) indirizzo e
-copertura → ASAP o programmata → compone ordine → eventuale GIVEMEFIVE →
+copertura → sceglie il momento (Delivery: ASAP o programmata, §12; Ritiro:
+sempre giorno e orario, §12b) → compone ordine → eventuale GIVEMEFIVE →
 dati cliente → paga online → conferma → ordine nel pannello staff. Lo staff
 inserisce manualmente la consegna su Glovo On-Demand.
 
@@ -67,11 +85,19 @@ orari reali di `store_order_windows` (§13), con quattro fasce:
    [orario prossima apertura]" (stessa fascia del punto 1).
 
 **Importante**: questo stato è puramente informativo. Il checkout NON va
-mai bloccato in base all'orario, in nessuna delle quattro fasce — il
-cliente può sempre completare un ordine, indipendentemente da cosa mostra
-il semaforo. Questa logica riguarda solo il messaggio "ASAP"; la consegna
-programmata (§12, fino a 2 giorni) segue le sue regole indipendenti già
-definite.
+bloccato in base alla sola fascia del semaforo, in nessuna delle quattro
+— il cliente può sempre completare un ordine scegliendo un momento futuro
+valido, indipendentemente da cosa mostra il semaforo.
+
+Il semaforo determina però **quale sia il primo momento selezionabile**,
+sia per la Delivery (§12) sia per il Ritiro (§12b): la fascia verde e le
+fasce gialla/rossa producono regole di calcolo diverse.
+
+**Unica eccezione alla regola "mai bloccare"** (esplicitata in v14): il
+checkout è bloccato quando, per la modalità scelta dal cliente, non
+esiste alcun momento valido nei prossimi 2 giorni — vedi §68.4. Non è un
+blocco "per orario": è l'assenza totale di una promessa mantenibile. La
+stessa condizione va riverificata lato server (§46b).
 
 ## 8. Selettore Delivery/Ritiro
 
@@ -100,10 +126,21 @@ nessun indirizzo cliente, nessun rider. Stati interni: Nuovo, In
 preparazione, Pronto per il ritiro, Ritirato. Stati cliente: Ordine
 ricevuto, In preparazione, Pronto per il ritiro.
 
+**Orario di ritiro (aggiunto in v14, vincolante)**: il Ritiro non è più
+una modalità "senza tempo". Il cliente deve indicare giorno e orario del
+ritiro, con la stessa meccanica di selezione slot della consegna
+programmata. Le regole di calcolo sono in §12b. Restano invariati:
+nessuna fee, nessun minimo, nessun indirizzo cliente, nessun rider.
+
 ## 12. Timing Delivery
 
+Questa sezione vale **solo per la modalità Delivery**. Il Ritiro ha regole
+proprie, simmetriche ma non identiche, in §12b. Nulla di §12 è cambiato in
+v14.
+
 `delivery_timing_type`: `asap` (default) o `scheduled`. Se programmata:
-giorno, orario, solo slot validi, massimo 2 giorni in anticipo.
+giorno, orario, solo slot validi, massimo 2 giorni in anticipo. Per gli
+ordini Ritiro questo campo vale **sempre** `scheduled` (§12b).
 
 **Decisione definitiva su slot e disponibilità ASAP (sostituisce la
 cautela iniziale "non hardcodare 15/30 minuti finché non verificato
@@ -137,7 +174,82 @@ divergesse)**:
     attuale — la cucina non è ancora al lavoro, quindi il riferimento è
     l'apertura, non "adesso".
 
-## 13. Orari ordini Delivery
+## 12b. Timing Ritiro (aggiunto in v14, vincolante)
+
+Simmetrico a §12, ma con costanti proprie: il Ritiro non coinvolge un
+rider, quindi il vincolo dei 55 minuti minimi di Glovo On-Demand — la
+ragione per cui la Delivery usa 60 minuti — qui non si applica.
+
+**Nessun "PRIMA POSSIBILE" per il Ritiro.** A differenza della Delivery, il
+Ritiro non ha un'opzione ASAP: il cliente sceglie **sempre** giorno e
+orario in modo esplicito. A locale aperto questo non aggiunge attrito,
+perché il primo slot utile è preselezionato e confermarlo è un solo tap. La
+scelta rende il momento del ritiro un dato concordato invece che una stima
+implicita, ed è ciò che rende possibile il controllo server-side di §46b.
+
+- **Granularità slot**: **15 minuti**, sui quarti d'ora (:00, :15, :30,
+  :45). Identica a §12.
+- **Orizzonte**: oggi e domani, **massimo 2 giorni**, come in §12. Nota
+  esplicita: per il Ritiro questo limite **non** deriva da un vincolo
+  Glovo — tecnicamente potremmo accettare ritiri a settimane di distanza.
+  È una scelta deliberata, per simmetria con la Delivery e per ridurre gli
+  errori del cliente (ordini con data lontana scelta per sbaglio e poi
+  dimenticati). Estendere l'orizzonte del solo Ritiro sarà semmai una
+  decisione nuova, da mettere prima in spec.
+- **Tempo di preparazione**: **15 minuti**. È il tempo cucina di un ordine
+  da asporto, senza attesa rider.
+- **Primo slot selezionabile**, con regola diversa secondo lo stato del
+  semaforo (§7):
+  - **Semaforo verde** (locale aperto e operativo): primo slot = momento
+    attuale + **15 minuti**, arrotondato **in avanti** al quarto d'ora. Se
+    l'istante calcolato cade esattamente su un quarto d'ora, quello è il
+    primo slot; altrimenti si prende il quarto d'ora successivo. Esempi:
+    ordine alle 12:07 → 12:22 → primo slot **12:30**; ordine alle 12:00 →
+    12:15 → primo slot **12:15**. Se l'istante calcolato cade fuori dalla
+    finestra corrente (dopo la chiusura, o nella pausa tra pranzo e cena),
+    si applica la regola giallo/rosso qui sotto, calcolata sulla finestra
+    successiva.
+  - **Semaforo giallo o rosso** (locale non ancora aperto): primo slot =
+    orario di apertura della prossima finestra utile + **15 minuti**. Il
+    riferimento è l'apertura, non "adesso". A differenza della Delivery
+    (§12: apertura + 30 minuti) qui bastano 15 minuti, perché la cucina è
+    già operativa all'orario di apertura dichiarato in §13 e non c'è da
+    attendere un rider.
+- **Ultimo slot selezionabile** di una finestra: l'**orario di chiusura
+  della finestra, incluso**. È la conseguenza diretta di §7, che consente
+  di ordinare fino a 15 minuti prima della chiusura: quei 15 minuti sono
+  esattamente il tempo di preparazione, quindi l'ultimo ordine accettabile
+  produce un ritiro all'orario di chiusura. Negli ultimi 15 minuti prima
+  della chiusura il semaforo è già rosso (§7, fascia 4) e il primo slot
+  utile si sposta automaticamente alla finestra successiva.
+- **Preselezione**: all'apertura del selettore, giorno e slot sono
+  preselezionati sul primo slot utile. Il cliente può cambiarli, ma non
+  può procedere al pagamento senza uno slot valido selezionato.
+- **Avviso a semaforo giallo o rosso**: come in §12 per la Delivery,
+  mostrare un avviso esplicito vicino al riepilogo/pagamento (non solo
+  nell'header), che il locale è chiuso ora e l'ordine sarà pronto
+  all'orario scelto.
+- **Giorni e slot mostrati**: valgono le regole di §68.4 — solo giorni con
+  almeno un turno aperto e, dentro un giorno, solo gli slot dei turni non
+  chiusi da eccezioni.
+
+**Modello dati**: l'orario concordato del Ritiro va salvato nella colonna
+**già esistente** `scheduled_delivery_at`, che dalla v14 si legge come
+"orario concordato di consegna **o** di ritiro". Il nome della colonna è
+storico e non viene cambiato. La riusiamo invece di aggiungerne una nuova
+perché tutta la logica che dipende da quel campo — avviso ordini colpiti
+(§68.3), ordini in turni che diventano chiusi (§68.5), lettura e
+ordinamento nel pannello staff (§52-56), guard server-side (§46b) — vale
+identica per le due modalità: un secondo campo significherebbe duplicare
+ognuno di quei punti, con il rischio concreto di dimenticarne uno.
+
+**Esclusione esplicita**: l'export Glovo (§57-61) resta riservato agli
+ordini Delivery. La colonna `preordered_for` del template continua a
+leggere `scheduled_delivery_at`, ma il pulsante di export non compare mai
+sugli ordini Ritiro, quindi un orario di ritiro non finisce mai in un CSV
+Glovo.
+
+## 13. Orari ordini (Delivery e Ritiro)
 
 **Orari definitivi (aggiunti dopo l'MVP iniziale, risolvono il buco
 lasciato aperto all'inizio sulla domenica)**:
@@ -145,8 +257,12 @@ lasciato aperto all'inizio sulla domenica)**:
 Domenica–Giovedì: 12:00–14:30, 19:00–22:30.
 Venerdì–Sabato: 12:00–14:30, 19:00–23:00.
 
-Questi stessi orari sono la fonte per il calcolo dinamico dello stato del
-servizio (§7) e per gli slot di consegna programmata (§12).
+Questi orari sono le finestre operative del locale e valgono per
+**entrambe** le modalità: sono la fonte unica per il calcolo dinamico dello
+stato del servizio (§7), per gli slot di consegna programmata (§12) e per
+gli slot di ritiro (§12b). Il titolo originale di questa sezione diceva
+"Delivery" per ragioni storiche: dalla v14 non esistono orari separati per
+il Ritiro.
 
 ## 14. Promo GIVEMEFIVE
 
@@ -370,8 +486,9 @@ salsa → suggerisci salsa; vicino ai 25 € → suggerisci per raggiungere sogl
 
 ## 41-45. Checkout
 
-Una sola pagina (mai suddivisa in step): fulfillment → dati delivery (se
-serve) → dati cliente → privacy → marketing → maggiore età (se serve) →
+Una sola pagina (mai suddivisa in step): fulfillment → momento dell'ordine
+(Delivery: ASAP o slot programmato, §12; Ritiro: giorno e slot, sempre
+obbligatori, §12b) → dati delivery (se serve) → dati cliente → privacy → marketing → maggiore età (se serve) →
 riepilogo → CTA pagamento. Dati cliente obbligatori: nome, cognome,
 telefono (email facoltativa). Dati delivery separati in campi distinti:
 indirizzo, civico, citofono, piano/interno, edificio/scala, note rider,
@@ -402,14 +519,73 @@ Stripe. Regole non negoziabili: prezzo ricalcolato server-side (mai fidarsi
 del browser), webhook, idempotenza, prevenzione doppio ordine, stato
 pending, ordine storico con snapshot prezzi immutabile, procedura rimborso.
 
+## 46b. Validazioni server-side e convenzioni di errore API (aggiunto in v14, vincolante)
+
+§46 impone il ricalcolo del prezzo lato server ("mai fidarsi del browser").
+Quel principio non riguarda solo il prezzo: **ogni condizione che rende un
+ordine accettabile o meno va riverificata nella route che crea l'ordine**,
+indipendentemente da ciò che il client ha già mostrato o disabilitato. Un
+blocco presente solo nella UI è vero soltanto per i clienti onesti: una
+richiesta HTTP costruita a mano lo aggira.
+
+Condizioni da riverificare obbligatoriamente lato server al checkout:
+
+1. **Prezzo** — ricalcolo completo (§46).
+2. **Geofence** — coordinate dentro il poligono; solo Delivery (§41-45).
+3. **Momento dell'ordine** — per **entrambe** le modalità:
+   - Delivery ASAP: rifiuto se al momento della richiesta non esiste una
+     disponibilità ASAP valida (§7, §12).
+   - Delivery programmata e Ritiro: rifiuto se l'orario concordato è nel
+     passato, se cade fuori da ogni finestra di §13, se cade in un turno
+     chiuso da un'eccezione (§68), o se supera l'orizzonte di 2 giorni.
+   - Il server non si fida mai dello slot ricevuto dal client: ricalcola
+     finestre ed eccezioni dal database usando le **stesse funzioni pure**
+     di `/api/service-status`, che resta l'unica fonte di verità.
+     Riscrivere la logica di calcolo in una seconda implementazione è
+     vietato: due implementazioni divergono, sempre.
+
+**Convenzioni di errore delle route API** (prima definizione esplicita in
+spec — fino alla v13 status code e formato erano convenzioni del codice,
+non prescritte):
+
+- Formato di ogni risposta di errore: JSON `{ "error": "<messaggio>" }`.
+- **400** — richiesta malformata, dati mancanti o invalidi.
+- **409** — richiesta ben formata ma non accettabile nello stato attuale
+  del servizio: fuori orario, turno chiuso, slot non più disponibile,
+  geofence non superata. È il codice del punto 3 qui sopra.
+- **500** — errore interno.
+- Il client deve mostrare al cliente il contenuto di `error` per qualsiasi
+  risposta non-ok, in modo visibile nell'interfaccia e non solo in
+  console.
+- Su rifiuto il **carrello non viene mai svuotato** (§9) e la selezione
+  resta modificabile, così che il cliente possa scegliere un altro slot
+  senza ricomporre l'ordine.
+
+**Testi dei messaggi** (provvisori, soggetti alla revisione testi finale):
+
+- ASAP non più disponibile: `Non possiamo più accettare ordini immediati in
+  questo momento. Scegli un orario tra quelli disponibili.`
+- Orario nel passato o non più disponibile: `L'orario che hai scelto non è
+  più disponibile. Scegline un altro tra quelli proposti.`
+- Orario fuori apertura o in un turno chiuso: `In quell'orario siamo
+  chiusi. Scegli un altro orario tra quelli proposti.`
+
+**Stato di implementazione al momento della v14**: il guard è implementato
+per la sola Delivery. Il guard per il Ritiro va implementato insieme a
+§12b; finché non esiste, un ordine Ritiro può essere creato via HTTP anche
+a locale chiuso.
+
 ## 47-51. Conferma e stati ordine
 
 Messaggio cliente: "Ordine ricevuto" / "Ora prepariamo tutto e organizziamo
 la consegna." — **mai nominare Glovo lato cliente**. Stati cliente Delivery:
 Ordine ricevuto → In preparazione → In consegna (interno: "Consegnato al
 rider"). Stati cliente Ritiro: Ordine ricevuto → In preparazione → Pronto
-per il ritiro (§11). Nessun ETA promesso all'inizio (raccogliere prima
-storico reale). Feedback cliente 90 minuti dopo "Consegnato al rider", con
+per il ritiro (§11). Nessun ETA promesso all'inizio **per la Delivery
+ASAP** (raccogliere prima storico reale). Per il Ritiro e per la Delivery
+programmata l'orario concordato è invece un dato esplicito, scelto dal
+cliente (§12, §12b): va mostrato in conferma d'ordine, nella pagina di
+stato e nelle comunicazioni. Non è una stima, è un impegno preso. Feedback cliente 90 minuti dopo "Consegnato al rider", con
 logica quiet hours per non scrivere a tarda notte; mai per ordini annullati
 o problemi irrisolti.
 
@@ -470,9 +646,18 @@ orari di apertura/chiusura senza intervento nostro, in due modi:
   schema (es. `store_schedule_exceptions`: data, chiuso tutto il giorno
   sì/no, orari alternativi opzionali).
 
-Questo requisito impatta anche il calcolo dinamico del semaforo (§7) e
-degli slot di consegna programmata (§12), che dovranno consultare anche
-le eccezioni quando esisteranno, non solo `store_order_windows`.
+Questo requisito impatta anche il calcolo dinamico del semaforo (§7), gli
+slot di consegna programmata (§12) e gli slot di ritiro (§12b), che
+dovranno consultare anche le eccezioni quando esisteranno, non solo
+`store_order_windows`.
+
+**Orario concordato nella coda ordini (aggiunto in v14, vincolante)**: da
+quando anche il Ritiro ha un orario (§12b), il pannello deve mostrare
+`scheduled_delivery_at` su **tutti** gli ordini che lo valorizzano, con
+etichetta coerente con la modalità — "Consegna programmata alle HH:MM" per
+la Delivery, "Ritiro alle HH:MM" per il Ritiro — e deve consentire di
+ordinare la coda per quell'orario. Un ritiro concordato per le 20:45 non va
+preparato alle 19:10 solo perché quell'ordine è arrivato per primo.
 
 **Correzione schema (trovata dopo l'MVP iniziale, vincolante)**: l'enum
 `order_status` del database inizialmente non prevedeva uno stato finale
@@ -920,37 +1105,49 @@ la cancellazione riapre semplicemente la finestra per gli ordini futuri.
   a una giornata normale.
 - Il motivo dell'eccezione **non** viene mai mostrato al cliente.
 
-**Consegna ASAP (§12)**:
+**Consegna ASAP (§12, solo Delivery)**:
 
 - Nei turni chiusi eccezionalmente, l'opzione "PRIMA POSSIBILE" viene
   rimossa dall'interfaccia (stesso comportamento già in vigore per il
-  semaforo giallo/rosso, §12).
+  semaforo giallo/rosso, §12). Il Ritiro non ha un'opzione ASAP (§12b),
+  quindi non è coinvolto da questo punto.
 
-**Consegna programmata (§12)**:
+**Consegna programmata (§12) e Ritiro (§12b)** — regole identiche per le
+due modalità, ciascuna applicata ai propri slot:
 
 - Il selettore giorno mostra solo giorni con **almeno un turno aperto**
-  nell'arco dei prossimi 2 giorni (limite Glovo, §12).
+  nell'arco dei prossimi 2 giorni (§12 per la Delivery, §12b per il
+  Ritiro).
 - All'interno di un giorno aperto solo parzialmente, gli slot mostrati
   appartengono solo ai turni non chiusi. Esempio: se in un giorno solo
   il pranzo è chiuso, il selettore mostra unicamente slot cena; se solo
   la cena è chiusa, mostra solo slot pranzo.
 - Se sia oggi sia domani sono interamente chiusi (per orari base o per
-  eccezioni), la consegna programmata non ha giorni disponibili.
+  eccezioni), non esiste alcuno slot disponibile, in nessuna delle due
+  modalità.
 
 **Ordine impossibile (checkout bloccato — unico caso previsto)**:
 
-- Se al momento del checkout non è disponibile né ASAP né alcun
-  giorno/turno di consegna programmata nei prossimi 2 giorni, il cliente
-  vede un messaggio esplicito nel checkout: `Al momento non stiamo
-  ricevendo ordini. La prossima apertura è [giorno data] alle [HH:MM].`
-  Il pulsante di pagamento è disabilitato. Il carrello resta comunque
-  salvato per quando riapriremo (§9).
+- **Vale per entrambe le modalità** (correzione v14): fino alla v13 questo
+  blocco era descritto in termini di sola consegna ed era implementato solo
+  per la Delivery, perciò un ordine di Ritiro passava anche a locale
+  interamente chiuso.
+- **Delivery**: blocco se non è disponibile né ASAP né alcun giorno/turno
+  di consegna programmata nei prossimi 2 giorni.
+- **Ritiro**: blocco se non è disponibile alcuno slot di ritiro nei
+  prossimi 2 giorni (§12b).
+- In entrambi i casi il cliente vede un messaggio esplicito nel checkout:
+  `Al momento non stiamo ricevendo ordini. La prossima apertura è [giorno
+  data] alle [HH:MM].` Il pulsante di pagamento è disabilitato. Il
+  carrello resta comunque salvato per quando riapriremo (§9).
+- Il blocco lato client non è sufficiente: la stessa condizione va
+  riverificata lato server (§46b).
 - Questo è l'**unico caso in cui il checkout viene bloccato** in base
   allo stato del servizio. §7 stabilisce che il checkout non venga
   bloccato in base all'orario del semaforo standard: qui la motivazione
-  è diversa — non esiste alcuna consegna possibile nel raggio temporale
-  operativo (2 giorni), quindi accettare l'ordine sarebbe una promessa
-  che non possiamo mantenere.
+  è diversa — non esiste alcun momento possibile, di consegna o di
+  ritiro, nel raggio temporale operativo (2 giorni), quindi accettare
+  l'ordine sarebbe una promessa che non possiamo mantenere.
 
 ### 68.5. Ordini programmati per giorni che diventano chiusi
 
@@ -962,6 +1159,10 @@ clienti coinvolti (telefono già presente in ordine) e, a seconda del
 caso, riprogrammare l'ordine concordando un nuovo orario oppure
 annullarlo con la procedura §62b (rimborso automatico se non ancora in
 preparazione, GIVEMEFIVE rilasciato).
+
+Dalla v14 la regola vale identica per gli ordini **Ritiro**, che hanno
+anch'essi un orario concordato salvato in `scheduled_delivery_at` (§12b):
+anche loro restano in database e vanno gestiti con un contatto umano.
 
 Nessun cliente riceve automaticamente comunicazioni: la comunicazione
 resta un'azione umana esplicita. La scelta protegge dai casi in cui un
