@@ -197,6 +197,29 @@ function currentRows(groupId, dates, closureType, reason) {
   assert(affected.length === 0, "r) exclude_group_id copre 2026-08-15 lunch → ordine escluso, 0 affected");
 }
 
+// ---- §68.3: ordine all'orario di chiusura pranzo (14:30 Roma = 12:30 UTC).
+//      Ritiro (chiusura inclusa §12b) → colpito; Delivery (esclusa §12) → no. ----
+{
+  const atLunchClose = "2026-08-15T12:30:00Z"; // Roma 14:30 = chiusura pranzo
+  const range = { dateStart: "2026-08-10", dateEnd: "2026-08-20", closureType: "lunch" };
+
+  // s) Ritiro esattamente alla chiusura → tra gli ordini colpiti.
+  const pickupOrders = [{ pickup_code: "KM-PICKUP-CLOSE", fulfillment: "pickup", scheduled_delivery_at: atLunchClose, total: 18 }];
+  const pickupAffected = filterAffectedOrders(pickupOrders, windowsByDow, range);
+  assert(
+    pickupAffected.map((o) => o.pickup_code).join() === "KM-PICKUP-CLOSE",
+    "s) Ritiro alle 14:30 (chiusura pranzo) chiuso da eccezione lunch → colpito"
+  );
+
+  // t) Delivery allo stesso orario di chiusura → NON colpito (§12 invariata).
+  const deliveryOrders = [{ pickup_code: "KM-DELIVERY-CLOSE", fulfillment: "delivery", scheduled_delivery_at: atLunchClose, total: 22 }];
+  const deliveryAffected = filterAffectedOrders(deliveryOrders, windowsByDow, range);
+  assert(
+    deliveryAffected.length === 0,
+    "t) Delivery alle 14:30 (chiusura esclusa) → NON colpito"
+  );
+}
+
 // ===== Task C §68.4/§68.5 — effetti lato cliente =====
 
 // Finestre §13 come righe store_order_windows (tutti i giorni: lunch 12:00-14:30,

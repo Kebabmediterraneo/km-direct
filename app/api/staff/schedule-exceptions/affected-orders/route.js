@@ -55,7 +55,7 @@ export async function GET(request) {
 
   const { data: orders, error: ordersError } = await supabaseAdmin
     .from("orders")
-    .select("pickup_code, scheduled_delivery_at, total, customers(first_name, last_name)")
+    .select("pickup_code, fulfillment, scheduled_delivery_at, total, customers(first_name, last_name)")
     .eq("store_id", store.id)
     .not("scheduled_delivery_at", "is", null)
     .in("payment_status", ["succeeded", "refunded"])
