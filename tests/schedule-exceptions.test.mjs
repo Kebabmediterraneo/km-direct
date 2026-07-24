@@ -18,7 +18,10 @@ import {
   filterAffectedOrders,
   closedShiftKeys,
   computeReconciliation,
+  nextOpenSlot,
+  computeExceptionEffects,
 } from "../lib/schedule-exceptions.js";
+import { getScheduledSlots } from "../lib/scheduled-slots.js";
 
 let failures = 0;
 function assert(cond, msg) {
@@ -191,6 +194,159 @@ function currentRows(groupId, dates, closureType, reason) {
   const excludedClosedSet = closedShiftKeys(excludedRows);
   const affected = filterAffectedOrders(orders, windowsByDow, { dateStart: "2026-08-10", dateEnd: "2026-08-20", closureType: "lunch", excludedClosedSet });
   assert(affected.length === 0, "r) exclude_group_id copre 2026-08-15 lunch → ordine escluso, 0 affected");
+}
+
+// ===== Task C §68.4/§68.5 — effetti lato cliente =====
+
+// Finestre §13 come righe store_order_windows (tutti i giorni: lunch 12:00-14:30,
+// dinner 19:00-22:30). day_of_week irrilevante qui: uguali per ogni giorno.
+const WINROWS = [];
+for (let dow = 0; dow <= 6; dow++) {
+  WINROWS.push({ day_of_week: dow, opens_at: "12:00", closes_at: "14:30", is_defined: true });
+  WINROWS.push({ day_of_week: dow, opens_at: "19:00", closes_at: "22:30", is_defined: true });
+}
+
+// ---- STEP 1: nextOpenSlot ----
+
+// s1) prossima apertura = oggi cena (sameDay=true). Ora: 15:00 Roma (13:00Z).
+{
+  const now = new Date("2026-08-12T13:00:00Z");
+  const r = nextOpenSlot(now, [], WINROWS);
+  assert(r && r.sameDay === true && r.openAt.toISOString() === "2026-08-12T17:00:00.000Z",
+    "s1) nextOpenSlot → oggi cena (19:00 Roma), sameDay=true");
+}
+
+// s2) prossima apertura = domani pranzo (sameDay=false). Ora: 23:00 Roma (21:00Z).
+{
+  const now = new Date("2026-08-12T21:00:00Z");
+  const r = nextOpenSlot(now, [], WINROWS);
+  assert(r && r.sameDay === false && r.openAt.toISOString() === "2026-08-13T10:00:00.000Z",
+    "s2) nextOpenSlot → domani pranzo (12:00 Roma), sameDay=false");
+}
+
+// s3) salta un intervallo full_day di 3 giorni (oggi, +1, +2). Ora 11:00 Roma.
+{
+  const now = new Date("2026-08-12T09:00:00Z");
+  const exc = [
+    { date: "2026-08-12", closure_type: "full_day" },
+    { date: "2026-08-13", closure_type: "full_day" },
+    { date: "2026-08-14", closure_type: "full_day" },
+  ];
+  const r = nextOpenSlot(now, exc, WINROWS);
+  assert(r && r.date === "2026-08-15" && r.shift === "lunch" && r.openAt.toISOString() === "2026-08-15T10:00:00.000Z",
+    "s3) nextOpenSlot salta 3 giorni full_day → 2026-08-15 pranzo");
+}
+
+// s4) salta un mix lunch/dinner su 2 giorni (oggi cena chiusa, domani pranzo
+//     chiuso). Ora 15:00 Roma → oggi pranzo già passato.
+{
+  const now = new Date("2026-08-12T13:00:00Z");
+  const exc = [
+    { date: "2026-08-12", closure_type: "dinner" },
+    { date: "2026-08-13", closure_type: "lunch" },
+  ];
+  const r = nextOpenSlot(now, exc, WINROWS);
+  assert(r && r.date === "2026-08-13" && r.shift === "dinner" && r.sameDay === false,
+    "s4) nextOpenSlot salta oggi-cena + domani-pranzo → domani cena");
+}
+
+// ---- STEP 6: selettore giorno programmata ----
+
+// s5) oggi tutto aperto, domani full_day chiuso → solo oggi ha slot.
+{
+  const now = new Date("2026-08-12T06:00:00Z"); // 08:00 Roma
+  const exc = [{ date: "2026-08-13", closure_type: "full_day" }];
+  const base = getScheduledSlots(WINROWS, now, exc);
+  assert(base.slots.today.length > 0 && base.slots.tomorrow.length === 0,
+    "s5) oggi aperto / domani full_day → slot solo oggi");
+}
+
+// s6) oggi cena chiusa, domani pranzo chiuso → oggi solo pranzo, domani solo cena.
+{
+  const now = new Date("2026-08-12T06:00:00Z"); // 08:00 Roma
+  const exc = [
+    { date: "2026-08-12", closure_type: "dinner" },
+    { date: "2026-08-13", closure_type: "lunch" },
+  ];
+  const base = getScheduledSlots(WINROWS, now, exc);
+  const toMin = (s) => { const [h, m] = s.split(":").map(Number); return h * 60 + m; };
+  const todayAllLunch = base.slots.today.length > 0 && base.slots.today.every((s) => toMin(s) < 19 * 60);
+  const tomorrowAllDinner = base.slots.tomorrow.length > 0 && base.slots.tomorrow.every((s) => toMin(s) >= 19 * 60);
+  assert(todayAllLunch && tomorrowAllDinner,
+    "s6) oggi cena chiusa / domani pranzo chiuso → oggi solo pranzo, domani solo cena");
+}
+
+// ---- STEP 6: blocco checkout ----
+
+// s7) oggi tutto chiuso, domani tutto chiuso, dopodomani aperto → checkout
+//     bloccato, messaggio con dopodomani.
+{
+  const now = new Date("2026-08-12T11:00:00Z"); // 13:00 Roma (dentro il pranzo per gli orari base)
+  const exc = [
+    { date: "2026-08-12", closure_type: "full_day" },
+    { date: "2026-08-13", closure_type: "full_day" },
+  ];
+  const base = getScheduledSlots(WINROWS, now, exc);
+  const eff = computeExceptionEffects(base, now, WINROWS, exc);
+  assert(eff.checkoutBlocked === true, "s7a) checkout bloccato (né ASAP né slot in 2 giorni)");
+  assert(eff.phase === "red" && eff.label === "Chiuso", "s7b) semaforo override → rosso 'Chiuso'");
+  assert(
+    typeof eff.blockMessage === "string" &&
+      eff.blockMessage.startsWith("Al momento non stiamo ricevendo ordini. La prossima apertura è ") &&
+      eff.blockMessage.includes("alle 12:00.") &&
+      !eff.blockMessage.includes("oggi"),
+    "s7c) messaggio blocco con dopodomani (non 'oggi') alle 12:00"
+  );
+}
+
+// s8) additività: nessuna eccezione → phase/label/message invariati, non bloccato.
+{
+  const now = new Date("2026-08-12T13:00:00Z"); // 15:00 Roma (chiuso, tra pranzo e cena)
+  const base = getScheduledSlots(WINROWS, now, []);
+  const eff = computeExceptionEffects(base, now, WINROWS, []);
+  assert(eff.phase === base.phase && eff.label === base.label && eff.message === base.message && eff.checkoutBlocked === false,
+    "s8) senza eccezioni: semaforo invariato e checkout non bloccato (additività)");
+}
+
+// ===== fix firstSlotDay/firstSlotLabel coerenti con gli slot esposti =====
+
+// t1) entrambi i giorni con slot → firstSlotDay="today", label = primo slot oggi.
+{
+  const now = new Date("2026-08-12T06:00:00Z"); // 08:00 Roma
+  const base = getScheduledSlots(WINROWS, now, []);
+  assert(
+    base.slots.today.length > 0 && base.slots.tomorrow.length > 0 &&
+      base.firstSlotDay === "today" && base.firstSlotLabel === base.slots.today[0],
+    "t1) oggi+domani con slot → firstSlotDay='today', label = primo slot oggi"
+  );
+}
+
+// t2) oggi vuoto (full_day oggi), domani con slot → firstSlotDay="tomorrow".
+{
+  const now = new Date("2026-08-12T06:00:00Z");
+  const exc = [{ date: "2026-08-12", closure_type: "full_day" }];
+  const base = getScheduledSlots(WINROWS, now, exc);
+  assert(
+    base.slots.today.length === 0 && base.slots.tomorrow.length > 0 &&
+      base.firstSlotDay === "tomorrow" && base.firstSlotLabel === base.slots.tomorrow[0],
+    "t2) oggi chiuso / domani con slot → firstSlotDay='tomorrow', label = primo slot domani"
+  );
+}
+
+// t3) entrambi vuoti (full_day oggi + domani) → firstSlotDay=null, label=null
+//     (scenario live che ha esposto il bug: il primo slot cade su dopodomani).
+{
+  const now = new Date("2026-08-12T06:00:00Z");
+  const exc = [
+    { date: "2026-08-12", closure_type: "full_day" },
+    { date: "2026-08-13", closure_type: "full_day" },
+  ];
+  const base = getScheduledSlots(WINROWS, now, exc);
+  assert(
+    base.slots.today.length === 0 && base.slots.tomorrow.length === 0 &&
+      base.firstSlotDay === null && base.firstSlotLabel === null,
+    "t3) oggi+domani chiusi → firstSlotDay=null, firstSlotLabel=null"
+  );
 }
 
 console.log(failures === 0 ? "\nTUTTI I TEST PASSATI" : `\n${failures} TEST FALLITI`);

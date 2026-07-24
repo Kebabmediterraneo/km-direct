@@ -1953,13 +1953,19 @@ function CheckoutScreen({
   const deliveryFee = isDelivery ? DELIVERY_FEE : 0;
   const total = subtotal - giveMeFiveDiscount + deliveryFee;
 
+  // §68.4: unico caso in cui il checkout è bloccato in base allo stato del
+  // servizio — quando non c'è né ASAP né alcuno slot programmato nei prossimi
+  // 2 giorni (calcolato server-side in /api/service-status). Solo Delivery.
+  const checkoutBlocked = isDelivery && !!serviceStatus?.checkoutBlocked;
+
   const canPay =
     customerDetails.firstName.trim() !== "" &&
     customerDetails.lastName.trim() !== "" &&
     customerDetails.phone.trim() !== "" &&
     privacyAccepted &&
     (!isDelivery || (address.trim() !== "" && civico.trim() !== "" && coords)) &&
-    (!hasBeer || ageConfirmed);
+    (!hasBeer || ageConfirmed) &&
+    !checkoutBlocked;
 
   async function handlePay() {
     setPayError(null);
@@ -2273,24 +2279,42 @@ function CheckoutScreen({
           </div>
         </div>
 
-        {/* §12: avviso esplicito vicino al riepilogo/CTA pagamento (non solo
-            nell'header) quando il locale non è operativo — il checkout resta
-            comunque utilizzabile (§7), qui si informa solo il cliente. */}
-        {isDelivery && serviceStatus && serviceStatus.phase !== "green" && (
+        {/* §68.4: unico caso di checkout bloccato — nessuno slot (ASAP o
+            programmato) disponibile nei prossimi 2 giorni. Messaggio esplicito
+            con la prossima apertura; il carrello resta salvo (§9). */}
+        {checkoutBlocked ? (
           <div
             style={{
               fontSize: 13,
-              color: "var(--text-on-dark)",
+              color: "var(--navy)",
               background: "var(--surface-white)",
-              border: `1px solid ${SERVICE_STATUS_COLORS[serviceStatus.phase]}`,
+              border: `1px solid ${SERVICE_STATUS_COLORS.red}`,
               borderRadius: 8,
               padding: 10,
             }}
           >
-            {`Il locale è chiuso ora, il tuo ordine sarà preparato a partire dalle ${
-              scheduledTime ?? serviceStatus.firstSlotLabel ?? ""
-            }.`}
+            {serviceStatus.blockMessage ?? "Al momento non stiamo ricevendo ordini."}
           </div>
+        ) : (
+          /* §12: avviso esplicito vicino al riepilogo/CTA pagamento (non solo
+             nell'header) quando il locale non è operativo — il checkout resta
+             comunque utilizzabile (§7), qui si informa solo il cliente. */
+          isDelivery && serviceStatus && serviceStatus.phase !== "green" && (
+            <div
+              style={{
+                fontSize: 13,
+                color: "var(--text-on-dark)",
+                background: "var(--surface-white)",
+                border: `1px solid ${SERVICE_STATUS_COLORS[serviceStatus.phase]}`,
+                borderRadius: 8,
+                padding: 10,
+              }}
+            >
+              {`Il locale è chiuso ora, il tuo ordine sarà preparato a partire dalle ${
+                scheduledTime ?? serviceStatus.firstSlotLabel ?? ""
+              }.`}
+            </div>
+          )
         )}
 
         {payError && (
