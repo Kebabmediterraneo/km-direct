@@ -1,10 +1,28 @@
 # KM DIRECT — MASTER SPECIFICATION
 
-**Versione 15** — sostituisce la v14.
+**Versione 16** — sostituisce la v15.
 
 Documento di riferimento definitivo per lo sviluppo. Le decisioni qui
 contenute sono approvate: non vanno reinterpretate senza un motivo concreto
 (vedi §73). Ogni file di codice del progetto deve rispettare queste regole.
+
+**Novità della v16** (tutte vincolanti):
+
+1. §52-56 — **§12b Task D**: definita la regola completa con cui il pannello
+   staff **ordina** le code di lavorazione (Nuovi e Attivi) per orario, non
+   più per solo ordine di arrivo. Ogni ordine ha un **orario di riferimento**:
+   quello concordato per i programmati (ritiro o consegna), e un orario
+   **calcolato al volo** (ora di ordinazione + 15 minuti, arrotondato in
+   avanti al quarto d'ora) per gli ASAP. A parità di orario di riferimento
+   vince chi ha ordinato prima. Lo Storico resta ordinato per data di arrivo.
+   L'etichetta dell'orario nella card diventa coerente con la modalità:
+   "Ritiro alle HH:MM" per i ritiri, "Consegna programmata alle HH:MM" per la
+   Delivery (chiude il wording provvisorio "Consegna" mostrato sui ritiri).
+2. §12b — messa in spec una precisazione già implicita nel codice: la regola
+   della **chiusura inclusa** vale ovunque un ordine di ritiro sia valutato
+   contro le finestre operative, non solo negli slot offerti al cliente. È
+   già così nella guard server-side del checkout (§46b) e nell'avviso "ordini
+   colpiti" (§68.3); la spec ora lo dice esplicitamente.
 
 **Novità della v15** (tutte vincolanti):
 
@@ -257,6 +275,19 @@ implicita, ed è ciò che rende possibile il controllo server-side di §46b.
   produce un ritiro all'orario di chiusura. Negli ultimi 15 minuti prima
   della chiusura il semaforo è già rosso (§7, fascia 4) e il primo slot
   utile si sposta automaticamente alla finestra successiva.
+
+  **Chiusura inclusa ovunque, non solo negli slot offerti (precisato in
+  v16)**: la regola per cui l'orario di chiusura di una finestra è un
+  momento di ritiro **valido** non riguarda solo la lista di slot proposta
+  al cliente. Vale **ovunque** un ordine di ritiro venga confrontato con le
+  finestre operative: la guard server-side del checkout (§46b), che accetta
+  un ritiro fino all'orario di chiusura incluso, e l'avviso "ordini colpiti"
+  (§68.3), che conteggia tra gli ordini toccati da una chiusura anche i
+  ritiri fissati esattamente all'orario di chiusura. In concreto: quando si
+  verifica se un orario di ritiro cade dentro o fuori una finestra, il
+  confine di chiusura è sempre trattato come **incluso** per il Ritiro. È
+  l'opposto della Delivery (§12, chiusura esclusa): l'asimmetria è voluta e
+  va mantenuta identica in ogni punto che valuta un ritiro.
 - **Preselezione**: all'apertura del selettore, giorno e slot sono
   preselezionati sul primo slot utile. Il cliente può cambiarli, ma non
   può procedere al pagamento senza uno slot valido selezionato.
@@ -711,13 +742,65 @@ slot di consegna programmata (§12) e gli slot di ritiro (§12b), che
 dovranno consultare anche le eccezioni quando esisteranno, non solo
 `store_order_windows`.
 
-**Orario concordato nella coda ordini (aggiunto in v14, vincolante)**: da
-quando anche il Ritiro ha un orario (§12b), il pannello deve mostrare
-`scheduled_delivery_at` su **tutti** gli ordini che lo valorizzano, con
-etichetta coerente con la modalità — "Consegna programmata alle HH:MM" per
-la Delivery, "Ritiro alle HH:MM" per il Ritiro — e deve consentire di
-ordinare la coda per quell'orario. Un ritiro concordato per le 20:45 non va
-preparato alle 19:10 solo perché quell'ordine è arrivato per primo.
+**Orario concordato nella coda ordini (aggiunto in v14, dettagliato come
+§12b Task D in v16, vincolante)**: da quando anche il Ritiro ha un orario
+(§12b), il pannello deve mostrare `scheduled_delivery_at` su **tutti** gli
+ordini che lo valorizzano, con etichetta coerente con la modalità —
+"Consegna programmata alle HH:MM" per la Delivery, "Ritiro alle HH:MM" per
+il Ritiro — e deve **ordinare le code di lavorazione per quell'orario**. Un
+ritiro concordato per le 20:45 non va preparato alle 19:10 solo perché
+quell'ordine è arrivato per primo.
+
+La v16 fissa la regola completa di ordinamento (§12b Task D):
+
+- **Etichetta per modalità**: l'orario nella card di un ordine è etichettato
+  "Ritiro alle HH:MM" per il Ritiro e "Consegna programmata alle HH:MM" per
+  la Delivery. Questo sostituisce l'etichetta provvisoria unica "Consegna
+  programmata:", che fino alla v15 compariva anche sui ritiri (l'orario era
+  corretto, la parola no).
+
+- **Orario di riferimento**: ogni ordine ha un "orario di riferimento" usato
+  per ordinare la coda, definito così:
+  - ordine **programmato** (ritiro o consegna programmata, cioè con
+    `scheduled_delivery_at` valorizzato) → orario di riferimento = l'orario
+    concordato salvato in `scheduled_delivery_at`.
+  - ordine **ASAP** (consegna "PRIMA POSSIBILE", con `scheduled_delivery_at`
+    nullo e `delivery_timing="asap"`) → orario di riferimento = **orario di
+    creazione dell'ordine (`created_at`) + 15 minuti, arrotondato in avanti
+    al quarto d'ora successivo** (:00, :15, :30, :45). Esempio: ordine ASAP
+    creato alle 20:10 → 20:25 → arrotondato → orario di riferimento 20:30, e
+    in coda si comporta come un programmato delle 20:30.
+
+- **Questo orario di riferimento dell'ASAP è calcolato al volo per la sola
+  visualizzazione della coda: non viene MAI scritto in
+  `scheduled_delivery_at`.** La colonna resta nulla per gli ASAP. È un
+  vincolo, non un dettaglio: la nullità di `scheduled_delivery_at` è ciò che
+  distingue un ASAP da un programmato in tutto il resto del sistema — il
+  badge orario nella card (che non deve comparire sugli ASAP), l'avviso
+  "ordini colpiti" §68.3 (che filtra `scheduled_delivery_at IS NOT NULL` e
+  non deve mai includere un ASAP), l'export Glovo. Riempire quella colonna
+  con l'orario calcolato farebbe comportare l'ASAP come un programmato in
+  tutti quei punti, e sarebbe un errore. Il "+15 minuti arrotondato" è
+  solo una chiave di ordinamento della lista a schermo, non un dato salvato.
+
+- **Parità**: se due ordini hanno lo stesso orario di riferimento (per
+  esempio un ritiro programmato per le 19:15 e un ASAP che ricade sulle
+  19:15), vengono ordinati tra loro per **orario di arrivo** (`created_at`):
+  chi ha ordinato prima sta prima.
+
+- **Ambito**: l'ordinamento per orario di riferimento si applica alle
+  **code di lavorazione — Nuovi e Attivi**. Lo **Storico non cambia**:
+  resta ordinato per data di arrivo (`created_at` discendente, i più
+  recenti prima), perché è un registro di ciò che è già stato fatto, non
+  una coda da lavorare.
+
+- **Un solo orario, ritiro e consegna trattati uguale**: la coda ordina
+  ritiri e consegne sullo stesso orario di riferimento, senza anticipare le
+  consegne rispetto ai ritiri. Che una consegna programmata debba uscire
+  dalla cucina un po' prima dell'orario concordato (per lasciare tempo al
+  rider) mentre un ritiro no, al momento **non** è codificato: con i volumi
+  attuali viene gestito operativamente in cucina. Introdurlo sarebbe una
+  decisione nuova, da mettere prima in spec.
 
 **Correzione schema (trovata dopo l'MVP iniziale, vincolante)**: l'enum
 `order_status` del database inizialmente non prevedeva uno stato finale
