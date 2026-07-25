@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { createSupabaseBrowserClient } from "../../lib/supabase-browser";
 import ImpostazioniSection from "./impostazioni-section";
+import { sortQueueByReferenceTime } from "../../lib/staff-queue-order";
 
 const POLL_INTERVAL_MS = 12000;
 
@@ -80,22 +81,25 @@ function daysBetweenRomeDates(fromDate, toDate) {
   return Math.round((utcB - utcA) / 86400000);
 }
 
-// §12/§52-56: il badge deve dire esplicitamente "Oggi"/"Domani", non solo
-// l'ora — altrimenti è ambiguo per lo staff quale dei due giorni intende.
+// §12/§52-56: giorno + ora dell'orario concordato — deve dire esplicitamente
+// "oggi"/"domani" (non solo l'ora), altrimenti è ambiguo per lo staff quale dei
+// due giorni intende. §12b Task D (v16): forma "oggi 20:45" / "domani 20:45" /
+// "DD/MM 20:45" (giorno minuscolo, senza "alle"); il prefisso per modalità
+// ("Ritiro:" / "Consegna programmata:") è aggiunto dal chiamante.
 function formatScheduledDeliveryLabel(isoString) {
   const scheduledDate = new Date(isoString);
   const time = formatTime(isoString);
   const diffDays = daysBetweenRomeDates(new Date(), scheduledDate);
 
-  if (diffDays === 0) return `Oggi alle ${time}`;
-  if (diffDays === 1) return `Domani alle ${time}`;
+  if (diffDays === 0) return `oggi ${time}`;
+  if (diffDays === 1) return `domani ${time}`;
 
   const dateLabel = new Intl.DateTimeFormat("it-IT", {
     timeZone: "Europe/Rome",
     day: "2-digit",
     month: "2-digit",
   }).format(scheduledDate);
-  return `${dateLabel} alle ${time}`;
+  return `${dateLabel} ${time}`;
 }
 
 // §54: da "pronto" in poi Ritiro e Delivery divergono verso stati finali
@@ -468,7 +472,7 @@ function OrderCard({ order, onChangeStatus, onReportProblem, onResolve, onCancel
                 marginTop: 2,
               }}
             >
-              {`Consegna programmata: ${formatScheduledDeliveryLabel(order.scheduled_delivery_at)}`}
+              {`${order.fulfillment === "pickup" ? "Ritiro" : "Consegna programmata"}: ${formatScheduledDeliveryLabel(order.scheduled_delivery_at)}`}
             </span>
           )}
         </div>
@@ -655,7 +659,8 @@ function HistoryRow({ order, onChangeStatus }) {
         <span style={{ fontSize: 12, color: "var(--text-on-dark)" }}>
           {formatTime(order.created_at)} · {FULFILLMENT_LABEL[order.fulfillment] ?? order.fulfillment} ·{" "}
           {STATUS_LABEL[order.status] ?? order.status}
-          {order.scheduled_delivery_at && ` · Programmata: ${formatScheduledDeliveryLabel(order.scheduled_delivery_at)}`}
+          {order.scheduled_delivery_at &&
+            ` · ${order.fulfillment === "pickup" ? "Ritiro" : "Consegna programmata"}: ${formatScheduledDeliveryLabel(order.scheduled_delivery_at)}`}
         </span>
         {needsManualRefund && (
           <span
@@ -1256,7 +1261,11 @@ export default function StaffDashboardPage() {
         </div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-          {orders.map((order) => (
+          {/* §12b Task D: le code di lavorazione (Nuovi/Attivi) sono ordinate
+              per orario di riferimento (concordato per i programmati; created_at
+              +15' arrotondato per gli ASAP). Lo Storico (ramo sopra) resta per
+              created_at DESC lato server, invariato. */}
+          {sortQueueByReferenceTime(orders).map((order) => (
             <OrderCard
               key={order.id}
               order={order}

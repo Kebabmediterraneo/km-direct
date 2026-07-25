@@ -16,8 +16,9 @@ contenute sono approvate: non vanno reinterpretate senza un motivo concreto
    avanti al quarto d'ora) per gli ASAP. A parità di orario di riferimento
    vince chi ha ordinato prima. Lo Storico resta ordinato per data di arrivo.
    L'etichetta dell'orario nella card diventa coerente con la modalità:
-   "Ritiro alle HH:MM" per i ritiri, "Consegna programmata alle HH:MM" per la
-   Delivery (chiude il wording provvisorio "Consegna" mostrato sui ritiri).
+   "Ritiro: oggi 20:45" per i ritiri, "Consegna programmata: oggi 20:45" per
+   la Delivery (formato "<giorno minuscolo> HH:MM", senza "alle": oggi /
+   domani / DD/MM; chiude il wording provvisorio "Consegna" sui ritiri).
 2. §12b — messa in spec una precisazione già implicita nel codice: la regola
    della **chiusura inclusa** vale ovunque un ordine di ritiro sia valutato
    contro le finestre operative, non solo negli slot offerti al cliente. È
@@ -746,18 +747,20 @@ dovranno consultare anche le eccezioni quando esisteranno, non solo
 §12b Task D in v16, vincolante)**: da quando anche il Ritiro ha un orario
 (§12b), il pannello deve mostrare `scheduled_delivery_at` su **tutti** gli
 ordini che lo valorizzano, con etichetta coerente con la modalità —
-"Consegna programmata alle HH:MM" per la Delivery, "Ritiro alle HH:MM" per
-il Ritiro — e deve **ordinare le code di lavorazione per quell'orario**. Un
+"Consegna programmata: oggi HH:MM" per la Delivery, "Ritiro: oggi HH:MM" per
+il Ritiro (formato "<giorno minuscolo> HH:MM", senza "alle") — e deve
+**ordinare le code di lavorazione per quell'orario**. Un
 ritiro concordato per le 20:45 non va preparato alle 19:10 solo perché
 quell'ordine è arrivato per primo.
 
 La v16 fissa la regola completa di ordinamento (§12b Task D):
 
 - **Etichetta per modalità**: l'orario nella card di un ordine è etichettato
-  "Ritiro alle HH:MM" per il Ritiro e "Consegna programmata alle HH:MM" per
-  la Delivery. Questo sostituisce l'etichetta provvisoria unica "Consegna
-  programmata:", che fino alla v15 compariva anche sui ritiri (l'orario era
-  corretto, la parola no).
+  "Ritiro: oggi 20:45" per il Ritiro e "Consegna programmata: oggi 20:45" per
+  la Delivery. Il giorno+ora usa il formato "<giorno minuscolo> HH:MM" senza
+  "alle" (oggi / domani / DD/MM). Questo sostituisce l'etichetta provvisoria
+  unica "Consegna programmata:", che fino alla v15 compariva anche sui ritiri
+  (l'orario era corretto, la parola no).
 
 - **Orario di riferimento**: ogni ordine ha un "orario di riferimento" usato
   per ordinare la coda, definito così:
