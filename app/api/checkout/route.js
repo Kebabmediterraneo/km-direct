@@ -73,7 +73,21 @@ async function resolveProduct(ref) {
     configuration.removals = ref.removals;
   }
 
-  if (ref.accompanimentLabel) {
+  // §21: accompagnamento obbligatorio e validato per i prodotti che lo
+  // prevedono (Bowl), in parallelo alla validazione della proteina sopra. Se il
+  // prodotto ha opzioni di accompagnamento, ref.accompanimentLabel deve essere
+  // presente e corrispondere a una label reale, altrimenti l'ordine è rifiutato
+  // (nessun default: la scelta è sempre esplicita). Se il prodotto non ne ha,
+  // comportamento invariato.
+  const { data: accompaniments } = await supabaseAdmin
+    .from("product_accompaniments")
+    .select("label")
+    .eq("product_id", ref.id);
+  if (accompaniments && accompaniments.length > 0) {
+    const valid = accompaniments.some((a) => a.label === ref.accompanimentLabel);
+    if (!valid) return null;
+    configuration.accompaniment = ref.accompanimentLabel;
+  } else if (ref.accompanimentLabel) {
     configuration.accompaniment = ref.accompanimentLabel;
   }
 

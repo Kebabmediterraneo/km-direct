@@ -397,6 +397,11 @@ function ProductConfigurator({ productKey, productId, config, onAddToCart }) {
     (selectedProtein?.priceDelta ?? 0) +
     (appliedExtraMeat ? EXTRA_MEAT_PRICE : 0);
 
+  // §21: l'accompagnamento è una scelta obbligatoria per i prodotti che lo
+  // prevedono (Bowl), senza default preselezionato. Finché non è scelto, il
+  // prodotto non è aggiungibile al carrello.
+  const missingAccompaniment = !!config.accompaniments && accompanimentId === null;
+
   function toggleRemoval(label) {
     setRemovals((prev) => {
       const next = new Set(prev);
@@ -410,6 +415,9 @@ function ProductConfigurator({ productKey, productId, config, onAddToCart }) {
   }
 
   function handleAddToCart() {
+    // §21: difesa ridondante al pulsante disabilitato — mai aggiungere una Bowl
+    // (prodotto con accompagnamenti) senza un accompagnamento scelto.
+    if (config.accompaniments && !accompanimentId) return;
     const sortedRemovals = Array.from(removals).sort();
     onAddToCart({
       key: JSON.stringify({
@@ -572,15 +580,16 @@ function ProductConfigurator({ productKey, productId, config, onAddToCart }) {
         </span>
         <button
           onClick={handleAddToCart}
+          disabled={missingAccompaniment}
           style={{
-            background: "var(--brand-orange)",
-            color: "var(--bg-warm)",
+            background: missingAccompaniment ? "var(--card-border)" : "var(--brand-orange)",
+            color: missingAccompaniment ? "var(--text-on-dark)" : "var(--bg-warm)",
             border: "none",
             borderRadius: 8,
             padding: "10px 20px",
             fontWeight: 600,
             fontSize: 14,
-            cursor: "pointer",
+            cursor: missingAccompaniment ? "not-allowed" : "pointer",
           }}
         >
           Aggiungi al carrello
