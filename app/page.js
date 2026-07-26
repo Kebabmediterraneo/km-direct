@@ -1977,6 +1977,9 @@ function CheckoutScreen({
   timingType,
   scheduledDay,
   scheduledTime,
+  onScheduledDayChange,
+  onScheduledTimeChange,
+  scheduledSlotExpired,
   pickupDay,
   pickupTime,
   onPickupDayChange,
@@ -2134,12 +2137,11 @@ function CheckoutScreen({
     color: "var(--text-on-dark)",
   };
 
+  // §12 v18: giorno/ora della consegna programmata sono ora mostrati dal
+  // selettore editabile qui sotto — nel riepilogo basta l'etichetta, niente
+  // doppione. "Prima possibile" (ASAP) resta invariato.
   const timingSummary =
-    timingType === "asap"
-      ? "Prima possibile"
-      : `Consegna programmata · ${scheduledDay === "today" ? "Oggi" : "Domani"}${
-          scheduledTime ? ` · ${scheduledTime}` : ""
-        }`;
+    timingType === "asap" ? "Prima possibile" : "Consegna programmata";
 
   return (
     <div>
@@ -2203,8 +2205,8 @@ function CheckoutScreen({
 
         {/* §12b/§41-45: il Ritiro sceglie giorno e orario nella stessa pagina
             di checkout, con lo STESSO stato del selettore in pagina principale
-            (mai due orari divergenti). Nessun selettore Ritiro qui per la
-            Delivery: l'allineamento UI Delivery è un lavoro successivo (§12). */}
+            (mai due orari divergenti). Da v18 anche la Delivery ha il selettore
+            editabile in checkout (blocco sotto). */}
         {!isDelivery && (
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             <span style={sectionTitleStyle}>Orario di ritiro</span>
@@ -2218,6 +2220,31 @@ function CheckoutScreen({
               allowEmpty
             />
             {pickupSlotExpired && (
+              <p style={{ margin: 0, fontSize: 13, color: "#C0392B" }}>
+                L&apos;orario che hai scelto non è più disponibile. Scegline un
+                altro tra quelli proposti.
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* §12 v18: selettore orario di consegna programmata modificabile nel
+            checkout (parallelo al Ritiro), con lo STESSO stato del selettore in
+            cima. Solo quando timingType === "scheduled": nessun toggle ASAP qui
+            (la scelta ASAP/programmata resta nel FulfillmentSelector). */}
+        {isDelivery && timingType === "scheduled" && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            <span style={sectionTitleStyle}>Orario di consegna</span>
+            <ScheduledSlotPicker
+              slots={serviceStatus?.slots}
+              day={scheduledDay}
+              time={scheduledTime}
+              onDayChange={onScheduledDayChange}
+              onTimeChange={onScheduledTimeChange}
+              radioName="delivery-day-checkout"
+              allowEmpty
+            />
+            {scheduledSlotExpired && (
               <p style={{ margin: 0, fontSize: 13, color: "#C0392B" }}>
                 L&apos;orario che hai scelto non è più disponibile. Scegline un
                 altro tra quelli proposti.
@@ -2761,6 +2788,9 @@ export default function Home() {
           timingType={timingType}
           scheduledDay={scheduledDay}
           scheduledTime={scheduledTime}
+          onScheduledDayChange={handleScheduledDayChange}
+          onScheduledTimeChange={handleScheduledTimeChange}
+          scheduledSlotExpired={scheduledSlotExpired}
           pickupDay={pickupDay}
           pickupTime={pickupTime}
           onPickupDayChange={handlePickupDayChange}
