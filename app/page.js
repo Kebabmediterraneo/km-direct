@@ -452,7 +452,7 @@ function ProductConfigurator({ productKey, productId, config, onAddToCart }) {
       {hasProteins && (
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           <span style={{ fontWeight: 700, fontSize: 14, color: "var(--navy)" }}>
-            {config.choiceLabel ?? "Proteina"}
+            {config.choiceLabel ?? "Come preferisci il tuo kebab?"}
           </span>
           {config.proteins.map((protein) => (
             <label
@@ -475,7 +475,6 @@ function ProductConfigurator({ productKey, productId, config, onAddToCart }) {
               />
               {protein.label}
               {protein.priceDelta > 0 && ` (+${formatPrice(protein.priceDelta)})`}
-              {protein.included && " (incluso)"}
             </label>
           ))}
         </div>
@@ -484,7 +483,7 @@ function ProductConfigurator({ productKey, productId, config, onAddToCart }) {
       {config.removals && config.removals.length > 0 && (
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
           <span style={{ fontWeight: 700, fontSize: 14, color: "var(--navy)" }}>
-            Rimozioni
+            Variazioni
           </span>
           {config.removals.map((removal) => (
             <label
@@ -963,6 +962,10 @@ function ComboBuilder({
               onChange={() => selectRoll(roll.name)}
             />
             {roll.name}
+            {(comboPricingByRoll[roll.name] ?? comboBaseStandard) - comboBaseStandard > 0 &&
+              ` (+${formatPrice(
+                (comboPricingByRoll[roll.name] ?? comboBaseStandard) - comboBaseStandard
+              )})`}
           </label>
         ))}
 
@@ -977,7 +980,7 @@ function ComboBuilder({
             }}
           >
             <span style={{ fontWeight: 700, fontSize: 13, color: "var(--navy)" }}>
-              Proteina
+              Come preferisci il tuo kebab?
             </span>
             {selectedRoll.config.proteins.map((protein) => (
               <label key={protein.id} style={optionLabelStyle}>
@@ -991,7 +994,6 @@ function ComboBuilder({
                 {protein.label}
                 {protein.priceDelta > 0 &&
                   ` (+${formatPrice(protein.priceDelta)})`}
-                {protein.included && " (incluso)"}
               </label>
             ))}
           </div>
@@ -1008,7 +1010,7 @@ function ComboBuilder({
             }}
           >
             <span style={{ fontWeight: 700, fontSize: 13, color: "var(--navy)" }}>
-              Rimozioni
+              Variazioni
             </span>
             {selectedRoll.config.removals.map((removal) => (
               <label key={removal} style={optionLabelStyle}>
@@ -1037,7 +1039,6 @@ function ComboBuilder({
             />
             {side.label}
             {side.priceDelta > 0 && ` (+${formatPrice(side.priceDelta)})`}
-            {side.included && " (incluso)"}
           </label>
         ))}
       </div>
@@ -1531,7 +1532,7 @@ function FulfillmentSelector({
 
           {geofenceStatus === "inside" && (
             <div style={{ fontSize: 13, color: "var(--text-on-dark)" }}>
-              Delivery 2,50 € · Ordine minimo 15 €
+              {`Delivery ${formatPrice(DELIVERY_FEE)} · Ordine minimo ${formatPrice(DELIVERY_MINIMUM_ORDER)}`}
             </div>
           )}
 
@@ -1900,7 +1901,7 @@ function CartScreen({
           <div style={progressMessageStyle}>
             {`Ti mancano ${formatPrice(
               GIVEMEFIVE_THRESHOLD - subtotal
-            )} per usare GIVEMEFIVE e avere 5€ di benvenuto`}
+            )} per sbloccare GIVEMEFIVE e avere 5 € di benvenuto`}
           </div>
         )}
       </div>
@@ -1927,7 +1928,7 @@ function CartScreen({
         )}
         {isDelivery && (
           <div style={{ display: "flex", justifyContent: "space-between", fontSize: 14, color: "var(--text-on-dark)" }}>
-            <span>Fee delivery</span>
+            <span>Spese di consegna</span>
             <span>{formatPrice(deliveryFee)}</span>
           </div>
         )}
@@ -2099,7 +2100,7 @@ function CheckoutScreen({
 
       const data = await response.json();
       if (!response.ok) {
-        throw new Error(data.error || "Errore durante la creazione dell'ordine.");
+        throw new Error(data.error || "Non siamo riusciti a completare l'ordine. Riprova tra poco.");
       }
       window.location.href = data.url;
     } catch (err) {
@@ -2405,7 +2406,7 @@ function CheckoutScreen({
           )}
           {isDelivery && (
             <div style={summaryRowStyle}>
-              <span>Fee delivery</span>
+              <span>Spese di consegna</span>
               <span>{formatPrice(deliveryFee)}</span>
             </div>
           )}
@@ -2456,7 +2457,7 @@ function CheckoutScreen({
                 padding: 10,
               }}
             >
-              {`Il locale è chiuso ora, il tuo ordine sarà preparato a partire dalle ${
+              {`Siamo chiusi ora, il tuo ordine sarà preparato a partire dalle ${
                 scheduledTime ?? serviceStatus.firstSlotLabel ?? ""
               }.`}
             </div>

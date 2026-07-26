@@ -20,6 +20,12 @@ const GIVEMEFIVE_DISCOUNT = 5;
 const GIVEMEFIVE_CODE = "GIVEMEFIVE";
 const MARKETING_TEXT_VERSION = "v1";
 
+// §v19: messaggio unico per gli errori TECNICI di sistema mostrati al cliente
+// (accorpati). I log tecnici restano distinti lato server (console.error) per
+// il debug: cambia solo il testo restituito al client, non la tracciabilità.
+const SYSTEM_ERROR_MESSAGE =
+  "Qualcosa è andato storto durante l'ordine. Riprova tra poco; se hai già pagato, non ti verrà addebitato nulla.";
+
 function round2(value) {
   return Math.round(value * 100) / 100;
 }
@@ -236,28 +242,28 @@ export async function POST(request) {
     return NextResponse.json({ error: "Il carrello è vuoto." }, { status: 400 });
   }
   if (fulfillment !== "delivery" && fulfillment !== "pickup") {
-    return NextResponse.json({ error: "Modalità non valida." }, { status: 400 });
+    return NextResponse.json({ error: "Si è verificato un problema con la modalità scelta. Riprova." }, { status: 400 });
   }
   if (
     !customer?.firstName?.trim() ||
     !customer?.lastName?.trim() ||
     !customer?.phone?.trim()
   ) {
-    return NextResponse.json({ error: "Dati cliente incompleti." }, { status: 400 });
+    return NextResponse.json({ error: "Controlla di aver compilato nome, cognome e telefono." }, { status: 400 });
   }
   if (!privacyAccepted) {
-    return NextResponse.json({ error: "Privacy non accettata." }, { status: 400 });
+    return NextResponse.json({ error: "Per procedere, accetta l'informativa privacy." }, { status: 400 });
   }
 
   const isDelivery = fulfillment === "delivery";
   if (isDelivery && (!delivery?.address?.trim() || !delivery?.houseNumber?.trim())) {
-    return NextResponse.json({ error: "Indirizzo delivery incompleto." }, { status: 400 });
+    return NextResponse.json({ error: "Manca qualche dato dell'indirizzo. Controlla e riprova." }, { status: 400 });
   }
 
   const deliveryLatitude = isDelivery ? Number(delivery?.latitude) : null;
   const deliveryLongitude = isDelivery ? Number(delivery?.longitude) : null;
   if (isDelivery && (!Number.isFinite(deliveryLatitude) || !Number.isFinite(deliveryLongitude))) {
-    return NextResponse.json({ error: "Coordinate indirizzo mancanti." }, { status: 400 });
+    return NextResponse.json({ error: "Non siamo riusciti a individuare l'indirizzo. Riprova a inserirlo." }, { status: 400 });
   }
 
   // §12/§12b: il timestamp reale dell'orario concordato va calcolato qui —
@@ -295,7 +301,7 @@ export async function POST(request) {
     const polygon = await getStoreGeofencePolygon(store.id);
     if (!polygon || !isPointInPolygon([deliveryLongitude, deliveryLatitude], polygon)) {
       return NextResponse.json(
-        { error: "Indirizzo fuori dalla zona di consegna." },
+        { error: "Questo indirizzo è fuori dalla nostra zona di consegna." },
         { status: 400 }
       );
     }
@@ -314,8 +320,9 @@ export async function POST(request) {
       .eq("store_id", store.id);
 
     if (windowsError) {
+      console.error("[POST /api/checkout] Errore lettura store_order_windows:", windowsError);
       return NextResponse.json(
-        { error: "Errore nella verifica della disponibilità." },
+        { error: SYSTEM_ERROR_MESSAGE },
         { status: 500 }
       );
     }
@@ -333,8 +340,9 @@ export async function POST(request) {
       .lte("date", toDate);
 
     if (exceptionsError) {
+      console.error("[POST /api/checkout] Errore lettura store_schedule_exceptions:", exceptionsError);
       return NextResponse.json(
-        { error: "Errore nella verifica della disponibilità." },
+        { error: SYSTEM_ERROR_MESSAGE },
         { status: 500 }
       );
     }
@@ -435,7 +443,7 @@ export async function POST(request) {
 
   if (hasBeer && !ageConfirmed) {
     return NextResponse.json(
-      { error: "Conferma di avere almeno 18 anni richiesta." },
+      { error: "Per ordinare alcolici devi confermare di avere almeno 18 anni." },
       { status: 400 }
     );
   }
@@ -462,7 +470,8 @@ export async function POST(request) {
     .single();
 
   if (customerError || !customerRow) {
-    return NextResponse.json({ error: "Errore nella gestione del cliente." }, { status: 500 });
+    console.error("[POST /api/checkout] Errore nella gestione del cliente:", customerError);
+    return NextResponse.json({ error: SYSTEM_ERROR_MESSAGE }, { status: 500 });
   }
 
   // §14/§62: GIVEMEFIVE consumata solo dopo pagamento confermato (Fase B) —
@@ -517,14 +526,16 @@ export async function POST(request) {
   try {
     order = await insertOrderWithPickupCode(orderPayload);
   } catch (err) {
-    return NextResponse.json({ error: "Errore nella creazione dell'ordine." }, { status: 500 });
+    console.error("[POST /api/checkout] Errore nella creazione dell'ordine:", err);
+    return NextResponse.json({ error: SYSTEM_ERROR_MESSAGE }, { status: 500 });
   }
 
   const orderItemsPayload = resolvedItems.map((item) => ({ ...item, order_id: order.id }));
   const { error: itemsError } = await supabaseAdmin.from("order_items").insert(orderItemsPayload);
 
   if (itemsError) {
-    return NextResponse.json({ error: "Errore nel salvataggio degli articoli." }, { status: 500 });
+    console.error("[POST /api/checkout] Errore nel salvataggio degli articoli:", itemsError);
+    return NextResponse.json({ error: SYSTEM_ERROR_MESSAGE }, { status: 500 });
   }
 
   const origin = new URL(request.url).origin;
@@ -557,7 +568,7 @@ export async function POST(request) {
       code: err.code,
       message: err.message,
     });
-    return NextResponse.json({ error: "Errore nella creazione del pagamento." }, { status: 500 });
+    return NextResponse.json({ error: SYSTEM_ERROR_MESSAGE }, { status: 500 });
   }
 
   await supabaseAdmin

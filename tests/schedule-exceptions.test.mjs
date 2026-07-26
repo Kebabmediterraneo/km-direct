@@ -313,7 +313,7 @@ for (let dow = 0; dow <= 6; dow++) {
   const base = getScheduledSlots(WINROWS, now, exc);
   const eff = computeExceptionEffects(base, now, WINROWS, exc);
   assert(eff.checkoutBlocked === true, "s7a) checkout bloccato (né ASAP né slot in 2 giorni)");
-  assert(eff.phase === "red" && eff.label === "Chiuso", "s7b) semaforo override → rosso 'Chiuso'");
+  assert(eff.phase === "red" && eff.label === "Siamo chiusi", "s7b) semaforo override → rosso 'Siamo chiusi'");
   assert(
     typeof eff.blockMessage === "string" &&
       eff.blockMessage.startsWith("Al momento non stiamo ricevendo ordini. La prossima apertura è ") &&

@@ -2,7 +2,7 @@ import Script from "next/script";
 import "./globals.css";
 
 export const metadata = {
-  title: "KM Direct — Ordina ora",
+  title: "KM Kebab Mediterraneo — Ordina ora",
   description: "Ordina da KM Kebab Mediterraneo, direttamente da noi.",
 };
 

@@ -130,6 +130,17 @@ function ConfirmationScreen() {
         Il tuo ordine
       </h1>
 
+      {/* §47-51 (v19): promemoria sempre in cima, in ogni stato dell'ordine —
+          oggi la pagina si ritrova solo tramite il link ricevuto dopo il
+          pagamento. Non mostrato quando l'ordine non è stato trovato (phase
+          error): lì non c'è un ordine da seguire. */}
+      {phase !== "error" && (
+        <p style={{ margin: "0 0 16px", fontSize: 13, color: "var(--text-on-dark)" }}>
+          Tieni aperta questa pagina per seguire il tuo ordine: è il modo per
+          vedere gli aggiornamenti in tempo reale.
+        </p>
+      )}
+
       {phase === "loading" && (
         <div style={cardStyle}>
           <p style={{ margin: 0, fontSize: 14, color: "var(--text-on-dark)" }}>
@@ -148,9 +159,23 @@ function ConfirmationScreen() {
               {statusView.closing}
             </p>
           )}
+          {/* §47-51 (v19): istruzione sul codice ordine diversa per modalità.
+              Ritiro: il codice serve al cliente per farsi riconoscere al banco.
+              Delivery: è un identificativo interno (§57-61), al cliente non va
+              chiesto di comunicarlo — mai nominare rider/Glovo lato cliente. */}
           {order.pickupCode && (
             <p style={{ margin: 0, fontSize: 14, color: "var(--navy)" }}>
-              Codice ordine: <strong>{order.pickupCode}</strong>
+              {order.fulfillment === "pickup" ? (
+                <>
+                  Mostra il codice <strong>{order.pickupCode}</strong> al banco
+                  per ritirare il tuo ordine.
+                </>
+              ) : (
+                <>
+                  Codice ordine <strong>{order.pickupCode}</strong>. Pensiamo a
+                  tutto noi: il tuo ordine arriverà all&apos;indirizzo indicato.
+                </>
+              )}
             </p>
           )}
         </div>
@@ -159,7 +184,7 @@ function ConfirmationScreen() {
       {phase === "error" && (
         <div style={cardStyle}>
           <p style={{ margin: 0, fontSize: 14, color: "var(--text-on-dark)" }}>
-            Non troviamo questo ordine.
+            Non riusciamo a trovare questo ordine.
           </p>
         </div>
       )}
