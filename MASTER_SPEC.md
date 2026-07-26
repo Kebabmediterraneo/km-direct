@@ -1,10 +1,30 @@
 # KM DIRECT — MASTER SPECIFICATION
 
-**Versione 16** — sostituisce la v15.
+**Versione 17** — sostituisce la v16.
 
 Documento di riferimento definitivo per lo sviluppo. Le decisioni qui
 contenute sono approvate: non vanno reinterpretate senza un motivo concreto
 (vedi §73). Ogni file di codice del progetto deve rispettare queste regole.
+
+**Novità della v17** (tutte vincolanti):
+
+1. §12 — definita in modo completo la regola dello **slot di consegna
+   programmata che scade mentre il cliente compila il checkout**, che fino
+   alla v16 rimandava genericamente a §12b. Sulla Delivery, a differenza del
+   Ritiro, **ogni** orario di consegna programmata è trattato come
+   **esplicito**: se scade, si azzera, si blocca il pagamento e si mostra il
+   messaggio §46b — mai spostamento silenzioso. Vale in ogni modo in cui il
+   cliente arriva ad avere un orario programmato (scelto da lui, primo slot
+   preselezionato lasciato invariato, o imposto dal sistema perché l'ASAP è
+   diventato non disponibile a locale in chiusura). Motivo: sulla Delivery lo
+   slot successivo può cadere in un turno diverso (pranzo→cena, o cena→giorno
+   dopo), e uno spostamento del genere non va mai fatto di nascosto. Unico
+   comportamento silenzioso residuo: **ASAP a locale aperto**, dove non
+   esiste un orario da rispettare. È una divergenza **voluta** dal Ritiro
+   (dove il primo slot preselezionato-e-non-toccato è invece "automatico").
+2. §12b — annotata esplicitamente la divergenza di cui sopra, così la
+   differenza tra le due modalità non venga scambiata per una svista da
+   uniformare.
 
 **Novità della v16** (tutte vincolanti):
 
@@ -222,11 +242,46 @@ divergesse)**:
   regole devono restare diverse: non vanno uniformate credendo a una
   svista.
 
-- **Slot che scade durante la compilazione**: vale la stessa regola
-  definita in §12b per il Ritiro, applicata alla consegna programmata.
-  **Stato di implementazione**: al momento della v15 è implementata solo
-  per il Ritiro (§12b Task B); l'allineamento della UI Delivery è un lavoro
-  successivo, ancora da pianificare.
+- **Slot che scade durante la compilazione (regola Delivery completata in
+  v17)**: come per il Ritiro (§12b), il client aggiorna periodicamente lo
+  stato del servizio, quindi uno slot di consegna programmata valido al
+  momento della selezione può non esserlo più pochi minuti dopo. La regola
+  di base è la stessa dei tre casi di §12b, **ma sulla Delivery con una
+  differenza sostanziale e voluta**: un orario di consegna programmata è
+  trattato **sempre come esplicito**. In concreto:
+  1. Cliente su **ASAP a locale aperto** (semaforo verde): non c'è alcun
+     orario da rispettare, resta ASAP. Nessun azzeramento, nessun blocco —
+     è l'unico comportamento silenzioso residuo sulla Delivery.
+  2. Cliente con un **orario di consegna programmata ancora disponibile**:
+     non si tocca nulla.
+  3. Cliente con un **orario di consegna programmata non più disponibile**:
+     la selezione viene azzerata, il pagamento è bloccato finché non ne
+     sceglie un altro, e compare il messaggio §46b (`L'orario che hai scelto
+     non è più disponibile. Scegline un altro tra quelli proposti.`).
+
+  Il caso 3 vale in **ogni** modo in cui il cliente arriva ad avere un
+  orario di consegna programmata: che l'abbia scelto esplicitamente, che
+  abbia lasciato invariato il primo slot preselezionato dal sistema, o che
+  il sistema ce l'abbia portato d'ufficio perché era su ASAP e il semaforo
+  è passato a giallo/rosso rimuovendo l'opzione ASAP (§12, §68.4).
+
+  **Perché la Delivery non ha il caso "automatico/silenzioso" del Ritiro**:
+  in §12b, un primo slot preselezionato e mai toccato è "automatico" e, se
+  scade, viene aggiornato in silenzio al nuovo primo slot. Sulla Delivery
+  questo **non** va fatto, perché lo slot successivo può cadere in una
+  finestra operativa diversa: l'ultimo slot di pranzo che scade porterebbe
+  a cena, e l'ultimo di cena al pranzo del giorno dopo. Spostare in silenzio
+  un ordine attraverso mezza giornata è un tradimento della scelta del
+  cliente (chi ordina per pranzo non vuole ritrovarsi una consegna a cena).
+  Meglio fermarlo e fargli riscegliere apertamente. La stessa protezione a
+  monte del semaforo (§7: negli ultimi 15 minuti prima della chiusura il
+  semaforo è già rosso e l'ASAP è già stato rimosso) garantisce che un ASAP
+  silenzioso non scavalchi mai una chiusura senza passare per il caso 3.
+
+  Come per il Ritiro, richiede di tenere memoria del fatto che esista una
+  selezione di orario programmato attiva; sulla Delivery, dal momento in cui
+  il cliente è su "consegna programmata" con uno slot, quello slot è sempre
+  esplicito ai fini di questa regola.
 
 ## 12b. Timing Ritiro (aggiunto in v14, vincolante)
 
@@ -324,6 +379,19 @@ implicita, ed è ciò che rende possibile il controllo server-side di §46b.
 
   Richiede di tenere memoria del fatto che la selezione corrente sia
   automatica oppure esplicita: è l'unico dato aggiuntivo necessario.
+
+  **Divergenza voluta con la Delivery (precisata in v17)**: questa regola
+  a tre casi, con il caso 1 "automatico" che aggiorna in silenzio il primo
+  slot preselezionato, vale **così com'è solo per il Ritiro**. Sulla
+  Delivery (§12) il primo slot preselezionato-e-non-toccato è invece
+  trattato come **esplicito** (quindi, se scade, azzera e blocca invece di
+  aggiornare in silenzio), perché sulla Delivery lo slot successivo può
+  cadere in una finestra operativa diversa (pranzo→cena, cena→giorno dopo)
+  e uno spostamento silenzioso attraverso mezza giornata non è accettabile.
+  La differenza è deliberata: non va uniformata credendo a una svista. Nel
+  Ritiro l'aggiornamento silenzioso è innocuo perché avviene sempre entro
+  la stessa logica di slot ravvicinati e il cliente è comunque in negozio;
+  sulla Delivery no.
 
 **Modello dati**: l'orario concordato del Ritiro va salvato nella colonna
 **già esistente** `scheduled_delivery_at`, che dalla v14 si legge come
