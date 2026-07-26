@@ -1,10 +1,21 @@
 # KM DIRECT — MASTER SPECIFICATION
 
-**Versione 19** — sostituisce la v18.
+**Versione 20** — sostituisce la v19.
 
 Documento di riferimento definitivo per lo sviluppo. Le decisioni qui
 contenute sono approvate: non vanno reinterpretate senza un motivo concreto
 (vedi §73). Ogni file di codice del progetto deve rispettare queste regole.
+
+**Novità della v20** (vincolanti):
+
+1. §19 / §31 — l'**etichetta del gruppo di scelta proteina** mostrata al
+   cliente è **"Come preferisci il tuo kebab?"** (non "Proteina"). Il valore
+   vive nel campo `choice_label` dei dati (per le righe proteina di
+   Roll/Bowl); le righe "Gusto" (Cheesecake, Yogurt turco) restano
+   "Gusto". Nel catalogo §19 l'etichetta è abbreviata in "Proteina:" per
+   compattezza di lettura — vedi nota in testa a §19. Questo completa la
+   revisione testi v19 (in cui la modifica era stata applicata solo al combo
+   e al fallback del codice, non ancora al dato dei Roll singoli).
 
 **Novità della v19** (revisione testi rivolti al cliente — tutte vincolanti):
 
@@ -508,6 +519,14 @@ artificiale di 3-4, niente campo note libero sul prodotto.
 
 ## 19. ROLL — catalogo completo
 
+**Nota sull'etichetta del gruppo proteina (v20)**: nella UI cliente, il
+titolo del gruppo di scelta della proteina è **"Come preferisci il tuo
+kebab?"** (memorizzato nel campo `choice_label`, §31). Nel catalogo qui
+sotto quell'etichetta è abbreviata in **"Proteina:"** solo per compattezza
+di lettura: dove si legge "Proteina: ..." il cliente vede in realtà "Come
+preferisci il tuo kebab?" seguito dalle stesse opzioni. Le altre etichette
+di gruppo (es. "Gusto" per Cheesecake e Yogurt turco, §31) non cambiano.
+
 **Il Turco — 8 €** 🌶️ Leggermente piccante. Proteina: Pollo e tacchino
 (incluso) / Planted Kebab (+1,50 €) / Adana di manzo ed agnello (+4,50 €).
 Rimozioni: Non piccante,
@@ -652,9 +671,10 @@ scelta "gusto" di Cheesecake e Yogurt turco NON è una scelta proteina e
 non va forzata nella tabella `product_protein_options` (pensata solo per
 Pollo/Planted/Adana/nessuna). Lo schema va corretto con una tabella
 generica per scelte singole obbligatorie non-proteina (es.
-`product_choice_options`, con `choice_label` configurabile — "Proteina",
-"Gusto", ecc. — e `option_label` libero, non vincolato a un enum), oppure
-rendendo `protein_key` un campo testo libero invece di un enum chiuso.
+`product_choice_options`, con `choice_label` configurabile — es. "Come
+preferisci il tuo kebab?" per il gruppo proteina, "Gusto" per Cheesecake e
+Yogurt turco, ecc. — e `option_label` libero, non vincolato a un enum),
+oppure rendendo `protein_key` un campo testo libero invece di un enum chiuso.
 Questa è una correzione allo schema originale, non una nuova regola di
 prodotto.
 
