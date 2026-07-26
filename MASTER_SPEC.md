@@ -1,10 +1,21 @@
 # KM DIRECT — MASTER SPECIFICATION
 
-**Versione 17** — sostituisce la v16.
+**Versione 18** — sostituisce la v17.
 
 Documento di riferimento definitivo per lo sviluppo. Le decisioni qui
 contenute sono approvate: non vanno reinterpretate senza un motivo concreto
 (vedi §73). Ogni file di codice del progetto deve rispettare queste regole.
+
+**Novità della v18** (tutte vincolanti):
+
+1. §41-45 — il **selettore dell'orario è modificabile anche dentro il
+   checkout**, non solo nel selettore in cima alla pagina, per entrambe le
+   modalità in cui è attiva una selezione di orario (Ritiro sempre; Delivery
+   quando `timingType="scheduled"`). Serve a supporto del caso 3 (§12
+   Delivery, §12b Ritiro): se lo slot scade durante la compilazione, il
+   cliente sceglie un nuovo slot restando nel checkout, senza tornare
+   indietro ("una sola pagina"). Per il Ritiro è già implementato; la v18
+   estende esplicitamente la stessa cosa alla Delivery.
 
 **Novità della v17** (tutte vincolanti):
 
@@ -655,6 +666,17 @@ indirizzo, civico, citofono, piano/interno, edificio/scala, note rider,
 coordinate — mai un unico campo disordinato. Privacy: checkbox obbligatoria.
 Marketing: checkbox facoltativa, non preselezionata, salvando sì/no +
 timestamp + versione testo.
+
+**Selettore orario modificabile nel checkout (aggiunto in v18, vincolante)**:
+per entrambe le modalità, quando è attiva una selezione di orario (Ritiro
+sempre; Delivery quando `timingType="scheduled"`), il selettore dell'orario è
+modificabile **anche all'interno del checkout**, non solo nel selettore in
+cima alla pagina. Motivo: se lo slot scelto scade mentre il cliente compila i
+dati (§12 per la Delivery, §12b per il Ritiro — caso 3: azzera la selezione,
+blocca il pagamento, mostra il messaggio §46b), il cliente deve poter
+scegliere un nuovo slot **restando nel checkout**, senza tornare indietro,
+coerentemente col principio "una sola pagina". Per il Ritiro è già così
+(implementato); la v18 estende esplicitamente la stessa cosa alla Delivery.
 
 **Correzione di integrità (trovata dopo l'MVP iniziale, vincolante)**:
 indirizzo e civico mostrati al checkout devono essere quelli GIÀ
