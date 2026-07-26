@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "../lib/supabase";
 import { isPointInPolygon } from "../lib/geo";
+import { classifyScheduledSelection, firstAvailableSlot } from "../lib/scheduled-selection";
 
 const CATEGORIES = [
   "ROLL",
@@ -1279,6 +1280,7 @@ function FulfillmentSelector({
   onScheduledDayChange,
   scheduledTime,
   onScheduledTimeChange,
+  scheduledSlotExpired,
   pickupDay,
   onPickupDayChange,
   pickupTime,
@@ -1573,6 +1575,15 @@ function FulfillmentSelector({
               onTimeChange={onScheduledTimeChange}
               radioName="delivery-day"
             />
+          )}
+          {/* §12 (v17) caso 3: slot di consegna programmata scaduto durante la
+              compilazione → selezione azzerata, messaggio §46b, pagamento
+              bloccato (canPay). Nessuno spostamento silenzioso. */}
+          {scheduledSlotExpired && (
+            <p style={{ margin: 0, fontSize: 13, color: "#C0392B" }}>
+              L&apos;orario che hai scelto non è più disponibile. Scegline un altro
+              tra quelli proposti.
+            </p>
           )}
         </div>
       )}
@@ -2028,6 +2039,14 @@ function CheckoutScreen({
   const pickupDaySlots = serviceStatus?.pickup?.slots?.[pickupDay] ?? [];
   const pickupSlotValid = pickupTime != null && pickupDaySlots.includes(pickupTime);
 
+  // §12 (v17): in Delivery, se l'orario di consegna programmata è scaduto (slot
+  // non più disponibile) il pagamento è bloccato — ASAP resta valido (nessuno
+  // slot da rispettare). Nota: questo è l'unico aggancio in CheckoutScreen del
+  // Passo 1; selettore/messaggio Delivery in checkout sono il Passo 2.
+  const deliveryDaySlots = serviceStatus?.slots?.[scheduledDay] ?? [];
+  const deliverySlotValid =
+    classifyScheduledSelection({ timingType, scheduledTime, daySlots: deliveryDaySlots }) === "ok";
+
   const canPay =
     customerDetails.firstName.trim() !== "" &&
     customerDetails.lastName.trim() !== "" &&
@@ -2035,6 +2054,7 @@ function CheckoutScreen({
     privacyAccepted &&
     (!isDelivery || (address.trim() !== "" && civico.trim() !== "" && coords)) &&
     (isDelivery || pickupSlotValid) &&
+    (!isDelivery || deliverySlotValid) &&
     (!hasBeer || ageConfirmed) &&
     !checkoutBlocked;
 
@@ -2450,6 +2470,10 @@ export default function Home() {
   const [timingType, setTimingType] = useState("asap");
   const [scheduledDay, setScheduledDay] = useState("today");
   const [scheduledTime, setScheduledTime] = useState(null);
+  // §12 (v17): slot di consegna programmata Delivery scaduto durante il
+  // checkout. Parallelo a pickupSlotExpired del Ritiro, ma senza flag
+  // "esplicito": sulla Delivery ogni orario programmato è già esplicito.
+  const [scheduledSlotExpired, setScheduledSlotExpired] = useState(false);
   // §12b: stato Ritiro, separato dalla Delivery. `pickupTimeExplicit` ricorda
   // se l'orario corrente è una preselezione automatica o una scelta esplicita
   // del cliente (serve per la regola di scadenza slot §12b). `pickupSlotExpired`
@@ -2493,35 +2517,61 @@ export default function Home() {
     return () => clearInterval(interval);
   }, []);
 
-  // §12: se il giorno/orario scelto per la consegna programmata non è (più)
-  // tra gli slot reali correnti — al primo caricamento, o perché il
-  // semaforo è cambiato fascia mentre la pagina era aperta — si riallinea
-  // al primo slot secondo la regola raffinata (45 min da verde, 30 min
-  // dall'apertura da giallo/rosso). Non tocca una scelta manuale ancora
-  // valida.
+  // §12 (v17): rilevamento scadenza dello slot di consegna programmata Delivery.
+  // Reagisce ai cambi di serviceStatus (poll). Se lo slot programmato scelto non
+  // è più tra quelli disponibili → azzera + segnala scaduto (caso 3): MAI
+  // riallineare in silenzio. La preselezione del primo slot avviene solo
+  // entrando in modalità programmata (handler / effetto di forzatura sotto),
+  // non qui. Divergenza voluta dal Ritiro (§12b): sulla Delivery lo slot
+  // successivo può cadere in un turno diverso (pranzo→cena, cena→giorno dopo).
   useEffect(() => {
     if (!serviceStatus) return;
     const daySlots = serviceStatus.slots?.[scheduledDay] ?? [];
-    if (scheduledTime && daySlots.includes(scheduledTime)) return;
-    if (serviceStatus.firstSlotDay) {
-      setScheduledDay(serviceStatus.firstSlotDay);
-      setScheduledTime(serviceStatus.firstSlotLabel);
+    if (classifyScheduledSelection({ timingType, scheduledTime, daySlots }) === "expired") {
+      setScheduledTime(null);
+      setScheduledSlotExpired(true);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- reagisce solo
     // ai cambi di serviceStatus, non ogni volta che l'utente cambia giorno/ora
   }, [serviceStatus]);
 
-  // §12: a semaforo giallo/rosso "PRIMA POSSIBILE" non è più un'opzione.
+  // §12 (v17): a semaforo giallo/rosso "PRIMA POSSIBILE" non è più un'opzione: il
+  // sistema porta d'ufficio su "consegna programmata" e preseleziona qui il
+  // primo slot utile, così lo slot risultante è un normale slot programmato
+  // esplicito (se poi scade entra nel caso 3, non in un riallineamento
+  // silenzioso).
   useEffect(() => {
     if (serviceStatus && serviceStatus.phase !== "green" && timingType === "asap") {
       setTimingType("scheduled");
+      if (serviceStatus.firstSlotDay) {
+        setScheduledDay(serviceStatus.firstSlotDay);
+        setScheduledTime(serviceStatus.firstSlotLabel);
+      }
+      setScheduledSlotExpired(false);
     }
   }, [serviceStatus, timingType]);
 
+  // §12 (v17): entrare in "consegna programmata" preseleziona il primo slot
+  // utile (da subito esplicito); tornare ad ASAP azzera lo stato di scadenza.
+  function handleTimingTypeChange(type) {
+    setTimingType(type);
+    if (type === "scheduled") {
+      const day = serviceStatus?.firstSlotDay ?? scheduledDay;
+      setScheduledDay(day);
+      setScheduledTime(firstAvailableSlot(serviceStatus?.slots?.[day]));
+    }
+    setScheduledSlotExpired(false);
+  }
+
   function handleScheduledDayChange(day) {
     setScheduledDay(day);
-    const daySlots = serviceStatus?.slots?.[day] ?? [];
-    setScheduledTime(daySlots[0] ?? null);
+    setScheduledTime(firstAvailableSlot(serviceStatus?.slots?.[day]));
+    setScheduledSlotExpired(false);
+  }
+
+  function handleScheduledTimeChange(time) {
+    setScheduledTime(time);
+    setScheduledSlotExpired(false);
   }
 
   // §12b: qualsiasi interazione col selettore Ritiro (giorno o orario) è una
@@ -2764,11 +2814,12 @@ export default function Home() {
             onAddressChange={setDeliveryAddress}
             onAddressDetailsChange={setDeliveryAddressDetails}
             timingType={timingType}
-            onTimingTypeChange={setTimingType}
+            onTimingTypeChange={handleTimingTypeChange}
             scheduledDay={scheduledDay}
             onScheduledDayChange={handleScheduledDayChange}
             scheduledTime={scheduledTime}
-            onScheduledTimeChange={setScheduledTime}
+            onScheduledTimeChange={handleScheduledTimeChange}
+            scheduledSlotExpired={scheduledSlotExpired}
             pickupDay={pickupDay}
             onPickupDayChange={handlePickupDayChange}
             pickupTime={pickupTime}
