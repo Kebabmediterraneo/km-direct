@@ -1,10 +1,52 @@
 # KM DIRECT — MASTER SPECIFICATION
 
-**Versione 18** — sostituisce la v17.
+**Versione 19** — sostituisce la v18.
 
 Documento di riferimento definitivo per lo sviluppo. Le decisioni qui
 contenute sono approvate: non vanno reinterpretate senza un motivo concreto
 (vedi §73). Ogni file di codice del progetto deve rispettare queste regole.
+
+**Novità della v19** (revisione testi rivolti al cliente — tutte vincolanti):
+
+1. §7 — lo stato "chiuso" del semaforo mostra ora **"Siamo chiusi"** (prima
+   "Chiusi"/"Chiuso", incoerenti tra loro), sia per la chiusura per orario
+   sia per la chiusura eccezionale §68.
+2. §19 — aggiornate le **diciture** di due opzioni proteina: "Planted" →
+   **"Planted Kebab"**, "Adana" → **"Adana di manzo ed agnello"**. I prezzi
+   restano invariati (incluso il **+0 € del Planted sul KM Special**, dove
+   la label perde il suffisso "(senza extra dose)" ma il prezzo resta 0; e
+   l'Adana del KM Special perde il suffisso "(extra dose)", prezzo +4,50 €
+   invariato). Sono modifiche di testo del menu (dati), non di listino.
+3. §46b — i tre messaggi di errore slot non sono più "provvisori": la
+   revisione testi è avvenuta e sono ora **definitivi** (testi invariati).
+4. §47-51 — aggiunti alla pagina di stato ordine tre testi: (a) un promemoria
+   **sempre visibile in cima** — "Tieni aperta questa pagina per seguire il
+   tuo ordine: è il modo per vedere gli aggiornamenti in tempo reale."; (b)
+   per il **Ritiro**, "Mostra il codice KM-XXXX al banco per ritirare il tuo
+   ordine."; (c) per la **Delivery**, "Codice ordine KM-XXXX. Pensiamo a
+   tutto noi: il tuo ordine arriverà all'indirizzo indicato." (mai nominare
+   il rider/Glovo al cliente, §57-61). Inoltre "Non troviamo questo ordine."
+   → "Non riusciamo a trovare questo ordine.".
+
+Altre modifiche di puro wording nel codice (non citate in spec) fanno parte
+della stessa revisione ma non alterano decisioni: non sono elencate qui.
+
+**Note-roadmap aggiunte in v19** (funzionalità future, non ancora costruite):
+
+- **Editor menu nel pannello (ruolo admin)**: §63-64 — un editor che permetta
+  di modificare nomi, descrizioni, prezzi e opzioni dei prodotti dal pannello,
+  protetto da un livello di accesso **admin distinto dallo staff**. Oggi il
+  pannello Menu consente solo di cambiare disponibile/esaurito, quindi ogni
+  modifica ai testi/prezzi del menu richiede intervento diretto sui dati. È la
+  soluzione strutturale per operare sul menu in sicurezza.
+- **Link informativa privacy** (§41-45): il testo "Dichiaro di aver letto
+  l'informativa privacy" dovrà rendere "informativa privacy" un link al
+  documento, quando l'informativa sarà pronta.
+- **Recuperabilità della pagina di stato** (§47-51): oggi la pagina è
+  raggiungibile solo tramite il link ricevuto dopo il pagamento; se il
+  cliente lo perde non può ritrovarla. Il promemoria "tieni aperta la pagina"
+  è un rimedio provvisorio; la soluzione vera è inviare il link via email
+  (campo già raccolto, facoltativo) o WhatsApp (fase 1.1).
 
 **Novità della v18** (tutte vincolanti):
 
@@ -133,20 +175,20 @@ sticky → menu → carrello sticky (quando non vuoto).
 
 Stati: aperto, chiuso per orario, pausa manuale, indisponibilità globale. Il
 menu resta visibile anche fuori orario. Header mostra "● Aperti" o
-"● Chiusi · Riapriamo alle HH:MM".
+"● Siamo chiusi · Riapriamo alle HH:MM".
 
 **Logica dinamica del semaforo (aggiunta dopo l'MVP iniziale, vincolante)**:
 lo stato va calcolato in tempo reale confrontando l'ora attuale con gli
 orari reali di `store_order_windows` (§13), con quattro fasce:
 
 1. **Oltre 30 minuti prima della prossima apertura** → luce rossa,
-   "Chiusi", "Apriamo alle [orario prossima apertura]".
+   "Siamo chiusi", "Apriamo alle [orario prossima apertura]".
 2. **Da 30 minuti a 1 minuto prima dell'apertura** → luce gialla,
    "Preordina ora", "Prepareremo il tuo ordine dalle [orario apertura]".
 3. **Dall'apertura fino a 15 minuti prima della chiusura** → luce verde,
    "Ordina ora", "Puoi ordinare fino alle [orario chiusura − 15 min]".
 4. **Dagli ultimi 15 minuti prima della chiusura fino a 30 minuti prima
-   della prossima apertura** → luce rossa, "Chiusi", "Apriamo alle
+   della prossima apertura** → luce rossa, "Siamo chiusi", "Apriamo alle
    [orario prossima apertura]" (stessa fascia del punto 1).
 
 **Importante**: questo stato è puramente informativo. Il checkout NON va
@@ -467,25 +509,28 @@ artificiale di 3-4, niente campo note libero sul prodotto.
 ## 19. ROLL — catalogo completo
 
 **Il Turco — 8 €** 🌶️ Leggermente piccante. Proteina: Pollo e tacchino
-(incluso) / Planted (+1,50 €) / Adana (+4,50 €). Rimozioni: Non piccante,
+(incluso) / Planted Kebab (+1,50 €) / Adana di manzo ed agnello (+4,50 €).
+Rimozioni: Non piccante,
 Senza hummus, Senza ajvar, Senza cetriolini, Senza insalata, Senza pomodoro,
 Senza yogurt.
 
-**Il Greco — 8 €**. Proteina: Pollo e tacchino / Planted (+1,50 €) / Adana
-(+4,50 €). Rimozioni: Senza cipolla, Senza pomodoro, Senza insalata, Senza
+**Il Greco — 8 €**. Proteina: Pollo e tacchino / Planted Kebab (+1,50 €) /
+Adana di manzo ed agnello (+4,50 €). Rimozioni: Senza cipolla, Senza pomodoro, Senza insalata, Senza
 feta, Senza tzatziki, Senza patatine.
 
 **KM Special — 11 €** Badge TOP CHOICE, 🌶️🌶️. Proteina: Pollo e tacchino
-extra dose (incluso) / Planted (+0 €, senza extra dose) / Adana extra dose
+extra dose (incluso) / Planted Kebab (+0 €) / Adana di manzo ed agnello
 (+4,50 €). Rimozioni: Senza peperoncino, Senza tabulì, Senza salsa
 all'aglio, Senza melassa di melagrana.
 
-**Il Libanese — 8,50 €** 🌶️🌶️. Proteina: Pollo e tacchino / Planted
-(+1,50 €) / Adana (+4,50 €). Rimozioni: Senza peperoncini, Senza yogurt,
+**Il Libanese — 8,50 €** 🌶️🌶️. Proteina: Pollo e tacchino / Planted Kebab
+(+1,50 €) / Adana di manzo ed agnello (+4,50 €). Rimozioni: Senza
+peperoncini, Senza yogurt,
 Senza tabulì, Senza paté piccante, Senza patate al vapore.
 
-**Il Persiano — 8,50 €**. Proteina: Pollo e tacchino / Planted (+1,50 €) /
-Adana (+4,50 €). Rimozioni: Senza melanzane grigliate, Senza insalata,
+**Il Persiano — 8,50 €**. Proteina: Pollo e tacchino / Planted Kebab
+(+1,50 €) / Adana di manzo ed agnello (+4,50 €). Rimozioni: Senza melanzane
+grigliate, Senza insalata,
 Senza taratour, Senza hummus, Senza crema di verdure arrosto, Senza patate
 al vapore.
 
@@ -743,7 +788,7 @@ non prescritte):
   resta modificabile, così che il cliente possa scegliere un altro slot
   senza ricomporre l'ordine.
 
-**Testi dei messaggi** (provvisori, soggetti alla revisione testi finale):
+**Testi dei messaggi** (definitivi dopo la revisione testi della v19):
 
 - ASAP non più disponibile: `Non possiamo più accettare ordini immediati in
   questo momento. Scegli un orario tra quelli disponibili.`
@@ -793,6 +838,24 @@ dell'ordine:
   stato annullato per un problema tecnico. Riceverai il rimborso
   completo sul metodo di pagamento utilizzato. Eventuali sconti
   utilizzati tornano validi per il tuo prossimo ordine, a presto!"
+
+**Testi aggiunti alla pagina di stato (revisione v19)**:
+
+- **Promemoria sempre visibile in cima** alla pagina di stato, in ogni
+  stato dell'ordine: "Tieni aperta questa pagina per seguire il tuo ordine:
+  è il modo per vedere gli aggiornamenti in tempo reale." Serve perché oggi
+  la pagina si ritrova solo tramite il link ricevuto dopo il pagamento (vedi
+  nota-roadmap in testa alla v19 sulla recuperabilità via email/WhatsApp).
+- **Istruzione sul codice ordine, diversa per modalità**:
+  - **Ritiro**: "Mostra il codice KM-XXXX al banco per ritirare il tuo
+    ordine." — qui il codice serve davvero al cliente, per farsi riconoscere.
+  - **Delivery**: "Codice ordine KM-XXXX. Pensiamo a tutto noi: il tuo
+    ordine arriverà all'indirizzo indicato." Per la Delivery il codice è un
+    identificativo interno (§57-61, comunicato dallo staff a Glovo): al
+    cliente **non** va chiesto di comunicarlo al rider, coerentemente con la
+    regola "mai nominare il rider/Glovo lato cliente".
+- **Ordine non trovato**: "Non riusciamo a trovare questo ordine." (era
+  "Non troviamo questo ordine.").
 
 ## 52-56. Pannello staff/admin
 
@@ -1125,6 +1188,19 @@ propagazioni automatiche in fase 1. Multi-store: predisporre `store_id`,
 filtro store, disponibilità/orari/fee/geofence/Glovo outlet ID per store —
 ma niente UI multi-store complessa adesso.
 
+**Editor menu completo con ruolo admin (nota-roadmap, aggiunta in v19, non
+ancora costruito)**: oggi il pannello Menu consente **solo** di cambiare lo
+stato disponibile/esaurito di un articolo; nomi, descrizioni, prezzi e
+label delle opzioni (proteine, contorni, ecc.) non sono editabili
+dall'interfaccia e ogni loro modifica richiede un intervento diretto sui
+dati. Va costruito un **editor del menu** nel pannello che permetta di
+modificare questi campi, protetto da un livello di accesso **admin distinto
+dallo staff** (lo staff operativo continua a vedere solo il toggle
+disponibile/esaurito; l'admin accede all'editor completo). È la soluzione
+strutturale per operare sul menu in sicurezza senza toccare il database a
+mano. Richiede l'introduzione di ruoli/permessi, oggi assenti. Da progettare
+in dettaglio prima dell'implementazione.
+
 **Decisione operativa (presa dopo l'MVP iniziale, vincolante)**: tutti i
 prodotti e le salse segnati "esaurito" tornano automaticamente
 "disponibile" una volta al giorno, prima del possibile orario di
@@ -1326,9 +1402,9 @@ la cancellazione riapre semplicemente la finestra per gli ordini futuri.
 
 - Nei turni chiusi da un'eccezione, il semaforo passa a **rosso** con
   testo dedicato:
-  - `Chiuso – Riapriremo alle [HH:MM]` se la prossima apertura utile
+  - `Siamo chiusi – Riapriremo alle [HH:MM]` se la prossima apertura utile
     cade nella giornata in corso.
-  - `Chiuso – Riapriremo [giorno data]` (es. `Chiuso – Riapriremo
+  - `Siamo chiusi – Riapriremo [giorno data]` (es. `Siamo chiusi – Riapriremo
     lunedì 25 dicembre`) se la prossima apertura utile cade in un giorno
     successivo. Formato data: nome del giorno + numero + nome del mese in
     italiano, senza anno.
