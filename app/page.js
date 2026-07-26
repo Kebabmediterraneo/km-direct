@@ -590,7 +590,7 @@ function ProductConfigurator({ productKey, productId, config, onAddToCart }) {
   );
 }
 
-function ProductCard({ product, onAddToCart }) {
+function ProductCard({ product, onAddToCart, compactHeader = false }) {
   const [expanded, setExpanded] = useState(false);
 
   function handleAddToCart(item) {
@@ -610,53 +610,123 @@ function ProductCard({ product, onAddToCart }) {
         gap: 8,
       }}
     >
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "flex-start",
-          gap: 8,
-        }}
-      >
-        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-          <span style={{ fontWeight: 700, fontSize: 16, color: "var(--navy)" }}>
-            {product.name}
-          </span>
-          {product.badge && (
-            <span
-              style={{
-                alignSelf: "flex-start",
-                background: "var(--brand-orange)",
-                color: "var(--bg-warm)",
-                fontWeight: 600,
-                fontSize: 11,
-                padding: "2px 8px",
-                borderRadius: 6,
-              }}
-            >
-              {product.badge}
+      {compactHeader ? (
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            gap: 8,
+          }}
+        >
+          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            <span style={{ fontWeight: 700, fontSize: 16, color: "var(--navy)" }}>
+              {product.name}
             </span>
-          )}
-          {product.isAvailable === false && (
-            <span
+            {product.badge && (
+              <span
+                style={{
+                  alignSelf: "flex-start",
+                  background: "var(--brand-orange)",
+                  color: "var(--bg-warm)",
+                  fontWeight: 600,
+                  fontSize: 11,
+                  padding: "2px 8px",
+                  borderRadius: 6,
+                }}
+              >
+                {product.badge}
+              </span>
+            )}
+            <span style={{ fontWeight: 700, fontSize: 14, color: "var(--navy)" }}>
+              {product.price}
+            </span>
+          </div>
+          {product.isAvailable === false ? (
+            <button
+              disabled
               style={{
-                alignSelf: "flex-start",
                 background: "var(--card-border)",
                 color: "var(--text-on-dark)",
+                border: "none",
+                borderRadius: 8,
+                padding: "8px 18px",
                 fontWeight: 600,
-                fontSize: 11,
-                padding: "2px 8px",
-                borderRadius: 6,
+                fontSize: 13,
+                cursor: "not-allowed",
+                whiteSpace: "nowrap",
               }}
             >
               Esaurito
-            </span>
+            </button>
+          ) : (
+            <button
+              onClick={() => product.config && setExpanded((prev) => !prev)}
+              style={{
+                background: "var(--brand-orange)",
+                color: "var(--bg-warm)",
+                border: "none",
+                borderRadius: 8,
+                padding: "8px 18px",
+                fontWeight: 600,
+                fontSize: 13,
+                cursor: "pointer",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {expanded ? "Chiudi" : "Scegli"}
+            </button>
           )}
         </div>
-        <span style={{ fontWeight: 700, fontSize: 16, color: "var(--navy)" }}>
-          {product.price}
-        </span>
-      </div>
+      ) : (
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "flex-start",
+            gap: 8,
+          }}
+        >
+          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            <span style={{ fontWeight: 700, fontSize: 16, color: "var(--navy)" }}>
+              {product.name}
+            </span>
+            {product.badge && (
+              <span
+                style={{
+                  alignSelf: "flex-start",
+                  background: "var(--brand-orange)",
+                  color: "var(--bg-warm)",
+                  fontWeight: 600,
+                  fontSize: 11,
+                  padding: "2px 8px",
+                  borderRadius: 6,
+                }}
+              >
+                {product.badge}
+              </span>
+            )}
+            {product.isAvailable === false && (
+              <span
+                style={{
+                  alignSelf: "flex-start",
+                  background: "var(--card-border)",
+                  color: "var(--text-on-dark)",
+                  fontWeight: 600,
+                  fontSize: 11,
+                  padding: "2px 8px",
+                  borderRadius: 6,
+                }}
+              >
+                Esaurito
+              </span>
+            )}
+          </div>
+          <span style={{ fontWeight: 700, fontSize: 16, color: "var(--navy)" }}>
+            {product.price}
+          </span>
+        </div>
+      )}
 
       {product.spicy && (
         <span style={{ fontSize: 13, fontWeight: 600, color: "#D97423" }}>
@@ -677,24 +747,26 @@ function ProductCard({ product, onAddToCart }) {
         </p>
       )}
 
-      <button
-        onClick={() => product.isAvailable !== false && product.config && setExpanded((prev) => !prev)}
-        disabled={product.isAvailable === false}
-        style={{
-          alignSelf: "flex-start",
-          marginTop: 4,
-          background: product.isAvailable === false ? "var(--card-border)" : "var(--brand-orange)",
-          color: product.isAvailable === false ? "var(--text-on-dark)" : "var(--bg-warm)",
-          border: "none",
-          borderRadius: 8,
-          padding: "8px 18px",
-          fontWeight: 600,
-          fontSize: 13,
-          cursor: product.isAvailable === false ? "not-allowed" : "pointer",
-        }}
-      >
-        {product.isAvailable === false ? "Esaurito" : expanded ? "Chiudi" : "Scegli"}
-      </button>
+      {!compactHeader && (
+        <button
+          onClick={() => product.isAvailable !== false && product.config && setExpanded((prev) => !prev)}
+          disabled={product.isAvailable === false}
+          style={{
+            alignSelf: "flex-start",
+            marginTop: 4,
+            background: product.isAvailable === false ? "var(--card-border)" : "var(--brand-orange)",
+            color: product.isAvailable === false ? "var(--text-on-dark)" : "var(--bg-warm)",
+            border: "none",
+            borderRadius: 8,
+            padding: "8px 18px",
+            fontWeight: 600,
+            fontSize: 13,
+            cursor: product.isAvailable === false ? "not-allowed" : "pointer",
+          }}
+        >
+          {product.isAvailable === false ? "Esaurito" : expanded ? "Chiudi" : "Scegli"}
+        </button>
+      )}
 
       {expanded && product.config && (
         <ProductConfigurator
@@ -2914,6 +2986,7 @@ export default function Home() {
                     key={product.name}
                     product={product}
                     onAddToCart={addToCart}
+                    compactHeader={!["ROLL", "BOWL"].includes(activeCategory)}
                   />
                 ) : (
                   <SimpleProductCard
