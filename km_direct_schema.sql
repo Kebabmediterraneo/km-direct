@@ -128,8 +128,6 @@ create table products (
   image_url text,
   sort_order integer not null default 0,
   is_available boolean not null default true,   -- disponibile/esaurito, indipendente per Roll/Bowl (§63)
-  contains_gluten boolean,
-  contains_lactose boolean,
   is_vegan boolean,
   is_vegetarian boolean,                        -- §67: vegano ⊂ vegetariano; NULL per drink/birre
   created_at timestamptz not null default now(),
