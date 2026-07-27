@@ -1,10 +1,18 @@
 # KM DIRECT — MASTER SPECIFICATION
 
-**Versione 26** — sostituisce la v25.
+**Versione 27** — sostituisce la v26.
 
 Documento di riferimento definitivo per lo sviluppo. Le decisioni qui
 contenute sono approvate: non vanno reinterpretate senza un motivo concreto
 (vedi §73). Ogni file di codice del progetto deve rispettare queste regole.
+
+**Novità della v27** (vincolanti):
+
+1. §63-64 — **definita la lista chiusa dei badge** utilizzabili dall'editor
+   menu: "TOP CHOICE" (già in uso), "Special del mese", "Best seller",
+   "Esclusiva KM", "Scelto per te", "Novità", "I classici", più l'opzione
+   "nessun badge". Un prodotto porta **un solo badge alla volta**. Restano
+   esclusi i badge dietetici, che derivano dai flag (§67).
 
 **Novità della v26** (vincolanti):
 
@@ -1364,11 +1372,23 @@ client non scrive mai diretto sul DB):
 - `description`: facoltativa, lunghezza massima indicativa **300 caratteri**;
 - `base_price`: obbligatorio, numerico, **strettamente maggiore di zero**,
   massimo **9999,99** (limite del tipo), due decimali;
-- `badge`: **lista chiusa di valori non dietetici** (oggi in uso: "TOP
-  CHOICE"), mai testo libero. I badge dietetici **non sono scrivibili**:
-  Vegano/Vegetariano derivano dai flag `is_vegan`/`is_vegetarian` (§67) e
-  una seconda fonte scrivibile a mano creerebbe incoerenza su un dato di
-  sicurezza alimentare;
+- `badge`: **lista chiusa di valori non dietetici**, mai testo libero. Valori
+  ammessi (decisione v27), oltre a **"nessun badge"**:
+  **"TOP CHOICE"** (già in uso su 2 prodotti, §19), **"Special del mese"**,
+  **"Best seller"**, **"Esclusiva KM"**, **"Scelto per te"**, **"Novità"**,
+  **"I classici"**.
+  Un prodotto porta **un solo badge alla volta**: il campo ne tiene uno, e due
+  etichette sulla stessa card si annullerebbero a vicenda. Aggiungere un valore
+  alla lista richiede una **modifica al codice** (la lista vive nella route
+  staff): è voluto, impedisce che il campo torni di fatto a essere testo libero.
+  I badge dietetici **non sono scrivibili**: Vegano/Vegetariano derivano dai
+  flag `is_vegan`/`is_vegetarian` (§67) e una seconda fonte scrivibile a mano
+  creerebbe incoerenza su un dato di sicurezza alimentare.
+  *Note d'uso (non vincolanti, ma volute)*: i badge vanno tenuti **accesi pochi
+  per volta**, altrimenti smettono di distinguere qualcosa; **"Special del
+  mese"** ha una scadenza che il sistema non conosce — nessun automatismo lo
+  rimuove, va tolto a mano quando il mese finisce — e conviene non usarlo sul
+  prodotto **KM Special**, per non leggere "KM Special · Special del mese";
 - `sort_order`: numero intero;
 - `slug`: **non editabile** (identificatore, `unique(store_id, slug)`);
 - `id`: mai modificabile (§25, identità immutabile).
