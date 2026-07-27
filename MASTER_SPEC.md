@@ -1,10 +1,44 @@
 # KM DIRECT — MASTER SPECIFICATION
 
-**Versione 25** — sostituisce la v24.
+**Versione 26** — sostituisce la v25.
 
 Documento di riferimento definitivo per lo sviluppo. Le decisioni qui
 contenute sono approvate: non vanno reinterpretate senza un motivo concreto
 (vedi §73). Ogni file di codice del progetto deve rispettare queste regole.
+
+**Novità della v26** (vincolanti):
+
+1. §63-64 — **deciso il perimetro dell'editor menu rispetto al go-live.**
+   Prima dell'apertura si costruiscono solo: editing dei campi semplici dei
+   prodotti esistenti (Fase 1), editing allergeni/flag dietetici (Fase 2) e
+   creazione di prodotti semplici (Fase 3). Sono **rimandati a dopo il
+   go-live**: l'editing dei **contenuti del combo** (contorni, proteine,
+   supplementi), la Fase 4 (Roll/Bowl con opzioni) e la **creazione di nuovi
+   tipi di menu combo**. Motivo: inventare tipi di menu nuovi richiede un
+   motore generico di composizione che finirebbe sul percorso di ricalcolo
+   prezzo del checkout — costo e rischio sproporzionati rispetto a una
+   frequenza d'uso reale di poche volte l'anno.
+2. §63-64 — **regole di validazione dell'editor** (nuove, obbligatorie).
+   Verificato che oggi **non esiste alcuna validazione server-side** sui
+   cinque campi della Fase 1 e che il database non ha vincoli oltre ai tipi
+   (in particolare `base_price numeric(6,2)` accetta 0 e valori negativi).
+   Le validazioni vanno quindi costruite nella route staff dell'editor,
+   incluse **lista chiusa per `badge`** e **conferma esplicita sul cambio di
+   prezzo**.
+3. §66 — **immutabilità dello storico ordini: verificata.** Ogni riga
+   `order_items` congela nome, categoria, prezzo unitario, totale riga e
+   dettagli (`configuration`) al momento dell'ordine; tutti i punti che
+   mostrano un ordine passato leggono lo snapshot e mai una join con
+   `products`. Rinominare o riprezzare un prodotto **non altera gli ordini
+   già emessi**. Prerequisito dell'editor menu, chiuso.
+4. §66 — **log delle modifiche al menu** in `staff_action_log`: finché non
+   esistono ruoli distinti (§63-64), ogni modifica fatta dall'editor va
+   registrata con campo, valore precedente e valore nuovo.
+5. §25 — chiarita una **conseguenza operativa** del modello attuale: i nomi
+   **non si propagano** tra prodotti e opzioni del combo. Rinominare il
+   prodotto "Patatine KM" (fritti) non rinomina il contorno omonimo dentro
+   il combo: sono voci indipendenti che condividono il testo per
+   coincidenza.
 
 **Novità della v25** (vincolanti):
 
@@ -695,6 +729,18 @@ schermo e nei dettagli dell'ordine. *(Refactoring combo nome→id, prerequisito
 dell'editor menu — prezzi verificati identici: base 13 €, KM Special +3, drink
 premium +0,50.)*
 
+**Conseguenza operativa: i nomi non si propagano (v26).** Le opzioni del
+combo (contorni in `combo_side_options`, proteine in
+`product_choice_options`) sono **voci autonome**, senza alcun legame
+relazionale con i prodotti del menu. Il contorno "Patatine KM" del combo e
+il prodotto "Patatine KM" della categoria fritti (§27) condividono il testo
+**per coincidenza**, non perché siano la stessa cosa. Quindi rinominare il
+prodotto dall'editor **non** rinomina il contorno omonimo nel combo: niente
+si rompe e nessun prezzo sbaglia, ma il cliente vedrebbe due nomi diversi
+per la stessa cosa. Chi usa l'editor deve saperlo. L'allineamento dei due
+nomi resta manuale finché non esisterà l'editor dei contenuti del combo
+(rimandato a dopo il go-live, §63-64).
+
 ## 26. Shortcut "Fallo combo"
 
 Vedi §23-26: apre lo stesso builder con il Roll già preselezionato, senza
@@ -1278,6 +1324,62 @@ via Supabase Auth + `requireStaffSession`, §66), senza un livello di accesso
 separato. L'introduzione di ruoli/permessi admin distinti dallo staff è
 **rimandata a dopo il go-live**, quando il sito sarà operativo.
 
+**Perimetro rispetto al go-live (decisione v26, vincolante)**
+
+*Prima del go-live:*
+- **Fase 1** — editing dei campi semplici dei prodotti esistenti: `name`,
+  `description`, `base_price`, `badge` (solo non dietetici), `sort_order`.
+  `is_available` esiste già.
+- **Fase 2** — editing di allergeni e flag dietetici, con selezione dai 14
+  allergeni UE (§67), mai testo libero.
+- **Fase 3** — creazione di prodotti semplici (fritti, sides, dolci, drink),
+  con **dichiarazione allergeni obbligatoria alla creazione**: un prodotto
+  nuovo non può nascere senza che gli allergeni siano stati dichiarati o
+  esplicitamente confermati come assenti (§67 — sicurezza alimentare).
+
+*Dopo il go-live:*
+- editing dei **contenuti del combo** (contorni, proteine, supplementi):
+  richiede prima la conversione delle label a id (§25, residuo noto), perché
+  sono proprio le etichette che l'editor andrebbe a modificare;
+- **Fase 4** — creazione/editing di Roll/Bowl con le loro opzioni;
+- **creazione di nuovi tipi di menu combo** (es. "Menu Bowl", "Menu
+  famiglia"): oggi il sistema non ha "i combo" ma **un** combo, di forma
+  fissa a tre scelte (Roll → contorno → bibita). Renderla libera richiede un
+  motore generico di composizione dei menu che il server dovrebbe
+  interpretare **dentro il ricalcolo prezzo del checkout**. Costo e rischio
+  sproporzionati rispetto alla frequenza d'uso reale. Fino ad allora un
+  nuovo tipo di menu si realizza come **intervento una tantum sul codice**.
+
+**Regole di validazione dell'editor (v26, vincolanti)**
+
+Stato verificato: **non esiste alcuna validazione server-side** sui cinque
+campi della Fase 1, e il database non pone vincoli oltre ai tipi — in
+particolare `base_price numeric(6,2)` accetterebbe 0 e valori negativi. Le
+validazioni vanno quindi costruite nella **route staff** dell'editor, che
+resta l'unico canale di scrittura (sessione verificata + secret key, §66; il
+client non scrive mai diretto sul DB):
+
+- `name`: obbligatorio, non vuoto, lunghezza massima indicativa **60
+  caratteri** (oltre, il layout delle card si rompe);
+- `description`: facoltativa, lunghezza massima indicativa **300 caratteri**;
+- `base_price`: obbligatorio, numerico, **strettamente maggiore di zero**,
+  massimo **9999,99** (limite del tipo), due decimali;
+- `badge`: **lista chiusa di valori non dietetici** (oggi in uso: "TOP
+  CHOICE"), mai testo libero. I badge dietetici **non sono scrivibili**:
+  Vegano/Vegetariano derivano dai flag `is_vegan`/`is_vegetarian` (§67) e
+  una seconda fonte scrivibile a mano creerebbe incoerenza su un dato di
+  sicurezza alimentare;
+- `sort_order`: numero intero;
+- `slug`: **non editabile** (identificatore, `unique(store_id, slug)`);
+- `id`: mai modificabile (§25, identità immutabile).
+
+**Conferma esplicita sul cambio di prezzo**: la modifica di `base_price`
+deve mostrare **valore precedente e valore nuovo** e richiedere una conferma
+prima del salvataggio. Motivo: il checkout ricalcola i prezzi a partire da
+`base_price` (§66), quindi un errore di battitura ha effetto **immediato**
+su tutti gli ordini successivi e non è visibile finché non si guardano gli
+incassi.
+
 **Decisione operativa (presa dopo l'MVP iniziale, vincolante)**: tutti i
 prodotti e le salse segnati "esaurito" tornano automaticamente
 "disponibile" una volta al giorno, prima del possibile orario di
@@ -1323,6 +1425,29 @@ di questa regola.
 URL ordine con token non prevedibile, admin autenticato, snapshot ordine
 immutabile, log azioni staff, nessun dato sensibile in URL, validazioni e
 prezzi sempre server-side, audit trail minimo.
+
+**Snapshot ordine immutabile — verificato (v26)**: ogni riga `order_items`
+**congela** al momento dell'ordine il nome (`product_name_snapshot`), la
+categoria (`category_snapshot`), il prezzo unitario
+(`unit_price_snapshot`), il totale riga (`line_total`) e i dettagli di
+configurazione (`configuration` jsonb: proteina, contorno, bibita,
+rimozioni, come testo). Tutti i punti che mostrano un ordine passato —
+Storico del pannello staff ed export Glovo — leggono **dallo snapshot** e
+mai da una join con `products`; la pagina di stato lato cliente non espone
+affatto i nomi dei prodotti. Il campo `order_items.product_id` resta come
+semplice riferimento (nullable) e non viene usato per mostrare nome o
+prezzo. **Conseguenza vincolante**: rinominare o riprezzare un prodotto
+dall'editor menu **non altera gli ordini già emessi**, e questa proprietà va
+preservata — nessuna schermata di storico deve mai ricavare nome o prezzo
+di un ordine passato dalla tabella `products`.
+
+**Log delle modifiche al menu (v26, vincolante)**: finché non esistono ruoli
+distinti (§63-64), chiunque abbia le credenziali staff può modificare il
+menu, prezzi inclusi. Il controllo compensativo è la tracciabilità: ogni
+scrittura fatta dall'editor menu va registrata in `staff_action_log`
+(tabella già esistente, con `order_id` nullable e `action`/`detail` liberi)
+indicando **quale prodotto, quale campo, valore precedente e valore nuovo**.
+Vale anche per il toggle disponibile/esaurito, che oggi non viene loggato.
 
 ## 67. Allergeni
 
