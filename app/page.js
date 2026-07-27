@@ -208,7 +208,7 @@ function spicyLabel(spiceLevel, spiceLabel) {
 // già si aspettano (product.config con proteins/removals/accompaniments),
 // così la resa visiva e il comportamento restano invariati (§19-§33):
 // questa è una migrazione della fonte dati, non un cambio di funzionalità.
-function buildCatalogProduct(product, choicesByProduct, removalsByProduct, accompanimentsByProduct, addonsByProduct) {
+function buildCatalogProduct(product, choicesByProduct, removalsByProduct, accompanimentsByProduct, addonsByProduct, allergensByProduct) {
   const choices = choicesByProduct[product.id] ?? [];
   const removals = (removalsByProduct[product.id] ?? []).map((r) => r.label);
   const accompaniments = (accompanimentsByProduct[product.id] ?? []).map((a) => a.label);
@@ -223,6 +223,10 @@ function buildCatalogProduct(product, choicesByProduct, removalsByProduct, accom
     spicy: spicyLabel(product.spice_level, product.spice_label),
     ingredients: product.description ?? undefined,
     isAvailable: product.is_available,
+    // §67: flag dietetici e allergeni (nomi) per badge e blocco allergeni.
+    isVegan: product.is_vegan === true,
+    isVegetarian: product.is_vegetarian === true,
+    allergens: allergensByProduct[product.id] ?? [],
   };
 
   if (!hasConfig) return base;
@@ -265,6 +269,8 @@ async function fetchMenuData() {
     { data: comboSides },
     { data: comboDrinks },
     { data: comboPricing },
+    { data: productAllergens },
+    { data: sauceAllergens },
   ] = await Promise.all([
     supabase.from("products").select("*").order("sort_order"),
     supabase.from("product_choice_options").select("*").order("sort_order"),
@@ -275,6 +281,8 @@ async function fetchMenuData() {
     supabase.from("combo_side_options").select("*").order("sort_order"),
     supabase.from("combo_drink_options").select("*, products(name, base_price)").order("sort_order"),
     supabase.from("combo_pricing").select("*, products(name)"),
+    supabase.from("product_allergens").select("product_id, allergens(label)"),
+    supabase.from("sauce_allergens").select("sauce_id, allergens(label)"),
   ]);
 
   if (productsError) throw productsError;
@@ -284,12 +292,25 @@ async function fetchMenuData() {
   const accompanimentsByProduct = groupBy(accompaniments, "product_id");
   const addonsByProduct = groupBy(addons, "product_id");
 
+  // §67: allergeni per prodotto/salsa come liste di nomi leggibili (join a
+  // `allergens`), ordinati per nome per una resa stabile.
+  const allergensByProduct = {};
+  for (const r of productAllergens ?? []) {
+    (allergensByProduct[r.product_id] ??= []).push(r.allergens.label);
+  }
+  const allergensBySauce = {};
+  for (const r of sauceAllergens ?? []) {
+    (allergensBySauce[r.sauce_id] ??= []).push(r.allergens.label);
+  }
+  for (const k in allergensByProduct) allergensByProduct[k].sort();
+  for (const k in allergensBySauce) allergensBySauce[k].sort();
+
   const categoryProducts = {};
   for (const [uiCategory, dbCategory] of Object.entries(CATEGORY_DB_KEY)) {
     categoryProducts[uiCategory] = (products ?? [])
       .filter((p) => p.category === dbCategory)
       .map((p) =>
-        buildCatalogProduct(p, choicesByProduct, removalsByProduct, accompanimentsByProduct, addonsByProduct)
+        buildCatalogProduct(p, choicesByProduct, removalsByProduct, accompanimentsByProduct, addonsByProduct, allergensByProduct)
       );
   }
   categoryProducts.SALSE = (sauces ?? []).map((s) => ({
@@ -297,6 +318,10 @@ async function fetchMenuData() {
     name: s.name,
     price: formatPrice(Number(s.price)),
     isAvailable: s.is_available,
+    // §67: le salse hanno solo il flag vegano (nessun is_vegetarian in tabella).
+    isVegan: s.is_vegan === true,
+    isVegetarian: false,
+    allergens: allergensBySauce[s.id] ?? [],
   }));
 
   // §63: un Roll esaurito non deve restare acquistabile nemmeno tramite
@@ -372,6 +397,59 @@ function CategoryTabs({ activeCategory, onSelect }) {
         );
       })}
     </nav>
+  );
+}
+
+// §67: badge dietetico unico dai flag (fonte unica). Il più specifico:
+// "Vegano" se is_vegan, altrimenti "Vegetariano" se is_vegetarian, altrimenti
+// niente. Stessa forma dei chip badge esistenti, colore che li distingue.
+function DietaryBadge({ product }) {
+  const label = product.isVegan ? "Vegano" : product.isVegetarian ? "Vegetariano" : null;
+  if (!label) return null;
+  return (
+    <span
+      style={{
+        alignSelf: "flex-start",
+        background: product.isVegan ? "var(--success-green)" : "#5E8C3A",
+        color: "var(--bg-warm)",
+        fontWeight: 600,
+        fontSize: 11,
+        padding: "2px 8px",
+        borderRadius: 6,
+      }}
+    >
+      {label}
+    </span>
+  );
+}
+
+// §67: blocco allergeni espandibile. Trigger testuale "Allergeni ⌄"; al tap
+// mostra la lista dei nomi. Se il prodotto non ha allergeni non compare nulla.
+function AllergenList({ allergens }) {
+  const [open, setOpen] = useState(false);
+  if (!allergens || allergens.length === 0) return null;
+  return (
+    <div style={{ marginTop: 2 }}>
+      <button
+        onClick={() => setOpen((prev) => !prev)}
+        style={{
+          background: "none",
+          border: "none",
+          color: "var(--text-on-dark)",
+          fontSize: 13,
+          textDecoration: "underline",
+          cursor: "pointer",
+          padding: 0,
+        }}
+      >
+        {open ? "Nascondi allergeni" : "Allergeni"}
+      </button>
+      {open && (
+        <p style={{ margin: "4px 0 0", fontSize: 13, color: "var(--text-on-dark)" }}>
+          {allergens.join(", ")}
+        </p>
+      )}
+    </div>
   );
 }
 
@@ -647,6 +725,7 @@ function ProductCard({ product, onAddToCart, compactHeader = false }) {
                 {product.badge}
               </span>
             )}
+            <DietaryBadge product={product} />
             <span style={{ fontWeight: 700, fontSize: 14, color: "var(--navy)" }}>
               {product.price}
             </span>
@@ -715,6 +794,7 @@ function ProductCard({ product, onAddToCart, compactHeader = false }) {
                 {product.badge}
               </span>
             )}
+            <DietaryBadge product={product} />
             {product.isAvailable === false && (
               <span
                 style={{
@@ -755,6 +835,8 @@ function ProductCard({ product, onAddToCart, compactHeader = false }) {
           {product.ingredients}
         </p>
       )}
+
+      <AllergenList allergens={product.allergens} />
 
       {!compactHeader && (
         <button
@@ -814,6 +896,7 @@ function SimpleProductCard({ product, quantity, onIncrement, onDecrement }) {
           <span style={{ fontWeight: 700, fontSize: 16, color: "var(--navy)" }}>
             {product.name}
           </span>
+          <DietaryBadge product={product} />
           <span style={{ fontWeight: 700, fontSize: 14, color: "var(--navy)" }}>
             {product.price}
           </span>
@@ -916,6 +999,8 @@ function SimpleProductCard({ product, quantity, onIncrement, onDecrement }) {
           {product.ingredients}
         </p>
       )}
+
+      <AllergenList allergens={product.allergens} />
     </div>
   );
 }
