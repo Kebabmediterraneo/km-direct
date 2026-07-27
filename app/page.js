@@ -453,6 +453,29 @@ function AllergenList({ allergens }) {
   );
 }
 
+// §19/§67: sottotesto discreto sull'opzione Planted (alternativa vegetale a
+// base soia). Riconosce Planted per la chiave stabile `id === "planted"`
+// (derivata da choice_key), come già si fa per "pollo-tacchino". È SOLO UI del
+// configuratore: non tocca label/prezzo/ordine (il carrello resta "Planted
+// Kebab"). Riutilizzato in ProductConfigurator e ComboBuilder per coerenza.
+const PLANTED_NOTE = "Alternativa vegetale · contiene soia";
+
+function ProteinOptionLabel({ protein }) {
+  return (
+    <span style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+      <span>
+        {protein.label}
+        {protein.priceDelta > 0 && ` (+${formatPrice(protein.priceDelta)})`}
+      </span>
+      {protein.id === "planted" && (
+        <span style={{ fontSize: 11, color: "var(--text-on-dark)", opacity: 0.7 }}>
+          {PLANTED_NOTE}
+        </span>
+      )}
+    </span>
+  );
+}
+
 function ProductConfigurator({ productKey, productId, config, onAddToCart }) {
   const hasProteins = config.proteins && config.proteins.length > 0;
   const [proteinId, setProteinId] = useState(() =>
@@ -559,8 +582,7 @@ function ProductConfigurator({ productKey, productId, config, onAddToCart }) {
                 checked={proteinId === protein.id}
                 onChange={() => setProteinId(protein.id)}
               />
-              {protein.label}
-              {protein.priceDelta > 0 && ` (+${formatPrice(protein.priceDelta)})`}
+              <ProteinOptionLabel protein={protein} />
             </label>
           ))}
         </div>
@@ -1178,9 +1200,7 @@ function ComboBuilder({
                   checked={proteinId === protein.id}
                   onChange={() => setProteinId(protein.id)}
                 />
-                {protein.label}
-                {protein.priceDelta > 0 &&
-                  ` (+${formatPrice(protein.priceDelta)})`}
+                <ProteinOptionLabel protein={protein} />
               </label>
             ))}
           </div>
