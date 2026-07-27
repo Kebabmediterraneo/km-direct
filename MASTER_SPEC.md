@@ -1,10 +1,19 @@
 # KM DIRECT — MASTER SPECIFICATION
 
-**Versione 23** — sostituisce la v22.
+**Versione 24** — sostituisce la v23.
 
 Documento di riferimento definitivo per lo sviluppo. Le decisioni qui
 contenute sono approvate: non vanno reinterpretate senza un motivo concreto
 (vedi §73). Ogni file di codice del progetto deve rispettare queste regole.
+
+**Novità della v24** (vincolanti):
+
+1. §67 — il **rendering degli allergeni e dei flag dietetici al cliente è
+   completato** (prima elencato come "da fare"): schede prodotto con blocco
+   allergeni espandibile + badge Vegano/Vegetariano dai flag, e sezione
+   salse con allergeni + badge "Vegano". Verificato dal vivo. Nell'elenco
+   "ancora da fare" di §67 resta solo la bonifica dei flag legacy
+   `contains_gluten`/`contains_lactose`.
 
 **Novità della v23** (vincolanti):
 
@@ -1362,11 +1371,19 @@ Senape, Sesamo, Anidride solforosa e solfiti, Lupini, Molluschi.
   vanno usati come fonte (doppia fonte = rischio incoerenza); da
   disattivare o allineare in un intervento dedicato.
 
+**Rendering al cliente (fatto, v24)**: gli allergeni e il badge dietetico
+sono mostrati al cliente. Ogni scheda prodotto con allergeni mostra un
+blocco espandibile "Allergeni" (che al tap elenca gli allergeni; assente se
+il prodotto non ne ha) e un badge dietetico unico dai flag ("Vegano" se
+`is_vegan`, altrimenti "Vegetariano" se `is_vegetarian`). La **sezione
+salse** mostra allergeni e il badge "Vegano" per le salse vegane (le salse
+hanno `is_vegan` ma non `is_vegetarian` — scelta consapevole: nessun badge
+vegetariano sulle salse per ora). La soia della variante Planted è segnalata
+nel configuratore (v23).
+
 **Ancora da fare**:
-- **Rendering al cliente**: mostrare gli allergeni (e il flag vegano) nelle
-  schede prodotto/salsa dell'interfaccia. Popolare i dati NON li mostra
-  ancora: è un lavoro separato.
-- Bonifica dei flag legacy.
+- Bonifica dei flag legacy `contains_gluten` / `contains_lactose` (doppia
+  fonte superata da `product_allergens`, da disattivare/allineare).
 
 ## 68. Sezione Impostazioni pannello staff — chiusure eccezionali (aggiunta dopo l'MVP iniziale, vincolante)
 
