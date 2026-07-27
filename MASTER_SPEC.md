@@ -1,6 +1,6 @@
 # KM DIRECT — MASTER SPECIFICATION
 
-**Versione 24** — sostituisce la v23.
+**Versione 25** — sostituisce la v24.
 
 Documento di riferimento definitivo per lo sviluppo. Le decisioni qui
 contenute sono approvate: non vanno reinterpretate senza un motivo concreto
@@ -680,6 +680,16 @@ prezzo base da 13€ a 16€.
 
 Planted non ha supplemento sul Roll normale (+1,50 €, da §19) e si applica
 allo stesso modo dentro il combo.
+
+**Identità del prodotto = `id` (immutabile).** Tutti i collegamenti interni
+tra prezzi e prodotti — in particolare il prezzo base del combo per ogni Roll
+e la bibita scelta nel combo — usano l'`id` del prodotto, mai il suo nome.
+Così **nome, categoria, prezzo e appartenenza ai combo restano attributi
+liberamente modificabili** (anche dal futuro editor staff) senza rischio di
+rompere i prezzi. Il nome resta usato solo come **etichetta da mostrare** a
+schermo e nei dettagli dell'ordine. *(Refactoring combo nome→id, prerequisito
+dell'editor menu — prezzi verificati identici: base 13 €, KM Special +3, drink
+premium +0,50.)*
 
 ## 26. Shortcut "Fallo combo"
 

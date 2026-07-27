@@ -138,7 +138,7 @@ function buildUpsellGroups(items, categoryProducts, subtotal) {
 
   if (hasRollOrBowl && !hasFritti) {
     const options = simpleAvailable("FRITTI", "product")
-      .filter((p) => !alreadySuggested.has(p.name))
+      .filter((p) => !alreadySuggested.has(p.id))
       .slice(0, 2);
     if (options.length > 0) {
       candidateGroups.push({
@@ -146,13 +146,13 @@ function buildUpsellGroups(items, categoryProducts, subtotal) {
         message: "Completa con qualcosa di sfizioso",
         products: options,
       });
-      options.forEach((p) => alreadySuggested.add(p.name));
+      options.forEach((p) => alreadySuggested.add(p.id));
     }
   }
 
   if (hasFritti && !hasSalsa) {
     const options = simpleAvailable("SALSE", "sauce")
-      .filter((p) => !alreadySuggested.has(p.name))
+      .filter((p) => !alreadySuggested.has(p.id))
       .slice(0, 2);
     if (options.length > 0) {
       candidateGroups.push({
@@ -160,7 +160,7 @@ function buildUpsellGroups(items, categoryProducts, subtotal) {
         message: "Una salsa per accompagnare?",
         products: options,
       });
-      options.forEach((p) => alreadySuggested.add(p.name));
+      options.forEach((p) => alreadySuggested.add(p.id));
     }
   }
 
@@ -171,7 +171,7 @@ function buildUpsellGroups(items, categoryProducts, subtotal) {
       ...simpleAvailable("SALSE", "sauce"),
       ...simpleAvailable("DOLCI", "product"),
       ...simpleAvailable("DRINK", "product"),
-    ].filter((p) => !alreadySuggested.has(p.name));
+    ].filter((p) => !alreadySuggested.has(p.id));
     const options = pool
       .sort((a, b) => parsePrice(a.price) - parsePrice(b.price))
       .slice(0, 2);
@@ -183,7 +183,7 @@ function buildUpsellGroups(items, categoryProducts, subtotal) {
         )} per sbloccare GIVEMEFIVE, aggiungi:`,
         products: options,
       });
-      options.forEach((p) => alreadySuggested.add(p.name));
+      options.forEach((p) => alreadySuggested.add(p.id));
     }
   }
 
@@ -280,7 +280,7 @@ async function fetchMenuData() {
     supabase.from("sauces").select("*").order("sort_order"),
     supabase.from("combo_side_options").select("*").order("sort_order"),
     supabase.from("combo_drink_options").select("*, products(name, base_price)").order("sort_order"),
-    supabase.from("combo_pricing").select("*, products(name)"),
+    supabase.from("combo_pricing").select("*"),
     supabase.from("product_allergens").select("product_id, allergens(label)"),
     supabase.from("sauce_allergens").select("sauce_id, allergens(label)"),
   ]);
@@ -336,13 +336,18 @@ async function fetchMenuData() {
   }));
 
   const comboDrinkOptions = (comboDrinks ?? []).map((d) => ({
+    // id = identità immutabile del prodotto (chiave stabile anche se rinominato);
+    // il nome resta solo come etichetta a schermo.
+    id: d.drink_product_id,
     name: d.products.name,
     priceDelta: Number(d.price_delta),
   }));
 
+  // Chiave per id del Roll (non per nome): rinominare un Roll non deve alterare
+  // il lookup del prezzo combo.
   const comboPricingByRoll = {};
   for (const row of comboPricing ?? []) {
-    comboPricingByRoll[row.products.name] = Number(row.combo_base_price);
+    comboPricingByRoll[row.roll_product_id] = Number(row.combo_base_price);
   }
   const comboBaseStandard = Math.min(...Object.values(comboPricingByRoll));
 
@@ -522,7 +527,7 @@ function ProductConfigurator({ productKey, productId, config, onAddToCart }) {
     const sortedRemovals = Array.from(removals).sort();
     onAddToCart({
       key: JSON.stringify({
-        name: productKey,
+        id: productId,
         proteinId,
         removals: sortedRemovals,
         accompanimentId,
@@ -1050,7 +1055,7 @@ function ComboBuilder({
   const [sideId, setSideId] = useState(
     comboSideOptions.find((s) => s.included)?.id ?? comboSideOptions[0].id
   );
-  const [drinkName, setDrinkName] = useState(comboDrinkOptions[0].name);
+  const [drinkId, setDrinkId] = useState(comboDrinkOptions[0].id);
 
   function selectRoll(name) {
     const roll = rollProducts.find((r) => r.name === name);
@@ -1081,9 +1086,9 @@ function ComboBuilder({
     ? selectedRoll.config.proteins.find((p) => p.id === proteinId)
     : null;
   const selectedSide = comboSideOptions.find((s) => s.id === sideId);
-  const selectedDrink = comboDrinkOptions.find((d) => d.name === drinkName);
+  const selectedDrink = comboDrinkOptions.find((d) => d.id === drinkId);
   const rollSurcharge =
-    (comboPricingByRoll[rollName] ?? comboBaseStandard) - comboBaseStandard;
+    (comboPricingByRoll[selectedRoll.id] ?? comboBaseStandard) - comboBaseStandard;
 
   const supplements = [];
   if (rollSurcharge > 0) {
@@ -1108,11 +1113,11 @@ function ComboBuilder({
     onAdd({
       key: JSON.stringify({
         type: "combo",
-        rollName,
+        rollProductId: selectedRoll.id,
         proteinId,
         removals: sortedRemovals,
         sideId,
-        drinkName,
+        drinkId,
       }),
       name: `Menu Combo · ${rollName}`,
       price: total,
@@ -1121,7 +1126,7 @@ function ComboBuilder({
         protein: selectedProtein?.label ?? null,
         removals: sortedRemovals,
         side: selectedSide.label,
-        drink: drinkName,
+        drink: selectedDrink.name,
       },
       ref: {
         kind: "combo",
@@ -1129,7 +1134,7 @@ function ComboBuilder({
         proteinLabel: selectedProtein?.label ?? null,
         removals: sortedRemovals,
         sideLabel: selectedSide.label,
-        drinkName,
+        drinkProductId: drinkId,
       },
     });
   }
@@ -1171,9 +1176,9 @@ function ComboBuilder({
               onChange={() => selectRoll(roll.name)}
             />
             {roll.name}
-            {(comboPricingByRoll[roll.name] ?? comboBaseStandard) - comboBaseStandard > 0 &&
+            {(comboPricingByRoll[roll.id] ?? comboBaseStandard) - comboBaseStandard > 0 &&
               ` (+${formatPrice(
-                (comboPricingByRoll[roll.name] ?? comboBaseStandard) - comboBaseStandard
+                (comboPricingByRoll[roll.id] ?? comboBaseStandard) - comboBaseStandard
               )})`}
           </label>
         ))}
@@ -1253,13 +1258,13 @@ function ComboBuilder({
       <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
         <span style={stepTitleStyle}>3. Scegli il drink</span>
         {comboDrinkOptions.map((drink) => (
-          <label key={drink.name} style={optionLabelStyle}>
+          <label key={drink.id} style={optionLabelStyle}>
             <input
               type="radio"
               name="combo-drink"
-              value={drink.name}
-              checked={drinkName === drink.name}
-              onChange={() => setDrinkName(drink.name)}
+              value={drink.id}
+              checked={drinkId === drink.id}
+              onChange={() => setDrinkId(drink.id)}
             />
             {drink.name}
             {drink.priceDelta > 0 && ` (+${formatPrice(drink.priceDelta)})`}
@@ -2201,7 +2206,7 @@ function CheckoutScreen({
 }) {
   const isDelivery = fulfillmentMode === "delivery";
   const hasBeer = items.some((item) =>
-    birreProducts.some((beer) => beer.name === item.name)
+    birreProducts.some((beer) => beer.id === item.ref?.id)
   );
 
   const [deliveryDetails, setDeliveryDetails] = useState({
@@ -2883,7 +2888,7 @@ export default function Home() {
 
   function incrementSimpleProduct(product) {
     addToCart({
-      key: product.name,
+      key: product.id,
       name: product.name,
       price: parsePrice(product.price),
       details: null,
@@ -2896,7 +2901,7 @@ export default function Home() {
 
   function decrementSimpleProduct(product) {
     setCartItems((prev) => {
-      const index = prev.findIndex((item) => item.key === product.name);
+      const index = prev.findIndex((item) => item.key === product.id);
       if (index === -1) return prev;
       if (prev[index].quantity <= 1) {
         return prev.filter((_, i) => i !== index);
@@ -3104,10 +3109,10 @@ export default function Home() {
                   />
                 ) : (
                   <SimpleProductCard
-                    key={product.name}
+                    key={product.id}
                     product={product}
                     quantity={
-                      cartItems.find((item) => item.key === product.name)
+                      cartItems.find((item) => item.key === product.id)
                         ?.quantity ?? 0
                     }
                     onIncrement={() => incrementSimpleProduct(product)}

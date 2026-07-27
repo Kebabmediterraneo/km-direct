@@ -183,25 +183,17 @@ async function resolveCombo(ref, storeId) {
     configuration.side = side.label;
   }
 
-  if (ref.drinkName) {
-    const { data: drinkProduct } = await supabaseAdmin
-      .from("products")
-      .select("id")
-      .eq("category", "drink")
-      .eq("name", ref.drinkName)
-      .maybeSingle();
-    if (!drinkProduct) return null;
-
+  if (ref.drinkProductId) {
     const { data: drink } = await supabaseAdmin
       .from("combo_drink_options")
-      .select("*")
+      .select("*, products(name)")
       .eq("store_id", storeId)
-      .eq("drink_product_id", drinkProduct.id)
+      .eq("drink_product_id", ref.drinkProductId)
       .eq("is_available", true)
       .maybeSingle();
     if (!drink) return null;
     unitPrice += Number(drink.price_delta);
-    configuration.drink = ref.drinkName;
+    configuration.drink = drink.products.name;
   }
 
   return {
