@@ -131,6 +131,7 @@ create table products (
   contains_gluten boolean,
   contains_lactose boolean,
   is_vegan boolean,
+  is_vegetarian boolean,                        -- §67: vegano ⊂ vegetariano; NULL per drink/birre
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
 
