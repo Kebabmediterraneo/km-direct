@@ -1,10 +1,25 @@
 # KM DIRECT — MASTER SPECIFICATION
 
-**Versione 20** — sostituisce la v19.
+**Versione 21** — sostituisce la v20.
 
 Documento di riferimento definitivo per lo sviluppo. Le decisioni qui
 contenute sono approvate: non vanno reinterpretate senza un motivo concreto
 (vedi §73). Ogni file di codice del progetto deve rispettare queste regole.
+
+**Novità della v21** (vincolanti):
+
+1. §67 — gli **allergeni sono ora popolati** (prima solo predisposti), a
+   partire dal documento allergeni ufficiale del ristorante integrato e
+   verificato con l'utente. Decisioni prese e ora vincolanti: (a) gli
+   allergeni si tracciano a livello di **prodotto** e **salsa**, non a
+   livello di variante/extra (semplificazione rispetto ai "4 livelli"
+   precedenti); (b) per i prodotti con scelta gusto (Cheesecake, Yogurt
+   turco) si salva **l'unione** degli allergeni dei due gusti, perché lo
+   schema tiene un solo set per prodotto (sovra-dichiarare è più sicuro che
+   sotto-dichiarare); (c) la variante **Planted** (soia) e le bevande
+   (drink/birre) restano fuori dal tracciamento per ora — vedi §67. Il
+   **rendering degli allergeni al cliente** è un lavoro separato non ancora
+   fatto: popolare i dati non li mostra ancora nell'interfaccia.
 
 **Novità della v20** (vincolanti):
 
@@ -1269,10 +1284,54 @@ prezzi sempre server-side, audit trail minimo.
 
 ## 67. Allergeni
 
-Non ancora completati — sistema predisposto (prodotto, variante, salsa,
-extra). Già confermati: Bulgur → glutine; Polpette melanzane → lattosio;
-Acuka → frutta secca; Egiziano → vegan; Salsa all'aglio → vegan; Black KM →
-non vegan. Elenco completo da fornire prima del go-live.
+**Stato (v21): popolati a livello di prodotto e salsa.** Gli allergeni sono
+stati inseriti a partire dal documento allergeni ufficiale del ristorante,
+integrato con dati forniti e verificati dall'utente per le voci non coperte
+dal documento (KM Special, Polpette di agnello, Dolmadakia, Caviale di
+melanzane, Lokum con frutta secca, Kaymak & miele, Black KM) e per le
+correzioni emerse in revisione (Lokum con frutta secca → frutta a guscio;
+Cheesecake → uova).
+
+**Vocabolario**: i 14 allergeni UE ufficiali (Reg. UE 1169/2011): Glutine,
+Crostacei, Uova, Pesce, Arachidi, Soia, Latte, Frutta a guscio, Sedano,
+Senape, Sesamo, Anidride solforosa e solfiti, Lupini, Molluschi.
+
+**Modello e livello di tracciamento**:
+- Gli allergeni si tracciano a livello di **prodotto** (tabella
+  `product_allergens`) e **salsa** (tabella `sauce_allergens`). NON a
+  livello di variante proteica o extra — semplificazione voluta rispetto
+  ai "4 livelli" (prodotto/variante/salsa/extra) della predisposizione
+  originaria: la struttura per variante/extra non è stata creata.
+- **Roll e Bowl omonimi condividono gli stessi allergeni** (es. Il Turco e
+  Il Turco Bowl).
+- **Prodotti con scelta gusto** (Cheesecake: Baklava/Dubai Style; Yogurt
+  turco: frutti di bosco / miele e frutta secca): si salva **l'unione**
+  degli allergeni dei due gusti, perché lo schema tiene un solo set per
+  prodotto. Principio: sovra-dichiarare è più sicuro che sotto-dichiarare.
+- Il flag **`is_vegan`** sul prodotto è distinto dagli allergeni (non è un
+  allergene) ed è impostato per tutti i prodotti food.
+
+**Fuori dal tracciamento (per ora, decisioni v21)**:
+- **Variante Planted** (a base soia → allergene soia): lo schema non traccia
+  allergeni per variante, quindi la soia introdotta scegliendo Planted non
+  è oggi rappresentabile a livello prodotto senza sovra-dichiarare su tutti
+  i Roll. Da gestire insieme al **rendering allergeni al cliente** (es. nota
+  "la variante Planted contiene soia" accanto all'opzione).
+- **Bevande** (drink e birre): escluse dal tracciamento per ora. Nota: le
+  birre contengono tipicamente glutine e a volte solfiti; se in futuro le
+  bevande verranno mostrate al cliente con l'informazione allergeni, andrà
+  compilato prima di dichiararle "senza allergeni".
+- **Flag legacy** `contains_gluten` / `contains_lactose` su `products`:
+  superati dalla tabella `product_allergens`. Restano nello schema ma non
+  vanno usati come fonte (doppia fonte = rischio incoerenza); da
+  disattivare o allineare in un intervento dedicato.
+
+**Ancora da fare**:
+- **Rendering al cliente**: mostrare gli allergeni (e il flag vegano) nelle
+  schede prodotto/salsa dell'interfaccia. Popolare i dati NON li mostra
+  ancora: è un lavoro separato.
+- Gestione soia-Planted a livello di visualizzazione (vedi sopra).
+- Bonifica dei flag legacy.
 
 ## 68. Sezione Impostazioni pannello staff — chiusure eccezionali (aggiunta dopo l'MVP iniziale, vincolante)
 
