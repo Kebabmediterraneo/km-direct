@@ -1,10 +1,19 @@
 # KM DIRECT — MASTER SPECIFICATION
 
-**Versione 22** — sostituisce la v21.
+**Versione 23** — sostituisce la v22.
 
 Documento di riferimento definitivo per lo sviluppo. Le decisioni qui
 contenute sono approvate: non vanno reinterpretate senza un motivo concreto
 (vedi §73). Ogni file di codice del progetto deve rispettare queste regole.
+
+**Novità della v23** (vincolanti):
+
+1. §67 — la **soia della variante Planted** è ora gestita a livello di UI
+   (prima era rimandata al rendering): nel configuratore (Roll/Bowl e Menu
+   Combo) l'opzione Planted mostra il sottotesto "Alternativa vegetale ·
+   contiene soia". È solo testo nel rendering, riconosciuto dalla chiave
+   `planted`, non entra nel carrello/ordine e non crea struttura allergeni
+   per-variante. Il punto esce quindi dall'elenco "ancora da fare" di §67.
 
 **Novità della v22** (vincolanti):
 
@@ -1338,9 +1347,12 @@ Senape, Sesamo, Anidride solforosa e solfiti, Lupini, Molluschi.
 **Fuori dal tracciamento (per ora, decisioni v21)**:
 - **Variante Planted** (a base soia → allergene soia): lo schema non traccia
   allergeni per variante, quindi la soia introdotta scegliendo Planted non
-  è oggi rappresentabile a livello prodotto senza sovra-dichiarare su tutti
-  i Roll. Da gestire insieme al **rendering allergeni al cliente** (es. nota
-  "la variante Planted contiene soia" accanto all'opzione).
+  è rappresentabile a livello prodotto senza sovra-dichiarare su tutti i
+  Roll. **Gestita a livello di UI (v23)**: nel configuratore (Roll/Bowl e
+  Menu Combo) l'opzione Planted mostra un sottotesto discreto "Alternativa
+  vegetale · contiene soia". È solo testo nel rendering del configuratore,
+  riconosciuto dalla chiave `planted`; non entra nel carrello/ordine né
+  crea una struttura allergeni per-variante.
 - **Bevande** (drink e birre): escluse dal tracciamento per ora. Nota: le
   birre contengono tipicamente glutine e a volte solfiti; se in futuro le
   bevande verranno mostrate al cliente con l'informazione allergeni, andrà
@@ -1354,7 +1366,6 @@ Senape, Sesamo, Anidride solforosa e solfiti, Lupini, Molluschi.
 - **Rendering al cliente**: mostrare gli allergeni (e il flag vegano) nelle
   schede prodotto/salsa dell'interfaccia. Popolare i dati NON li mostra
   ancora: è un lavoro separato.
-- Gestione soia-Planted a livello di visualizzazione (vedi sopra).
 - Bonifica dei flag legacy.
 
 ## 68. Sezione Impostazioni pannello staff — chiusure eccezionali (aggiunta dopo l'MVP iniziale, vincolante)
