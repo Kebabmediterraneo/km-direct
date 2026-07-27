@@ -1,10 +1,22 @@
 # KM DIRECT — MASTER SPECIFICATION
 
-**Versione 21** — sostituisce la v20.
+**Versione 22** — sostituisce la v21.
 
 Documento di riferimento definitivo per lo sviluppo. Le decisioni qui
 contenute sono approvate: non vanno reinterpretate senza un motivo concreto
 (vedi §73). Ogni file di codice del progetto deve rispettare queste regole.
+
+**Novità della v22** (vincolanti):
+
+1. §67 — aggiunto il tracciamento **`is_vegetarian`** (nuova colonna su
+   `products`, vedi migration `sql/20260727_products_is_vegetarian.sql`),
+   accanto a `is_vegan`. Regole: il flag riflette il piatto **di default**
+   (Roll/Bowl con carne restano non vegetariani nonostante la variante
+   Planted); **vegano implica vegetariano** (vincolo di coerenza). Valori
+   popolati da dati verificati (23 vegetariani / 11 no). Corretta anche la
+   marcatura vegana di **Habibites** (ora vegano → anche vegetariano). Il
+   **rendering al cliente** di allergeni e flag dietetici resta il lavoro
+   successivo, non ancora fatto.
 
 **Novità della v21** (vincolanti):
 
@@ -1308,8 +1320,20 @@ Senape, Sesamo, Anidride solforosa e solfiti, Lupini, Molluschi.
   turco: frutti di bosco / miele e frutta secca): si salva **l'unione**
   degli allergeni dei due gusti, perché lo schema tiene un solo set per
   prodotto. Principio: sovra-dichiarare è più sicuro che sotto-dichiarare.
-- Il flag **`is_vegan`** sul prodotto è distinto dagli allergeni (non è un
-  allergene) ed è impostato per tutti i prodotti food.
+- I flag dietetici **`is_vegan`** e **`is_vegetarian`** sul prodotto sono
+  distinti dagli allergeni (non sono allergeni) e sono impostati per tutti i
+  prodotti food. Regole (v22):
+  - **`is_vegetarian`** indica se il piatto è vegetariano **così com'è di
+    default**: un Roll/Bowl con proteina di carne di default resta *non*
+    vegetariano anche se personalizzabile con la variante vegetale Planted
+    (la personalizzazione non cambia il flag del prodotto).
+  - **Vegano implica vegetariano**: ogni prodotto con `is_vegan=true` ha
+    necessariamente `is_vegetarian=true`. Nessun prodotto può essere vegano
+    ma non vegetariano (vincolo di coerenza da mantenere).
+  - Valori popolati da dati verificati dall'utente (23 vegetariani / 11 no
+    sui 34 food; bevande escluse). In questa occasione è stata corretta
+    anche la marcatura di **Habibites** (da non-vegano a vegano, quindi
+    anche vegetariano).
 
 **Fuori dal tracciamento (per ora, decisioni v21)**:
 - **Variante Planted** (a base soia → allergene soia): lo schema non traccia
