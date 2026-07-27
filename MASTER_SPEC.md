@@ -6,6 +6,10 @@ Documento di riferimento definitivo per lo sviluppo. Le decisioni qui
 contenute sono approvate: non vanno reinterpretate senza un motivo concreto
 (vedi §73). Ogni file di codice del progetto deve rispettare queste regole.
 
+**Novità della v25** (vincolanti):
+
+1. §25 — **refactoring delle chiavi combo da nome a id.** Il calcolo del prezzo combo (client e server) ora si aggancia all'`id` del prodotto, non al nome. In pratica la scelta della bibita nel combo passa da `name` a `id` (il Roll era già agganciato per id anche prima). Principio stabilito: **l'`id` è l'identità immutabile del prodotto**; nome, categoria, prezzo e appartenenza ai combo sono attributi liberamente modificabili senza rompere i prezzi. Prezzi verificati identici dopo il refactoring (base 13 €, KM Special +3 → 16 €, drink premium +0,50 → 16,50 €). **Residuo noto:** contorno e proteina del combo sono ancora matchati per label (sono opzioni, non prodotti) — da convertire a id quando l'editor menu gestirà creazione/rinomina di quelle opzioni.
+
 **Novità della v24** (vincolanti):
 
 1. §67 — il **rendering degli allergeni e dei flag dietetici al cliente è
@@ -678,8 +682,8 @@ prezzo base da 13€ a 16€.
 - soft drink "premium" (oltre 2,50 €, cioè i tè freddi/succhi da 3,50 € del
   §32): +0,50 €
 
-Planted non ha supplemento sul Roll normale (+1,50 €, da §19) e si applica
-allo stesso modo dentro il combo.
+Planted ha un supplemento di +1,50 € sui Roll normali (§19) e +0 € sul KM
+Special; lo stesso vale dentro il combo.
 
 **Identità del prodotto = `id` (immutabile).** Tutti i collegamenti interni
 tra prezzi e prodotti — in particolare il prezzo base del combo per ogni Roll
@@ -1263,18 +1267,16 @@ propagazioni automatiche in fase 1. Multi-store: predisporre `store_id`,
 filtro store, disponibilità/orari/fee/geofence/Glovo outlet ID per store —
 ma niente UI multi-store complessa adesso.
 
-**Editor menu completo con ruolo admin (nota-roadmap, aggiunta in v19, non
-ancora costruito)**: oggi il pannello Menu consente **solo** di cambiare lo
-stato disponibile/esaurito di un articolo; nomi, descrizioni, prezzi e
-label delle opzioni (proteine, contorni, ecc.) non sono editabili
-dall'interfaccia e ogni loro modifica richiede un intervento diretto sui
-dati. Va costruito un **editor del menu** nel pannello che permetta di
-modificare questi campi, protetto da un livello di accesso **admin distinto
-dallo staff** (lo staff operativo continua a vedere solo il toggle
-disponibile/esaurito; l'admin accede all'editor completo). È la soluzione
-strutturale per operare sul menu in sicurezza senza toccare il database a
-mano. Richiede l'introduzione di ruoli/permessi, oggi assenti. Da progettare
-in dettaglio prima dell'implementazione.
+**Editor menu nel pannello staff (in sviluppo, decisione aggiornata in
+v25)**: il pannello Menu oggi consente **solo** di cambiare lo stato
+disponibile/esaurito; nomi, descrizioni, prezzi, allergeni e label opzioni
+non sono editabili dall'interfaccia. Si sta costruendo un **editor del menu**
+(a fasi: campi semplici → allergeni/flag → creazione prodotti semplici →
+creazione/editing Roll/Bowl con opzioni). **Decisione: NIENTE ruolo admin
+distinto per ora** — l'editor vive nella pagina staff esistente (autenticata
+via Supabase Auth + `requireStaffSession`, §66), senza un livello di accesso
+separato. L'introduzione di ruoli/permessi admin distinti dallo staff è
+**rimandata a dopo il go-live**, quando il sito sarà operativo.
 
 **Decisione operativa (presa dopo l'MVP iniziale, vincolante)**: tutti i
 prodotti e le salse segnati "esaurito" tornano automaticamente
@@ -1377,9 +1379,11 @@ Senape, Sesamo, Anidride solforosa e solfiti, Lupini, Molluschi.
   bevande verranno mostrate al cliente con l'informazione allergeni, andrà
   compilato prima di dichiararle "senza allergeni".
 - **Flag legacy** `contains_gluten` / `contains_lactose` su `products`:
-  superati dalla tabella `product_allergens`. Restano nello schema ma non
-  vanno usati come fonte (doppia fonte = rischio incoerenza); da
-  disattivare o allineare in un intervento dedicato.
+  erano superati dalla tabella `product_allergens` e sono stati **rimossi**
+  dallo schema (colonne eliminate, commit `ca2edce` + migration
+  `sql/20260727_drop_legacy_contains_flags.sql`). Nota: resta il flag
+  distinto `product_accompaniments.contains_gluten` (contorno Bulgur), che è
+  un'altra cosa e non è stato toccato.
 
 **Rendering al cliente (fatto, v24)**: gli allergeni e il badge dietetico
 sono mostrati al cliente. Ogni scheda prodotto con allergeni mostra un
@@ -1391,9 +1395,8 @@ hanno `is_vegan` ma non `is_vegetarian` — scelta consapevole: nessun badge
 vegetariano sulle salse per ora). La soia della variante Planted è segnalata
 nel configuratore (v23).
 
-**Ancora da fare**:
-- Bonifica dei flag legacy `contains_gluten` / `contains_lactose` (doppia
-  fonte superata da `product_allergens`, da disattivare/allineare).
+**Ancora da fare**: nulla di specifico sugli allergeni — il capitolo è
+completo (dati, rendering, bonifica flag legacy).
 
 ## 68. Sezione Impostazioni pannello staff — chiusure eccezionali (aggiunta dopo l'MVP iniziale, vincolante)
 
