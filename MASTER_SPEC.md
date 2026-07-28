@@ -1,10 +1,45 @@
 # KM DIRECT — MASTER SPECIFICATION
 
-**Versione 32** — sostituisce la v31.
+**Versione 33** — sostituisce la v32.
 
 Documento di riferimento definitivo per lo sviluppo. Le decisioni qui
 contenute sono approvate: non vanno reinterpretate senza un motivo concreto
 (vedi §73). Ogni file di codice del progetto deve rispettare queste regole.
+
+**Novità della v33** (vincolanti):
+
+1. §30 — **la migrazione delle salse è eseguita e conclusa.** Le salse sono
+   prodotti dal 28-29/07/2026: export di sicurezza, migrazione in transazione
+   con pre e post-check, codice adeguato in cinque passi separati, verifiche
+   dal vivo dell'utente su menu, pannello e checkout, e dismissione delle due
+   tabelle vecchie. Il guadagno atteso si è verificato: le salse hanno
+   ricevuto il pulsante "Modifica" e la conferma sul cambio di prezzo **senza
+   che sia stata scritta una riga di editor per loro**.
+2. §30 — **schema autorevole riallineato.** `km_direct_schema.sql` descriveva
+   ancora `sauces` e `sauce_allergens`. Le definizioni sono **rimosse**, non
+   commentate: quel file deve poter essere eseguito per ricreare il database
+   reale, e un commento non si esegue. Resta una riga che ne registra
+   l'esistenza e rimanda ai file di `sql/`.
+3. §36-40 — **il carrello si conserva per la durata della visita.** Deve
+   sopravvivere all'uscita e al rientro dal sito, in particolare al ritorno
+   dalla pagina di pagamento. Si salvano identificativi, quantità e
+   configurazione, **mai i prezzi**; gli articoli non più disponibili si
+   rimuovono con avviso esplicito. **Condizione da chiudere prima del
+   go-live.** *Non era una regola disattesa: era assente — vedi §36-40.*
+4. §65 — **gli ordini in sospeso sono destinati a moltiplicarsi** una volta
+   che il carrello sopravvive: tornare indietro dal pagamento diventerà
+   normale, e ogni giro lascerà un `pending` orfano di un cliente che invece
+   ha comprato. Va tenuto presente quando si costruirà la pagina dei carrelli
+   abbandonati, non quando i numeri sembreranno disastrosi.
+5. §66 — **elenco della pulizia pre-apertura riscritto dal database**, ordine
+   per ordine. Le due versioni precedenti erano entrambe incomplete, la
+   seconda perché ricostruita **per differenza** invece che letta. Stato
+   reale: 6 ordini, tutti di prova, e 28 righe di test nel registro azioni su
+   tre identificatori.
+6. §67 — **il badge "Vegetariano" sulle salse è risolto e verificato dal
+   vivo**: la forzatura che lo spegneva è sparita insieme al percorso di
+   rendering separato, come previsto dalla v32. Confermato a schermo su Black
+   KM il 28/07/2026.
 
 **Novità della v32** (vincolanti):
 
@@ -1048,6 +1083,57 @@ dati di clienti veri.
    prezzi identici a prima, 7 `allergens_verified_at` non nulli, 6 righe di
    allergeni sulle 5 salse che ne hanno, zero slug duplicati.
 
+**Applicato — migrazione eseguita e conclusa (v33)**
+
+Le salse sono prodotti dal **28-29/07/2026**. Cronologia, tutta versionata:
+
+- **Export di sicurezza** `sql/20260728_sauces_export_pre_merge.sql`: 13 righe
+  fotografate (7 salse + 6 allergeni), confronto campo per campo con il
+  database superato prima del commit.
+- **Migrazione** `sql/20260728_sauces_merge_into_products.sql`, eseguita
+  dall'utente nel SQL editor dentro una transazione, con **8 pre-check** e
+  **7 post-check** bloccanti: 55 → 62 prodotti, 70 → 76 righe allergene, 7
+  articoli con `category='salse'`, id e prezzi invariati, nessuno slug
+  duplicato. Un pre-check verifica la corrispondenza **id → nome** salsa per
+  salsa, non la sola esistenza degli id: senza di esso uno scambio di targa
+  sarebbe passato in silenzio, perché i conteggi sarebbero tornati lo stesso.
+- **Codice adeguato in cinque passi separati**, ciascuno con commit proprio:
+  checkout; menu pubblico e carrello; cron di reset, route disponibilità e
+  core allergeni; GET e sezione Menu del pannello; rimozione delle
+  compatibilità temporanee. Durante il lavoro il vecchio identificatore di
+  tipo è rimasto accettato come **porta di servizio dichiarata**, così che
+  ogni passo restasse indipendente dagli altri; alla fine è stato rimosso e
+  ora viene **rifiutato con errore**, non ignorato.
+- **Verifiche dal vivo dell'utente**: menu pubblico (salse una volta sola,
+  ordine e prezzi corretti, badge "Vegetariano" su Black KM); pannello
+  (pulsante "Modifica" presente sulle salse, descrizione scritta e
+  ricancellata, conferma sul cambio di prezzo comparsa con vecchio e nuovo
+  valore); checkout fino alla pagina di pagamento, in Ritiro e in Delivery
+  sopra il minimo di §9.
+- **Dismissione** `sql/20260729_drop_sauces_tables.sql`: pre-check di fedeltà
+  **riga per riga e nelle due direzioni** — nessun allergene mancante e
+  nessuno di troppo — prima del `drop table`, scritto **senza `cascade`**,
+  così che un collegamento non mappato produca un errore rumoroso invece di
+  un danno silenzioso.
+
+Stato finale verificato il 29/07/2026: **62 prodotti, 76 righe allergene, 7
+salse** leggibili anche dalla chiave pubblica del sito, e **nessun riferimento
+a `sauces` nel codice applicativo**.
+
+**Il guadagno atteso si è verificato.** Le salse hanno ricevuto il pulsante
+"Modifica" e la conferma sul cambio di prezzo senza che sia stata scritta una
+riga di editor per loro: è la ragione per cui la decisione è stata presa.
+
+**Schema autorevole riallineato (v33)**: `km_direct_schema.sql` conteneva
+ancora le definizioni di `sauces` e `sauce_allergens`. Sono state **rimosse**,
+non commentate — quel file è il documento da cui si ricreerebbe il database, e
+lasciarci dentro due tabelle dismesse significherebbe ricrearle vuote. Al loro
+posto resta una riga di commento che ne registra l'esistenza e rimanda ai file
+di `sql/`. È stata rimossa anche la chiave `sauces` dall'esempio di
+`order_items.configuration`, che **non è mai stata popolata** dal checkout:
+una documentazione che descrive una cosa inesistente è peggio di nessuna
+documentazione.
+
 **Conseguenze sul codice** (mappate il 28/07/2026): sparisce la lettura
 separata di `sauces` nel menu pubblico e la forzatura `isVegetarian: false`
 (§67); nel carrello sparisce il tipo `sauce` e l'upsell riconosce la categoria;
@@ -1163,6 +1249,44 @@ Nel carrello: progressione ordine minimo (Delivery, 15 €) e GIVEMEFIVE (25
 €) con CTA "Applica GIVEMEFIVE" a un tap. Upsell max 3-4 suggerimenti con
 regole semplici (no AI): Roll senza fritto → suggerisci fritto; fritto senza
 salsa → suggerisci salsa; vicino ai 25 € → suggerisci per raggiungere soglia.
+
+**Persistenza del carrello per la durata della visita (v33, vincolante)**
+
+Il carrello deve **sopravvivere all'uscita e al rientro dal sito**, in
+particolare al ritorno dalla pagina di pagamento Stripe. Oggi non sopravvive:
+chi arriva davanti al pagamento, si accorge di aver dimenticato qualcosa e
+torna indietro, ritrova il menu con il **carrello vuoto** e deve ricomporre
+l'ordine. È il momento peggiore in cui poteva succedere.
+
+**Non era una regola disattesa: era assente.** Questa spec afferma tre volte
+che il carrello non si perde — cambio di tab Delivery/Ritiro (§8), indirizzo
+fuori zona (§9), rifiuto del server (§46b) — ma tutti e tre sono casi in cui
+la pagina **non si scarica mai**, e il carrello sopravvive da sé perché vive
+nella memoria della pagina. Il ritorno da Stripe è il primo caso in cui il
+cliente esce davvero dal sito, e richiede una cosa che non è mai stata
+costruita: conservare il carrello fuori dalla pagina.
+
+- **Durata: la sola visita.** Il carrello si conserva finché la scheda del
+  browser resta aperta e si perde alla chiusura. Non si conservano carrelli
+  per giorni: sarebbe più comodo per il cliente, ma lascerebbe in giro
+  carrelli vecchi, moltiplicando le conseguenze del punto seguente.
+- **Si salvano identificativi, quantità e configurazione. Mai i prezzi.**
+  Salvare un prezzo significherebbe riportarsi in casa il problema di §46 —
+  una cifra vecchia conservata e mostrata come se fosse valida. Salvando solo
+  *quale* articolo e *quanti*, il carrello va **ricostruito dal menu appena
+  caricato**, che al ritorno da Stripe è fresco di quel momento: i prezzi
+  mostrati sono per costruzione quelli veri, senza bisogno di controllarli.
+- **Articoli non più disponibili: rimossi con avviso esplicito.** Se al
+  momento della ricostruzione un articolo non esiste più o è esaurito, non si
+  rimette nel carrello e **si dice al cliente quale e perché**, in chiaro. Mai
+  farlo sparire in silenzio, mai lasciare che la cosa si scopra al pagamento.
+- **Nessuna protezione nuova al pagamento.** Il server rilegge e ricalcola
+  tutto comunque (§46, §46b): un carrello ripescato passa esattamente dagli
+  stessi controlli di uno appena composto e **non può produrre un addebito
+  sbagliato**. La ricostruzione dal menu fresco serve a evitare la *sorpresa*,
+  non l'errore — l'errore era già impossibile.
+
+**Condizione da chiudere prima del go-live**, insieme alle altre di §46.
 
 ## 41-45. Checkout
 
@@ -1718,6 +1842,12 @@ separato. L'introduzione di ruoli/permessi admin distinti dallo staff è
   ciò che la migrazione elimina. La conferma sul cambio di prezzo si estende
   alle salse **automaticamente**, perché smette di esistere un percorso
   separato in cui potrebbe mancare.
+  **Stato (v33)**: la migrazione di §30 è **eseguita e verificata**, quindi la
+  parte che doveva dissolversi si è dissolta — le salse sono modificabili
+  dall'editor sui cinque campi della Fase 1, verificato dal vivo il
+  28/07/2026, e la conferma sul cambio di prezzo scatta anche per loro. Della
+  Fase 2B resta **soltanto la piccantezza**, ancora da costruire, per tutti
+  gli articoli.
 - **Fase 3** — creazione di **articoli semplici**: prodotti (fritti, sides,
   dolci, drink) **e salse**, con **dichiarazione allergeni obbligatoria alla
   creazione**: un articolo nuovo non può nascere senza che gli allergeni
@@ -1873,6 +2003,21 @@ con:
 - **contenuto dei carrelli**: quali prodotti erano dentro, per capire se
   ci sono prodotti o prezzi che fanno perdere clienti in modo ricorrente.
 
+**Ordini in sospeso: destinati a moltiplicarsi (v33)**
+
+Ogni arrivo alla pagina di pagamento crea un ordine `pending`. Oggi tornare
+indietro è raro, perché chi lo fa perde il carrello e spesso rinuncia del
+tutto; con la persistenza del carrello (§36-40) tornare indietro diventerà
+**normale** — torno, aggiungo la salsa dimenticata, ripago — e ogni giro
+lascerà un `pending` orfano di un cliente che invece **ha comprato**.
+
+Non è un errore contabile e non nasce con quella modifica: quegli ordini
+esistono già oggi. Ma la pagina qui descritta li conterebbe come rinunce,
+gonfiando proprio la statistica che serve a capire dove si perdono i clienti.
+Va tenuto presente **quando la pagina verrà costruita**, non quando i numeri
+sembreranno disastrosi: un `pending` seguito a pochi minuti da un ordine
+completato dallo stesso cliente non è un carrello abbandonato.
+
 **Vincolo legale non negoziabile**: questi dati servono ESCLUSIVAMENTE a
 scopo statistico interno. È vietato usarli per ricontattare i clienti a
 fini di marketing (SMS, email, WhatsApp, chiamate) — il consenso
@@ -1927,16 +2072,28 @@ Conseguenze:
   produzione"** (§46): non c'è nulla da travasare. I dati del menu, gli
   allergeni e i flag dietetici sono già dove serviranno. È una condizione in
   meno, ed era fra le più laboriose e più esposte a errore.
-- **Vanno rimossi i residui dei test prima del go-live.** L'elenco dato fino
-  alla v31 — il solo ordine `KM-0003` — era **incompleto**: al 28/07/2026
-  **tutti** gli ordini presenti sono di prova (3 righe in `orders`, 3 in
-  `order_items`), non uno solo. Prima dell'apertura si **azzerano entrambe le
-  tabelle**, e si rimuovono le **21 righe di test** di `staff_action_log` su 38
-  — quelle con `staff_identifier` uguale a `"staff:test-fase1"` (12) o
-  `"staff:test-fase2a"` (9); le altre 17 sono azioni vere e non si toccano.
+- **Vanno rimossi i residui dei test prima del go-live.** Elenco **riletto dal
+  database ordine per ordine il 29/07/2026**, dopo che le due versioni
+  precedenti erano risultate entrambe incomplete: la v31 nominava il solo
+  `KM-0003`, la v32 correggeva il conteggio ma partiva da un numero
+  **dedotto** invece che letto. Stato reale:
+  - **`orders`: 6 righe, tutte di prova**, create fra il 26 e il 28/07/2026.
+    `KM-0001` (delivery, 29,50 €) è l'unico con pagamento `succeeded`, in
+    sandbox; gli altri 5 sono rimasti `pending`. `KM-0004`, `KM-0005` e
+    `KM-0006` sono le prove di checkout del 28/07 che hanno verificato la
+    migrazione delle salse — si riconoscono perché contengono **Ajvar
+    registrato come `[salse]`**, cosa impossibile prima di §30. Si azzerano
+    `orders` e `order_items` (8 righe).
+  - **`staff_action_log`: 47 righe, di cui 28 di test** su tre identificatori
+    — `staff:test-fase1` (12), `staff:test-fase2a` (9), `staff:test-merge`
+    (7). Le altre **19** sono azioni vere e **non si toccano**.
   Oggi tutto questo è invisibile al cliente e innocuo; dal giorno
   dell'apertura starebbe in mezzo ai dati veri, falsando i carrelli abbandonati
   (§65) e il registro delle azioni staff.
+  *Lezione di metodo*: questo elenco è stato sbagliato due volte, sempre
+  perché ricostruito **per differenza** invece che letto. Prima del go-live va
+  riletto dal database, non ricopiato da qui: i numeri scritti sopra valgono
+  al 29/07/2026 e invecchiano a ogni prova.
 - **L'immutabilità dello storico non vincola i dati di oggi (v32).** La regola
   qui sopra descrive come si deve comportare il **sistema** quando gli ordini
   saranno di clienti veri: nessuna schermata deve ricavare nome o prezzo di un
@@ -2254,20 +2411,23 @@ mano. Il trasferimento è **sicurezza alimentare** e segue le regole di §30:
 stesso id, pre-check e post-check, prima si scrive il nuovo e poi si dismette il
 vecchio.
 
-**Badge "Vegetariano" sulle salse — oggi non compare (v32)**: il menu pubblico
-spegne a forza il flag vegetariano sulle salse, con un commento anteriore alla
-v29 che afferma che quel dato non esiste in tabella. Dalla v29 esiste, ed è
-valorizzato su 5 salse su 7. Conseguenza: una salsa vegetariana ma non vegana
-non mostra alcun badge dietetico, pur avendo il dato dichiarato.
+**Badge "Vegetariano" sulle salse — risolto (v33)**: fino al 28/07/2026 il menu
+pubblico spegneva a forza il flag vegetariano sulle salse, con un commento
+anteriore alla v29 che affermava che quel dato non esistesse in tabella. Dalla
+v29 esisteva, ed era valorizzato su 5 salse su 7: una salsa vegetariana ma non
+vegana non mostrava alcun badge, pur avendo il dato dichiarato da una persona.
+L'omissione sbagliava **per difetto** — non attribuiva all'articolo una
+proprietà che non aveva — quindi non è mai stata un rischio di sicurezza
+alimentare.
 
-L'omissione sbaglia **per difetto** — non attribuisce all'articolo una proprietà
-che non ha — quindi non è un rischio di sicurezza alimentare e non richiede un
-intervento d'urgenza. Resta però un dato dichiarato da una persona che non
-arriva al cliente. **Si risolve per costruzione** con la migrazione di §30, che
-elimina il percorso di rendering separato in cui vive quella forzatura: va
-verificato a migrazione conclusa, non prima, per non fare due volte lo stesso
-lavoro. *Restano 2 salse (Tzatziki, Yogurt) con il flag vegetariano a NULL: da
-dichiarare, mai dedurre.*
+**Si è risolta per costruzione**, come previsto: la migrazione di §30 ha
+eliminato il percorso di rendering separato in cui viveva quella forzatura, e
+il badge è ricomparso senza che nessuno lo aggiustasse. **Verificato a schermo
+su Black KM il 28/07/2026.**
+
+*Restano 2 salse — Tzatziki e Yogurt — con il flag vegetariano a NULL, quindi
+senza badge. Vanno dichiarate dall'utente, mai dedotte: si riconoscono perché
+aprendo il form allergeni il selettore dietetico si presenta vuoto.*
 
 **Rendering al cliente (fatto, v24)**: gli allergeni e il badge dietetico
 sono mostrati al cliente. Ogni scheda prodotto con allergeni mostra un
