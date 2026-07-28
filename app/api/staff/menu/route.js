@@ -16,7 +16,7 @@ export async function GET() {
     await Promise.all([
       supabaseAdmin
         .from("products")
-        .select("id, name, category, base_price, is_available")
+        .select("id, name, category, base_price, is_available, description, badge, sort_order")
         .order("category")
         .order("sort_order"),
       supabaseAdmin

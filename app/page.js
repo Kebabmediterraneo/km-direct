@@ -923,6 +923,21 @@ function SimpleProductCard({ product, quantity, onIncrement, onDecrement }) {
           <span style={{ fontWeight: 700, fontSize: 16, color: "var(--navy)" }}>
             {product.name}
           </span>
+          {product.badge && (
+            <span
+              style={{
+                alignSelf: "flex-start",
+                background: "var(--brand-orange)",
+                color: "var(--bg-warm)",
+                fontWeight: 600,
+                fontSize: 11,
+                padding: "2px 8px",
+                borderRadius: 6,
+              }}
+            >
+              {product.badge}
+            </span>
+          )}
           <DietaryBadge product={product} />
           <span style={{ fontWeight: 700, fontSize: 14, color: "var(--navy)" }}>
             {product.price}

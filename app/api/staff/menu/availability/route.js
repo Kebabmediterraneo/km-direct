@@ -12,7 +12,7 @@ const TABLE_BY_KIND = {
 // presa in precedenza), quindi il toggle deve passare da qui, con la
 // secret key, dietro sessione staff.
 export async function POST(request) {
-  const { errorResponse } = await requireStaffSession();
+  const { user, errorResponse } = await requireStaffSession();
   if (errorResponse) return errorResponse;
 
   const body = await request.json();
@@ -23,6 +23,14 @@ export async function POST(request) {
     return NextResponse.json({ error: "Richiesta non valida." }, { status: 400 });
   }
 
+  // §66: valore "prima" (dal DB) + nome, per il log. Non cambia il
+  // comportamento del toggle: è una semplice lettura preliminare.
+  const { data: before } = await supabaseAdmin
+    .from(table)
+    .select("name, is_available")
+    .eq("id", id)
+    .maybeSingle();
+
   const { error } = await supabaseAdmin
     .from(table)
     .update({ is_available: isAvailable })
@@ -31,6 +39,25 @@ export async function POST(request) {
   if (error) {
     console.error("[POST /api/staff/menu/availability] Errore Supabase:", error);
     return NextResponse.json({ error: "Errore nell'aggiornamento." }, { status: 500 });
+  }
+
+  // §66: traccia il cambio di disponibilità in staff_action_log (prima/dopo),
+  // solo se è cambiato davvero. Il log non deve far fallire il toggle.
+  if (before && before.is_available !== isAvailable) {
+    const { error: logError } = await supabaseAdmin.from("staff_action_log").insert({
+      staff_identifier: `staff:${user?.email ?? "sconosciuto"}`,
+      order_id: null,
+      action: "modifica_disponibilita",
+      detail: {
+        kind,
+        item_id: id,
+        item_name: before.name,
+        changes: [{ field: "is_available", before: before.is_available, after: isAvailable }],
+      },
+    });
+    if (logError) {
+      console.error("[POST /api/staff/menu/availability] Errore staff_action_log:", logError);
+    }
   }
 
   return NextResponse.json({ isAvailable });

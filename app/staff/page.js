@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { createSupabaseBrowserClient } from "../../lib/supabase-browser";
 import ImpostazioniSection from "./impostazioni-section";
 import { sortQueueByReferenceTime } from "../../lib/staff-queue-order";
+import { BADGE_OPTIONS } from "../../lib/menu-badges";
 
 const POLL_INTERVAL_MS = 12000;
 
@@ -708,7 +709,7 @@ function HistoryRow({ order, onChangeStatus }) {
   );
 }
 
-function MenuItemRow({ label, price, isAvailable, isUpdating, onToggle }) {
+function MenuItemRow({ label, price, isAvailable, isUpdating, onToggle, onEdit, isEditing }) {
   return (
     <div
       style={{
@@ -726,24 +727,272 @@ function MenuItemRow({ label, price, isAvailable, isUpdating, onToggle }) {
         <span style={{ fontWeight: 600, fontSize: 14, color: "var(--navy)" }}>{label}</span>
         <span style={{ fontSize: 13, color: "var(--text-on-dark)" }}>{formatPrice(price)}</span>
       </div>
-      <button
-        onClick={onToggle}
-        disabled={isUpdating}
-        style={{
-          background: isAvailable ? "var(--success-green)" : "var(--card-border)",
-          color: isAvailable ? "var(--bg-warm)" : "var(--text-on-dark)",
-          border: "none",
-          borderRadius: 8,
-          padding: "8px 14px",
-          fontWeight: 600,
-          fontSize: 12,
-          cursor: isUpdating ? "not-allowed" : "pointer",
-          whiteSpace: "nowrap",
-        }}
-      >
-        {isUpdating ? "…" : isAvailable ? "Disponibile" : "Esaurito"}
-      </button>
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        {/* §63-64 Fase 1: "Modifica" solo per i prodotti (onEdit passato); le
+            salse non sono nel perimetro dell'editor. */}
+        {onEdit && (
+          <button
+            onClick={onEdit}
+            style={{
+              background: "none",
+              color: "var(--navy)",
+              border: "1px solid var(--card-border)",
+              borderRadius: 8,
+              padding: "8px 14px",
+              fontWeight: 600,
+              fontSize: 12,
+              cursor: "pointer",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {isEditing ? "Chiudi" : "Modifica"}
+          </button>
+        )}
+        <button
+          onClick={onToggle}
+          disabled={isUpdating}
+          style={{
+            background: isAvailable ? "var(--success-green)" : "var(--card-border)",
+            color: isAvailable ? "var(--bg-warm)" : "var(--text-on-dark)",
+            border: "none",
+            borderRadius: 8,
+            padding: "8px 14px",
+            fontWeight: 600,
+            fontSize: 12,
+            cursor: isUpdating ? "not-allowed" : "pointer",
+            whiteSpace: "nowrap",
+          }}
+        >
+          {isUpdating ? "…" : isAvailable ? "Disponibile" : "Esaurito"}
+        </button>
+      </div>
     </div>
+  );
+}
+
+// §63-64 (Fase 1): form inline di modifica dei cinque campi semplici, sul
+// modello di ReasonForm — si apre SOTTO la riga, niente overlay/pop-up
+// (§34-35). La validazione vera è lato server (§66); qui si precompila,
+// si conferma il cambio prezzo e si mostrano gli errori del server.
+function ProductEditForm({ product, onSaved, onCancel }) {
+  const [name, setName] = useState(product.name ?? "");
+  const [description, setDescription] = useState(product.description ?? "");
+  const [price, setPrice] = useState(String(product.base_price ?? ""));
+  const [badge, setBadge] = useState(product.badge ?? "");
+  const [sortOrder, setSortOrder] = useState(String(product.sort_order ?? 0));
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState(null);
+  const [confirmingPrice, setConfirmingPrice] = useState(false);
+
+  const priceChanged = Number(price) !== Number(product.base_price);
+
+  async function save() {
+    setIsSubmitting(true);
+    setError(null);
+    try {
+      const response = await fetch("/api/staff/menu/product", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: product.id,
+          name,
+          description,
+          base_price: price,
+          badge: badge === "" ? null : badge,
+          sort_order: Number(sortOrder),
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Errore nel salvataggio.");
+      onSaved();
+    } catch (err) {
+      setError(err.message);
+      setConfirmingPrice(false);
+      setIsSubmitting(false);
+    }
+  }
+
+  function handleSubmit(event) {
+    event.preventDefault();
+    if (isSubmitting) return;
+    // §63-64: conferma esplicita SOLO se il prezzo è cambiato.
+    if (priceChanged && !confirmingPrice) {
+      setConfirmingPrice(true);
+      return;
+    }
+    save();
+  }
+
+  const labelStyle = { fontSize: 12, fontWeight: 600, color: "var(--navy)" };
+  const inputStyle = {
+    padding: "8px 10px",
+    borderRadius: 8,
+    border: "1px solid var(--card-border)",
+    background: "var(--surface-white)",
+    color: "var(--navy)",
+    fontSize: 13,
+    fontFamily: "inherit",
+  };
+
+  return (
+    <form
+      onSubmit={handleSubmit}
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        gap: 10,
+        padding: "12px 14px",
+        border: "1px solid var(--card-border)",
+        borderRadius: 10,
+        background: "var(--bg-warm)",
+      }}
+    >
+      <label style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+        <span style={labelStyle}>Nome</span>
+        <input type="text" value={name} onChange={(e) => setName(e.target.value)} maxLength={60} style={inputStyle} />
+      </label>
+
+      <label style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+        <span style={labelStyle}>Descrizione</span>
+        <textarea
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          maxLength={300}
+          rows={2}
+          style={{ ...inputStyle, resize: "vertical" }}
+        />
+      </label>
+
+      <div style={{ display: "flex", gap: 10 }}>
+        <label style={{ display: "flex", flexDirection: "column", gap: 4, flex: 1 }}>
+          <span style={labelStyle}>Prezzo (€)</span>
+          <input
+            type="number"
+            step="0.01"
+            min="0"
+            value={price}
+            onChange={(e) => setPrice(e.target.value)}
+            style={inputStyle}
+          />
+        </label>
+        <label style={{ display: "flex", flexDirection: "column", gap: 4, flex: 1 }}>
+          <span style={labelStyle}>Ordinamento</span>
+          <input
+            type="number"
+            step="1"
+            value={sortOrder}
+            onChange={(e) => setSortOrder(e.target.value)}
+            style={inputStyle}
+          />
+        </label>
+      </div>
+
+      <label style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+        <span style={labelStyle}>Badge</span>
+        <select value={badge} onChange={(e) => setBadge(e.target.value)} style={inputStyle}>
+          <option value="">Nessun badge</option>
+          {BADGE_OPTIONS.map((b) => (
+            <option key={b} value={b}>
+              {b}
+            </option>
+          ))}
+        </select>
+      </label>
+
+      {error && <p style={{ fontSize: 13, color: "#C0392B", margin: 0 }}>{error}</p>}
+
+      {/* §63-64: conferma esplicita del cambio prezzo, con vecchio → nuovo. */}
+      {confirmingPrice ? (
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 8,
+            padding: "10px 12px",
+            borderRadius: 8,
+            border: "1px solid var(--brand-orange)",
+            background: "var(--surface-white)",
+          }}
+        >
+          <span style={{ fontSize: 13, color: "var(--navy)" }}>
+            Stai cambiando il prezzo: <strong>{formatPrice(product.base_price)}</strong> →{" "}
+            <strong>{formatPrice(Number(price))}</strong>. Confermi?
+          </span>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button
+              type="button"
+              onClick={save}
+              disabled={isSubmitting}
+              style={{
+                background: "var(--brand-orange)",
+                color: "var(--bg-warm)",
+                border: "none",
+                borderRadius: 8,
+                padding: "8px 16px",
+                fontWeight: 600,
+                fontSize: 13,
+                cursor: isSubmitting ? "not-allowed" : "pointer",
+              }}
+            >
+              {isSubmitting ? "Salvataggio…" : "Conferma e salva"}
+            </button>
+            <button
+              type="button"
+              onClick={() => setConfirmingPrice(false)}
+              disabled={isSubmitting}
+              style={{
+                background: "none",
+                color: "var(--navy)",
+                border: "1px solid var(--card-border)",
+                borderRadius: 8,
+                padding: "8px 16px",
+                fontWeight: 600,
+                fontSize: 13,
+                cursor: "pointer",
+              }}
+            >
+              Annulla
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div style={{ display: "flex", gap: 8 }}>
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            style={{
+              background: "var(--brand-orange)",
+              color: "var(--bg-warm)",
+              border: "none",
+              borderRadius: 8,
+              padding: "8px 16px",
+              fontWeight: 600,
+              fontSize: 13,
+              cursor: isSubmitting ? "not-allowed" : "pointer",
+            }}
+          >
+            {isSubmitting ? "Salvataggio…" : "Salva"}
+          </button>
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={isSubmitting}
+            style={{
+              background: "none",
+              color: "var(--navy)",
+              border: "1px solid var(--card-border)",
+              borderRadius: 8,
+              padding: "8px 16px",
+              fontWeight: 600,
+              fontSize: 13,
+              cursor: "pointer",
+            }}
+          >
+            Annulla
+          </button>
+        </div>
+      )}
+    </form>
   );
 }
 
@@ -755,6 +1004,7 @@ function MenuSection() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [updatingId, setUpdatingId] = useState(null);
+  const [editingId, setEditingId] = useState(null);
 
   async function fetchMenu() {
     try {
@@ -813,14 +1063,27 @@ function MenuSection() {
               {PRODUCT_CATEGORY_LABEL[category]}
             </h2>
             {productsByCategory[category].map((product) => (
-              <MenuItemRow
-                key={product.id}
-                label={product.name}
-                price={product.base_price}
-                isAvailable={product.is_available}
-                isUpdating={updatingId === product.id}
-                onToggle={() => handleToggle("product", product.id, product.is_available)}
-              />
+              <div key={product.id} style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                <MenuItemRow
+                  label={product.name}
+                  price={product.base_price}
+                  isAvailable={product.is_available}
+                  isUpdating={updatingId === product.id}
+                  isEditing={editingId === product.id}
+                  onToggle={() => handleToggle("product", product.id, product.is_available)}
+                  onEdit={() => setEditingId(editingId === product.id ? null : product.id)}
+                />
+                {editingId === product.id && (
+                  <ProductEditForm
+                    product={product}
+                    onCancel={() => setEditingId(null)}
+                    onSaved={() => {
+                      setEditingId(null);
+                      fetchMenu();
+                    }}
+                  />
+                )}
+              </div>
             ))}
           </div>
         )
