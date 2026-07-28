@@ -1,10 +1,68 @@
 # KM DIRECT — MASTER SPECIFICATION
 
-**Versione 31** — sostituisce la v30.
+**Versione 32** — sostituisce la v31.
 
 Documento di riferimento definitivo per lo sviluppo. Le decisioni qui
 contenute sono approvate: non vanno reinterpretate senza un motivo concreto
 (vedi §73). Ogni file di codice del progetto deve rispettare queste regole.
+
+**Novità della v32** (vincolanti):
+
+1. §30 — **le salse diventano prodotti a tutti gli effetti**: righe della
+   tabella `products` con `category = 'salse'`, e la tabella `sauces` viene
+   dismessa. **Questa decisione rovescia la v29**, che aveva stabilito il
+   contrario ("si parifica *cosa si può farci*, non si fondono"). Il rovescio
+   è deliberato e la motivazione precedente va considerata **decaduta, non
+   sbagliata nel metodo**: si reggeva su due presupposti, e la ricognizione di
+   sola lettura del 28/07/2026 li ha fatti cadere entrambi. Il primo era che
+   unire le tabelle avrebbe richiesto di rimettere le mani sullo storico
+   ordini: `order_items` **non referenzia affatto le salse** — scrive
+   `product_id = null` più gli snapshot di nome, categoria e prezzo (§66) —
+   quindi non c'è alcuno storico da riscrivere. Il secondo era che esistessero
+   ordini da preservare: non ne esistono, le 3 righe presenti sono di prova e
+   vanno comunque rimosse prima dell'apertura (§66). Restava il beneficio, che
+   la v29 dichiarava nullo: è invece il costo che il progetto stava già
+   pagando a ogni fase, perché ogni campo nuovo andava costruito due volte.
+   *Decisione presa dall'utente il 28/07/2026, con responsabilità dichiarata e
+   con la finestra ancora aperta: prima del go-live è manutenzione, dopo
+   sarebbe un intervento su dati di clienti veri.*
+2. §30 — **regole della migrazione delle salse**, vincolanti: gli `id`
+   restano invariati, `price` diventa `base_price`, gli `slug` mancanti si
+   generano, gli allergeni passano in `product_allergens` con lo stesso id, e
+   l'ordine delle operazioni è **prima si scrive il nuovo, poi si dismette il
+   vecchio** — un'interruzione a metà deve lasciare dati duplicati, mai dati
+   persi. Export preventivo obbligatorio: database uno solo, nessuna rete
+   (§66).
+3. §63-64 — **la Fase 2B si dissolve quasi per intero.** Una volta che le
+   salse sono prodotti, l'editor dei campi semplici della Fase 1 le prende in
+   carico **senza codice nuovo**. Resta da costruire soltanto la
+   **piccantezza**, che non era comunque una faccenda di sole salse: riguarda
+   tutti gli articoli.
+4. §34-35 — **scala di piccantezza a quattro livelli (0-3) e diciture da
+   lista chiusa.** `spice_level` vale 0, 1, 2 o 3; `spice_label` è
+   obbligatoria da 1 in su e vuota a 0, scelta fra "Poco piccante",
+   "Piccante", "Molto piccante". L'editor presenta **una sola scelta** e
+   scrive entrambe le colonne insieme: livello e dicitura non possono
+   divergere. È la traduzione operativa della regola "mai la sola icona".
+5. §63-64 — **la regola della tendina categorie della Fase 3 si rovescia.**
+   La v30 vietava di offrire `salse` perché avrebbe creato una salsa nel posto
+   sbagliato; dopo la migrazione quello **è** il posto giusto. Le categorie
+   reali diventano **8** e l'unica esclusa resta `menu_combo`.
+6. §66 — **la pulizia pre-apertura riguarda tutti gli ordini, non uno solo.**
+   L'elenco precedente (il solo `KM-0003`) era incompleto: **tutti** gli
+   ordini presenti sono di prova. Si azzerano `orders` e `order_items`, e si
+   rimuovono le 21 righe di test di `staff_action_log`.
+7. §66 — **precisazione sull'immutabilità dello storico.** La regola descrive
+   come si deve comportare il sistema **quando gli ordini saranno veri**, e
+   non vincola in alcun modo i dati di prova di oggi, che sono tutti
+   modificabili ed eliminabili. *Precisata perché era stata letta come un
+   vincolo attuale, arrivando a sconsigliare la migrazione di §30 per un
+   motivo inesistente.*
+8. §67 — **il badge "Vegetariano" non compare su nessuna salsa**, benché il
+   dato esista dalla v29: il menu pubblico lo spegne a forza, con un commento
+   anteriore alla v29. L'omissione sbaglia **per difetto** e non è un rischio
+   di sicurezza alimentare, ma è un dato dichiarato che non arriva al cliente.
+   Si risolve **per costruzione** con la migrazione di §30.
 
 **Novità della v31** (vincolanti):
 
@@ -740,6 +798,13 @@ comunque un campo coupon generico per codici futuri.
 ROLL, BOWL, MENU COMBO, FRITTI, SIDES, SALSE, DOLCI, DRINK, BIRRE. La frase
 "Tutti i roll sono con patatine" va eliminata ovunque (non è più vera).
 
+**Corrispondenza con la lista chiusa del database (v32)**: queste 9 categorie
+sono esattamente i 9 valori ammessi dall'enum `product_category`. Dopo la
+migrazione delle salse (§30) **8** di esse sono usate da righe di `products`;
+l'unica non usata è `menu_combo`, che non è una categoria di articoli ma la
+forma del menu combo (§23-26), costruita a parte. *Fino alla v31 le categorie
+usate erano 7, perché anche le salse vivevano fuori da `products`.*
+
 ## 16. Roll e Bowl
 
 Articoli separati anche a livello di database — mai un'unica referenza
@@ -922,27 +987,81 @@ Tutte a 1 €: Ajvar, Ajvar piccante, Tzatziki, Acuka (frutta secca +
 peperoncino), Black KM (maionese all'aglio nero — **non vegana**), Yogurt,
 Salsa all'aglio (vegana).
 
-**Le salse sono articoli a tutti gli effetti (v29, vincolante)**: hanno le
-stesse possibilità di modifica dal pannello staff degli altri prodotti —
-nome, descrizione, prezzo, ordine, disponibilità, badge, allergeni, flag
-dietetici, piccantezza, immagine. Restano nella tabella `sauces`, distinta da
-`products`: si parifica **cosa si può farci**, non si fondono. Fondere le due
-tabelle significherebbe rimettere le mani su carrello, storico ordini e
-combo, senza alcun beneficio.
+**Le salse sono prodotti a tutti gli effetti (v32, vincolante)**: righe della
+tabella `products` con `category = 'salse'`, come qualunque altro articolo.
+Nessuna regola separata, nessun campo con nome diverso, nessun percorso di
+codice dedicato. La tabella `sauces` viene **dismessa**.
 
-Differenze residue rispetto ai prodotti, volute:
+**Questa decisione rovescia la v29**, che stabiliva l'opposto: parificare il
+trattamento tenendo però le tabelle distinte. Va letta come una motivazione
+**decaduta**, non come un errore di ragionamento: poggiava su due presupposti
+che la ricognizione di sola lettura del 28/07/2026 ha smentito.
 
-- il prezzo, nel database, si chiama `price` e non `base_price`. È un nome
-  storico e non viene cambiato: l'editor deve gestirlo, non uniformarlo;
-- le salse non hanno `slug` (l'identificatore univoco dei prodotti) e non
-  entrano nei combo;
-- le salse non hanno categoria: sono la categoria.
+- *"Fondere le tabelle significherebbe rimettere le mani sullo storico
+  ordini."* Falso: `order_items` **non ha alcun riferimento alle salse**.
+  Scrive `product_id = null` e conserva nome, categoria e prezzo come
+  snapshot congelati (§66). Nessuna riga d'ordine va toccata.
+- *"Senza alcun beneficio."* Il beneficio è esattamente il costo che il
+  progetto stava pagando: due tabelle significano ogni campo nuovo costruito
+  due volte, ogni regola da tenere allineata a mano, e una fase dell'editor
+  (2B) che esisteva solo per recuperare il divario.
+
+Restava un terzo motivo, mai scritto ma implicito — la prudenza verso ordini
+esistenti. Non ce ne sono: le 3 righe presenti sono di prova e vanno comunque
+rimosse prima dell'apertura (§66). La finestra per farlo a costo di
+manutenzione è **prima del go-live**; dopo, la stessa operazione toccherebbe
+dati di clienti veri.
+
+**Regole della migrazione (v32, vincolanti)**
+
+1. **Gli `id` non cambiano.** Ogni salsa diventa una riga di `products`
+   conservando il proprio uuid. L'id è identità (§25) e le due tabelle non
+   possono collidere. È ciò che rende banale il trasferimento degli
+   allergeni.
+2. **`price` diventa `base_price`**, stesso valore. Sparisce la differenza di
+   nome che la v29 aveva scelto di conservare.
+3. **`category = 'salse'`** per tutte e 7. Il valore esiste già nell'enum e il
+   checkout lo scrive già negli snapshot d'ordine (§66): non si introduce
+   nulla di nuovo, si completa qualcosa lasciato a metà.
+4. **Gli `slug` vanno generati**, perché `products.slug` è obbligatorio e
+   unico per store. Si ricavano dal nome — minuscolo, senza accenti, spazi
+   sostituiti da trattino — e **si verifica che nessuno collida** con uno slug
+   esistente prima di scrivere.
+5. **Gli allergeni passano in `product_allergens`**: le righe di
+   `sauce_allergens` si riscrivono con lo stesso `allergen_id` e con
+   `product_id` uguale all'id della salsa. `allergens_verified_at` passa
+   invariato. È la parte di **sicurezza alimentare** dell'operazione e richiede
+   pre-check e post-check espliciti (§67): al 28/07/2026 sono **6 righe su 5
+   salse**, e le 7 date di verifica devono risultare tutte presenti a
+   migrazione conclusa.
+6. **Ordine delle operazioni: prima si scrive il nuovo, poi si dismette il
+   vecchio.** Stesso principio di §67 per gli allergeni: un'interruzione a metà
+   deve lasciare i dati **duplicati**, mai persi. La tabella `sauces` non si
+   cancella nello stesso passaggio: si dismette solo dopo che menu pubblico,
+   carrello, checkout e pannello sono stati verificati sui dati nuovi. Il
+   `DROP TABLE` è DDL e lo esegue l'utente nel SQL editor (§63-64).
+7. **Export preventivo obbligatorio.** Prima di iniziare si esportano `sauces`
+   e `sauce_allergens` in un file versionato in `sql/`. Il database è uno solo
+   e non esiste alcuna rete di protezione (§66): l'export è l'unico modo di
+   tornare indietro.
+8. **Post-check dichiarati in anticipo**: 7 prodotti con `category='salse'`,
+   prezzi identici a prima, 7 `allergens_verified_at` non nulli, 6 righe di
+   allergeni sulle 5 salse che ne hanno, zero slug duplicati.
+
+**Conseguenze sul codice** (mappate il 28/07/2026): sparisce la lettura
+separata di `sauces` nel menu pubblico e la forzatura `isVegetarian: false`
+(§67); nel carrello sparisce il tipo `sauce` e l'upsell riconosce la categoria;
+nel checkout sparisce il percorso dedicato e `order_items.product_id` viene
+**valorizzato** anche per le salse, invece di restare vuoto; nel core allergeni
+sparisce il parametro che distingueva i due tipi; disponibilità, reset
+giornaliero e GET del pannello tornano a leggere una tabella sola. Le policy di
+lettura pubblica su `sauces`/`sauce_allergens` diventano morte.
 
 **Piccantezza sulle salse**: vale la regola di §34-35 (testo sempre accanto
-all'icona, mai la sola icona). Su "Ajvar piccante" questo produce una
-ridondanza — nome del prodotto e indicazione di piccantezza dicono la stessa
-cosa — **accettata consapevolmente**: serve a distinguere a colpo d'occhio
-l'Ajvar dall'Ajvar piccante nell'elenco delle salse.
+all'icona, mai la sola icona) con la scala e le diciture fissate lì. Su "Ajvar
+piccante" questo produce una ridondanza — nome del prodotto e indicazione di
+piccantezza dicono la stessa cosa — **accettata consapevolmente**: serve a
+distinguere a colpo d'occhio l'Ajvar dall'Ajvar piccante nell'elenco.
 
 ## 31. DOLCI
 
@@ -1007,13 +1126,28 @@ sempre produrre un effetto visibile. Il chip usa lo **stesso stile** su
 tutte le card e **convive** con i badge dietetici Vegano/Vegetariano (§67),
 che restano derivati dai flag e non dal campo `badge`.
 
-**Salse incluse (v29, riapre la decisione precedente)**: fino alla v28 le
+**Salse incluse (v29, confermata e semplificata in v32)**: fino alla v28 le
 salse non avevano il campo `badge` ed erano esplicitamente escluse da questa
-regola. Dalla v29 le salse sono articoli a tutti gli effetti (§30) e portano
-il badge come gli altri, con lo stesso stile e la stessa lista chiusa. Vale
-per loro anche la regola della piccantezza col testo, e il badge dietetico
-derivato dai flag — che sulle salse, dalla v29, comprende anche
-"Vegetariano" (§67).
+regola. Dalla v29 portano il badge come gli altri; dalla **v32 sono prodotti a
+tutti gli effetti** (§30), quindi la questione non si pone più: non esiste
+alcuna regola di rendering che le riguardi separatamente. Vale per loro la
+regola della piccantezza col testo e il badge dietetico derivato dai flag,
+"Vegetariano" compreso (§67).
+
+**Scala della piccantezza (v32, vincolante)**: due colonne, `spice_level` e
+`spice_label`, presenti su tutti gli articoli.
+
+- `spice_level` vale **0, 1, 2 o 3**: 0 = non piccante, e da 1 in su è il
+  numero di 🌶️ mostrati.
+- `spice_label` è la dicitura che accompagna sempre l'icona ed è una **lista
+  chiusa**: **"Poco piccante"** (livello 1), **"Piccante"** (2), **"Molto
+  piccante"** (3). A livello 0 la dicitura è vuota e non si disegna nulla.
+- **L'editor presenta una sola scelta** e scrive entrambe le colonne insieme:
+  non esiste un modo di salvare livello e dicitura in disaccordo. La regola
+  "mai la sola icona" diventa così impossibile da violare per distrazione,
+  invece di essere una raccomandazione da ricordare.
+- La lista chiusa vive nel codice come quella dei badge (§63-64): aggiungere
+  un livello richiede una modifica al codice, ed è voluto.
 
 **Immagini — nessuna, per nessun articolo (v29)**: il campo `image_url`
 esiste su `products` ed è **vuoto su tutti i 55 prodotti**; la v29 lo
@@ -1570,13 +1704,20 @@ separato. L'introduzione di ruoli/permessi admin distinti dallo staff è
   Comprende: selezione allergeni, selettore dietetico a tre voci sul solo
   food (§67), scrittura di `allergens_verified_at`, log in
   `staff_action_log`.
-- **Fase 2B** (v29) — **salse portate al pari degli altri articoli** sui
-  campi semplici: `name`, `description`, `price`, `sort_order`, `badge`,
-  piccantezza. Richiede prima l'aggiunta delle colonne mancanti su `sauces`
-  (§30).
-  2A e 2B sono **indipendenti**: si verificano in due sessioni distinte, così
-  che un problema su una non blocchi l'altra. L'ordine consigliato è 2A prima,
-  perché è quella che protegge il cliente.
+- **Fase 2B** (v29, **ridefinita in v32**) — la formulazione originale
+  ("salse portate al pari degli altri articoli sui campi semplici") **decade
+  quasi per intero**: con la migrazione di §30 le salse diventano prodotti e
+  l'editor della Fase 1 le prende in carico su `name`, `description`,
+  `base_price`, `badge` e `sort_order` **senza una riga di codice nuovo**. Il
+  divario non si colma, sparisce.
+  Resta da costruire un solo pezzo, la **piccantezza** (`spice_level` e
+  `spice_label`, §34-35), che non era comunque una faccenda di sole salse:
+  riguarda tutti gli articoli e va aggiunta all'editor per tutti insieme.
+  **Ordine dei lavori**: prima la migrazione di §30, poi la piccantezza.
+  Invertirli significherebbe costruire il campo due volte, che è esattamente
+  ciò che la migrazione elimina. La conferma sul cambio di prezzo si estende
+  alle salse **automaticamente**, perché smette di esistere un percorso
+  separato in cui potrebbe mancare.
 - **Fase 3** — creazione di **articoli semplici**: prodotti (fritti, sides,
   dolci, drink) **e salse**, con **dichiarazione allergeni obbligatoria alla
   creazione**: un articolo nuovo non può nascere senza che gli allergeni
@@ -1584,14 +1725,19 @@ separato. L'introduzione di ruoli/permessi admin distinti dallo staff è
   secondo caso scegliendo "nessun allergene", che scrive
   `allergens_verified_at` senza creare righe allergene (§67 — sicurezza
   alimentare).
-  **Tendina delle categorie da compilare a mano (v30)**: la lista chiusa
-  `product_category` nel database ammette **9** valori, ma solo **7** sono
-  usati (§15). I due inutilizzati sono `menu_combo` e `salse`. La tendina
-  della Fase 3 va costruita a mano sulle 7 categorie reali, **mai leggendo
-  l'elenco dal database**: offrire "salse" permetterebbe di creare una salsa
-  dentro `products` invece che in `sauces`, dove non comparirebbe nella
-  sezione salse del menu, non seguirebbe le sue regole e formerebbe un
-  secondo catalogo invisibile. È un errore che non produce alcun segnale.
+  **Tendina delle categorie da compilare a mano (v30, rovesciata in v32)**: la
+  lista chiusa `product_category` ammette **9** valori, che coincidono con le 9
+  categorie di §15. Dopo la migrazione delle salse (§30) ne restano **8** usate
+  da righe di `products`, e l'unico valore da **non** offrire è `menu_combo`,
+  che non è una categoria di articoli ma la forma del menu combo (§23-26): un
+  articolo semplice creato lì non avrebbe senso e non comparirebbe da nessuna
+  parte. La tendina va comunque costruita **a mano** sulle 8 categorie reali e
+  **mai leggendo l'elenco dal database**, perché la lista del database
+  descrive cosa è rappresentabile, non cosa è sensato creare.
+  *La v30 escludeva anche `salse`, per un motivo che la v32 ha eliminato alla
+  radice: allora una salsa creata dentro `products` sarebbe finita nella
+  tabella sbagliata e sarebbe stata invisibile; adesso quello è il posto
+  giusto, ed è l'unico.*
 
 *Dopo il go-live:*
 - editing dei **contenuti del combo** (contorni, proteine, supplementi):
@@ -1781,12 +1927,24 @@ Conseguenze:
   produzione"** (§46): non c'è nulla da travasare. I dati del menu, gli
   allergeni e i flag dietetici sono già dove serviranno. È una condizione in
   meno, ed era fra le più laboriose e più esposte a errore.
-- **Vanno rimossi i residui dei test prima del go-live**: l'ordine di prova
-  `KM-0003` lasciato in `payment_status='pending'` e le righe di
-  `staff_action_log` con `staff_identifier = "staff:test-fase1"`. Oggi sono
-  invisibili al cliente e innocue; dal giorno dell'apertura starebbero in
-  mezzo ai dati veri, falsando i carrelli abbandonati (§65) e il registro
-  delle azioni staff.
+- **Vanno rimossi i residui dei test prima del go-live.** L'elenco dato fino
+  alla v31 — il solo ordine `KM-0003` — era **incompleto**: al 28/07/2026
+  **tutti** gli ordini presenti sono di prova (3 righe in `orders`, 3 in
+  `order_items`), non uno solo. Prima dell'apertura si **azzerano entrambe le
+  tabelle**, e si rimuovono le **21 righe di test** di `staff_action_log` su 38
+  — quelle con `staff_identifier` uguale a `"staff:test-fase1"` (12) o
+  `"staff:test-fase2a"` (9); le altre 17 sono azioni vere e non si toccano.
+  Oggi tutto questo è invisibile al cliente e innocuo; dal giorno
+  dell'apertura starebbe in mezzo ai dati veri, falsando i carrelli abbandonati
+  (§65) e il registro delle azioni staff.
+- **L'immutabilità dello storico non vincola i dati di oggi (v32).** La regola
+  qui sopra descrive come si deve comportare il **sistema** quando gli ordini
+  saranno di clienti veri: nessuna schermata deve ricavare nome o prezzo di un
+  ordine passato dalla tabella `products`. Non dice nulla sui dati di prova
+  attualmente in tabella, che sono **tutti modificabili ed eliminabili**.
+  *Precisazione aggiunta perché la distinzione era stata mancata: la regola era
+  stata letta come un vincolo attuale, arrivando a sconsigliare la migrazione
+  di §30 per un ostacolo che non esisteva.*
 - **Dal go-live ogni modifica fatta dal pannello tocca dati vivi**, senza
   rete di protezione: non esiste un posto dove provare prima. È la ragione
   per cui §67 impone di modificare allergeni e flag fuori dall'orario di
@@ -2085,6 +2243,31 @@ le migration `sql/20260728_allergens_verified_at.sql` (colonne di verifica,
 salse). Post-check verificati: 34 prodotti food e 7 salse con data di
 verifica, 21 bevande a NULL, 4 salse vegetariane per coerenza col flag vegano
 e 3 ancora da compilare, zero incoerenze vegano/vegetariano.
+
+**Effetto della migrazione delle salse (v32)**: con §30 le salse diventano
+righe di `products` e i loro allergeni righe di `product_allergens`. Da quel
+momento **ogni riferimento a `sauces` e `sauce_allergens` in questa sezione va
+letto come `products` e `product_allergens`**, e il parametro che distingueva i
+due tipi nel core allergeni sparisce. Le regole non cambiano di una virgola:
+cambia il fatto che ne esiste una sola copia invece di due tenute allineate a
+mano. Il trasferimento è **sicurezza alimentare** e segue le regole di §30:
+stesso id, pre-check e post-check, prima si scrive il nuovo e poi si dismette il
+vecchio.
+
+**Badge "Vegetariano" sulle salse — oggi non compare (v32)**: il menu pubblico
+spegne a forza il flag vegetariano sulle salse, con un commento anteriore alla
+v29 che afferma che quel dato non esiste in tabella. Dalla v29 esiste, ed è
+valorizzato su 5 salse su 7. Conseguenza: una salsa vegetariana ma non vegana
+non mostra alcun badge dietetico, pur avendo il dato dichiarato.
+
+L'omissione sbaglia **per difetto** — non attribuisce all'articolo una proprietà
+che non ha — quindi non è un rischio di sicurezza alimentare e non richiede un
+intervento d'urgenza. Resta però un dato dichiarato da una persona che non
+arriva al cliente. **Si risolve per costruzione** con la migrazione di §30, che
+elimina il percorso di rendering separato in cui vive quella forzatura: va
+verificato a migrazione conclusa, non prima, per non fare due volte lo stesso
+lavoro. *Restano 2 salse (Tzatziki, Yogurt) con il flag vegetariano a NULL: da
+dichiarare, mai dedurre.*
 
 **Rendering al cliente (fatto, v24)**: gli allergeni e il badge dietetico
 sono mostrati al cliente. Ogni scheda prodotto con allergeni mostra un
