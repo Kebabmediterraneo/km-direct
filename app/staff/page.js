@@ -709,7 +709,7 @@ function HistoryRow({ order, onChangeStatus }) {
   );
 }
 
-function MenuItemRow({ label, price, isAvailable, isUpdating, onToggle, onEdit, isEditing }) {
+function MenuItemRow({ label, price, isAvailable, isUpdating, onToggle, onEdit, isEditing, onAllergens, isEditingAllergens, verification }) {
   return (
     <div
       style={{
@@ -726,6 +726,15 @@ function MenuItemRow({ label, price, isAvailable, isUpdating, onToggle, onEdit, 
       <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
         <span style={{ fontWeight: 600, fontSize: 14, color: "var(--navy)" }}>{label}</span>
         <span style={{ fontSize: 13, color: "var(--text-on-dark)" }}>{formatPrice(price)}</span>
+        {/* §67 v31 regola 3: indicatore di verifica allergeni, solo per i food
+            (verification passato). I mai verificati sono distinti dal colore. */}
+        {verification && (
+          <span style={{ fontSize: 12, fontWeight: 600, color: verification.at ? "var(--success-green)" : "var(--brand-orange)" }}>
+            {verification.at
+              ? `Allergeni verificati il ${new Date(verification.at).toLocaleDateString("it-IT")}`
+              : "Allergeni mai verificati"}
+          </span>
+        )}
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
         {/* §63-64 Fase 1: "Modifica" solo per i prodotti (onEdit passato); le
@@ -746,6 +755,26 @@ function MenuItemRow({ label, price, isAvailable, isUpdating, onToggle, onEdit, 
             }}
           >
             {isEditing ? "Chiudi" : "Modifica"}
+          </button>
+        )}
+        {/* §67 Fase 2A: "Allergeni" solo sugli articoli food (onAllergens
+            passato). Su drink e birre non compare affatto (§67, bevande escluse). */}
+        {onAllergens && (
+          <button
+            onClick={onAllergens}
+            style={{
+              background: "none",
+              color: "var(--navy)",
+              border: "1px solid var(--card-border)",
+              borderRadius: 8,
+              padding: "8px 14px",
+              fontWeight: 600,
+              fontSize: 12,
+              cursor: "pointer",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {isEditingAllergens ? "Chiudi" : "Allergeni"}
           </button>
         )}
         <button
@@ -996,15 +1025,253 @@ function ProductEditForm({ product, onSaved, onCancel }) {
   );
 }
 
+// §67 v31 — incompatibilità fra allergene e flag dietetico, per CODICE (§25:
+// il codice è l'identità, l'etichetta è solo testo da mostrare). È la REGOLA
+// della spec, non l'elenco degli allergeni (che viene dal database): serve solo
+// a decidere quando mostrare l'avviso non bloccante.
+const DIETARY_INCOMPATIBLE = {
+  vegan: ["latte", "uova", "pesce", "crostacei", "molluschi"],
+  vegetarian: ["pesce", "crostacei", "molluschi"],
+  none: [],
+};
+
+// §67 v30/v31: la voce del selettore a tre voci dai flag salvati. Si preseleziona
+// solo con dichiarazione COMPLETA (entrambi i flag valorizzati); se anche uno
+// solo è NULL ⇒ nessuna preselezione (stringa vuota). Nota: su `sauces` is_vegan
+// è NOT NULL, ma is_vegetarian può essere NULL (3 salse), e in quel caso il
+// selettore deve restare vuoto.
+function dietaryFromFlags(isVegan, isVegetarian) {
+  if (isVegan == null || isVegetarian == null) return "";
+  if (isVegan === true) return "vegan"; // vegano implica vegetariano (§67)
+  if (isVegetarian === true) return "vegetarian";
+  return "none";
+}
+
+// §67 (Fase 2A, secondo tempo): form inline degli allergeni + flag dietetico,
+// sotto la riga dell'articolo, senza pop-up (§34-35). Vale per prodotti e salse
+// (parametro `kind`). Realizza le regole d'interfaccia v30/v31; il salvataggio
+// vero e le validazioni stanno nel core (POST /api/staff/menu/allergens).
+function AllergensEditForm({ article, kind, allergensCatalog, onSaved, onCancel }) {
+  const initialIds = article.allergens ?? [];
+  const [selected, setSelected] = useState(() => new Set(initialIds));
+  // §67 v31 regola 1: "Nessuno dei 14" già spuntata se zero allergeni E
+  // allergens_verified_at valorizzato; non spuntata se la data è nulla.
+  const [noAllergens, setNoAllergens] = useState(
+    initialIds.length === 0 && article.allergens_verified_at != null
+  );
+  // §67 v30 regola 5: nessuna preselezione del flag quando il dato manca.
+  const [dietary, setDietary] = useState(() => dietaryFromFlags(article.is_vegan, article.is_vegetarian));
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState(null);
+  const [confirmRemoval, setConfirmRemoval] = useState(null); // etichette da rimuovere
+
+  const labelById = new Map(allergensCatalog.map((a) => [a.id, a.label]));
+  const codeById = new Map(allergensCatalog.map((a) => [a.id, a.code]));
+
+  // §67 v30: mutua esclusione. Selezionare un allergene disattiva "nessuno dei 14".
+  function toggleAllergen(id) {
+    setNoAllergens(false);
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+  // Spuntare "nessuno dei 14" svuota la selezione.
+  function toggleNoAllergens() {
+    setNoAllergens((prev) => {
+      const nv = !prev;
+      if (nv) setSelected(new Set());
+      return nv;
+    });
+  }
+
+  const desiredIds = noAllergens ? [] : [...selected];
+  // §67 v31 regola 2: avviso di incoerenza (non bloccante). Il confronto è sul
+  // CODICE dell'allergene (identità stabile, §25); a schermo si mostra però
+  // l'etichetta leggibile.
+  const incompatible = DIETARY_INCOMPATIBLE[dietary] ?? [];
+  const conflicting = desiredIds
+    .filter((id) => incompatible.includes(codeById.get(id)))
+    .map((id) => labelById.get(id));
+
+  // Salvataggio non permesso finché il flag non è scelto (regola 5) o se zero
+  // allergeni senza la casella (il core rifiuterebbe comunque).
+  const canSave = dietary !== "" && (desiredIds.length > 0 || noAllergens);
+
+  async function doSave() {
+    setIsSubmitting(true);
+    setError(null);
+    try {
+      const response = await fetch("/api/staff/menu/allergens", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ kind, id: article.id, allergenIds: desiredIds, noAllergens, dietary }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Errore nel salvataggio.");
+      onSaved();
+    } catch (err) {
+      setError(err.message);
+      setConfirmRemoval(null);
+      setIsSubmitting(false);
+    }
+  }
+
+  function handleSubmit(event) {
+    event.preventDefault();
+    if (isSubmitting || !canSave) return;
+    // §67 v30 regola 4: conferma solo se si TOLGONO allergeni.
+    const desiredSet = new Set(desiredIds);
+    const removed = initialIds.filter((id) => !desiredSet.has(id)).map((id) => labelById.get(id));
+    if (removed.length > 0 && !confirmRemoval) {
+      setConfirmRemoval(removed);
+      return;
+    }
+    doSave();
+  }
+
+  const labelStyle = { fontSize: 12, fontWeight: 600, color: "var(--navy)" };
+  const box = {
+    display: "flex",
+    flexDirection: "column",
+    gap: 10,
+    padding: "12px 14px",
+    border: "1px solid var(--card-border)",
+    borderRadius: 10,
+    background: "var(--bg-warm)",
+  };
+
+  return (
+    <form onSubmit={handleSubmit} style={box}>
+      {/* Stato di verifica in chiaro */}
+      <span style={{ fontSize: 12, color: "var(--text-on-dark)" }}>
+        {article.allergens_verified_at
+          ? `Allergeni verificati il ${new Date(article.allergens_verified_at).toLocaleDateString("it-IT")}`
+          : "Allergeni mai verificati"}
+      </span>
+
+      {/* 14 allergeni dal database */}
+      <span style={labelStyle}>Allergeni</span>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 14px" }}>
+        {allergensCatalog.map((a) => (
+          <label key={a.id} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, color: "var(--navy)" }}>
+            <input type="checkbox" checked={selected.has(a.id)} onChange={() => toggleAllergen(a.id)} />
+            {a.label}
+          </label>
+        ))}
+      </div>
+
+      {/* §67 v30: "Nessuno dei 14", mutuamente esclusiva */}
+      <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 600, color: "var(--navy)" }}>
+        <input type="checkbox" checked={noAllergens} onChange={toggleNoAllergens} />
+        Nessuno dei 14 allergeni
+      </label>
+
+      {/* §67 v30/v31: selettore dietetico a tre voci, una sola scelta */}
+      <span style={labelStyle}>Tipo dietetico</span>
+      <div style={{ display: "flex", gap: 16, fontSize: 13, color: "var(--navy)" }}>
+        {[
+          ["vegan", "Vegano"],
+          ["vegetarian", "Vegetariano"],
+          ["none", "Nessuno dei due"],
+        ].map(([value, text]) => (
+          <label key={value} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <input type="radio" name={`dietary-${article.id}`} checked={dietary === value} onChange={() => setDietary(value)} />
+            {text}
+          </label>
+        ))}
+      </div>
+
+      {/* §67 v31 regola 2: avviso di incoerenza, non bloccante */}
+      {conflicting.length > 0 && dietary !== "" && (
+        <p style={{ fontSize: 13, color: "var(--brand-orange)", margin: 0 }}>
+          Attenzione: {conflicting.join(", ")} non è compatibile con il tipo dietetico
+          «{dietary === "vegan" ? "Vegano" : "Vegetariano"}». Controlla: puoi salvare comunque.
+        </p>
+      )}
+
+      {error && <p style={{ fontSize: 13, color: "#C0392B", margin: 0 }}>{error}</p>}
+
+      {/* §67 v30 regola 4: conferma con l'elenco degli allergeni in rimozione */}
+      {confirmRemoval ? (
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 8,
+            padding: "10px 12px",
+            borderRadius: 8,
+            border: "1px solid var(--brand-orange)",
+            background: "var(--surface-white)",
+          }}
+        >
+          <span style={{ fontSize: 13, color: "var(--navy)" }}>
+            Stai togliendo questi allergeni: <strong>{confirmRemoval.join(", ")}</strong>. Confermi?
+          </span>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button type="button" onClick={doSave} disabled={isSubmitting} style={confirmBtn(isSubmitting)}>
+              {isSubmitting ? "Salvataggio…" : "Conferma e salva"}
+            </button>
+            <button type="button" onClick={() => setConfirmRemoval(null)} disabled={isSubmitting} style={secondaryBtn}>
+              Annulla
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <button type="submit" disabled={isSubmitting || !canSave} style={confirmBtn(isSubmitting || !canSave)}>
+            {isSubmitting ? "Salvataggio…" : "Salva"}
+          </button>
+          <button type="button" onClick={onCancel} disabled={isSubmitting} style={secondaryBtn}>
+            Annulla
+          </button>
+          {!canSave && (
+            <span style={{ fontSize: 12, color: "var(--text-on-dark)" }}>
+              {dietary === "" ? "Scegli il tipo dietetico." : 'Seleziona allergeni o spunta "Nessuno dei 14".'}
+            </span>
+          )}
+        </div>
+      )}
+    </form>
+  );
+}
+
+function confirmBtn(disabled) {
+  return {
+    background: "var(--brand-orange)",
+    color: "var(--bg-warm)",
+    border: "none",
+    borderRadius: 8,
+    padding: "8px 16px",
+    fontWeight: 600,
+    fontSize: 13,
+    cursor: disabled ? "not-allowed" : "pointer",
+  };
+}
+const secondaryBtn = {
+  background: "none",
+  color: "var(--navy)",
+  border: "1px solid var(--card-border)",
+  borderRadius: 8,
+  padding: "8px 16px",
+  fontWeight: 600,
+  fontSize: 13,
+  cursor: "pointer",
+};
+
 // §63: disponibile/esaurito per articolo, Roll e Bowl indipendenti,
 // niente propagazioni automatiche — ogni riga si aggiorna da sola.
 function MenuSection() {
   const [products, setProducts] = useState([]);
   const [sauces, setSauces] = useState([]);
+  const [allergensCatalog, setAllergensCatalog] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [updatingId, setUpdatingId] = useState(null);
   const [editingId, setEditingId] = useState(null);
+  const [allergensId, setAllergensId] = useState(null);
 
   async function fetchMenu() {
     try {
@@ -1013,6 +1280,7 @@ function MenuSection() {
       if (!response.ok) throw new Error(data.error || "Errore nel caricamento del menu.");
       setProducts(data.products ?? []);
       setSauces(data.sauces ?? []);
+      setAllergensCatalog(data.allergens ?? []);
       setError(null);
     } catch (err) {
       setError(err.message);
@@ -1062,29 +1330,59 @@ function MenuSection() {
             <h2 style={{ fontWeight: 700, fontSize: 16, color: "var(--navy)", margin: 0 }}>
               {PRODUCT_CATEGORY_LABEL[category]}
             </h2>
-            {productsByCategory[category].map((product) => (
-              <div key={product.id} style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                <MenuItemRow
-                  label={product.name}
-                  price={product.base_price}
-                  isAvailable={product.is_available}
-                  isUpdating={updatingId === product.id}
-                  isEditing={editingId === product.id}
-                  onToggle={() => handleToggle("product", product.id, product.is_available)}
-                  onEdit={() => setEditingId(editingId === product.id ? null : product.id)}
-                />
-                {editingId === product.id && (
-                  <ProductEditForm
-                    product={product}
-                    onCancel={() => setEditingId(null)}
-                    onSaved={() => {
-                      setEditingId(null);
-                      fetchMenu();
+            {productsByCategory[category].map((product) => {
+              // §67: le bevande sono fuori dal tracciamento allergeni: niente
+              // pulsante "Allergeni" e niente indicatore di verifica.
+              const isFood = !["drink", "birre"].includes(product.category);
+              return (
+                <div key={product.id} style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  <MenuItemRow
+                    label={product.name}
+                    price={product.base_price}
+                    isAvailable={product.is_available}
+                    isUpdating={updatingId === product.id}
+                    isEditing={editingId === product.id}
+                    isEditingAllergens={allergensId === product.id}
+                    verification={isFood ? { at: product.allergens_verified_at } : undefined}
+                    onToggle={() => handleToggle("product", product.id, product.is_available)}
+                    onEdit={() => {
+                      setAllergensId(null);
+                      setEditingId(editingId === product.id ? null : product.id);
                     }}
+                    onAllergens={
+                      isFood
+                        ? () => {
+                            setEditingId(null);
+                            setAllergensId(allergensId === product.id ? null : product.id);
+                          }
+                        : undefined
+                    }
                   />
-                )}
-              </div>
-            ))}
+                  {editingId === product.id && (
+                    <ProductEditForm
+                      product={product}
+                      onCancel={() => setEditingId(null)}
+                      onSaved={() => {
+                        setEditingId(null);
+                        fetchMenu();
+                      }}
+                    />
+                  )}
+                  {allergensId === product.id && (
+                    <AllergensEditForm
+                      article={product}
+                      kind="product"
+                      allergensCatalog={allergensCatalog}
+                      onCancel={() => setAllergensId(null)}
+                      onSaved={() => {
+                        setAllergensId(null);
+                        fetchMenu();
+                      }}
+                    />
+                  )}
+                </div>
+              );
+            })}
           </div>
         )
       )}
@@ -1093,14 +1391,33 @@ function MenuSection() {
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           <h2 style={{ fontWeight: 700, fontSize: 16, color: "var(--navy)", margin: 0 }}>Salse</h2>
           {sauces.map((sauce) => (
-            <MenuItemRow
-              key={sauce.id}
-              label={sauce.name}
-              price={sauce.price}
-              isAvailable={sauce.is_available}
-              isUpdating={updatingId === sauce.id}
-              onToggle={() => handleToggle("sauce", sauce.id, sauce.is_available)}
-            />
+            <div key={sauce.id} style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <MenuItemRow
+                label={sauce.name}
+                price={sauce.price}
+                isAvailable={sauce.is_available}
+                isUpdating={updatingId === sauce.id}
+                isEditingAllergens={allergensId === sauce.id}
+                verification={{ at: sauce.allergens_verified_at }}
+                onToggle={() => handleToggle("sauce", sauce.id, sauce.is_available)}
+                onAllergens={() => {
+                  setEditingId(null);
+                  setAllergensId(allergensId === sauce.id ? null : sauce.id);
+                }}
+              />
+              {allergensId === sauce.id && (
+                <AllergensEditForm
+                  article={sauce}
+                  kind="sauce"
+                  allergensCatalog={allergensCatalog}
+                  onCancel={() => setAllergensId(null)}
+                  onSaved={() => {
+                    setAllergensId(null);
+                    fetchMenu();
+                  }}
+                />
+              )}
+            </div>
           ))}
         </div>
       )}
