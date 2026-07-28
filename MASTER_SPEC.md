@@ -1,10 +1,53 @@
 # KM DIRECT — MASTER SPECIFICATION
 
-**Versione 29** — sostituisce la v28.
+**Versione 30** — sostituisce la v29.
 
 Documento di riferimento definitivo per lo sviluppo. Le decisioni qui
 contenute sono approvate: non vanno reinterpretate senza un motivo concreto
 (vedi §73). Ogni file di codice del progetto deve rispettare queste regole.
+
+**Novità della v30** (vincolanti):
+
+1. §67 — **conferma prima di salvare, solo quando si tolgono allergeni.**
+   Aggiungere un allergene è la direzione innocua e non richiede attrito;
+   toglierne uno è la direzione pericolosa e richiede una conferma esplicita
+   che mostri **quali** allergeni stanno per essere rimossi. Stesso principio
+   della conferma sul cambio di prezzo (§63-64): è una protezione
+   dell'**interfaccia**, il server non la pretende.
+2. §67 — **casella esplicita "Nessuno dei 14 allergeni".** Un articolo si
+   dichiara privo di allergeni solo spuntandola, mai lasciando semplicemente
+   tutte le caselle vuote. Motivo: "non ho ancora compilato" e "ho verificato
+   che non contiene nulla" sarebbero altrimenti lo stesso identico gesto, ed
+   è proprio la distinzione per cui esiste `allergens_verified_at`. La
+   casella è mutuamente esclusiva con la selezione dei singoli allergeni.
+3. §67 — **ordine delle scritture: prima si aggiunge, poi si toglie.** Il
+   salvataggio degli allergeni è composto da due operazioni (inserimento
+   delle righe nuove, cancellazione di quelle rimosse) che il client
+   PostgREST non può raggruppare in una transazione — stesso limite già
+   accettato in §68.3. L'ordine è quindi **vincolante**: un'interruzione a
+   metà deve lasciare l'articolo con **più** allergeni del vero, mai con
+   meno. È lo stesso principio di prudenza già adottato in §67 per i prodotti
+   con scelta gusto (si dichiara l'unione).
+4. §67 — **nessuna preselezione del flag dietetico quando il dato manca.**
+   Sugli articoli food il cui flag è ancora NULL (oggi: 3 salse su 7) il
+   selettore a tre voci si presenta **senza nulla di selezionato** e obbliga
+   a una scelta esplicita. Non si preseleziona "Nessuno dei due", che sarebbe
+   una dichiarazione mai fatta da nessuno.
+5. §67 — **registro delle verifiche: applicato.** Le date di verifica del
+   28/07/2026 sono state scritte nel database con le migration
+   `sql/20260728_allergens_verified_at.sql` e
+   `sql/20260728_sauces_as_articles.sql`, post-check verificati.
+6. §63-64 — **nota per la Fase 3**: la lista chiusa delle categorie nel
+   database ammette **9** valori, due dei quali (`menu_combo` e `salse`) non
+   sono usati da alcun prodotto. La tendina delle categorie della Fase 3 va
+   perciò compilata **a mano** con le sole 7 categorie reali di §15, mai
+   pescando dalla lista del database: offrire "salse" permetterebbe di creare
+   una salsa nella tabella sbagliata, invisibile alla sezione salse del menu.
+7. §46 / §66 — **esiste un solo database Supabase**, non due. Non c'è un
+   ambiente di test separato dalla produzione: il database su cui si lavora
+   oggi è quello che servirà i clienti dal giorno dell'apertura. Cade quindi
+   la condizione di apertura "piano di travaso dati test → produzione", e
+   nascono due conseguenze operative (§66).
 
 **Novità della v29** (vincolanti):
 
@@ -1035,7 +1078,8 @@ prezzi si modificano preferibilmente **fuori dall'orario di servizio**.
 differiscono, **fermarsi con un avviso comprensibile** invece di addebitare
 in silenzio un importo diverso da quello visto. Questa voce va trattata
 come le altre condizioni di apertura (informativa privacy, Stripe live,
-dominio, travaso dati).
+dominio). *Dalla v30 non figura più fra queste il "travaso dati test →
+produzione": esiste un solo database, vedi §66.*
 
 ## 46b. Validazioni server-side e convenzioni di errore API (aggiunto in v14, vincolante)
 
@@ -1516,6 +1560,14 @@ separato. L'introduzione di ruoli/permessi admin distinti dallo staff è
   secondo caso scegliendo "nessun allergene", che scrive
   `allergens_verified_at` senza creare righe allergene (§67 — sicurezza
   alimentare).
+  **Tendina delle categorie da compilare a mano (v30)**: la lista chiusa
+  `product_category` nel database ammette **9** valori, ma solo **7** sono
+  usati (§15). I due inutilizzati sono `menu_combo` e `salse`. La tendina
+  della Fase 3 va costruita a mano sulle 7 categorie reali, **mai leggendo
+  l'elenco dal database**: offrire "salse" permetterebbe di creare una salsa
+  dentro `products` invece che in `sauces`, dove non comparirebbe nella
+  sezione salse del menu, non seguirebbe le sue regole e formerebbe un
+  secondo catalogo invisibile. È un errore che non produce alcun segnale.
 
 *Dopo il go-live:*
 - editing dei **contenuti del combo** (contorni, proteine, supplementi):
@@ -1684,6 +1736,31 @@ scrittura fatta dall'editor menu va registrata in `staff_action_log`
 indicando **quale prodotto, quale campo, valore precedente e valore nuovo**.
 Vale anche per il toggle disponibile/esaurito, che oggi non viene loggato.
 
+**Un solo database, nessun ambiente di test separato (v30, vincolante)**
+
+Verificato in data 28/07/2026: **esiste un solo progetto Supabase**. Il
+database su cui si sviluppa oggi è lo stesso che servirà i clienti dal giorno
+dell'apertura. L'etichetta "PRODUCTION" mostrata da Supabase è il nome che
+quel sistema dà al ramo principale di qualunque progetto e non indica che il
+sito sia pubblico.
+
+Conseguenze:
+
+- **Cade la condizione di apertura "piano di travaso dati test →
+  produzione"** (§46): non c'è nulla da travasare. I dati del menu, gli
+  allergeni e i flag dietetici sono già dove serviranno. È una condizione in
+  meno, ed era fra le più laboriose e più esposte a errore.
+- **Vanno rimossi i residui dei test prima del go-live**: l'ordine di prova
+  `KM-0003` lasciato in `payment_status='pending'` e le righe di
+  `staff_action_log` con `staff_identifier = "staff:test-fase1"`. Oggi sono
+  invisibili al cliente e innocue; dal giorno dell'apertura starebbero in
+  mezzo ai dati veri, falsando i carrelli abbandonati (§65) e il registro
+  delle azioni staff.
+- **Dal go-live ogni modifica fatta dal pannello tocca dati vivi**, senza
+  rete di protezione: non esiste un posto dove provare prima. È la ragione
+  per cui §67 impone di modificare allergeni e flag fuori dall'orario di
+  servizio, e §63-64 impone la conferma sul cambio di prezzo.
+
 ## 67. Allergeni
 
 **Stato (v21): popolati a livello di prodotto e salsa.** Gli allergeni sono
@@ -1819,6 +1896,48 @@ singolo ma un insieme, il log registra la **lista completa prima** e la
 forma che permette di ricostruire lo stato reale di un articolo a una certa
 data senza rimontare una catena di differenze.
 
+**Regole dell'editor allergeni (v30, vincolanti)**
+
+Valgono per la Fase 2A (§63-64) e per ogni fase successiva che scriva
+allergeni o flag dietetici, su prodotti e su salse.
+
+- **Selezione dai soli 14 allergeni UE**, mai testo libero, mai deduzione.
+- **Casella esplicita "Nessuno dei 14 allergeni"**: è l'unico modo di
+  dichiarare un articolo privo di allergeni. Salvare con tutte le caselle
+  vuote e senza spuntarla **non è un salvataggio valido**: il server rifiuta.
+  Motivo: "non ho ancora compilato" e "ho verificato che non contiene nulla"
+  sarebbero altrimenti lo stesso gesto, ed è proprio la distinzione per cui
+  esiste `allergens_verified_at`. La casella è mutuamente esclusiva con la
+  selezione dei singoli allergeni: spuntarla svuota la selezione, e
+  selezionare un allergene la disattiva.
+- **Conferma solo in rimozione**: se il salvataggio **toglie** uno o più
+  allergeni, l'interfaccia chiede una conferma esplicita che elenca **quali**
+  stanno per essere rimossi. Se il salvataggio si limita ad aggiungerne,
+  nessuna conferma: aggiungere è la direzione innocua e l'attrito inutile fa
+  solo evitare le modifiche. Come per il prezzo (§63-64), la conferma è una
+  protezione dell'**interfaccia**: il server non la pretende, le sue
+  validazioni valgono comunque.
+- **Ordine delle scritture: prima si aggiunge, poi si toglie.** Il
+  salvataggio è composto da due operazioni distinte — inserimento delle righe
+  nuove in `product_allergens` / `sauce_allergens`, cancellazione di quelle
+  rimosse — che il client PostgREST **non può raggruppare in una
+  transazione** (stesso limite già accettato in §68.3). L'ordine è quindi
+  vincolante: se qualcosa si interrompe a metà, l'articolo deve restare con
+  **più** allergeni del vero, mai con meno. È lo stesso principio di prudenza
+  già adottato per i prodotti con scelta gusto ("sovra-dichiarare è più
+  sicuro che sotto-dichiarare"). L'errore resta visibile riaprendo la scheda.
+- **Nessuna preselezione del flag dietetico quando il dato manca**: sugli
+  articoli food con flag ancora NULL (oggi 3 salse su 7) il selettore a tre
+  voci si presenta **senza nulla di selezionato** e obbliga a una scelta
+  esplicita prima di salvare. Preselezionare "Nessuno dei due" produrrebbe
+  una dichiarazione che nessuno ha fatto.
+- **Ogni salvataggio scrive `allergens_verified_at`** con la data del
+  momento, anche quando la selezione non cambia: la verifica è un atto, non
+  un effetto collaterale della modifica.
+- **Ogni salvataggio va registrato in `staff_action_log`** con la lista
+  completa prima e la lista completa dopo (vedi sopra), mai il singolo
+  allergene aggiunto o tolto.
+
 **Dato di verifica degli allergeni — `allergens_verified_at` (v29,
 vincolante)**
 
@@ -1881,6 +2000,14 @@ tabulì di KM è preparato **senza bulgur** (confermato dall'utente,
 non produce righe in `staff_action_log`. La traccia sta qui e nel file di
 migration versionato in `sql/`, che è la forma più solida — resta nella
 storia del progetto invece che in un registro applicativo.
+
+*Applicato (v30)*: le date sono state scritte nel database il 28/07/2026 con
+le migration `sql/20260728_allergens_verified_at.sql` (colonne di verifica,
+`is_vegetarian` sulle salse, backfill del registro) e
+`sql/20260728_sauces_as_articles.sql` (badge, piccantezza, immagine sulle
+salse). Post-check verificati: 34 prodotti food e 7 salse con data di
+verifica, 21 bevande a NULL, 4 salse vegetariane per coerenza col flag vegano
+e 3 ancora da compilare, zero incoerenze vegano/vegetariano.
 
 **Rendering al cliente (fatto, v24)**: gli allergeni e il badge dietetico
 sono mostrati al cliente. Ogni scheda prodotto con allergeni mostra un
