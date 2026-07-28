@@ -112,25 +112,6 @@ async function resolveProduct(ref) {
   };
 }
 
-async function resolveSauce(ref) {
-  const { data: sauce } = await supabaseAdmin
-    .from("sauces")
-    .select("*")
-    .eq("id", ref.id)
-    .eq("is_available", true)
-    .single();
-
-  if (!sauce) return null;
-
-  return {
-    productId: null,
-    name: sauce.name,
-    category: "salse",
-    unitPrice: round2(Number(sauce.price)),
-    configuration: {},
-  };
-}
-
 async function resolveCombo(ref, storeId) {
   const { data: roll } = await supabaseAdmin
     .from("products")
@@ -394,6 +375,9 @@ export async function POST(request) {
     const quantity = Number.isInteger(item?.quantity) && item.quantity > 0 ? item.quantity : 1;
     const ref = item?.ref;
 
+    // COMPATIBILITÀ TEMPORANEA (§30): "sauce" resta fra i kind accettati finché
+    // il carrello non invierà le salse come kind:"product". Da togliere insieme
+    // all'instradamento più sotto.
     if (!ref || (ref.kind !== "product" && ref.kind !== "sauce" && ref.kind !== "combo")) {
       return NextResponse.json({ error: "Articolo non valido." }, { status: 400 });
     }
@@ -405,11 +389,17 @@ export async function POST(request) {
     }
 
     let resolved;
-    if (ref.kind === "sauce") {
-      resolved = await resolveSauce(ref);
-    } else if (ref.kind === "combo") {
+    if (ref.kind === "combo") {
       resolved = await resolveCombo(ref, store.id);
     } else {
+      // §30: le salse sono prodotti nella tabella `products` e si risolvono
+      // come qualunque altro articolo — lettura da products, prezzo da
+      // base_price, controllo is_available, e category ('salse') + product_id
+      // ricavati dal DB, non scritti a mano.
+      // COMPATIBILITÀ TEMPORANEA: il carrello invia ancora kind:"sauce" fino al
+      // passo successivo; qui lo accettiamo instradandolo sul percorso prodotto.
+      // DA RIMUOVERE (insieme a "sauce" nella validazione qui sopra) quando il
+      // carrello invierà le salse come kind:"product".
       resolved = await resolveProduct(ref);
     }
 
