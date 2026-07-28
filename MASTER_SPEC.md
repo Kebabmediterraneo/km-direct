@@ -1,10 +1,72 @@
 # KM DIRECT — MASTER SPECIFICATION
 
-**Versione 28** — sostituisce la v27.
+**Versione 29** — sostituisce la v28.
 
 Documento di riferimento definitivo per lo sviluppo. Le decisioni qui
 contenute sono approvate: non vanno reinterpretate senza un motivo concreto
 (vedi §73). Ogni file di codice del progetto deve rispettare queste regole.
+
+**Novità della v29** (vincolanti):
+
+1. §67 — **Roll e Bowl sono voci indipendenti anche per gli allergeni.** La
+   formulazione precedente ("Roll e Bowl omonimi condividono gli stessi
+   allergeni") poteva essere letta come una regola del sistema, cioè come
+   un'autorizzazione a dedurre gli allergeni di una Bowl da quelli del Roll
+   omonimo, o a costruire una propagazione automatica. Non lo è: sono **due
+   dati distinti** che oggi coincidono di fatto perché descrivono la stessa
+   ricetta. Tenerli allineati è una **responsabilità operativa del locale** —
+   nessun automatismo, nessun avviso, e **nessun codice deve mai ricavare gli
+   allergeni di un articolo da quelli di un altro**.
+2. §67 — **regola operativa su quando si modificano allergeni e flag
+   dietetici**: soltanto **fuori dall'orario di servizio** (§13). Durante il
+   servizio si modifica **esclusivamente la disponibilità**
+   (disponibile/esaurito). Nessun avviso e nessun blocco a schermo: è una
+   regola di condotta, non un vincolo di codice.
+3. §67 — nuovo dato **`allergens_verified_at`** su `products` e `sauces`.
+   Registra che gli allergeni di quell'articolo sono stati verificati da
+   fonte autorevole, e in che data. Serve a distinguere **"verificato: non
+   contiene allergeni"** da **"mai dichiarato"**, due situazioni oggi
+   indistinguibili perché entrambe si presentano come lista vuota. **Non
+   cambia nulla per il cliente**: un articolo senza allergeni non mostra
+   alcun blocco allergeni, in entrambi i casi (§67, rendering). È un dato
+   interno, visibile solo nel pannello staff.
+4. §67 — il **flag dietetico si presenta come una scelta unica a tre voci**
+   (Vegano / Vegetariano / Nessuno dei due). Sotto restano le due colonne
+   esistenti e resta il vincolo "vegano implica vegetariano", che l'editor
+   fa rispettare (il database non lo impone). Il selettore compare **solo
+   sugli articoli food**: drink e birre restano fuori dal tracciamento, con i
+   flag a NULL, e non mostrano alcun selettore.
+5. §30 / §34-35 / §63-64 / §67 — **le salse diventano articoli a tutti gli
+   effetti**, con le stesse possibilità di modifica degli altri prodotti.
+   Acquistano i campi `badge`, `is_vegetarian`, piccantezza (`spice_level`,
+   `spice_label`) e immagine (`image_url`). Restano nella propria tabella
+   `sauces`: si parifica **cosa si può farci**, non si fondono con
+   `products`. **Riapre due decisioni precedenti**: §34-35 escludeva le salse
+   dal badge, §67 dichiarava consapevole la scelta di non dare loro il flag
+   vegetariano. Sono cambi voluti, non sviste.
+6. §63-64 — **la Fase 2 dell'editor si divide in 2A e 2B**, entrambe prima
+   del go-live: **2A** = allergeni e flag dietetici, su prodotti e salse (il
+   blocco di sicurezza alimentare); **2B** = salse portate al pari degli
+   altri articoli sui campi semplici. Sono indipendenti: se una si ferma,
+   l'altra prosegue. La **Fase 3** (creazione di articoli semplici) comprende
+   ora anche la **creazione di salse**.
+7. §34-35 / §63-64 — **le immagini degli articoli non sono gestibili da
+   nessuna parte, per nessun articolo.** Il campo `image_url` esiste su
+   `products` ma è **vuoto su tutti i 55 prodotti**, e non esiste alcun modo
+   di caricare una foto dal pannello. La v29 aggiunge il campo anche alle
+   salse per uniformità di struttura, ma la **gestione delle immagini resta
+   un lavoro autonomo**, fuori dalla Fase 2, da affrontare per tutti gli
+   articoli insieme (caricamento file, limite di peso, ridimensionamento,
+   spazio di archiviazione). Campo vuoto = scheda disegnata esattamente come
+   oggi.
+8. §19 — corretta una **formulazione superata**: L'Egiziano e Il Cipriota
+   erano descritti con "Badge VEGAN" e "Badge VEGGIE". I badge dietetici non
+   esistono come valore del campo `badge` (§63-64, lista chiusa) e derivano
+   dai flag (§67). Dicitura riscritta; nessun dato cambia.
+9. §63-64 — corretta la **descrizione di dove vive il codice della Fase 1**:
+   la spec diceva che validazioni e lista dei badge stanno "nella route
+   staff", mentre stanno in `lib/menu-editor.js` e `lib/menu-badges.js`, con
+   la route sottile sopra. È la forma da riusare nelle fasi successive.
 
 **Novità della v28** (vincolanti):
 
@@ -662,11 +724,13 @@ grigliate, Senza insalata,
 Senza taratour, Senza hummus, Senza crema di verdure arrosto, Senza patate
 al vapore.
 
-**L'Egiziano — 8 €** Badge VEGAN. Nessuna proteina selezionabile (salsa
+**L'Egiziano — 8 €** Vegano (dal flag `is_vegan`, §67 — non è un valore del
+campo `badge`). Nessuna proteina selezionabile (salsa
 all'aglio è vegan). Rimozioni: Senza salsa all'aglio, Senza babaganoush,
 Senza tabulì.
 
-**Il Cipriota — 9 €** Badge VEGGIE. Nessuna proteina selezionabile.
+**Il Cipriota — 9 €** Vegetariano (dal flag `is_vegetarian`, §67 — non è un
+valore del campo `badge`). Nessuna proteina selezionabile.
 Rimozioni: Senza melanzane grigliate, Senza cetriolini, Senza crema di
 verdure arrosto, Senza hummus alle melanzane.
 
@@ -791,6 +855,28 @@ Tutte a 1 €: Ajvar, Ajvar piccante, Tzatziki, Acuka (frutta secca +
 peperoncino), Black KM (maionese all'aglio nero — **non vegana**), Yogurt,
 Salsa all'aglio (vegana).
 
+**Le salse sono articoli a tutti gli effetti (v29, vincolante)**: hanno le
+stesse possibilità di modifica dal pannello staff degli altri prodotti —
+nome, descrizione, prezzo, ordine, disponibilità, badge, allergeni, flag
+dietetici, piccantezza, immagine. Restano nella tabella `sauces`, distinta da
+`products`: si parifica **cosa si può farci**, non si fondono. Fondere le due
+tabelle significherebbe rimettere le mani su carrello, storico ordini e
+combo, senza alcun beneficio.
+
+Differenze residue rispetto ai prodotti, volute:
+
+- il prezzo, nel database, si chiama `price` e non `base_price`. È un nome
+  storico e non viene cambiato: l'editor deve gestirlo, non uniformarlo;
+- le salse non hanno `slug` (l'identificatore univoco dei prodotti) e non
+  entrano nei combo;
+- le salse non hanno categoria: sono la categoria.
+
+**Piccantezza sulle salse**: vale la regola di §34-35 (testo sempre accanto
+all'icona, mai la sola icona). Su "Ajvar piccante" questo produce una
+ridondanza — nome del prodotto e indicazione di piccantezza dicono la stessa
+cosa — **accettata consapevolmente**: serve a distinguere a colpo d'occhio
+l'Ajvar dall'Ajvar piccante nell'elenco delle salse.
+
 ## 31. DOLCI
 
 Baklava 5 € (miele e frutta secca). Cheesecake 5 € (scelta: Baklava / Dubai
@@ -852,8 +938,22 @@ omettevano: era un'omissione di rendering, non una scelta. Poiché l'editor
 consente di assegnare un badge a qualunque prodotto, un badge salvato deve
 sempre produrre un effetto visibile. Il chip usa lo **stesso stile** su
 tutte le card e **convive** con i badge dietetici Vegano/Vegetariano (§67),
-che restano derivati dai flag e non dal campo `badge`. Le salse non hanno
-campo `badge` e restano escluse.
+che restano derivati dai flag e non dal campo `badge`.
+
+**Salse incluse (v29, riapre la decisione precedente)**: fino alla v28 le
+salse non avevano il campo `badge` ed erano esplicitamente escluse da questa
+regola. Dalla v29 le salse sono articoli a tutti gli effetti (§30) e portano
+il badge come gli altri, con lo stesso stile e la stessa lista chiusa. Vale
+per loro anche la regola della piccantezza col testo, e il badge dietetico
+derivato dai flag — che sulle salse, dalla v29, comprende anche
+"Vegetariano" (§67).
+
+**Immagini — nessuna, per nessun articolo (v29)**: il campo `image_url`
+esiste su `products` ed è **vuoto su tutti i 55 prodotti**; la v29 lo
+aggiunge anche alle salse. Non esiste alcun modo di caricare un'immagine dal
+pannello staff, per nessun articolo. Finché il campo è vuoto la card si
+disegna esattamente come oggi, senza spazi vuoti né segnaposto. La gestione
+delle immagini è un lavoro autonomo, non ancora affrontato (§63-64).
 
 ## 36-40. Carrello
 
@@ -1396,12 +1496,26 @@ separato. L'introduzione di ruoli/permessi admin distinti dallo staff è
 - **Fase 1** — editing dei campi semplici dei prodotti esistenti: `name`,
   `description`, `base_price`, `badge` (solo non dietetici), `sort_order`.
   `is_available` esiste già.
-- **Fase 2** — editing di allergeni e flag dietetici, con selezione dai 14
-  allergeni UE (§67), mai testo libero.
-- **Fase 3** — creazione di prodotti semplici (fritti, sides, dolci, drink),
-  con **dichiarazione allergeni obbligatoria alla creazione**: un prodotto
-  nuovo non può nascere senza che gli allergeni siano stati dichiarati o
-  esplicitamente confermati come assenti (§67 — sicurezza alimentare).
+- **Fase 2A** (v29) — editing di **allergeni e flag dietetici**, su
+  **prodotti e salse**, con selezione dai 14 allergeni UE (§67), mai testo
+  libero. È il blocco di sicurezza alimentare e va verificato come tale.
+  Comprende: selezione allergeni, selettore dietetico a tre voci sul solo
+  food (§67), scrittura di `allergens_verified_at`, log in
+  `staff_action_log`.
+- **Fase 2B** (v29) — **salse portate al pari degli altri articoli** sui
+  campi semplici: `name`, `description`, `price`, `sort_order`, `badge`,
+  piccantezza. Richiede prima l'aggiunta delle colonne mancanti su `sauces`
+  (§30).
+  2A e 2B sono **indipendenti**: si verificano in due sessioni distinte, così
+  che un problema su una non blocchi l'altra. L'ordine consigliato è 2A prima,
+  perché è quella che protegge il cliente.
+- **Fase 3** — creazione di **articoli semplici**: prodotti (fritti, sides,
+  dolci, drink) **e salse**, con **dichiarazione allergeni obbligatoria alla
+  creazione**: un articolo nuovo non può nascere senza che gli allergeni
+  siano stati dichiarati o esplicitamente confermati come assenti — nel
+  secondo caso scegliendo "nessun allergene", che scrive
+  `allergens_verified_at` senza creare righe allergene (§67 — sicurezza
+  alimentare).
 
 *Dopo il go-live:*
 - editing dei **contenuti del combo** (contorni, proteine, supplementi):
@@ -1421,9 +1535,9 @@ separato. L'introduzione di ruoli/permessi admin distinti dallo staff è
 Stato verificato: **non esiste alcuna validazione server-side** sui cinque
 campi della Fase 1, e il database non pone vincoli oltre ai tipi — in
 particolare `base_price numeric(6,2)` accetterebbe 0 e valori negativi. Le
-validazioni vanno quindi costruite nella **route staff** dell'editor, che
-resta l'unico canale di scrittura (sessione verificata + secret key, §66; il
-client non scrive mai diretto sul DB):
+validazioni vanno quindi costruite **lato server**, sull'unico canale di
+scrittura (sessione verificata + secret key, §66; il client non scrive mai
+diretto sul DB):
 
 - `name`: obbligatorio, non vuoto, lunghezza massima indicativa **60
   caratteri** (oltre, il layout delle card si rompe);
@@ -1437,8 +1551,9 @@ client non scrive mai diretto sul DB):
   **"I classici"**.
   Un prodotto porta **un solo badge alla volta**: il campo ne tiene uno, e due
   etichette sulla stessa card si annullerebbero a vicenda. Aggiungere un valore
-  alla lista richiede una **modifica al codice** (la lista vive nella route
-  staff): è voluto, impedisce che il campo torni di fatto a essere testo libero.
+  alla lista richiede una **modifica al codice** (la lista vive in
+  `lib/menu-badges.js`, condivisa fra server e interfaccia): è voluto,
+  impedisce che il campo torni di fatto a essere testo libero.
   I badge dietetici **non sono scrivibili**: Vegano/Vegetariano derivano dai
   flag `is_vegan`/`is_vegetarian` (§67) e una seconda fonte scrivibile a mano
   creerebbe incoerenza su un dato di sicurezza alimentare.
@@ -1474,8 +1589,31 @@ lista chiusa dei badge condivisa tra server e interfaccia, conferma sul
 cambio di prezzo, form inline nella sezione Menu del pannello staff
 (coerente con §34-35) e registrazione di ogni modifica in
 `staff_action_log`, esteso anche al toggle disponibile/esaurito. Restano
-da fare, nell'ordine, la Fase 2 (allergeni e flag dietetici) e la Fase 3
-(creazione di prodotti semplici, con dichiarazione allergeni obbligatoria).
+da fare, nell'ordine, la Fase 2A (allergeni e flag dietetici su prodotti e
+salse), la Fase 2B (salse al pari sui campi semplici) e la Fase 3
+(creazione di articoli semplici, con dichiarazione allergeni obbligatoria).
+
+**Forma del codice da riusare (precisata in v29)**: la Fase 1 non ha messo
+validazioni e regole dentro la route HTTP, come diceva la formulazione
+precedente di questa sezione, ma le ha isolate in moduli sotto `lib/` —
+`lib/menu-editor.js` (validazioni, update, log) e `lib/menu-badges.js` (lista
+chiusa dei badge, condivisa fra server e interfaccia) — con la route ridotta
+a `requireStaffSession()` più la chiamata al modulo. Il vantaggio è che le
+verifiche esercitano il codice vero e non una sua copia. **Le fasi successive
+riusano questa forma**, non la reinventano.
+
+**Immagini degli articoli — non gestibili, per nessun articolo (v29)**: il
+campo `image_url` esiste su `products`, è **vuoto su tutti i 55 prodotti**, e
+la v29 lo aggiunge anche alle salse per uniformità di struttura (§30). Non
+esiste alcun modo di caricare un'immagine dal pannello staff. La gestione
+delle immagini **non fa parte di nessuna delle fasi qui elencate**: è un
+lavoro autonomo, di natura diversa dagli altri campi dell'editor (caricamento
+file, limite di peso, ridimensionamento, spazio di archiviazione su Supabase
+Storage), da affrontare **per tutti gli articoli insieme**, prima o dopo il
+go-live secondo l'esigenza. Fino ad allora il campo resta vuoto e le card si
+disegnano come oggi: aggiungere una colonna che nessuno può riempire non
+viola la regola v28 "un valore salvato dall'editor deve produrre un effetto
+visibile", perché dal pannello quel valore non è salvabile affatto.
 
 **Decisione operativa (presa dopo l'MVP iniziale, vincolante)**: tutti i
 prodotti e le salse segnati "esaurito" tornano automaticamente
@@ -1566,8 +1704,22 @@ Senape, Sesamo, Anidride solforosa e solfiti, Lupini, Molluschi.
   livello di variante proteica o extra — semplificazione voluta rispetto
   ai "4 livelli" (prodotto/variante/salsa/extra) della predisposizione
   originaria: la struttura per variante/extra non è stata creata.
-- **Roll e Bowl omonimi condividono gli stessi allergeni** (es. Il Turco e
-  Il Turco Bowl).
+- **Roll e Bowl omonimi sono voci indipendenti (riscritto in v29).** Gli
+  allergeni de "Il Turco" e de "Il Turco Bowl" **coincidono di fatto**,
+  perché descrivono la stessa ricetta, ma sono **due dati distinti**, su due
+  prodotti distinti (§16), senza alcun legame nel database. La formulazione
+  precedente ("Roll e Bowl omonimi condividono gli stessi allergeni") poteva
+  essere letta come una regola del sistema: non lo è, ed è la lettura
+  pericolosa, perché autorizzerebbe a **dedurre** gli allergeni di una Bowl
+  da quelli del Roll — cosa che questa sezione vieta.
+  **Conseguenze vincolanti:** (a) nessuna propagazione automatica fra Roll e
+  Bowl, in nessuna direzione; (b) nessun avviso automatico quando se ne
+  modifica uno solo; (c) **nessun codice deve mai ricavare gli allergeni di
+  un articolo da quelli di un altro**; (d) tenere allineate le 7 coppie è
+  una **responsabilità operativa del locale**, non del software. È la stessa
+  natura del problema di §25 ("i nomi non si propagano"), con conseguenze
+  molto più serie. *Fotografia al 28/07/2026: tutte e 7 le coppie hanno set
+  di allergeni identici.*
 - **Prodotti con scelta gusto** (Cheesecake: Baklava/Dubai Style; Yogurt
   turco: frutti di bosco / miele e frutta secca): si salva **l'unione**
   degli allergeni dei due gusti, perché lo schema tiene un solo set per
@@ -1586,6 +1738,33 @@ Senape, Sesamo, Anidride solforosa e solfiti, Lupini, Molluschi.
     sui 34 food; bevande escluse). In questa occasione è stata corretta
     anche la marcatura di **Habibites** (da non-vegano a vegano, quindi
     anche vegetariano).
+  - **Scelta unica a tre voci nell'editor (v29)**: nel pannello il flag
+    dietetico si presenta come **una sola scelta fra tre** — *Vegano*,
+    *Vegetariano*, *Nessuno dei due* — mai come due caselle da incrociare.
+    Sotto restano le due colonne esistenti: scegliere "Vegano" scrive
+    `is_vegan=true` **e** `is_vegetarian=true`, perché un piatto vegano è
+    vegetariano e deve comparire in qualunque elenco dei vegetariani (filtri,
+    liste, risposta al banco). Al cliente continua a comparire **un solo
+    badge**, "Vegano", come già previsto dal rendering più sotto: non si vede
+    mai "Vegano · Vegetariano".
+  - **Il vincolo lo fa rispettare l'editor, non il database (verificato in
+    v29)**: su `products` non esiste alcun CHECK che impedisca la
+    combinazione `is_vegan=true` con `is_vegetarian=false`. Oggi non ci sono
+    righe che la violano, ma da quando i flag diventano scrivibili dal
+    pannello la coerenza dipende interamente dalla validazione applicativa.
+  - **Solo sugli articoli food (v29)**: il selettore compare esclusivamente
+    sugli articoli il cui contenuto è tracciato. **Drink e birre restano
+    fuori** (§67, "fuori dal tracciamento"): i loro flag valgono NULL, che
+    significa *non applicabile* e non "né vegano né vegetariano", e per loro
+    il selettore **non compare affatto**. Mostrarlo costringerebbe a
+    rispondere a una domanda che nessuno ha posto. Estendere il tracciamento
+    alle bevande sarà semmai una decisione nuova, da mettere prima in spec.
+  - **Salse (v29)**: le salse acquistano `is_vegetarian`, che fino alla v28
+    non avevano (l'esclusione era dichiarata consapevole: la v29 la riapre,
+    §30). Il campo nasce **vuoto** su tutte e 7 e va compilato dal pannello:
+    finché è vuoto, il cliente non vede comparire alcun badge "Vegetariano"
+    sulle salse — un'informazione che si aggiunge, non una che si perde.
+    Anche per le salse vale il vincolo "vegano implica vegetariano".
 
 **Fuori dal tracciamento (per ora, decisioni v21)**:
 - **Variante Planted** (a base soia → allergene soia): lo schema non traccia
@@ -1607,18 +1786,123 @@ Senape, Sesamo, Anidride solforosa e solfiti, Lupini, Molluschi.
   distinto `product_accompaniments.contains_gluten` (contorno Bulgur), che è
   un'altra cosa e non è stato toccato.
 
+**Quando si modificano allergeni e flag dietetici (v29, vincolante)**
+
+Soltanto **fuori dall'orario di servizio** (§13). Durante il servizio si
+modifica **esclusivamente la disponibilità** dell'articolo
+(disponibile/esaurito).
+
+Il motivo è lo stesso di §46 per i prezzi, con conseguenze più gravi: il menu
+è letto dal browser del cliente **una volta sola**, al caricamento della
+pagina, senza polling e senza cache. Chi tiene la pagina già aperta mentre
+gli allergeni vengono modificati continua a vedere la lista vecchia. Sui
+prezzi il checkout almeno ricalcola dal database, quindi l'importo addebitato
+è corretto; **sugli allergeni non esiste alcun controllo al checkout**, e una
+lista letta sbagliata non viene intercettata da nulla.
+
+La regola è di condotta, non di codice: **nessun avviso e nessun blocco** a
+schermo. Il pannello non impedisce di salvare in orario di apertura, perché
+il giorno in cui servisse davvero un intervento urgente, impedirlo sarebbe
+peggio del rischio che evita. Le ricette e gli ingredienti sono stabili, la
+frequenza reale di modifica è bassissima, e l'esposizione è ulteriormente
+ridotta dalla possibilità di segnare l'articolo "esaurito" prima di
+intervenire.
+
+**Chi può modificarli**: chiunque abbia le credenziali staff, dato che non
+esiste un ruolo admin distinto (§63-64, rimandato a dopo il go-live). Vale la
+stessa contromisura dei prezzi: la tracciabilità (§66).
+
+**Log delle modifiche agli allergeni (v29)**: ogni modifica va registrata in
+`staff_action_log` come impone §66. Poiché gli allergeni non sono un campo
+singolo ma un insieme, il log registra la **lista completa prima** e la
+**lista completa dopo**, non il singolo allergene aggiunto o tolto: è l'unica
+forma che permette di ricostruire lo stato reale di un articolo a una certa
+data senza rimontare una catena di differenze.
+
+**Dato di verifica degli allergeni — `allergens_verified_at` (v29,
+vincolante)**
+
+Nuova colonna, nullable, su **`products`** e su **`sauces`**. Registra che
+gli allergeni di quell'articolo sono stati verificati da fonte autorevole, e
+in che data.
+
+Serve a distinguere due situazioni che oggi sono **indistinguibili**, perché
+entrambe si presentano come lista di allergeni vuota:
+
+- *"verificato: non contiene allergeni"* — un dato dichiarato;
+- *"mai dichiarato"* — un'assenza di dato.
+
+Finché gli allergeni sono stati popolati in un'unica occasione a partire dal
+documento ufficiale la distinzione non serviva. Serve dalla **Fase 3**, che
+impone la dichiarazione allergeni alla creazione di un articolo nuovo
+(§63-64): senza un posto dove scrivere "confermato, non ne contiene", quella
+regola non è realizzabile e un articolo creato di fretta e lasciato a metà
+risulterebbe identico a uno verificato.
+
+- **Al cliente non cambia nulla**, in nessuno dei due casi: un articolo senza
+  allergeni non mostra alcun blocco allergeni. Il silenzio è più prudente
+  della dicitura "senza allergeni", che sarebbe un'affermazione positiva di
+  cui risponde il locale, mentre l'assenza del blocco rimanda al documento
+  allergeni ufficiale.
+- **È un dato interno**, visibile solo nel pannello staff, dove permette di
+  rispondere alla domanda "abbiamo verificato tutto?" guardando invece che
+  ricordando.
+- Va valorizzata a ogni salvataggio degli allergeni dall'editor, compresa la
+  scelta esplicita "nessun allergene" (che scrive la data **senza** creare
+  righe in `product_allergens` / `sauce_allergens`).
+- La colonna richiede un `ALTER TABLE`: **migration versionata in `sql/`**,
+  eseguita da Andrea nel SQL editor Supabase (§63-64: Claude Code non esegue
+  DDL).
+
+**Registro delle verifiche al 28/07/2026 (v29)**
+
+Stato di partenza da cui nasce la colonna, ricostruito dall'inventario di
+sola lettura del 28/07/2026 e chiuso con le conferme dell'utente in pari
+data. Vale come fonte verificata ai sensi di questa sezione.
+
+- **34 prodotti food su 34** → verificati. Di questi, **29** hanno almeno un
+  allergene dichiarato e provengono dal documento allergeni ufficiale (§67,
+  v21); **5** sono confermati **senza allergeni** dall'utente in data
+  28/07/2026: **Patatine** (fritti), **Polpette di agnello** (fritti),
+  **Dolmadakia** (sides), **Tabulì** (sides), **Lokum** (dolci).
+- **7 salse su 7** → verificate. **5** hanno allergeni dichiarati; **2** sono
+  confermate **senza allergeni** dall'utente in data 28/07/2026: **Ajvar** e
+  **Ajvar piccante**.
+- **21 bevande** (15 drink + 6 birre) → **non** verificate, colonna lasciata
+  a NULL: restano fuori dal tracciamento (vedi sopra), e vanno compilate
+  prima di poter essere dichiarate senza allergeni.
+
+*Nota sul Tabulì*: risulta senza allergeni e **non è in contraddizione con
+§21**, che cita il glutine del **bulgur** come accompagnamento della Bowl. Il
+tabulì di KM è preparato **senza bulgur** (confermato dall'utente,
+28/07/2026). Sono due voci distinte del menu.
+
+*Tracciabilità di questa verifica iniziale*: non passa dal pannello, quindi
+non produce righe in `staff_action_log`. La traccia sta qui e nel file di
+migration versionato in `sql/`, che è la forma più solida — resta nella
+storia del progetto invece che in un registro applicativo.
+
 **Rendering al cliente (fatto, v24)**: gli allergeni e il badge dietetico
 sono mostrati al cliente. Ogni scheda prodotto con allergeni mostra un
 blocco espandibile "Allergeni" (che al tap elenca gli allergeni; assente se
 il prodotto non ne ha) e un badge dietetico unico dai flag ("Vegano" se
 `is_vegan`, altrimenti "Vegetariano" se `is_vegetarian`). La **sezione
-salse** mostra allergeni e il badge "Vegano" per le salse vegane (le salse
-hanno `is_vegan` ma non `is_vegetarian` — scelta consapevole: nessun badge
-vegetariano sulle salse per ora). La soia della variante Planted è segnalata
-nel configuratore (v23).
+salse** mostra allergeni e il badge "Vegano" per le salse vegane. *Fino alla
+v28 le salse avevano `is_vegan` ma non `is_vegetarian`, per scelta dichiarata
+consapevole; la v29 riapre quella decisione e dà loro anche il flag
+vegetariano (§30), quindi sulle salse potrà comparire anche il badge
+"Vegetariano". Di per sé la v29 non cambia nulla a schermo: le differenze
+visibili al cliente compaiono soltanto quando i nuovi campi delle salse
+(vegetariano, badge, piccantezza) verranno compilati dal pannello.*
+La soia della variante Planted è segnalata nel configuratore (v23).
 
-**Ancora da fare**: nulla di specifico sugli allergeni — il capitolo è
-completo (dati, rendering, bonifica flag legacy).
+**Ancora da fare (aggiornato in v29)**: i **dati** degli allergeni sono
+completi e verificati (registro qui sopra), il **rendering** al cliente è
+fatto, i flag legacy sono stati bonificati. Resta da costruire la
+**modificabilità dal pannello** — Fase 2A dell'editor menu (§63-64) — con le
+regole di questa sezione: selezione dai soli 14 allergeni UE, mai testo
+libero, mai deduzione, selettore dietetico a tre voci sul solo food,
+scrittura di `allergens_verified_at`, log della lista prima/dopo.
 
 ## 68. Sezione Impostazioni pannello staff — chiusure eccezionali (aggiunta dopo l'MVP iniziale, vincolante)
 
