@@ -88,21 +88,23 @@ begin
     raise exception 'PRE-CHECK fallito: % degli slug proposti per le salse esistono gia in products per lo stesso store. Migrazione annullata.', v_slug_coll;
   end if;
 
-  -- I 7 id della mappatura esplicita devono esistere davvero in sauces
-  -- (protegge la INSERT dal saltare silenziosamente una salsa se un id non torna).
+  -- Ogni id della mappatura esplicita deve essere abbinato alla salsa GIUSTA:
+  -- si confrontano id e name INSIEME, con le coppie prese dai valori reali del
+  -- database. Protegge la INSERT sia dal saltare una salsa (id mancante) sia dal
+  -- migrare un nome sotto lo slug sbagliato (id spostato su un'altra riga).
   select count(*) into v_map_ok
   from sauces s
-  where s.id in (
-    'b892febd-ad4a-4c0d-87bf-f371723a75b2',
-    '8efcec18-2994-493c-ba26-8b42ae1a167a',
-    '1fb5cbd2-2dc9-421c-958b-dae6fdcfb48a',
-    '975fce50-733b-40e2-9394-c33d00b12e28',
-    'c699fb9d-30bc-4399-92e4-085bcbc6477a',
-    'c9b3486a-1e95-4268-b7dc-bfedebf10605',
-    '8a636a99-13e4-43b1-872e-78c1a325aeb5'
+  where (s.id, s.name) in (
+    ('b892febd-ad4a-4c0d-87bf-f371723a75b2'::uuid, 'Ajvar'),
+    ('8efcec18-2994-493c-ba26-8b42ae1a167a'::uuid, 'Ajvar piccante'),
+    ('1fb5cbd2-2dc9-421c-958b-dae6fdcfb48a'::uuid, 'Tzatziki'),
+    ('975fce50-733b-40e2-9394-c33d00b12e28'::uuid, 'Acuka'),
+    ('c699fb9d-30bc-4399-92e4-085bcbc6477a'::uuid, 'Black KM'),
+    ('c9b3486a-1e95-4268-b7dc-bfedebf10605'::uuid, 'Yogurt'),
+    ('8a636a99-13e4-43b1-872e-78c1a325aeb5'::uuid, 'Salsa all''aglio')
   );
   if v_map_ok <> 7 then
-    raise exception 'PRE-CHECK fallito: la mappatura id->slug copre % delle 7 salse attese. Migrazione annullata.', v_map_ok;
+    raise exception 'PRE-CHECK fallito: solo % coppie id-nome su 7 corrispondono alle salse attese. Migrazione annullata.', v_map_ok;
   end if;
 
   raise notice 'PRE-CHECK superati: 55 prodotti, 70 allergeni prodotto, 7 salse, 6 allergeni salsa, 0 salse gia in products.';
@@ -137,7 +139,7 @@ insert into products (
 select
   s.id,
   s.store_id,
-  'salse',                 -- category (§30.3)
+  'salse'::product_category,  -- category (§30.3)
   m.slug,                  -- slug esplicito (§30.4)
   s.name,
   s.description,
