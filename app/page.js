@@ -80,6 +80,7 @@ const CATEGORY_DB_KEY = {
   BOWL: "bowl",
   FRITTI: "fritti",
   SIDES: "sides",
+  SALSE: "salse",
   DOLCI: "dolci",
   DRINK: "drink",
   BIRRE: "birre",
@@ -97,11 +98,12 @@ function groupBy(rows, key) {
 // `ref` — serve solo per decidere quali regole di upsell scattano, non
 // per il calcolo prezzi (già fatto altrove).
 function getItemCategory(item, categoryProducts) {
-  if (item.ref?.kind === "sauce") return "SALSE";
   // Un Menu Combo è sempre costruito attorno a un Roll (§23-26).
   if (item.ref?.kind === "combo") return "ROLL";
   if (item.ref?.kind === "product") {
-    for (const category of ["ROLL", "BOWL", "FRITTI", "SIDES", "DOLCI", "DRINK", "BIRRE"]) {
+    // §30 (v32): le salse sono prodotti come gli altri e si riconoscono dalla
+    // categoria, non da un tipo dedicato.
+    for (const category of ["ROLL", "BOWL", "FRITTI", "SIDES", "SALSE", "DOLCI", "DRINK", "BIRRE"]) {
       if (categoryProducts[category]?.some((p) => p.id === item.ref.id)) {
         return category;
       }
@@ -151,7 +153,7 @@ function buildUpsellGroups(items, categoryProducts, subtotal) {
   }
 
   if (hasFritti && !hasSalsa) {
-    const options = simpleAvailable("SALSE", "sauce")
+    const options = simpleAvailable("SALSE", "product")
       .filter((p) => !alreadySuggested.has(p.id))
       .slice(0, 2);
     if (options.length > 0) {
@@ -168,7 +170,7 @@ function buildUpsellGroups(items, categoryProducts, subtotal) {
     const pool = [
       ...simpleAvailable("FRITTI", "product"),
       ...simpleAvailable("SIDES", "product"),
-      ...simpleAvailable("SALSE", "sauce"),
+      ...simpleAvailable("SALSE", "product"),
       ...simpleAvailable("DOLCI", "product"),
       ...simpleAvailable("DRINK", "product"),
     ].filter((p) => !alreadySuggested.has(p.id));
@@ -265,24 +267,20 @@ async function fetchMenuData() {
     { data: removals },
     { data: accompaniments },
     { data: addons },
-    { data: sauces },
     { data: comboSides },
     { data: comboDrinks },
     { data: comboPricing },
     { data: productAllergens },
-    { data: sauceAllergens },
   ] = await Promise.all([
     supabase.from("products").select("*").order("sort_order"),
     supabase.from("product_choice_options").select("*").order("sort_order"),
     supabase.from("product_removals").select("*").order("sort_order"),
     supabase.from("product_accompaniments").select("*").order("sort_order"),
     supabase.from("product_addons").select("*"),
-    supabase.from("sauces").select("*").order("sort_order"),
     supabase.from("combo_side_options").select("*").order("sort_order"),
     supabase.from("combo_drink_options").select("*, products(name, base_price)").order("sort_order"),
     supabase.from("combo_pricing").select("*"),
     supabase.from("product_allergens").select("product_id, allergens(label)"),
-    supabase.from("sauce_allergens").select("sauce_id, allergens(label)"),
   ]);
 
   if (productsError) throw productsError;
@@ -298,12 +296,7 @@ async function fetchMenuData() {
   for (const r of productAllergens ?? []) {
     (allergensByProduct[r.product_id] ??= []).push(r.allergens.label);
   }
-  const allergensBySauce = {};
-  for (const r of sauceAllergens ?? []) {
-    (allergensBySauce[r.sauce_id] ??= []).push(r.allergens.label);
-  }
   for (const k in allergensByProduct) allergensByProduct[k].sort();
-  for (const k in allergensBySauce) allergensBySauce[k].sort();
 
   const categoryProducts = {};
   for (const [uiCategory, dbCategory] of Object.entries(CATEGORY_DB_KEY)) {
@@ -313,17 +306,6 @@ async function fetchMenuData() {
         buildCatalogProduct(p, choicesByProduct, removalsByProduct, accompanimentsByProduct, addonsByProduct, allergensByProduct)
       );
   }
-  categoryProducts.SALSE = (sauces ?? []).map((s) => ({
-    id: s.id,
-    name: s.name,
-    price: formatPrice(Number(s.price)),
-    isAvailable: s.is_available,
-    // §67: le salse hanno solo il flag vegano (nessun is_vegetarian in tabella).
-    isVegan: s.is_vegan === true,
-    isVegetarian: false,
-    allergens: allergensBySauce[s.id] ?? [],
-  }));
-
   // §63: un Roll esaurito non deve restare acquistabile nemmeno tramite
   // il Menu Combo (stesso prodotto, percorso diverso).
   const rollProducts = categoryProducts.ROLL.filter((r) => r.isAvailable);
@@ -2908,7 +2890,8 @@ export default function Home() {
       price: parsePrice(product.price),
       details: null,
       ref: {
-        kind: activeCategory === "SALSE" ? "sauce" : "product",
+        // §30 (v32): le salse sono prodotti come gli altri → sempre kind:"product".
+        kind: "product",
         id: product.id,
       },
     });
