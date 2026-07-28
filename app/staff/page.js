@@ -24,11 +24,12 @@ const PRODUCT_CATEGORY_LABEL = {
   bowl: "Bowl",
   fritti: "Fritti",
   sides: "Sides",
+  salse: "Salse",
   dolci: "Dolci",
   drink: "Drink",
   birre: "Birre",
 };
-const PRODUCT_CATEGORY_ORDER = ["roll", "bowl", "fritti", "sides", "dolci", "drink", "birre"];
+const PRODUCT_CATEGORY_ORDER = ["roll", "bowl", "fritti", "sides", "salse", "dolci", "drink", "birre"];
 
 const FULFILLMENT_LABEL = {
   delivery: "Delivery",
@@ -737,8 +738,9 @@ function MenuItemRow({ label, price, isAvailable, isUpdating, onToggle, onEdit, 
         )}
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-        {/* §63-64 Fase 1: "Modifica" solo per i prodotti (onEdit passato); le
-            salse non sono nel perimetro dell'editor. */}
+        {/* §63-64 Fase 1: "Modifica" per gli articoli con editor dei campi
+            semplici (onEdit passato) — salse incluse, dalla v32 sono prodotti
+            (§30). Compare per ogni categoria che passa `onEdit`. */}
         {onEdit && (
           <button
             onClick={onEdit}
@@ -1037,9 +1039,9 @@ const DIETARY_INCOMPATIBLE = {
 
 // §67 v30/v31: la voce del selettore a tre voci dai flag salvati. Si preseleziona
 // solo con dichiarazione COMPLETA (entrambi i flag valorizzati); se anche uno
-// solo è NULL ⇒ nessuna preselezione (stringa vuota). Nota: su `sauces` is_vegan
-// è NOT NULL, ma is_vegetarian può essere NULL (3 salse), e in quel caso il
-// selettore deve restare vuoto.
+// solo è NULL ⇒ nessuna preselezione (stringa vuota). Nota: le salse (ora
+// prodotti, §30) hanno is_vegan valorizzato ma is_vegetarian può essere NULL
+// (oggi 2: Tzatziki, Yogurt), e in quel caso il selettore deve restare vuoto.
 function dietaryFromFlags(isVegan, isVegetarian) {
   if (isVegan == null || isVegetarian == null) return "";
   if (isVegan === true) return "vegan"; // vegano implica vegetariano (§67)
@@ -1048,8 +1050,9 @@ function dietaryFromFlags(isVegan, isVegetarian) {
 }
 
 // §67 (Fase 2A, secondo tempo): form inline degli allergeni + flag dietetico,
-// sotto la riga dell'articolo, senza pop-up (§34-35). Vale per prodotti e salse
-// (parametro `kind`). Realizza le regole d'interfaccia v30/v31; il salvataggio
+// sotto la riga dell'articolo, senza pop-up (§34-35). Vale per ogni articolo
+// food; dalla v32 le salse sono prodotti (§30) e passano dalla stessa strada,
+// con kind="product". Realizza le regole d'interfaccia v30/v31; il salvataggio
 // vero e le validazioni stanno nel core (POST /api/staff/menu/allergens).
 function AllergensEditForm({ article, kind, allergensCatalog, onSaved, onCancel }) {
   const initialIds = article.allergens ?? [];
@@ -1265,7 +1268,6 @@ const secondaryBtn = {
 // niente propagazioni automatiche — ogni riga si aggiorna da sola.
 function MenuSection() {
   const [products, setProducts] = useState([]);
-  const [sauces, setSauces] = useState([]);
   const [allergensCatalog, setAllergensCatalog] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -1279,7 +1281,6 @@ function MenuSection() {
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Errore nel caricamento del menu.");
       setProducts(data.products ?? []);
-      setSauces(data.sauces ?? []);
       setAllergensCatalog(data.allergens ?? []);
       setError(null);
     } catch (err) {
@@ -1385,41 +1386,6 @@ function MenuSection() {
             })}
           </div>
         )
-      )}
-
-      {sauces.length > 0 && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          <h2 style={{ fontWeight: 700, fontSize: 16, color: "var(--navy)", margin: 0 }}>Salse</h2>
-          {sauces.map((sauce) => (
-            <div key={sauce.id} style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-              <MenuItemRow
-                label={sauce.name}
-                price={sauce.price}
-                isAvailable={sauce.is_available}
-                isUpdating={updatingId === sauce.id}
-                isEditingAllergens={allergensId === sauce.id}
-                verification={{ at: sauce.allergens_verified_at }}
-                onToggle={() => handleToggle("sauce", sauce.id, sauce.is_available)}
-                onAllergens={() => {
-                  setEditingId(null);
-                  setAllergensId(allergensId === sauce.id ? null : sauce.id);
-                }}
-              />
-              {allergensId === sauce.id && (
-                <AllergensEditForm
-                  article={sauce}
-                  kind="sauce"
-                  allergensCatalog={allergensCatalog}
-                  onCancel={() => setAllergensId(null)}
-                  onSaved={() => {
-                    setAllergensId(null);
-                    fetchMenu();
-                  }}
-                />
-              )}
-            </div>
-          ))}
-        </div>
       )}
     </div>
   );
