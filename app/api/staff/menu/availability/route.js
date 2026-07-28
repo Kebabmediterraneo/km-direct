@@ -2,13 +2,9 @@ import { NextResponse } from "next/server";
 import { supabaseAdmin } from "../../../../../lib/supabase-admin";
 import { requireStaffSession } from "../../../../../lib/require-staff-session";
 
+// §30 (v32): un solo tipo di articolo, il prodotto (salse incluse).
 const TABLE_BY_KIND = {
   product: "products",
-  // COMPATIBILITÀ TEMPORANEA (§30): le salse sono righe di `products`, ma il
-  // pannello invia ancora kind:"sauce" fino al secondo tempo. Lo accettiamo
-  // instradandolo su `products`. DA RIMUOVERE quando il pannello invierà
-  // kind:"product" anche per le salse.
-  sauce: "products",
 };
 
 // §63: unica route che può scrivere is_available — la publishable key ha
