@@ -1,10 +1,28 @@
 # KM DIRECT — MASTER SPECIFICATION
 
-**Versione 27** — sostituisce la v26.
+**Versione 28** — sostituisce la v27.
 
 Documento di riferimento definitivo per lo sviluppo. Le decisioni qui
 contenute sono approvate: non vanno reinterpretate senza un motivo concreto
 (vedi §73). Ogni file di codice del progetto deve rispettare queste regole.
+
+**Novità della v28** (vincolanti):
+
+1. §46 — **prezzo mostrato vs prezzo addebitato**: rilevata una divergenza
+   possibile per i clienti che tengono la pagina già aperta durante un
+   cambio di prezzo. Accettata temporaneamente (esposizione nulla finché il
+   sito non è pubblico), con **regola operativa** di modificare i prezzi
+   fuori orario di servizio e **requisito obbligatorio pre-go-live**: al
+   checkout il server deve confrontare prezzo mostrato e prezzo reale e
+   fermarsi con un avviso invece di addebitare in silenzio.
+2. §34-35 — il **badge promozionale** va mostrato sulle card di **tutte le
+   categorie di prodotto**, non solo su Roll e Bowl. Fino alla v27 i
+   prodotti semplici lo omettevano per omissione di rendering: un badge
+   salvato dall'editor deve sempre produrre un effetto visibile.
+3. §63-64 — **modifiche concorrenti**: se due persone salvano lo stesso
+   prodotto, l'ultimo sovrascrive il primo senza avviso. Accettato
+   consapevolmente, nessun meccanismo di blocco. Registrato anche lo stato
+   di avanzamento: **Fase 1 dell'editor realizzata**.
 
 **Novità della v27** (vincolanti):
 
@@ -825,6 +843,18 @@ semi-trasparente alterava i colori della pagina sottostante in modo non
 coerente con la palette del brand. Vale come nuova regola definitiva per
 ogni prodotto configurabile (Roll, Bowl, Menu Combo).
 
+**Badge promozionale su tutte le categorie (v28, vincolante)**: il badge
+scelto dall'editor menu (§63-64, lista chiusa) va mostrato sulla card di
+**tutti i prodotti**, non solo su quelli configurabili. Fino alla v27 il
+chip era disegnato solo dalla card dei prodotti con opzioni (Roll, Bowl),
+mentre i prodotti semplici (fritti, sides, dolci, drink, birre) lo
+omettevano: era un'omissione di rendering, non una scelta. Poiché l'editor
+consente di assegnare un badge a qualunque prodotto, un badge salvato deve
+sempre produrre un effetto visibile. Il chip usa lo **stesso stile** su
+tutte le card e **convive** con i badge dietetici Vegano/Vegetariano (§67),
+che restano derivati dai flag e non dal campo `badge`. Le salse non hanno
+campo `badge` e restano escluse.
+
 ## 36-40. Carrello
 
 Barra sticky quando non vuoto ("N articoli · totale €" + "Vedi carrello").
@@ -878,6 +908,34 @@ non limitarsi a fidarsi del fatto che il client abbia già mostrato
 Stripe. Regole non negoziabili: prezzo ricalcolato server-side (mai fidarsi
 del browser), webhook, idempotenza, prevenzione doppio ordine, stato
 pending, ordine storico con snapshot prezzi immutabile, procedura rimborso.
+
+**Prezzo mostrato vs prezzo addebitato — da chiudere PRIMA del go-live
+(v28, vincolante)**
+
+Situazione rilevata durante la Fase 1 dell'editor menu. Il menu del cliente
+è letto dal browser a ogni caricamento della pagina, una volta sola, senza
+polling e senza cache lato Next/ISR/CDN. Il checkout invece **ricalcola
+sempre** il prezzo dal `base_price` vivo del database, come impone questa
+sezione. Conseguenza: un cliente che tiene la pagina **già aperta** mentre
+il prezzo viene modificato dal pannello continua a vedere il prezzo vecchio
+nel menu e nel carrello, ma al pagamento gli viene addebitato quello nuovo.
+L'importo su Stripe è corretto e coerente col database — il problema non è
+contabile, è di fiducia: la cifra diversa compare nel momento peggiore,
+cioè davanti al pagamento.
+
+*Decisione presa in v28*: la situazione si **accetta temporaneamente**,
+perché esiste già a prescindere dall'editor, perché finché il sito non è
+pubblico l'esposizione è nulla, e perché la correzione vive dentro la route
+di pagamento e richiede un ciclo di verifica dedicato, non un intervento
+incastrato dentro un altro lavoro. *Regola operativa nel frattempo*: i
+prezzi si modificano preferibilmente **fuori dall'orario di servizio**.
+
+*Requisito obbligatorio prima del go-live*: al checkout il server deve
+**confrontare il prezzo mostrato al cliente con quello reale** e, se
+differiscono, **fermarsi con un avviso comprensibile** invece di addebitare
+in silenzio un importo diverso da quello visto. Questa voce va trattata
+come le altre condizioni di apertura (informativa privacy, Stripe live,
+dominio, travaso dati).
 
 ## 46b. Validazioni server-side e convenzioni di errore API (aggiunto in v14, vincolante)
 
@@ -1398,7 +1456,26 @@ deve mostrare **valore precedente e valore nuovo** e richiedere una conferma
 prima del salvataggio. Motivo: il checkout ricalcola i prezzi a partire da
 `base_price` (§66), quindi un errore di battitura ha effetto **immediato**
 su tutti gli ordini successivi e non è visibile finché non si guardano gli
-incassi.
+incassi. La conferma è una protezione dell'**interfaccia**: il server non
+deve pretenderla, le sue validazioni valgono comunque.
+
+**Modifiche concorrenti — comportamento accettato (v28)**: se due persone
+hanno il pannello aperto e salvano lo stesso prodotto, **l'ultimo
+salvataggio sovrascrive il primo senza alcun avviso**. Nessun meccanismo di
+blocco o di rilevamento del conflitto è stato costruito: è una scelta
+consapevole, coerente con una squadra piccola che lavora nello stesso
+locale. Il `staff_action_log` (§66) permette comunque di ricostruire chi ha
+scritto cosa e quando. Da rivedere solo se il pannello verrà usato da più
+persone contemporaneamente e a distanza.
+
+**Stato di avanzamento (v28)**: la **Fase 1 è realizzata**. L'editor
+modifica i cinque campi semplici con validazioni server-side complete,
+lista chiusa dei badge condivisa tra server e interfaccia, conferma sul
+cambio di prezzo, form inline nella sezione Menu del pannello staff
+(coerente con §34-35) e registrazione di ogni modifica in
+`staff_action_log`, esteso anche al toggle disponibile/esaurito. Restano
+da fare, nell'ordine, la Fase 2 (allergeni e flag dietetici) e la Fase 3
+(creazione di prodotti semplici, con dichiarazione allergeni obbligatoria).
 
 **Decisione operativa (presa dopo l'MVP iniziale, vincolante)**: tutti i
 prodotti e le salse segnati "esaurito" tornano automaticamente
