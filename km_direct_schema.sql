@@ -186,25 +186,7 @@ create table product_accompaniments (
   sort_order integer not null default 0
 );
 
--- Salse — categoria autonoma, tutte a 1€, con flag vegano esplicito (§30)
--- Black KM è l'unica NON vegana: il flag va sempre valorizzato esplicitamente,
--- mai assunto per default.
-create table sauces (
-  id uuid primary key default gen_random_uuid(),
-  store_id uuid not null references stores(id) on delete cascade,
-  name text not null,
-  description text,
-  price numeric(6,2) not null default 1.00,
-  is_vegan boolean not null,
-  is_available boolean not null default true,
-  sort_order integer not null default 0,
-  allergens_verified_at timestamptz,
-  is_vegetarian boolean,
-  badge text,
-  spice_level smallint not null default 0,
-  spice_label text,
-  image_url text
-);
+-- Le tabelle `sauces` e `sauce_allergens` sono state dismesse il 29/07/2026: salse unificate in `products` con category='salse' (§30). Storia in sql/20260728_sauces_export_pre_merge.sql e sql/20260729_drop_sauces_tables.sql.
 
 -- ============================================================================
 -- 4. MENU COMBO (§23-§26)
@@ -256,12 +238,6 @@ create table product_allergens (
   product_id uuid not null references products(id) on delete cascade,
   allergen_id uuid not null references allergens(id) on delete cascade,
   primary key (product_id, allergen_id)
-);
-
-create table sauce_allergens (
-  sauce_id uuid not null references sauces(id) on delete cascade,
-  allergen_id uuid not null references allergens(id) on delete cascade,
-  primary key (sauce_id, allergen_id)
 );
 
 -- ============================================================================
@@ -374,8 +350,7 @@ create table order_items (
   --   "protein": {"key": "adana", "label": "Adana", "price_delta": 4.50},
   --   "removals": ["Senza hummus", "Non piccante"],
   --   "addons": [],
-  --   "accompaniment": null,
-  --   "sauces": []
+  --   "accompaniment": null
   -- }
   -- Esempio configuration per un Menu Combo:
   -- {
