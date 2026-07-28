@@ -132,6 +132,7 @@ create table products (
   is_vegetarian boolean,                        -- §67: vegano ⊂ vegetariano; NULL per drink/birre
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
+  allergens_verified_at timestamptz,            -- §67: data di verifica allergeni (NULL = mai dichiarato, oppure bevanda fuori dal tracciamento)
 
   unique (store_id, slug)
 );
@@ -196,7 +197,13 @@ create table sauces (
   price numeric(6,2) not null default 1.00,
   is_vegan boolean not null,
   is_available boolean not null default true,
-  sort_order integer not null default 0
+  sort_order integer not null default 0,
+  allergens_verified_at timestamptz,
+  is_vegetarian boolean,
+  badge text,
+  spice_level smallint not null default 0,
+  spice_label text,
+  image_url text
 );
 
 -- ============================================================================
