@@ -1,10 +1,34 @@
 # KM DIRECT — MASTER SPECIFICATION
 
-**Versione 30** — sostituisce la v29.
+**Versione 31** — sostituisce la v30.
 
 Documento di riferimento definitivo per lo sviluppo. Le decisioni qui
 contenute sono approvate: non vanno reinterpretate senza un motivo concreto
 (vedi §73). Ogni file di codice del progetto deve rispettare queste regole.
+
+**Novità della v31** (vincolanti):
+
+1. §67 — **avviso non bloccante di incoerenza fra allergeni e flag
+   dietetico.** Se la selezione contiene un allergene incompatibile con il
+   flag scelto, l'interfaccia lo segnala e **lascia salvare comunque**: uno
+   dei due dati è sbagliato, ma quale lo decide solo chi conosce la ricetta.
+   Il sistema non corregge nulla da sé — sarebbe dedurre, e §67 lo vieta.
+   Incompatibilità: con **Vegano** → Latte, Uova, Pesce, Crostacei,
+   Molluschi; con **Vegetariano** → Pesce, Crostacei, Molluschi (Latte e
+   Uova restano compatibili). *Regola approvata insieme al selettore a tre
+   voci e rimasta fuori dalla v29 e dalla v30 per omissione: recuperata qui
+   prima che il form venga costruito.*
+2. §67 — **riapertura di un articolo senza allergeni**: la casella "Nessuno
+   dei 14" si presenta **già spuntata** se l'articolo ha zero allergeni e
+   `allergens_verified_at` valorizzato, **non spuntata** se la data è nulla.
+   È l'uso concreto per cui quella colonna esiste: senza questa regola, chi
+   riapre una scheda verificata vedrebbe di nuovo tutto vuoto e ricadrebbe
+   nell'ambiguità che la casella doveva eliminare.
+3. §67 — **stato di verifica visibile nella sezione Menu del pannello**:
+   ogni articolo food mostra se e quando gli allergeni sono stati
+   verificati, e gli articoli mai verificati sono visibilmente distinti. Le
+   bevande non mostrano l'indicatore, come già non mostrano il selettore
+   dietetico (§67, fuori dal tracciamento).
 
 **Novità della v30** (vincolanti):
 
@@ -1645,6 +1669,13 @@ da fare, nell'ordine, la Fase 2A (allergeni e flag dietetici su prodotti e
 salse), la Fase 2B (salse al pari sui campi semplici) e la Fase 3
 (creazione di articoli semplici, con dichiarazione allergeni obbligatoria).
 
+**Stato di avanzamento della Fase 2A (v31)**: il **core è realizzato e
+verificato** — `lib/menu-allergens.js` (validazioni, ordine insert-poi-delete,
+flag dietetico, `allergens_verified_at`, log) e la route sottile
+`app/api/staff/menu/allergens/route.js`. Una sola funzione gestisce prodotti
+e salse, così le regole sono identiche per costruzione e non per disciplina.
+Resta da costruire l'**interfaccia**, con le regole del blocco §67 v31.
+
 **Forma del codice da riusare (precisata in v29)**: la Fase 1 non ha messo
 validazioni e regole dentro la route HTTP, come diceva la formulazione
 precedente di questa sezione, ma le ha isolate in moduli sotto `lib/` —
@@ -1937,6 +1968,52 @@ allergeni o flag dietetici, su prodotti e su salse.
 - **Ogni salvataggio va registrato in `staff_action_log`** con la lista
   completa prima e la lista completa dopo (vedi sopra), mai il singolo
   allergene aggiunto o tolto.
+
+**Regole dell'interfaccia dell'editor allergeni (v31, vincolanti)**
+
+Valgono per il form della Fase 2A e per ogni schermata successiva che
+permetta di modificare allergeni o flag dietetici. Sono protezioni
+dell'**interfaccia**: il server non le pretende, le sue validazioni (blocco
+precedente) valgono comunque.
+
+- **Form inline**, aperto sotto la riga dell'articolo nella sezione Menu,
+  senza pop-up né overlay — come la Fase 1 e coerentemente con §34-35.
+
+- **Avviso di incoerenza fra allergeni e flag dietetico — non bloccante.**
+  Quando la selezione contiene un allergene incompatibile con il flag
+  dietetico scelto, l'interfaccia mostra un avviso che nomina l'allergene e
+  il flag e invita a controllare, e **lascia salvare comunque**.
+  Incompatibilità:
+  - con **Vegano**: Latte, Uova, Pesce, Crostacei, Molluschi;
+  - con **Vegetariano**: Pesce, Crostacei, Molluschi. Latte e Uova sono
+    compatibili con "vegetariano" e non producono avviso.
+
+  **Non è una correzione automatica**: il sistema non modifica né gli
+  allergeni né il flag, e non decide quale dei due sia sbagliato. Dedurre un
+  dato di sicurezza alimentare da un altro è vietato (§67): l'avviso segnala
+  una contraddizione fra due dichiarazioni, entrambe fatte da una persona,
+  e lascia la scelta a chi conosce la ricetta.
+
+  **L'assenza di avviso non è una conferma di coerenza.** Il controllo
+  confronta soltanto i 14 allergeni con il flag: un articolo può essere non
+  vegano per ingredienti che non sono allergeni — il miele è il caso tipico
+  (Baklava, Kaymak & miele) — senza che nulla scatti. L'avviso intercetta
+  una contraddizione evidente, non certifica il resto.
+
+- **Riapertura di un articolo senza allergeni**: la casella "Nessuno dei 14"
+  si presenta **già spuntata** quando l'articolo ha zero allergeni **e**
+  `allergens_verified_at` valorizzato; **non spuntata** quando ha zero
+  allergeni e la data è nulla. È la traduzione a schermo della distinzione
+  fra "verificato: non contiene nulla" e "mai dichiarato", ed è l'uso
+  concreto per cui quella colonna è stata creata.
+
+- **Stato di verifica visibile nella lista**: nella sezione Menu ogni
+  articolo food mostra se e quando gli allergeni sono stati verificati, e
+  quelli mai verificati sono visibilmente distinti, così che la domanda
+  "abbiamo verificato tutto?" si risolva guardando la schermata invece che
+  ricordando. Le **bevande non mostrano l'indicatore**: sono fuori dal
+  tracciamento per decisione di §67, e segnalarle come "mai verificate"
+  produrrebbe 21 avvisi permanenti che non chiedono alcuna azione.
 
 **Dato di verifica degli allergeni — `allergens_verified_at` (v29,
 vincolante)**
