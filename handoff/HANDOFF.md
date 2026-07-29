@@ -12,26 +12,26 @@ Web app per ordini **delivery e ritiro** di **FAME Srl / KM Kebab Mediterraneo**
 (Bologna, store `san-mamolo`). Stack **Next.js 14 + Supabase + Stripe (sandbox)**.
 Repo: **github.com/Kebabmediterraneo/km-direct** (branch `main`, push via SSH).
 La fonte di verità di tutte le decisioni è **`MASTER_SPEC.md`** — versione attuale
-**v35** (leggila sempre dall'intestazione, riga 3).
+**v36** (leggila sempre dall'intestazione, riga 3).
 
 ---
 
 ## 2) Stato git
 
 - Branch **`main`**, working tree **pulita**, allineata a `origin/main`.
-- HEAD: **`6359e6c`**.
+- HEAD: **`71d9d12`**.
 - Ultimi commit (dal più recente):
 
 ```
+71d9d12 carrello: il "−" rimuove la riga a quantità 1, uniformato alla card §36-40
+1b52a8b spec: v36 — persistenza carrello e dati checkout §36-40, variazioni validate §18 §46b, pulizia riscritta §66
+5ee101c checkout: variazioni validate contro le rimozioni del prodotto, modulo puro con test §46b
+d7de8cb carrello: chiave per id sulle righe aggiunte dai suggerimenti, fusione e contatore allineati
+2e8dc4e handoff: aggiorna a v35 — Fase 2B chiusa con la piccantezza, lezioni su next build e ricognizioni incomplete
 6359e6c pannello: scelta della piccantezza nel form e campi nella GET §34-35 §63-64
 aebac0e menu pubblico: piccantezza disegnata anche sulla card semplice, componente condiviso §34-35
 55c42e7 spec: v35 — piccantezza disegnata su tutte le card §34-35, livelli delle salse §30, modifica dal pannello §63-64
 2438d12 handoff: corregge la dicitura della piccantezza e i 6 articoli già valorizzati
-b2166f0 editor menu: piccantezza sui campi modificabili, dicitura ricavata dal server dalla lista chiusa §34-35
-ae9d72f spec: v34 — dicitura piccantezza livello 1 corretta in Leggermente piccante §34-35, campo assente non modificato §63-64
-162a912 handoff: aggiorna a v33 — unificazione salse conclusa, metodo migrazioni e lezioni di verifica, elenco residui riletto
-2757751 schema: rimosse sauces e sauce_allergens, dismesse con l'unificazione delle salse §30
-441026f spec: v33 — migrazione salse applicata e schema da riallineare §30, persistenza carrello §36-40, ordini pending §65, pulizia riletta §66, badge vegetariano risolto §67
 ```
 
 ---
@@ -48,7 +48,7 @@ Conseguenze, tutte in spec (§66):
 
 - **non esiste la condizione di apertura "travaso dati test → produzione"**:
   non c'è nulla da travasare;
-- **vanno rimossi i residui di test prima del go-live** (elenco al punto 8);
+- **vanno rimossi i residui di test prima del go-live** (elenco al punto 9);
 - **ogni modifica dal pannello tocca dati vivi**, senza rete di protezione. È la
   ragione delle regole "fuori orario di servizio" (§67) e delle conferme
   esplicite (§63-64, §67).
@@ -105,7 +105,7 @@ g. **Aggiornamenti spec col METODO FILE**: si genera il `MASTER_SPEC.md`
    verbatim), **diff verificato prima del commit**. Controlli standard: riga 3,
    blocco Novità, numero di righe, `numstat` atteso, zone del diff. Il conteggio
    delle zone va dichiarato **come lo conta git** (con le righe di contesto, che
-   fondono le zone vicine).
+   fondono le zone vicine). Vale anche per l'handoff.
 h. **Claude Code NON può eseguire DDL** (solo PostgREST): `ALTER`/`DROP TABLE` li
    esegue **Andrea nel SQL editor Supabase**, con **migration versionata in `sql/`**.
 i. **Verifiche dal vivo**: Code avvia **un solo** `next dev` — controllando prima
@@ -175,6 +175,33 @@ y. **Spegnere il server dopo ogni verifica dal vivo.** Un `next dev` rimasto
    acceso da una sessione precedente ha fatto perdere tempo a inseguire un 404
    che non c'entrava con il lavoro in corso.
 
+**Lezioni aggiunte il 29/07/2026 (lavoro sul carrello)**
+
+z. **Un elenco si costruisce interrogando tutte le tabelle, non ricordando
+   quali si sono toccate.** È il seguito della lezione `s`, e serviva: la v33
+   aveva **riletto** i numeri dal database, ma solo dentro le tabelle che
+   qualcuno ricordava di aver usato, e ne mancavano **tre intere**
+   (`customers`, `order_status_history`, `promo_redemptions`). Rileggere non
+   basta se non si sa dove rileggere.
+aa. **Prima di riscrivere un documento col metodo file, verificarne
+   l'impronta.** La copia dell'handoff caricata all'inizio della sessione del
+   29/07 era ferma alla **v33** mentre il repo era alla **v35**: riscriverla
+   avrebbe riportato indietro tutto in silenzio, con un diff pieno di modifiche
+   che nessuno aveva chiesto. Si confrontano `wc -l`, `wc -c` e `sha256sum`
+   prima di partire, e si riparte dal file del repo.
+ab. **Una prova dal vivo va descritta indicando esattamente quale comando
+   premere.** Una verifica scritta male ("premi −") ha fatto usare ad Andrea un
+   pulsante diverso da quello previsto, facendo sembrare fallita una modifica
+   riuscita. L'imprecisione era nella prova, non nella risposta — e ha comunque
+   fatto emergere un difetto vero (il punto 5 della v36). Quando un esito non
+   torna, il primo sospettato è la prova.
+ac. **Prima di provare un percorso di rifiuto, verificare sul codice che non
+   scriva nulla.** Le tre prove HTTP sulla validazione delle variazioni sono
+   state precedute dal controllo che il rifiuto avvenga **prima** di ogni
+   scrittura; verificato dopo, il database era intatto. Il percorso
+   **positivo**, invece, crea un ordine e va deciso apertamente: costa un
+   residuo di prova in più (punto 9).
+
 ---
 
 ## 5) Stato funzionale — aree COMPLETE e verificate
@@ -198,6 +225,10 @@ y. **Spegnere il server dopo ogni verifica dal vivo.** Un `next dev` rimasto
   29/07/2026*, punto 6.
 - **Editor menu — FASE 2B COMPLETA** (§34-35, §63-64) — *conclusa il
   29/07/2026*, punto 7.
+- **Validazione server-side delle variazioni** (§18, §46b) — *29/07/2026*,
+  punto 8.
+- **Carrello: chiave unica per id e "−" uniformato** (§36-40) — *29/07/2026*,
+  punto 8.
 
 ---
 
@@ -260,7 +291,113 @@ da §34-35 stessa; da spostare nel modulo quando lo si toccherà di nuovo.
 
 ---
 
-## 8) Stato dei dati (29/07/2026)
+## 8) Il carrello e le variazioni (29/07/2026)
+
+Tre lavori, tutti nati dalla ricognizione fatta prima di aprire la persistenza
+del carrello. **La persistenza vera e propria non è ancora iniziata**: quanto
+segue è il terreno preparato, più ciò che serve sapere per proseguire.
+
+**a. Chiave delle righe di carrello (commit `d7de8cb`)**
+
+Lo stesso articolo aggiunto dal menu e poi dal suggerimento nel carrello finiva
+in **due righe separate**: `incrementSimpleProduct` usava l'id come chiave,
+`quickAddToCart` il nome. Il prezzo addebitato era comunque corretto (il server
+ricalcola), ma il contatore sulla card non vedeva l'articolo e i suggerimenti
+continuavano a riproporlo. **Una riga cambiata**, e tre punti si sono allineati
+da sé perché usano tutti lo stesso identificatore. Verificato dal vivo.
+
+Contava anche per il seguito: al ritorno da un pagamento le due righe si
+sarebbero fuse da sole durante la ricostruzione, e il carrello sarebbe cambiato
+forma sotto gli occhi del cliente.
+
+**b. Validazione delle variazioni (commit `5ee101c`, §18 e §46b)**
+
+Le rimozioni erano **l'unica scelta di configurazione non verificata dal
+server**: arrivavano dal client e finivano dritte nelle istruzioni per la
+cucina, disegnate per giunta nel modo più vistoso possibile (§56, maiuscolo su
+etichette rosse). Proteina, accompagnamento, contorno e bibita erano invece
+controllati — ma solo perché **spostano il prezzo** e quindi vanno letti
+comunque: il controllo era un effetto collaterale del calcolo, e dove il calcolo
+non serviva non c'era.
+
+Costruito in due tempi, secondo il metodo `l`:
+
+- **`lib/menu-removals.js`** — funzione **pura**, nessun accesso al database:
+  riceve le etichette ammesse per quel prodotto e quelle arrivate dal client, e
+  restituisce l'esito. **25 asserzioni** in `tests/menu-removals.test.mjs`,
+  eseguibili con `node tests/menu-removals.test.mjs`.
+- **Aggancio in `app/api/checkout/route.js`**, nei due punti che non
+  controllavano nulla: prodotto singolo (`product_id = ref.id`) e combo
+  (`product_id = ref.rollProductId`, cioè il Roll scelto).
+
+Scelte registrate: confronto **esatto** senza normalizzazioni, come le altre
+opzioni; **rifiuto dell'intera riga**, non scarto silenzioso del pezzo non
+valido; **doppioni scartati**; elenco ammesso mancante trattato come vuoto,
+quindi rifiuto — mai accettare al buio.
+
+⚠️ **Un guasto di lettura non è un rifiuto.** `resolveProduct` aveva un solo
+canale per dire di no (`null` → 400). Ne è stato aggiunto un secondo, una
+sentinella distinta: se la lettura di `product_removals` fallisce si risponde
+**500**, mai "variazione non disponibile". Un cliente onesto non deve cambiare
+il suo ordine per un guasto nostro.
+
+**Verifiche**: 25/25 sui test; tre richieste HTTP costruite a mano tutte
+respinte con 400 — etichetta inventata, etichetta vera **ma di un altro
+prodotto** ("Senza feta" su Il Turco), stringa al posto dell'elenco — e database
+intatto dopo le prove. Andrea ha poi verificato dal vivo il **percorso normale**,
+completando un ordine in sandbox e controllando le variazioni sulla card del
+pannello. Resta scoperto da test automatico l'**instradamento** dentro la route
+(lezione `t`: `route.js` non è importabile fuori da Next).
+
+*Il caso della stringa al posto dell'elenco era il danno peggiore trovato: il
+pannello vi avrebbe fatto sopra un'operazione da lista e la card dell'ordine si
+sarebbe rotta. Non un'istruzione sbagliata in cucina, una schermata che non si
+disegna.*
+
+**c. Il "−" uniformato (commit `71d9d12`, §36-40)**
+
+Il "−" sulla card rimuoveva l'articolo a quantità 1; quello nel carrello si
+fermava a 1 e per togliere serviva "Rimuovi". Due pulsanti uguali, due
+comportamenti diversi, **mai decisi da nessuno**. Ora rimuovono entrambi;
+"Rimuovi" resta perché su quantità 5 il "−" chiederebbe cinque tocchi. La
+condizione di rimozione è scritta **sul valore risultante**, non sul segno del
+delta: il "+" non può togliere una riga per costruzione, non per disciplina.
+
+**d. Quello che serve sapere per la persistenza**
+
+Ricognizione del 29/07/2026, tuttora valida:
+
+- **Nessuna persistenza esiste oggi** lato cliente: nessun uso di
+  `localStorage`/`sessionStorage`/cookie in `app/page.js` né nelle route del
+  checkout. Gli unici usi nel repo sono l'allarme sonoro del pannello staff e i
+  cookie di sessione del login staff.
+- **Il carrello è una sola variabile di stato React** dentro `Home`
+  (`cartItems`), passata come prop ai figli. Nessun context, nessuno store.
+  Muore a ogni caricamento.
+- **La cosa giusta da salvare esiste già**: ogni riga porta un campo `ref`, che è
+  esattamente ciò che viaggia al server al pagamento — **identificativi e
+  configurazione, senza prezzi e senza nomi**. È già la forma che §36-40 chiede.
+- **Il menu viene caricato da zero al montaggio** della home, senza filtro di
+  disponibilità (gli esauriti servono a mostrare l'etichetta). Il campo è
+  `is_available` nel database, esposto come `isAvailable`. È il presupposto su
+  cui poggia la ricostruzione.
+- **Uscita e rientro**: si va a Stripe con una navigazione via dal sito, quindi
+  la pagina viene scaricata. `success_url` porta a `/conferma?order_token=…`,
+  `cancel_url` alla home. In entrambi i casi è un caricamento da zero.
+  *Verificato dal vivo da Andrea*: tornando indietro si perde tutto, carrello e
+  dati del checkout.
+- ⚠️ **Due ostacoli tecnici veri**, entrambi già registrati in spec:
+  1. **il calcolo del prezzo di riga vive dentro i componenti**
+     (`ProductConfigurator`, `ComboBuilder`) e non è richiamabile da fuori. Va
+     estratto **prima** della persistenza (§36-40 v36, punto 4);
+  2. **proteina, contorno, accompagnamento e rimozioni sono identificati per
+     label**, non per id (§25, residuo noto). Per il contorno del combo l'id
+     esiste già nel client (`sideId`) e semplicemente non viene messo nel `ref`.
+     Le rimozioni resteranno label finché non avranno un id proprio.
+
+---
+
+## 9) Stato dei dati (29/07/2026)
 
 **Allergeni**
 
@@ -281,32 +418,77 @@ da §34-35 stessa; da spostare nel modulo quando lo si toccherà di nuovo.
   riconoscono subito: aprendo il form allergeni, il **selettore dietetico si
   presenta vuoto**. Vanno dichiarate da Andrea, **mai dedotte**.
 
+**Rimozioni** (rilevante per §18): **70 righe** su **14 prodotti** — i 7 Roll e
+le 7 Bowl, nessun altro articolo. Roll e Bowl hanno righe **proprie e
+indipendenti**. Le etichette distinte sono **23** e **tutte e 23 sono condivise
+da più prodotti**: per questo la validazione va fatta **per `product_id`** e mai
+su un elenco globale.
+
 **Residui di test da rimuovere prima del go-live**
 
 Il database è uno solo, quindi questi dati staranno in mezzo a quelli veri dal
-primo giorno di apertura.
+primo giorno di apertura. **Decisione di Andrea del 29/07/2026: al go-live si
+azzera tutto**, senza tenere nulla "per storico".
 
-⚠️ **Questo elenco è stato sbagliato due volte** perché ricostruito per
-differenza invece che letto. I numeri qui sotto sono letti dal database il
-**29/07/2026** e **invecchiano a ogni prova**: prima del go-live vanno riletti,
-non ricopiati da qui.
+⚠️ **Questo elenco era incompleto, non vecchio**: mancavano **tre tabelle
+intere**, `customers` compresa. I numeri qui sotto sono letti il **29/07/2026
+interrogando tutte e 23 le tabelle** e **invecchiano a ogni prova**: prima del
+go-live vanno riletti così, non ricopiati da qui (lezioni `s` e `z`).
 
-- **`orders`: 6 righe, tutte di prova** (26-28/07/2026), più **8 righe** in
-  `order_items`. `KM-0001` (delivery, 29,50 €) è l'unico con pagamento
-  `succeeded`, in sandbox; gli altri 5 sono `pending`. `KM-0004`, `KM-0005` e
-  `KM-0006` sono le prove di checkout della migrazione salse. **Si azzerano
-  entrambe le tabelle.**
+- **`orders`: 8 righe, tutte di prova** (26-29/07/2026), più **12 righe** in
+  `order_items`, di cui **2 con rimozioni** (le prime da quando il progetto
+  esiste, dalla verifica di §18). Due ordini con pagamento `succeeded` in
+  sandbox — `KM-0001` (29,50 €) e `KM-0008` (23,50 €) — gli altri sei `pending`.
+- **`customers`: 27 righe, tutte di prova.** Sono **dati personali**, per quanto
+  inventati. Solo 8 hanno un ordine collegato: le altre 19 sono passaggi di
+  checkout interrotti, perché il cliente viene scritto **prima** dell'ordine.
+  Nessuna ha email o consenso marketing. Anche la riga intestata "Andrea
+  Pastore" è una prova, non una persona.
+- **`order_status_history`: 12 righe**, tutte su `KM-0001`. Segue gli ordini per
+  cancellazione a catena, ma va **nominata**: una tabella che non compare in un
+  elenco non viene riletta.
+- **`promo_redemptions`: 1 riga** — `GIVEMEFIVE` su `KM-0001`. §14 dà **un solo
+  utilizzo per cliente**: finché esiste, quel telefono non può più usare il
+  codice.
 - **`staff_action_log`: 64 righe, di cui 43 di test** su quattro identificatori
-  — `staff:test-fase1` (12), `staff:test-fase2a` (9), `staff:test-merge` (7),
-  `staff:test-spice` (15). Le altre **21**
-  (`staff:bologna@kebabmediterraneo.com`) sono azioni vere e **non vanno
-  toccate**.
+  — `staff:test-spice` (15), `staff:test-fase1` (12), `staff:test-fase2a` (9),
+  `staff:test-merge` (7). Le altre **21**
+  (`staff:bologna@kebabmediterraneo.com`) sono azioni vere sul menu vero:
+  **restano**, sono l'audit trail imposto da §66 e sono **l'unica eccezione**
+  all'azzeramento.
+- **Vuote al 29/07/2026**, da ricontrollare comunque: `analytics_events`,
+  `coupons`, `staff_settings`, `store_schedule_exceptions`.
 
 ---
 
-## 9) To-do / prossimi passi (in ordine)
+## 10) To-do / prossimi passi (in ordine)
 
-### PROSSIMO — Fase 3: creazione di articoli semplici
+### PROSSIMO — Persistenza del carrello (§36-40), in tre passi
+
+Chiude una **condizione di apertura**. Le regole sono già tutte in spec (v36).
+
+1. **Estrarre il calcolo del prezzo di riga in un punto solo** (§36-40 v36,
+   punto 4). È il prerequisito: al rientro i prezzi vanno **ricalcolati**
+   perché non si salvano, e oggi il calcolo è chiuso dentro
+   `ProductConfigurator` e `ComboBuilder`. Riscriverlo una seconda volta è
+   vietato — due implementazioni divergono, sempre (§46).
+2. **Il cervello**: salvataggio e ricostruzione, verificati da Code, con le
+   regole della v36 — si salva ciò che il cliente ha **scritto o scelto**, mai
+   ciò che il sistema ha **concluso**; indirizzo e orario **riverificati** al
+   rientro; **consensi mai ripristinati**; carrello svuotato dopo un pagamento
+   riuscito.
+3. **L'interfaccia**: gli avvisi di ciò che è stato tolto o non regge più,
+   mostrati **al rientro** e non alla pressione di "Paga ora". Verifica dal vivo
+   di Andrea.
+
+*Nota: ogni verifica dal vivo che arriva alla pagina di pagamento crea un ordine
+`pending` in più (punto 9).*
+
+*Rimasta non verificata*: se il **tasto Indietro del browser** si comporti come
+il ritorno da Stripe o restituisca la pagina con lo stato ancora vivo (cache di
+navigazione). Da chiarire con una prova durante il passo 3.
+
+### Poi — Fase 3: creazione di articoli semplici
 
 Prodotti (fritti, sides, dolci, drink) **e salse**, che ora sono la stessa cosa.
 Dichiarazione allergeni obbligatoria alla creazione: o gli allergeni, o la
@@ -320,13 +502,6 @@ Da decidere prima di partire: come si genera lo `slug` di un articolo nuovo
 (obbligatorio e unico per store) e cosa succede se collide con uno esistente. La
 convenzione osservata sui 62 articoli è: minuscolo, accenti tolti, spazi e
 apostrofi → trattino, "&" eliminato, numeri e unità invariati.
-
-### Alternativa, se si preferisce chiudere una condizione di apertura
-
-**Persistenza del carrello per la durata della visita** (§36-40): oggi tornando
-indietro dalla pagina di pagamento il carrello si svuota. Si salvano id,
-quantità e configurazione, **mai i prezzi**; articoli non più disponibili
-rimossi con avviso esplicito. Risolve un problema visto dal vivo.
 
 ### Dopo il go-live (§63-64)
 
@@ -342,27 +517,27 @@ rimossi con avviso esplicito. Risolve un problema visto dal vivo.
 
 ### Condizioni di apertura (aperte)
 
-- **Persistenza del carrello** (§36-40, v33).
+- **Persistenza del carrello** (§36-40, regole complete in v36).
 - **Confronto prezzo mostrato vs prezzo addebitato** al checkout (§46).
 - **Informativa privacy**: serve il documento, poi link nel checkout (§41-45).
 - **Stripe live** (oggi sandbox).
 - **Dominio** `ordina.kebabmediterraneo.it`.
 - **Analytics** (§65).
-- **Pulizia dei residui di test** (punto 8).
+- **Pulizia dei residui di test** (punto 9).
 - **WhatsApp** (fase 1.1).
 
 ---
 
-## 10) Note di attenzione
+## 11) Note di attenzione
 
 - **Allergeni = sicurezza alimentare**: mai dedurli, sempre da **fonte verificata
   da Andrea**. Allergeni e flag dietetici si modificano **solo fuori dall'orario
   di servizio**; durante il servizio si tocca **esclusivamente la disponibilità**
   (§67).
-- **Roll e Bowl sono indipendenti anche per gli allergeni** (§67). Gli allergeni
-  de "Il Turco" e de "Il Turco Bowl" coincidono **di fatto**, non per vincolo.
-  Nessun codice deve mai ricavare gli allergeni di un articolo da quelli di un
-  altro. *Al 29/07/2026 tutte e 7 le coppie hanno set identici.*
+- **Roll e Bowl sono indipendenti** — per gli allergeni (§67) **e per le
+  rimozioni** (§18). Nessun codice deve mai ricavare i dati di un articolo da
+  quelli di un altro. *Al 29/07/2026 tutte e 7 le coppie hanno set di allergeni
+  identici, di fatto e non per vincolo.*
 - **Prezzo mostrato vs prezzo addebitato** (§46): chi tiene la pagina già aperta
   durante un cambio prezzo vede il vecchio e paga il nuovo. Lo stesso meccanismo
   vale per gli allergeni, ma lì **non c'è alcun controllo al checkout**: è la
@@ -372,6 +547,13 @@ rimossi con avviso esplicito. Risolve un problema visto dal vivo.
   indietro diventerà normale, e ogni giro lascerà un `pending` orfano di un
   cliente che **ha comprato**. Da tenere presente quando si costruirà la pagina
   dei carrelli abbandonati.
+- **Anche le righe cliente si moltiplicano** (§65, v36): `customers` viene
+  scritta **prima** dell'ordine e resta anche se il checkout non arriva in
+  fondo. Al 29/07/2026 sono 27, di cui 19 senza alcun ordine. Non è un errore,
+  ma vale il divieto d'uso a fini di ricontatto.
+- **I consensi non sono dati** (§36-40, v36): privacy, marketing e "18 anni"
+  sono **atti** e si rifanno a ogni ordine. Nessun meccanismo di comodità può
+  ripristinarli.
 - **Quello che l'editor non manda, l'editor non tocca** (§63-64, v34): un campo
   assente dal salvataggio lascia il valore invariato. Senza questa regola un form
   scritto prima che un campo esistesse lo azzererebbe in silenzio.
@@ -381,6 +563,8 @@ rimossi con avviso esplicito. Risolve un problema visto dal vivo.
   prodotto omonimo dei fritti sono voci indipendenti.
 - **Residuo noto del refactoring** (§25): contorno e proteina del combo sono
   ancora matchati per label lato server. Da convertire a id con l'editor combo.
+  *Con la persistenza del carrello il costo di questo residuo sale: un'etichetta
+  rinominata farebbe fallire la ricostruzione di una riga salvata.*
 - **Badge**: un prodotto ne porta **uno solo**. "Special del mese" ha una scadenza
   che il sistema non conosce, va tolto a mano. Tenerne accesi pochi per volta.
   Vale anche per le salse.
