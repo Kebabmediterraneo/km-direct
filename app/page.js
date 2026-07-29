@@ -410,6 +410,21 @@ function DietaryBadge({ product }) {
   );
 }
 
+// §34-35 (v35, vincolante): la piccantezza si disegna su TUTTE le card, con la
+// STESSA forma — l'icona 🌶️ ripetuta quante volte dice il livello, seguita dalla
+// dicitura della lista chiusa (il testo lo compone `spicyLabel`). A livello 0
+// non si disegna nulla. È un componente unico condiviso da `ProductCard` e
+// `SimpleProductCard`: una sola implementazione, così le due card non possono
+// divergere — stesso criterio di DietaryBadge e AllergenList.
+function SpicyTag({ product }) {
+  if (!product.spicy) return null;
+  return (
+    <span style={{ fontSize: 13, fontWeight: 600, color: "#D97423" }}>
+      {product.spicy}
+    </span>
+  );
+}
+
 // §67: blocco allergeni espandibile. Trigger testuale "Allergeni ⌄"; al tap
 // mostra la lista dei nomi. Se il prodotto non ha allergeni non compare nulla.
 function AllergenList({ allergens }) {
@@ -826,11 +841,7 @@ function ProductCard({ product, onAddToCart, compactHeader = false }) {
         </div>
       )}
 
-      {product.spicy && (
-        <span style={{ fontSize: 13, fontWeight: 600, color: "#D97423" }}>
-          {product.spicy}
-        </span>
-      )}
+      <SpicyTag product={product} />
 
       {product.ingredients && (
         <p
@@ -1010,6 +1021,8 @@ function SimpleProductCard({ product, quantity, onIncrement, onDecrement }) {
         </div>
       )}
       </div>
+
+      <SpicyTag product={product} />
 
       {product.ingredients && (
         <p
