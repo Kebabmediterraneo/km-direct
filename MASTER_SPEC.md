@@ -1,10 +1,36 @@
 # KM DIRECT — MASTER SPECIFICATION
 
-**Versione 34** — sostituisce la v33.
+**Versione 35** — sostituisce la v34.
 
 Documento di riferimento definitivo per lo sviluppo. Le decisioni qui
 contenute sono approvate: non vanno reinterpretate senza un motivo concreto
 (vedi §73). Ogni file di codice del progetto deve rispettare queste regole.
+
+**Novità della v35** (vincolanti):
+
+1. §34-35 — **la piccantezza si disegna su tutte le card, non solo su quelle
+   con opzioni.** Oggi il rendering esiste solo nella card di Roll e Bowl;
+   fritti, sides, salse, dolci e bevande usano la card semplice, che non lo
+   prevede. Nessuno se n'era accorto perché tutti e 6 gli articoli piccanti
+   sono Roll o Bowl. *Non è una decisione nuova: §30 l'aveva già presa senza
+   accorgersene, motivando la ridondanza di "Ajvar piccante" con il bisogno di
+   distinguerlo a colpo d'occhio **nell'elenco delle salse** — cosa che
+   presuppone che lì la piccantezza si veda.*
+2. §30 — **fissati i livelli di piccantezza delle salse**: **Ajvar piccante =
+   1** ("Leggermente piccante"), **Acuka = 2** ("Piccante"). Decisione
+   dell'utente del 29/07/2026. I valori vanno inseriti dal pannello, non da
+   migrazione: la loro compilazione **è** la verifica dal vivo del secondo
+   tempo dell'editor.
+3. §63-64 — **la piccantezza è modificabile dal pannello su tutti gli
+   articoli**, salse comprese, con la scelta del solo livello (§34-35).
+4. §34-35 — **nota di metodo: una ricognizione lasciata a metà non lascia un
+   buco, lascia assunzioni.** Le due domande poste il 28/07/2026 — quali
+   articoli avessero già la piccantezza valorizzata, e se il menu pubblico la
+   disegnasse — non hanno mai avuto risposta, perché nello stesso giro il
+   lavoro è passato all'unificazione delle salse. Dalla prima è nata la
+   dicitura sbagliata corretta in v34; dalla seconda il rendering mancante
+   corretto qui. Entrambe erano state **date per risolte** invece che
+   riconosciute come aperte.
 
 **Novità della v34** (vincolanti):
 
@@ -1045,6 +1071,14 @@ Tutte a 1 €: Ajvar, Ajvar piccante, Tzatziki, Acuka (frutta secca +
 peperoncino), Black KM (maionese all'aglio nero — **non vegana**), Yogurt,
 Salsa all'aglio (vegana).
 
+**Piccantezza delle salse (v35)**: **Ajvar piccante = livello 1**
+("Leggermente piccante"), **Acuka = livello 2** ("Piccante"). Le altre cinque
+non sono piccanti (livello 0). Decisione dell'utente del 29/07/2026, secondo la
+scala di §34-35. I due valori **vanno inseriti dal pannello, non da
+migrazione**: la loro compilazione è la verifica dal vivo del secondo tempo
+dell'editor, e l'inserimento a mano di un dato che l'editor deve saper scrivere
+dimostrerebbe solo che il dato si può scrivere, non che l'editor funziona.
+
 **Le salse sono prodotti a tutti gli effetti (v32, vincolante)**: righe della
 tabella `products` con `category = 'salse'`, come qualunque altro articolo.
 Nessuna regola separata, nessun campo con nome diverso, nessun percorso di
@@ -1211,6 +1245,41 @@ carrello contiene alcolici.
 Prodotti con scelte: bottone "Scegli" (sempre per Roll/Bowl). Prodotti
 semplici: "+ Aggiungi", poi contatore "− 1 +". Piccantezza sempre con testo
 oltre all'icona 🌶️, mai solo icona/colore.
+
+**La piccantezza si disegna su TUTTE le card (v35, vincolante)**
+
+La regola "icona più testo" vale ovunque compaia un articolo, senza eccezioni
+per categoria: la card dei prodotti con opzioni (Roll, Bowl) **e** la card
+semplice usata da fritti, sides, salse, dolci e bevande. Forma identica nelle
+due: l'icona 🌶️ ripetuta quante volte dice il livello, seguita dalla dicitura
+della lista chiusa. A livello 0 non si disegna nulla.
+
+*Fino alla v34 il rendering esisteva **solo** nella card con opzioni. Non si
+era rotto niente perché tutti e 6 gli articoli con piccantezza valorizzata —
+Il Turco, Il Libanese, KM Special e le rispettive Bowl — sono Roll o Bowl. Ma
+rendere la piccantezza modificabile su tutti gli articoli senza estendere il
+rendering avrebbe prodotto un editor che scrive nel vuoto: valore salvato,
+registro aggiornato, e nulla in pagina. Esattamente il guasto silenzioso che la
+regola di §63-64 "quello che l'editor non manda, l'editor non tocca" è nata per
+evitare, preso dal verso opposto.*
+
+*Non era comunque una decisione nuova: §30 l'aveva già presa senza
+accorgersene, accettando la ridondanza fra il nome "Ajvar piccante" e la sua
+indicazione di piccantezza perché serve **"a distinguere a colpo d'occhio
+l'Ajvar dall'Ajvar piccante nell'elenco delle salse"** — una frase che
+presuppone che nell'elenco delle salse la piccantezza si veda. Il precedente
+corretto è la v28, che estendendo i badge a tutte le categorie prese la
+decisione sul rendering **esplicitamente**, per tutte le card. Per la
+piccantezza quell'equivalente non era mai stato scritto.*
+
+**Nota di metodo (v35)**: una ricognizione lasciata a metà non lascia un buco,
+lascia **assunzioni**. Le due domande poste il 28/07/2026 — quali articoli
+avessero già la piccantezza valorizzata, e se il menu pubblico la disegnasse —
+non hanno mai ricevuto risposta, perché nello stesso giro il lavoro è passato
+all'unificazione delle salse. Nessuna delle due è stata riaperta: sono state
+date per risolte. Dalla prima è nata la dicitura sbagliata di §34-35, corretta
+in v34; dalla seconda il rendering mancante, corretto qui. Una domanda di
+ricognizione senza risposta va **riproposta**, non superata.
 
 **Decisione UI (presa dopo l'MVP iniziale, vincolante — AGGIORNATA)**: il
 click su "Scegli" espande la configurazione del prodotto (proteina §17,
@@ -1921,6 +1990,16 @@ separato. L'introduzione di ruoli/permessi admin distinti dallo staff è
   interpretare **dentro il ricalcolo prezzo del checkout**. Costo e rischio
   sproporzionati rispetto alla frequenza d'uso reale. Fino ad allora un
   nuovo tipo di menu si realizza come **intervento una tantum sul codice**.
+
+**Piccantezza modificabile dal pannello (v35, vincolante)**
+
+La piccantezza si modifica dal pannello su **tutti gli articoli**, salse
+comprese, con la stessa forma degli altri campi semplici. L'editor presenta la
+scelta del **solo livello** (0-3) e non invia mai la dicitura, che il server
+ricava dalla lista chiusa (§34-35). Le diciture mostrate nel form servono a far
+capire cosa si sta scegliendo e vanno importate dal modulo della lista chiusa,
+**mai riscritte a mano nel form**: due copie della stessa lista divergono
+sempre, prima o poi.
 
 **Quello che l'editor non manda, l'editor non tocca (v34, vincolante)**
 
