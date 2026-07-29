@@ -1,10 +1,33 @@
 # KM DIRECT — MASTER SPECIFICATION
 
-**Versione 33** — sostituisce la v32.
+**Versione 34** — sostituisce la v33.
 
 Documento di riferimento definitivo per lo sviluppo. Le decisioni qui
 contenute sono approvate: non vanno reinterpretate senza un motivo concreto
 (vedi §73). Ogni file di codice del progetto deve rispettare queste regole.
+
+**Novità della v34** (vincolanti):
+
+1. §34-35 — **corretta la dicitura del livello 1 di piccantezza: "Leggermente
+   piccante"**, non "Poco piccante". La lista chiusa scritta in v32
+   contraddiceva **§19-20**, che registra il menu reale e descrive da sempre
+   "Il Turco 🌶️ Leggermente piccante"; la dicitura sbagliata era già in
+   database su 2 articoli visibili al cliente. *La lista era stata scritta
+   senza il dato: la ricognizione che doveva riportare i valori di piccantezza
+   già presenti sui prodotti non era mai stata completata, e la regola è stata
+   scritta lo stesso. Gli altri due livelli combaciavano già.*
+2. §34-35 — **§19-20 prevale su §34-35 per le diciture.** La lista chiusa non
+   è una convenzione tecnica: è **testo di menu visibile al cliente**.
+   Modificarla è una decisione sul menu, da prendere deliberatamente e da
+   riflettere in §19-20, mai il contrario.
+3. §63-64 — **quello che l'editor non manda, l'editor non tocca.** Un campo
+   assente dal salvataggio lascia il valore esistente invariato; non viene
+   trattato come "vuoto" e non riceve un valore di default. *Regola emersa
+   costruendo la piccantezza: senza di essa il primo salvataggio da un form
+   che non conosce ancora un campo lo avrebbe azzerato in silenzio su 6
+   articoli, senza errori e senza avvisi.*
+4. §66 — aggiunte alla pulizia pre-apertura le **6 righe** di
+   `staff:test-spice`.
 
 **Novità della v33** (vincolanti):
 
@@ -1220,20 +1243,37 @@ alcuna regola di rendering che le riguardi separatamente. Vale per loro la
 regola della piccantezza col testo e il badge dietetico derivato dai flag,
 "Vegetariano" compreso (§67).
 
-**Scala della piccantezza (v32, vincolante)**: due colonne, `spice_level` e
-`spice_label`, presenti su tutti gli articoli.
+**Scala della piccantezza (v32, diciture corrette in v34, vincolante)**: due
+colonne, `spice_level` e `spice_label`, presenti su tutti gli articoli.
 
 - `spice_level` vale **0, 1, 2 o 3**: 0 = non piccante, e da 1 in su è il
   numero di 🌶️ mostrati.
 - `spice_label` è la dicitura che accompagna sempre l'icona ed è una **lista
-  chiusa**: **"Poco piccante"** (livello 1), **"Piccante"** (2), **"Molto
-  piccante"** (3). A livello 0 la dicitura è vuota e non si disegna nulla.
-- **L'editor presenta una sola scelta** e scrive entrambe le colonne insieme:
-  non esiste un modo di salvare livello e dicitura in disaccordo. La regola
-  "mai la sola icona" diventa così impossibile da violare per distrazione,
-  invece di essere una raccomandazione da ricordare.
-- La lista chiusa vive nel codice come quella dei badge (§63-64): aggiungere
-  un livello richiede una modifica al codice, ed è voluto.
+  chiusa**: **"Leggermente piccante"** (livello 1), **"Piccante"** (2),
+  **"Molto piccante"** (3). A livello 0 la dicitura è vuota (NULL) e non si
+  disegna nulla.
+- **Il client invia solo il livello; la dicitura la ricava il server** dalla
+  lista chiusa, e non viene mai letta dal payload anche se presente. Livello e
+  dicitura non possono quindi divergere: non è una regola da rispettare, è un
+  percorso che non esiste. La regola "mai la sola icona" diventa così
+  impossibile da violare per distrazione.
+- La lista chiusa vive nel codice come quella dei badge (§63-64): aggiungere o
+  cambiare un livello richiede una modifica al codice, ed è voluto.
+
+**§19-20 prevale su questa sezione per le diciture (v34)**: la lista chiusa non
+è una convenzione tecnica, è **testo di menu visibile al cliente**. §19-20
+registra il menu reale ed è la fonte da cui le diciture devono derivare;
+cambiarne una è una decisione sul menu, da prendere deliberatamente e da
+riflettere lì, mai il contrario.
+
+*La v32 fissava "Poco piccante" per il livello 1. Era sbagliato: §19-20
+descrive da sempre "Il Turco 🌶️ Leggermente piccante", e quella dicitura era
+già in database su Il Turco e Il Turco Bowl, cioè già sotto gli occhi dei
+clienti. La lista era stata scritta **senza il dato** — la ricognizione che
+doveva riportare i valori di piccantezza già presenti sui prodotti non era mai
+stata completata, e la regola è stata scritta lo stesso. Corretta il
+29/07/2026, prima che l'editor la riscrivesse sui due articoli. Gli altri due
+livelli combaciavano già con il database.*
 
 **Immagini — nessuna, per nessun articolo (v29)**: il campo `image_url`
 esiste su `products` ed è **vuoto su tutti i 55 prodotti**; la v29 lo
@@ -1882,6 +1922,26 @@ separato. L'introduzione di ruoli/permessi admin distinti dallo staff è
   sproporzionati rispetto alla frequenza d'uso reale. Fino ad allora un
   nuovo tipo di menu si realizza come **intervento una tantum sul codice**.
 
+**Quello che l'editor non manda, l'editor non tocca (v34, vincolante)**
+
+Un campo **assente** dal salvataggio lascia il valore già presente
+**invariato**. Non viene interpretato come "vuoto", non riceve un valore di
+default, non viene azzerato. Solo un campo **presente** nel payload può
+modificare la riga.
+
+Vale per ogni campo modificabile e per ogni fase dell'editor. La ragione è che
+i form crescono nel tempo: un'interfaccia scritta prima che un campo esistesse
+continuerà a non mandarlo, e la regola opposta le farebbe cancellare in
+silenzio un dato che non sa nemmeno di avere. Un errore così non produce
+messaggi, non fallisce, non lascia traccia nel registro — semplicemente il
+valore sparisce.
+
+*Regola emersa il 29/07/2026 costruendo la piccantezza: il form del pannello
+non inviava ancora il livello, e 6 articoli lo avevano valorizzato. Senza
+questa regola il primo salvataggio di uno qualsiasi di quegli articoli — anche
+solo per correggere una virgola nella descrizione — avrebbe fatto sparire i
+peperoncini dal menu.*
+
 **Regole di validazione dell'editor (v26, vincolanti)**
 
 Stato verificato: **non esiste alcuna validazione server-side** sui cinque
@@ -2084,9 +2144,10 @@ Conseguenze:
     migrazione delle salse — si riconoscono perché contengono **Ajvar
     registrato come `[salse]`**, cosa impossibile prima di §30. Si azzerano
     `orders` e `order_items` (8 righe).
-  - **`staff_action_log`: 47 righe, di cui 28 di test** su tre identificatori
-    — `staff:test-fase1` (12), `staff:test-fase2a` (9), `staff:test-merge`
-    (7). Le altre **19** sono azioni vere e **non si toccano**.
+  - **`staff_action_log`: 53 righe, di cui 34 di test** su quattro
+    identificatori — `staff:test-fase1` (12), `staff:test-fase2a` (9),
+    `staff:test-merge` (7), `staff:test-spice` (6). Le altre **19** sono
+    azioni vere e **non si toccano**.
   Oggi tutto questo è invisibile al cliente e innocuo; dal giorno
   dell'apertura starebbe in mezzo ai dati veri, falsando i carrelli abbandonati
   (§65) e il registro delle azioni staff.
