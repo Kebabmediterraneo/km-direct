@@ -12,29 +12,26 @@ Web app per ordini **delivery e ritiro** di **FAME Srl / KM Kebab Mediterraneo**
 (Bologna, store `san-mamolo`). Stack **Next.js 14 + Supabase + Stripe (sandbox)**.
 Repo: **github.com/Kebabmediterraneo/km-direct** (branch `main`, push via SSH).
 La fonte di verità di tutte le decisioni è **`MASTER_SPEC.md`** — versione attuale
-**v33** (leggila sempre dall'intestazione, riga 3).
+**v35** (leggila sempre dall'intestazione, riga 3).
 
 ---
 
 ## 2) Stato git
 
 - Branch **`main`**, working tree **pulita**, allineata a `origin/main`.
-- HEAD: **`2757751`**.
+- HEAD: **`6359e6c`**.
 - Ultimi commit (dal più recente):
 
 ```
+6359e6c pannello: scelta della piccantezza nel form e campi nella GET §34-35 §63-64
+aebac0e menu pubblico: piccantezza disegnata anche sulla card semplice, componente condiviso §34-35
+55c42e7 spec: v35 — piccantezza disegnata su tutte le card §34-35, livelli delle salse §30, modifica dal pannello §63-64
+2438d12 handoff: corregge la dicitura della piccantezza e i 6 articoli già valorizzati
+b2166f0 editor menu: piccantezza sui campi modificabili, dicitura ricavata dal server dalla lista chiusa §34-35
+ae9d72f spec: v34 — dicitura piccantezza livello 1 corretta in Leggermente piccante §34-35, campo assente non modificato §63-64
+162a912 handoff: aggiorna a v33 — unificazione salse conclusa, metodo migrazioni e lezioni di verifica, elenco residui riletto
 2757751 schema: rimosse sauces e sauce_allergens, dismesse con l'unificazione delle salse §30
 441026f spec: v33 — migrazione salse applicata e schema da riallineare §30, persistenza carrello §36-40, ordini pending §65, pulizia riletta §66, badge vegetariano risolto §67
-16d1cbd migration: dismissione di sauces e sauce_allergens con pre-check di fedeltà §30
-e2c3b51 rimosse le compatibilità temporanee kind sauce da checkout, disponibilità e core allergeni §30
-a944e6a pannello: salse come categoria nella GET e nella sezione Menu, editor Fase 1 esteso alle salse §30 §63-64
-a90220f pannello: cron, disponibilità e core allergeni su products, kind sauce temporaneo §30 §67
-1d7e205 menu pubblico: salse lette da products, badge vegetariano dal dato, carrello kind product §30 §67
-0e48bfc checkout: salse risolte come prodotti da products, product_id valorizzato §30
-7da4117 migration: pre-check rafforzato su id-nome delle salse e cast esplicito della categoria §30
-d8e0915 migration: unificazione delle salse in products con pre/post-check in transazione §30
-fb4cd5a export: fotografia di sauces e sauce_allergens prima dell'unificazione in products §30
-c2003dc spec: v32 — salse unificate in products §30, Fase 2B ridefinita e tendina categorie §63-64, scala piccantezza §34-35, pulizia ordini di test §66
 ```
 
 ---
@@ -73,7 +70,8 @@ migration in **`sql/`** (9 file):
 ```
 
 **Solo nel database** (non su git): tutti i dati del menu — prodotti, nomi,
-descrizioni, prezzi, badge, allergeni, flag dietetici, date di verifica.
+descrizioni, prezzi, badge, allergeni, flag dietetici, piccantezza, date di
+verifica.
 
 **Nota sullo schema autorevole**: `km_direct_schema.sql` è il documento su cui
 si ripiega quando il database non è leggibile dal vivo (PostgREST espone solo lo
@@ -100,6 +98,8 @@ e. **Modifiche al DB** con **pre-check e post-check**, filtrando **per id**,
    dedurli, solo da fonte verificata da Andrea).
 f. **Commit**: messaggio di **UNA riga**, **MAI footer `Co-Authored-By`**; push
    incluso. **Un commit per tipo di lavoro**: codice e spec non si mescolano.
+   Quando c'è lavoro non committato in corso, il commit va fatto **selettivo**,
+   verificando lo stage prima.
 g. **Aggiornamenti spec col METODO FILE**: si genera il `MASTER_SPEC.md`
    completo, Andrea lo scarica e lo fa copiare a Code sul repo (con `cp`,
    verbatim), **diff verificato prima del commit**. Controlli standard: riga 3,
@@ -108,8 +108,9 @@ g. **Aggiornamenti spec col METODO FILE**: si genera il `MASTER_SPEC.md`
    fondono le zone vicine).
 h. **Claude Code NON può eseguire DDL** (solo PostgREST): `ALTER`/`DROP TABLE` li
    esegue **Andrea nel SQL editor Supabase**, con **migration versionata in `sql/`**.
-i. **Verifiche dal vivo**: Code avvia `next dev`, Andrea guarda dal browser
-   (compreso il login staff, che è solo suo), poi Code **spegne** il server.
+i. **Verifiche dal vivo**: Code avvia **un solo** `next dev` — controllando prima
+   che non ce ne siano altri attivi — Andrea guarda dal browser (compreso il
+   login staff, che è solo suo), poi Code **spegne** il server e lo conferma.
 j. **Verificare prima di committare.**
 k. **Quando Code trova qualcosa fuori perimetro, si ferma e chiede** invece di
    sistemarlo di iniziativa. Vale anche al contrario: quando tocca un file
@@ -149,10 +150,9 @@ s. **Mai ricostruire un elenco per differenza.** L'elenco dei residui di test è
    stato sbagliato **due volte**, sempre sottraendo conteggi invece di leggere
    le righe. Si legge dal database, uno per uno, con le date.
 t. **Quando una verifica non è possibile, va dichiarata, non aggirata.** È
-   successo tre volte: nullabilità e vincoli non leggibili via API, `route.js`
-   non importabili fuori da Next, interruzione a metà non simulabile. In tutti
-   e tre i casi la dichiarazione ha permesso di decidere se il rischio residuo
-   era accettabile.
+   successo più volte: nullabilità e vincoli non leggibili via API, `route.js`
+   non importabili fuori da Next, interruzione a metà non simulabile. La
+   dichiarazione permette di decidere se il rischio residuo è accettabile.
 u. **Anche lo strumento di verifica può mentire.** Un probe ha segnalato come
    esistenti due tabelle già cancellate: il difetto era nel probe. Davanti a un
    risultato che contraddice una verifica precedente si indaga il dato grezzo
@@ -161,6 +161,19 @@ v. **Attenzione a "verificato sul codice vero".** Se il modulo non è
    importabile, provarne una copia **non dimostra l'instradamento**: dimostra
    solo il calcolo. Vale come verifica parziale e va chiusa da una prova dal
    vivo.
+w. ⚠️ **Un controllo che non può fallire non sta controllando.** `node --check`
+   **non verifica i file JSX**: se il file contiene `import`, Node lo tratta come
+   modulo ESM e restituisce esito positivo **anche su JSX palesemente rotto**
+   (provato il 29/07/2026). Per i file con JSX — `app/page.js`,
+   `app/staff/page.js` — il compile-check si fa con **`next build`**. Per i
+   moduli `lib/` resta valido eseguirli davvero.
+x. **Una ricognizione lasciata a metà non lascia un buco, lascia assunzioni.**
+   Due domande poste il 28/07/2026 e mai riprese hanno prodotto due errori
+   distinti in spec, a una settimana di distanza (§34-35, nota di metodo v35).
+   Una domanda senza risposta va **riproposta**, non superata.
+y. **Spegnere il server dopo ogni verifica dal vivo.** Un `next dev` rimasto
+   acceso da una sessione precedente ha fatto perdere tempo a inseguire un 404
+   che non c'entrava con il lavoro in corso.
 
 ---
 
@@ -179,16 +192,16 @@ v. **Attenzione a "verificato sul codice vero".** Se il modulo non è
 - **Editor menu — FASE 1** (§63-64): `name`, `description`, `base_price`,
   `badge`, `sort_order`, con validazioni server-side, conferma sul cambio
   prezzo, form inline e log. **Dal 28/07/2026 copre anche le salse**, senza
-  codice dedicato (vedi punto 6).
+  codice dedicato (punto 6).
 - **Editor menu — FASE 2A** (§67): modifica di **allergeni e flag dietetici**.
-  Core verificato su 14 casi eseguiti sul codice vero; interfaccia verificata
-  dal vivo da Andrea.
-- **Unificazione delle salse dentro `products`** (§30, v32-v33) — *conclusa il
-  29/07/2026*, vedi punto 6.
+- **Unificazione delle salse dentro `products`** (§30) — *conclusa il
+  29/07/2026*, punto 6.
+- **Editor menu — FASE 2B COMPLETA** (§34-35, §63-64) — *conclusa il
+  29/07/2026*, punto 7.
 
 ---
 
-## 6) L'unificazione delle salse (28-29/07/2026) — cosa è cambiato
+## 6) L'unificazione delle salse (28-29/07/2026)
 
 Fino al 27/07 le salse vivevano in una tabella a parte (`sauces`), con regole
 identiche agli altri articoli ma **codice separato**: ogni campo nuovo andava
@@ -202,29 +215,54 @@ con gli **stessi id di prima**; i loro allergeni sono in `product_allergens`; le
 tabelle `sauces` e `sauce_allergens` **non esistono più**. Nessun riferimento a
 quelle tabelle resta nel codice applicativo.
 
-Numeri al 29/07/2026: **62 prodotti** (55 + 7 salse), **76 righe** in
-`product_allergens`, **7** articoli con `category='salse'`, leggibili anche
-dalla chiave pubblica del sito.
-
-**File toccati** (un commit per passo): `app/api/checkout/route.js`,
-`app/page.js`, `app/api/cron/reset-availability/route.js`,
-`app/api/staff/menu/availability/route.js`, `lib/menu-allergens.js`,
-`app/api/staff/menu/route.js`, `app/staff/page.js`, `km_direct_schema.sql`.
+Numeri: **62 prodotti** (55 + 7 salse), **76 righe** in `product_allergens`,
+**7** articoli con `category='salse'`, leggibili anche dalla chiave pubblica.
 
 **Il guadagno**: le salse hanno ricevuto il pulsante "Modifica" e la conferma
 sul cambio di prezzo **senza che sia stata scritta una riga di editor per
 loro** — la Fase 2B si è in gran parte dissolta. Ed è ricomparso il badge
-"Vegetariano" sulle salse, che il menu spegneva a forza per un commento vecchio:
-si è risolto da sé perché è sparito il percorso di rendering separato.
-
-**Verifiche dal vivo superate** (Andrea): menu pubblico (salse una volta sola,
-ordine e prezzi corretti, badge Vegetariano su Black KM); pannello (pulsante
-Modifica, descrizione scritta e ricancellata, conferma sul cambio prezzo);
-checkout fino alla pagina di pagamento, in Ritiro e in Delivery sopra il minimo.
+"Vegetariano" sulle salse, che il menu spegneva a forza per un commento vecchio.
 
 ---
 
-## 7) Stato dei dati allergeni (29/07/2026)
+## 7) La piccantezza (29/07/2026) — Fase 2B chiusa
+
+Ultimo pezzo della Fase 2B, costruito in tre passi dopo la migrazione:
+
+1. **`lib/menu-spice.js`** — lista chiusa dei quattro livelli, e
+   `lib/menu-editor.js` che valida il livello e **ricava la dicitura dal
+   server**. Il client invia **solo `spice_level`**: non esiste un percorso che
+   possa far divergere livello e dicitura.
+2. **Rendering su tutte le card** (`app/page.js`): fino ad allora la piccantezza
+   si disegnava **solo** su Roll e Bowl. Estratto un componente condiviso usato
+   da entrambe le card, così non possono divergere.
+3. **Pannello**: la GET restituisce i due campi e il form offre la scelta del
+   livello, con le diciture importate dal modulo.
+
+**Verificato dal vivo da Andrea**: livello preselezionato corretto,
+**Ajvar piccante impostata a 1 e Acuka a 2 dal pannello**, comparse nel menu con
+icona e dicitura, valori confermati riaprendo il form e riletti dal database.
+
+**Articoli con piccantezza: 8.** Il Turco e Il Turco Bowl (1, "Leggermente
+piccante"); Il Libanese, Il Libanese Bowl, KM Special e KM Special Bowl (2,
+"Piccante"); **Ajvar piccante** (1) e **Acuka** (2) — le prime due che non sono
+Roll né Bowl, cioè la conferma sul campo che il passo 2 serviva.
+
+⚠️ **Le diciture sono testo di menu**: §19-20 prevale su §34-35. La v32 aveva
+fissato "Poco piccante" per il livello 1, in contrasto con §19-20 e con il dato
+già in database; corretto in v34. Cambiare una dicitura è una decisione sul
+menu, non un dettaglio tecnico.
+
+*Piccolo riordino rimandato*: nella tendina del pannello il livello 0 è
+etichettato "Non piccante" direttamente nel form, perché la lista chiusa per
+quel livello ha dicitura vuota. Non arriva mai al cliente ed è la formula usata
+da §34-35 stessa; da spostare nel modulo quando lo si toccherà di nuovo.
+
+---
+
+## 8) Stato dei dati (29/07/2026)
+
+**Allergeni**
 
 - **34 prodotti food su 34** hanno `allergens_verified_at`. Di questi, 29 dal
   documento allergeni ufficiale, **5 confermati senza allergeni da Andrea**:
@@ -243,9 +281,7 @@ checkout fino alla pagina di pagamento, in Ritiro e in Delivery sopra il minimo.
   riconoscono subito: aprendo il form allergeni, il **selettore dietetico si
   presenta vuoto**. Vanno dichiarate da Andrea, **mai dedotte**.
 
----
-
-## 8) Residui di test da rimuovere prima del go-live
+**Residui di test da rimuovere prima del go-live**
 
 Il database è uno solo, quindi questi dati staranno in mezzo a quelli veri dal
 primo giorno di apertura.
@@ -260,9 +296,9 @@ non ricopiati da qui.
   `succeeded`, in sandbox; gli altri 5 sono `pending`. `KM-0004`, `KM-0005` e
   `KM-0006` sono le prove di checkout della migrazione salse. **Si azzerano
   entrambe le tabelle.**
-- **`staff_action_log`: 60 righe, di cui 41 di test** su quattro identificatori
+- **`staff_action_log`: 64 righe, di cui 43 di test** su quattro identificatori
   — `staff:test-fase1` (12), `staff:test-fase2a` (9), `staff:test-merge` (7),
-  `staff:test-spice` (13). Le altre **19**
+  `staff:test-spice` (15). Le altre **21**
   (`staff:bologna@kebabmediterraneo.com`) sono azioni vere e **non vanno
   toccate**.
 
@@ -270,46 +306,27 @@ non ricopiati da qui.
 
 ## 9) To-do / prossimi passi (in ordine)
 
-### PROSSIMO — piccantezza, SECONDO TEMPO (interfaccia)
-
-Il **primo tempo è fatto** (commit `b2166f0`): `lib/menu-spice.js` con la lista
-chiusa, e `lib/menu-editor.js` che valida il livello e ricava la dicitura dal
-server. Verificato sul codice vero, 15 casi.
-
-Resta il **secondo tempo**: la GET `app/api/staff/menu/route.js` deve
-restituire `spice_level` e `spice_label`, e il form del pannello
-(`app/staff/page.js`) deve offrire la scelta del livello. Verifica dal vivo di
-Andrea.
-
-Regole in §34-35 (v34):
-
-- `spice_level` vale **0, 1, 2 o 3** (0 = non piccante);
-- `spice_label` è una **lista chiusa** — "Leggermente piccante" (1),
-  "Piccante" (2), "Molto piccante" (3) — vuota a 0;
-- **il client invia solo il livello**, la dicitura la ricava il server: non
-  esiste un percorso che possa farli divergere;
-- ⚠️ **le diciture sono testo di menu**: §19-20 prevale su §34-35. Cambiarne
-  una è una decisione sul menu, non un dettaglio tecnico;
-- su "Ajvar piccante" la ridondanza col nome è **accettata consapevolmente**
-  (§30).
-
-⚠️ **6 articoli hanno già la piccantezza valorizzata**: Il Turco e Il Turco
-Bowl (livello 1, "Leggermente piccante"); Il Libanese, Il Libanese Bowl, KM
-Special e KM Special Bowl (livello 2, "Piccante"). Verificato il 29/07/2026 che
-tutte e 6 le diciture nel database coincidono con quelle ricavate dalla lista:
-aprire e salvare uno di quegli articoli non cambia nulla di visibile al cliente.
-*La versione precedente di questo documento affermava che tutti gli articoli
-fossero a 0, ed era falso: nasceva dalla stessa ricognizione mai completata che
-ha prodotto la dicitura sbagliata in §34-35.*
-
-### Poi — Fase 3 (creazione di articoli semplici)
+### PROSSIMO — Fase 3: creazione di articoli semplici
 
 Prodotti (fritti, sides, dolci, drink) **e salse**, che ora sono la stessa cosa.
 Dichiarazione allergeni obbligatoria alla creazione: o gli allergeni, o la
 casella "nessuno dei 14".
+
 ⚠️ **La tendina delle categorie va compilata a mano** con le **8** categorie
-reali, escludendo `menu_combo` (§63-64, v32). *La regola v30 che escludeva anche
+reali, escludendo `menu_combo` (§63-64). *La regola v30 che escludeva anche
 `salse` è decaduta con l'unificazione: ora è la categoria giusta.*
+
+Da decidere prima di partire: come si genera lo `slug` di un articolo nuovo
+(obbligatorio e unico per store) e cosa succede se collide con uno esistente. La
+convenzione osservata sui 62 articoli è: minuscolo, accenti tolti, spazi e
+apostrofi → trattino, "&" eliminato, numeri e unità invariati.
+
+### Alternativa, se si preferisce chiudere una condizione di apertura
+
+**Persistenza del carrello per la durata della visita** (§36-40): oggi tornando
+indietro dalla pagina di pagamento il carrello si svuota. Si salvano id,
+quantità e configurazione, **mai i prezzi**; articoli non più disponibili
+rimossi con avviso esplicito. Risolve un problema visto dal vivo.
 
 ### Dopo il go-live (§63-64)
 
@@ -325,10 +342,7 @@ reali, escludendo `menu_combo` (§63-64, v32). *La regola v30 che escludeva anch
 
 ### Condizioni di apertura (aperte)
 
-- **Persistenza del carrello per la durata della visita** (§36-40, v33) —
-  **nuova**: oggi tornando indietro dalla pagina di pagamento il carrello si
-  svuota. Si salvano id, quantità e configurazione, **mai i prezzi**; articoli
-  non più disponibili rimossi con avviso esplicito.
+- **Persistenza del carrello** (§36-40, v33).
 - **Confronto prezzo mostrato vs prezzo addebitato** al checkout (§46).
 - **Informativa privacy**: serve il documento, poi link nel checkout (§41-45).
 - **Stripe live** (oggi sandbox).
@@ -353,11 +367,14 @@ reali, escludendo `menu_combo` (§63-64, v32). *La regola v30 che escludeva anch
   durante un cambio prezzo vede il vecchio e paga il nuovo. Lo stesso meccanismo
   vale per gli allergeni, ma lì **non c'è alcun controllo al checkout**: è la
   ragione della regola "fuori orario di servizio".
-- **Ordini in sospeso destinati a moltiplicarsi** (§65, v33): ogni arrivo alla
-  pagina di pagamento crea un `pending`. Con la persistenza del carrello tornare
+- **Ordini in sospeso destinati a moltiplicarsi** (§65): ogni arrivo alla pagina
+  di pagamento crea un `pending`. Con la persistenza del carrello tornare
   indietro diventerà normale, e ogni giro lascerà un `pending` orfano di un
   cliente che **ha comprato**. Da tenere presente quando si costruirà la pagina
   dei carrelli abbandonati.
+- **Quello che l'editor non manda, l'editor non tocca** (§63-64, v34): un campo
+  assente dal salvataggio lascia il valore invariato. Senza questa regola un form
+  scritto prima che un campo esistesse lo azzererebbe in silenzio.
 - **Modifiche concorrenti** (§63-64): l'ultimo salvataggio sovrascrive il primo
   senza avviso. Accettato.
 - **I nomi non si propagano** (§25): il contorno "Patatine KM" del combo e il
