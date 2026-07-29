@@ -5,6 +5,7 @@ import { createSupabaseBrowserClient } from "../../lib/supabase-browser";
 import ImpostazioniSection from "./impostazioni-section";
 import { sortQueueByReferenceTime } from "../../lib/staff-queue-order";
 import { BADGE_OPTIONS } from "../../lib/menu-badges";
+import { SPICE_OPTIONS } from "../../lib/menu-spice";
 
 const POLL_INTERVAL_MS = 12000;
 
@@ -811,6 +812,9 @@ function ProductEditForm({ product, onSaved, onCancel }) {
   const [price, setPrice] = useState(String(product.base_price ?? ""));
   const [badge, setBadge] = useState(product.badge ?? "");
   const [sortOrder, setSortOrder] = useState(String(product.sort_order ?? 0));
+  // §34-35 / §63-64 (v35): si sceglie SOLO il livello; la dicitura la ricava il
+  // server dalla lista chiusa. Preselezionato il livello attuale dell'articolo.
+  const [spiceLevel, setSpiceLevel] = useState(String(product.spice_level ?? 0));
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState(null);
   const [confirmingPrice, setConfirmingPrice] = useState(false);
@@ -831,6 +835,10 @@ function ProductEditForm({ product, onSaved, onCancel }) {
           base_price: price,
           badge: badge === "" ? null : badge,
           sort_order: Number(sortOrder),
+          // §34-35 / §63-64 (v35): SOLO il livello. `spice_label` non si invia
+          // mai — la ricava il server dalla lista chiusa, così livello e
+          // dicitura non possono divergere.
+          spice_level: Number(spiceLevel),
         }),
       });
       const data = await response.json();
@@ -925,6 +933,22 @@ function ProductEditForm({ product, onSaved, onCancel }) {
           {BADGE_OPTIONS.map((b) => (
             <option key={b} value={b}>
               {b}
+            </option>
+          ))}
+        </select>
+      </label>
+
+      {/* §34-35 / §63-64 (v35): si sceglie il SOLO livello. Le diciture arrivano
+          da `lib/menu-spice.js` (SPICE_OPTIONS) e non sono mai riscritte qui:
+          due copie della stessa lista prima o poi divergono. Il livello 0 non ha
+          dicitura — a menu non si disegna nulla — e in tendina si presenta come
+          "Non piccante": è l'etichetta della scelta, non un testo di menu. */}
+      <label style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+        <span style={labelStyle}>Piccantezza</span>
+        <select value={spiceLevel} onChange={(e) => setSpiceLevel(e.target.value)} style={inputStyle}>
+          {SPICE_OPTIONS.map((option) => (
+            <option key={option.level} value={option.level}>
+              {option.label ? `${"🌶️".repeat(option.level)} ${option.label}` : "Non piccante"}
             </option>
           ))}
         </select>

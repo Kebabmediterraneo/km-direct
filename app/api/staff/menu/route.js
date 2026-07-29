@@ -23,7 +23,7 @@ export async function GET() {
     supabaseAdmin
       .from("products")
       .select(
-        "id, name, category, base_price, is_available, description, badge, sort_order, is_vegan, is_vegetarian, allergens_verified_at"
+        "id, name, category, base_price, is_available, description, badge, sort_order, spice_level, spice_label, is_vegan, is_vegetarian, allergens_verified_at"
       )
       .order("category")
       .order("sort_order"),
