@@ -2927,7 +2927,7 @@ export default function Home() {
   // suggerimenti di upsell nel carrello (che non dipendono da activeCategory).
   function quickAddToCart(product, kind) {
     addToCart({
-      key: product.name,
+      key: product.id,
       name: product.name,
       price: parsePrice(product.price),
       details: null,
