@@ -2882,14 +2882,26 @@ export default function Home() {
     });
   }
 
+  // §36-40 (v36): sotto 1 la riga si rimuove, esattamente come fa il "−" della
+  // card nel menu (decrementSimpleProduct). Fino alla v35 qui c'era un
+  // Math.max(1, …) che fermava il contatore a 1 e obbligava a passare da
+  // "Rimuovi": i due pulsanti facevano cose diverse senza che nessuno lo avesse
+  // deciso. Nessuna conferma, coerente con "Rimuovi", che già cancella senza
+  // chiedere. La condizione guarda la quantità RISULTANTE, non il segno del
+  // delta: col "+" (delta 1, quantità sempre >= 1) questo ramo non è
+  // raggiungibile.
   function updateQuantity(key, delta) {
-    setCartItems((prev) =>
-      prev.map((item) =>
-        item.key === key
-          ? { ...item, quantity: Math.max(1, item.quantity + delta) }
-          : item
-      )
-    );
+    setCartItems((prev) => {
+      const index = prev.findIndex((item) => item.key === key);
+      if (index === -1) return prev;
+      const quantity = prev[index].quantity + delta;
+      if (quantity <= 0) {
+        return prev.filter((_, i) => i !== index);
+      }
+      const updated = [...prev];
+      updated[index] = { ...updated[index], quantity };
+      return updated;
+    });
   }
 
   function removeItem(key) {
