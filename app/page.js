@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { supabase } from "../lib/supabase";
 import { isPointInPolygon } from "../lib/geo";
 import { classifyScheduledSelection, firstAvailableSlot } from "../lib/scheduled-selection";
+import { productLinePrice, comboLinePrice } from "../lib/menu-pricing";
 
 const CATEGORIES = [
   "ROLL",
@@ -46,19 +47,16 @@ function formatPrice(value) {
     : `${rounded.toFixed(2).replace(".", ",")} €`;
 }
 
-function parsePrice(priceLabel) {
-  return parseFloat(priceLabel.replace(",", ".").replace(" €", ""));
-}
-
 // §5: KM San Mamolo, usata come centro per il locationBias dei
 // suggerimenti indirizzo.
 const STORE_LOCATION = { lat: 44.4855346, lng: 11.3393718 };
 const STORE_BIAS_RADIUS_METERS = 15000;
 
-// §22: +100 g di carne, disponibile solo con proteina "Pollo e tacchino"
-// (incluso il KM Special Bowl, che può cumulare oltre alla propria
-// extra dose già inclusa).
-const EXTRA_MEAT_PRICE = 4;
+// §22/§46 (v37): il prezzo dell'extra carne (+100 g, solo con "Pollo e
+// tacchino") si legge dal database — riga di `product_addons` di quel prodotto,
+// vedi buildCatalogProduct — e viaggia fino al calcolo. Non è più una costante
+// qui: sito e server devono partire dalla stessa cifra, altrimenti il cliente
+// vede un numero e ne paga un altro (§46).
 
 // §9: fee e minimo d'ordine, solo Delivery.
 const DELIVERY_FEE = 2.5;
@@ -175,7 +173,7 @@ function buildUpsellGroups(items, categoryProducts, subtotal) {
       ...simpleAvailable("DRINK", "product"),
     ].filter((p) => !alreadySuggested.has(p.id));
     const options = pool
-      .sort((a, b) => parsePrice(a.price) - parsePrice(b.price))
+      .sort((a, b) => a.basePriceValue - b.basePriceValue)
       .slice(0, 2);
     if (options.length > 0) {
       candidateGroups.push({
@@ -214,13 +212,27 @@ function buildCatalogProduct(product, choicesByProduct, removalsByProduct, accom
   const choices = choicesByProduct[product.id] ?? [];
   const removals = (removalsByProduct[product.id] ?? []).map((r) => r.label);
   const accompaniments = (accompanimentsByProduct[product.id] ?? []).map((a) => a.label);
-  const hasExtraMeatAddon = (addonsByProduct[product.id] ?? []).length > 0;
+  // §22/§46 (v37): l'extra carne si offre solo se il prodotto ha ESATTAMENTE un
+  // addon con prezzo leggibile, e il suo prezzo si porta con sé fino al calcolo.
+  // Con zero addon (la gran parte dei prodotti) non si offre; con più di uno, o
+  // con un prezzo non numerico, non si offre affatto — mai un prezzo indovinato.
+  // Al 29/07/2026 le 5 righe hanno un addon ciascuna: il ramo "più di uno" è una
+  // difesa dichiarata, non un caso reale.
+  const addonRows = addonsByProduct[product.id] ?? [];
+  const extraMeatAddon = addonRows.length === 1 ? addonRows[0] : null;
+  const extraMeatPrice = extraMeatAddon ? Number(extraMeatAddon.price) : null;
+  const allowExtraMeat = extraMeatPrice !== null && Number.isFinite(extraMeatPrice);
   const hasConfig = choices.length > 0 || removals.length > 0 || accompaniments.length > 0;
 
   const base = {
     id: product.id,
     name: product.name,
     price: formatPrice(Number(product.base_price)),
+    // §46 (v37): il prezzo come NUMERO, accanto alla sua forma da mostrare
+    // (`price`). È il valore che entra nei calcoli — carrello e ordinamento
+    // upsell — mentre `price` resta solo per l'interfaccia. Elimina
+    // l'andirivieni stringa→numero che passava da parsePrice.
+    basePriceValue: Number(product.base_price),
     badge: product.badge ?? undefined,
     spicy: spicyLabel(product.spice_level, product.spice_label),
     ingredients: product.description ?? undefined,
@@ -252,7 +264,8 @@ function buildCatalogProduct(product, choicesByProduct, removalsByProduct, accom
           : undefined,
       removals: removals.length > 0 ? removals : undefined,
       accompaniments: accompaniments.length > 0 ? accompaniments : undefined,
-      allowExtraMeat: hasExtraMeatAddon || undefined,
+      allowExtraMeat: allowExtraMeat || undefined,
+      extraMeatPrice: allowExtraMeat ? extraMeatPrice : undefined,
     },
   };
 }
@@ -277,9 +290,13 @@ async function fetchMenuData() {
     supabase.from("product_removals").select("*").order("sort_order"),
     supabase.from("product_accompaniments").select("*").order("sort_order"),
     supabase.from("product_addons").select("*"),
-    supabase.from("combo_side_options").select("*").order("sort_order"),
-    supabase.from("combo_drink_options").select("*, products(name, base_price)").order("sort_order"),
-    supabase.from("combo_pricing").select("*"),
+    // §46 (v37): il builder offre solo contorni e bibite disponibili e Roll con
+    // prezzo combo attivo — gli stessi che il server accetterebbe. store_id NON
+    // è filtrato qui: il client non ha uno store (menu a store singolo), e il
+    // filtro per store resta al server (§46b). Da rivedere con il multi-store.
+    supabase.from("combo_side_options").select("*").eq("is_available", true).order("sort_order"),
+    supabase.from("combo_drink_options").select("*, products(name, base_price)").eq("is_available", true).order("sort_order"),
+    supabase.from("combo_pricing").select("*").eq("is_active", true),
     supabase.from("product_allergens").select("product_id, allergens(label)"),
   ]);
 
@@ -306,9 +323,21 @@ async function fetchMenuData() {
         buildCatalogProduct(p, choicesByProduct, removalsByProduct, accompanimentsByProduct, addonsByProduct, allergensByProduct)
       );
   }
-  // §63: un Roll esaurito non deve restare acquistabile nemmeno tramite
-  // il Menu Combo (stesso prodotto, percorso diverso).
-  const rollProducts = categoryProducts.ROLL.filter((r) => r.isAvailable);
+  // Chiave per id del Roll (non per nome): rinominare un Roll non deve alterare
+  // il lookup del prezzo combo. La query filtra già is_active, quindi qui ci
+  // sono solo i prezzi combo attivi.
+  const comboPricingByRoll = {};
+  for (const row of comboPricing ?? []) {
+    comboPricingByRoll[row.roll_product_id] = Number(row.combo_base_price);
+  }
+
+  // §63: un Roll esaurito non deve restare acquistabile nemmeno tramite il Menu
+  // Combo (stesso prodotto, percorso diverso). §46 (v37): e nemmeno un Roll
+  // senza un prezzo combo attivo — il server lo rifiuterebbe, quindi non si
+  // offre affatto.
+  const rollProducts = categoryProducts.ROLL.filter(
+    (r) => r.isAvailable && comboPricingByRoll[r.id] !== undefined
+  );
 
   const comboSideOptions = (comboSides ?? []).map((s) => ({
     id: s.id,
@@ -325,12 +354,10 @@ async function fetchMenuData() {
     priceDelta: Number(d.price_delta),
   }));
 
-  // Chiave per id del Roll (non per nome): rinominare un Roll non deve alterare
-  // il lookup del prezzo combo.
-  const comboPricingByRoll = {};
-  for (const row of comboPricing ?? []) {
-    comboPricingByRoll[row.roll_product_id] = Number(row.combo_base_price);
-  }
+  // §25 (v37): base standard = minimo fra le sole righe ATTIVE (la query filtra
+  // is_active). Serve solo al supplemento MOSTRATO nel riepilogo ("CON KM
+  // SPECIAL +3", §25); il prezzo pagato parte dal prezzo del Roll scelto
+  // (comboLinePrice), non da questo minimo.
   const comboBaseStandard = Math.min(...Object.values(comboPricingByRoll));
 
   return {
@@ -495,10 +522,19 @@ function ProductConfigurator({ productKey, productId, config, onAddToCart }) {
   const showExtraMeat =
     config.allowExtraMeat && selectedProtein?.id === "pollo-tacchino";
   const appliedExtraMeat = showExtraMeat && extraMeat;
-  const total =
-    config.basePrice +
-    (selectedProtein?.priceDelta ?? 0) +
-    (appliedExtraMeat ? EXTRA_MEAT_PRICE : 0);
+  // §46 (v37): unico calcolo del prezzo di riga, condiviso col server via
+  // lib/menu-pricing.js. Il prezzo dell'extra carne arriva dal dato del menu
+  // (config.extraMeatPrice), non da una costante. Per costruzione l'esito è
+  // sempre ok qui — basePrice è numerico e config.extraMeatPrice esiste ogni
+  // volta che appliedExtraMeat è true (showExtraMeat richiede allowExtraMeat).
+  // Se un domani non lo fosse, `price` sarebbe undefined e il prezzo a schermo
+  // comparirebbe rotto invece che sbagliato: un guasto visibile, non un ripiego.
+  const total = productLinePrice({
+    basePrice: config.basePrice,
+    proteinSurcharge: selectedProtein?.priceDelta ?? null,
+    extraMeatPrice: config.extraMeatPrice,
+    extraMeatApplied: appliedExtraMeat,
+  }).price;
 
   // §21: l'accompagnamento è una scelta obbligatoria per i prodotti che lo
   // prevedono (Bowl), senza default preselezionato. Finché non è scelto, il
@@ -664,7 +700,7 @@ function ProductConfigurator({ productKey, productId, config, onAddToCart }) {
             checked={extraMeat}
             onChange={() => setExtraMeat((prev) => !prev)}
           />
-          {`+100 g di carne (+${formatPrice(EXTRA_MEAT_PRICE)})`}
+          {`+100 g di carne (+${formatPrice(config.extraMeatPrice)})`}
         </label>
       )}
 
@@ -1114,9 +1150,20 @@ function ComboBuilder({
     supplements.push({ label: "Drink premium", amount: selectedDrink.priceDelta });
   }
 
-  const total =
-    comboBaseStandard +
-    supplements.reduce((sum, supplement) => sum + supplement.amount, 0);
+  // §25/§46 (v37): il prezzo si calcola in lib/menu-pricing.js, dal prezzo combo
+  // DEL ROLL SCELTO (non dal minimo su tutte le righe) e con i tre supplementi
+  // sommati qualunque sia il segno. L'array `supplements` qui sopra resta
+  // PRESENTAZIONE — le righe visibili del riepilogo (§25) mostrano solo i
+  // positivi — e NON è la fonte del totale. Per costruzione l'esito è ok:
+  // selectedRoll è un Roll offerto (quindi con prezzo combo attivo) e i delta
+  // sono numerici; se mancasse, `price` sarebbe undefined e il totale
+  // comparirebbe rotto invece che sbagliato.
+  const total = comboLinePrice({
+    comboBasePrice: comboPricingByRoll[selectedRoll.id],
+    proteinSurcharge: selectedProtein?.priceDelta ?? null,
+    sideSurcharge: selectedSide.priceDelta,
+    drinkSurcharge: selectedDrink.priceDelta,
+  }).price;
 
   function handleAddToCart() {
     const sortedRemovals = Array.from(removals).sort();
@@ -2909,10 +2956,16 @@ export default function Home() {
   }
 
   function incrementSimpleProduct(product) {
+    // §46 (v37): anche una riga semplice nasce dal modulo unico — nessun
+    // supplemento, solo il prezzo base numerico. Se il modulo rifiutasse
+    // (prezzo assente o non numerico, impossibile con base_price NOT NULL)
+    // l'articolo NON viene aggiunto: mai un prezzo di ripiego nel carrello.
+    const result = productLinePrice({ basePrice: product.basePriceValue });
+    if (!result.ok) return;
     addToCart({
       key: product.id,
       name: product.name,
-      price: parsePrice(product.price),
+      price: result.price,
       details: null,
       ref: {
         // §30 (v32): le salse sono prodotti come gli altri → sempre kind:"product".
@@ -2938,10 +2991,14 @@ export default function Home() {
   // §40: stesso meccanismo a un tap di incrementSimpleProduct, usato dai
   // suggerimenti di upsell nel carrello (che non dipendono da activeCategory).
   function quickAddToCart(product, kind) {
+    // §46 (v37): stesso modulo unico di incrementSimpleProduct; stesso rifiuto
+    // senza ripiego se il prezzo non è utilizzabile.
+    const result = productLinePrice({ basePrice: product.basePriceValue });
+    if (!result.ok) return;
     addToCart({
       key: product.id,
       name: product.name,
-      price: parsePrice(product.price),
+      price: result.price,
       details: null,
       ref: { kind, id: product.id },
     });
