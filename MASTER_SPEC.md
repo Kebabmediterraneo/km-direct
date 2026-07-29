@@ -1,10 +1,41 @@
 # KM DIRECT — MASTER SPECIFICATION
 
-**Versione 36** — sostituisce la v35.
+**Versione 37** — sostituisce la v36.
 
 Documento di riferimento definitivo per lo sviluppo. Le decisioni qui
 contenute sono approvate: non vanno reinterpretate senza un motivo concreto
 (vedi §73). Ogni file di codice del progetto deve rispettare queste regole.
+
+**Novità della v37** (vincolanti):
+
+1. §46 — **il prezzo di una riga si calcola in un punto solo, usato dal sito
+   e dal server.** Non due implementazioni che devono coincidere, ma una sola
+   che non può divergere. *Decisione dell'utente del 29/07/2026.* È la strada
+   che chiude alla radice la condizione di apertura §46, invece di renderla
+   una verifica da rifare per sempre.
+2. §22 e §46 — **il prezzo dell'extra carne si legge dal database**, mai da
+   una costante nel codice. Oggi il sito mostra +4 € perché il numero è
+   scritto nel codice, mentre il server addebita il valore di
+   `product_addons.price`: due fonti per lo stesso importo.
+3. §25 e §46 — **i supplementi si applicano sempre, qualunque sia il segno.**
+   Oggi il combo scarta i supplementi negativi e il configuratore no: lo
+   stesso sconto darebbe due esiti diversi a seconda di dove viene scelto.
+4. §46 — **si arrotonda ai centesimi una volta sola, alla fine del calcolo di
+   riga**, e da lì in poi tutti usano quel valore. Oggi il server arrotonda
+   tre volte lungo il percorso e il sito mai.
+5. §46 — **il menu non offre opzioni che il server rifiuterebbe**: gli stessi
+   filtri di disponibilità, attivazione e store da entrambe le parti.
+6. §22 e §46b — registrato che la regola "extra carne solo con Pollo e
+   tacchino" **vive solo nell'interfaccia** e non è riverificata dal server:
+   stessa famiglia del buco chiuso in v36 sulle variazioni.
+
+*Le divergenze registrate ai punti 2, 3, 5 e 6 non hanno mai prodotto un
+addebito sbagliato: verificato il 29/07/2026 su **609 configurazioni reali**,
+i due calcoli danno lo stesso identico risultato. Coincidono però per com'è
+fatto il dato di oggi — un solo addon per prodotto, tutti a 4 €, nessun delta
+negativo, tutte le righe combo attive, un solo store — non perché il codice lo
+impedisca. Nessuno di questi valori è oggi modificabile dal pannello; il giorno
+in cui l'editor crescerà, lo diventeranno tutti insieme.*
 
 **Novità della v36** (vincolanti):
 
@@ -1045,6 +1076,33 @@ Facoltativo, +100 g di carne (+4 €), disponibile solo con proteina "Pollo e
 tacchino" (mai con Planted, Adana, Egiziano, Cipriota). Il KM Special Bowl
 può cumulare ulteriori +100 g oltre alla propria extra dose inclusa.
 
+**Il prezzo si legge dal database (v37, vincolante)**: la fonte è
+`product_addons.price`, mai un numero scritto nel codice. Fino alla v36 il
+sito mostrava +4 € da una costante mentre il server addebitava il valore del
+database: due fonti per lo stesso importo, che oggi coincidono e che nessuno
+avrebbe potuto tenere allineate: la costante non è modificabile da nessuna
+schermata. Vale la regola generale di §46, un solo calcolo e una sola fonte
+per ogni prezzo.
+
+⚠️ **La regola sulla proteina non è riverificata dal server (registrato in
+v37)**: il vincolo "solo con Pollo e tacchino" vive **soltanto
+nell'interfaccia**. La colonna `product_addons.requires_protein` esiste ed è
+valorizzata su tutte e 5 le righe, ma non viene mai letta al checkout: una
+richiesta costruita a mano può aggiungere l'extra carne a una Bowl con
+Planted o Adana. Il prezzo resterebbe coerente — si paga ciò che si aggiunge —
+ma la regola di prodotto no, e a preparare arriverebbe una Bowl che il menu
+non prevede. È la stessa famiglia del buco chiuso in v36 sulle variazioni
+(§18), e va chiusa allo stesso modo (§46b). **Non implementato**: lavoro a sé,
+da non incastrare dentro l'unificazione del calcolo.
+
+⚠️ **Un secondo addon non è identificato (registrato in v37)**: il server
+sceglie la riga di `product_addons` prendendo la prima che il database
+restituisce, senza ordinamento né filtro. Con un addon per prodotto — la
+situazione di oggi su tutte e 5 le righe — l'esito è determinato. Il giorno in
+cui un prodotto ne avesse due, **quale dei due viene addebitato dipenderebbe
+dall'ordine di lettura**. Da chiudere prima di introdurre il secondo addon,
+non dopo.
+
 ## 23-26. MENU COMBO
 
 Categoria autonoma. Banner home: "MENU COMBO / Componi il tuo menu KM" / CTA
@@ -1088,6 +1146,31 @@ prezzo base da 13€ a 16€.
 
 Planted ha un supplemento di +1,50 € sui Roll normali (§19) e +0 € sul KM
 Special; lo stesso vale dentro il combo.
+
+**I supplementi si applicano sempre, qualunque sia il segno (v37,
+vincolante)**
+
+Un supplemento negativo — cioè "questa scelta costa meno" — è la forma
+naturale per esprimere uno sconto su un'opzione, e va **applicato**, non
+ignorato. Fino alla v36 il builder del combo scartava i supplementi negativi
+mentre il configuratore dei Roll e delle Bowl li sommava: la stessa
+promozione avrebbe dato due esiti diversi a seconda che l'articolo fosse
+scelto dentro un combo o da solo, e in un caso il cliente avrebbe visto uno
+sconto che il conto non applicava. Oggi non esiste alcun delta negativo in
+database, quindi la differenza non si vede: è la ragione per cui è rimasta
+nascosta fin qui.
+
+**La base del combo è il prezzo di quel Roll (v37, vincolante)**
+
+Il prezzo di partenza si legge dalla riga di `combo_pricing` **del Roll
+scelto**, attiva e dello store corrente. Fino alla v36 il sito partiva invece
+dal **minimo fra tutte le righe**, senza filtrare né l'attivazione né lo
+store: una riga disattivata con prezzo più basso avrebbe abbassato la base
+mostrata di **tutti** i combo mentre il server continuava ad addebitare
+quella giusta. Il "supplemento Roll" mostrato nel riepilogo (§25, KM Special
++3 €) resta una **scelta di presentazione** e si calcola sulla base standard
+delle sole righe attive: è ciò che il cliente legge, non ciò da cui si parte
+per contare.
 
 **Identità del prodotto = `id` (immutabile).** Tutti i collegamenti interni
 tra prezzi e prodotti — in particolare il prezzo base del combo per ogni Roll
@@ -1624,6 +1707,66 @@ in silenzio un importo diverso da quello visto. Questa voce va trattata
 come le altre condizioni di apertura (informativa privacy, Stripe live,
 dominio). *Dalla v30 non figura più fra queste il "travaso dati test →
 produzione": esiste un solo database, vedi §66.*
+
+**Un solo calcolo del prezzo di riga (v37, vincolante)**
+
+Il prezzo unitario di una riga di carrello si calcola in **un punto solo**,
+usato **sia dal sito sia dal server**. Non due implementazioni che devono
+coincidere: una sola, che non può divergere perché non è più doppia. È la
+stessa regola che §46b impone già al server per gli orari — riscrivere la
+logica in una seconda implementazione è vietato, due implementazioni
+divergono, sempre — estesa qui al confine più delicato, quello fra ciò che il
+cliente vede e ciò che paga.
+
+Forma: un modulo **puro** in `lib/` (§63-64), senza accesso al database e
+senza React, che riceve i valori già letti e restituisce il prezzo. Chi lo
+chiama resta responsabile di leggere i dati; il modulo di applicare le regole.
+
+Regole che il calcolo deve applicare:
+
+1. **Prodotto con opzioni**: prezzo base dell'articolo, più il supplemento
+   della proteina scelta, più il costo dell'extra carne **letto dal database**
+   (§22) quando applicato.
+2. **Combo**: prezzo combo del Roll scelto (§25), più i supplementi di
+   proteina, contorno e bibita.
+3. **Tutti i supplementi si applicano qualunque sia il segno** (§25).
+4. **Si arrotonda ai centesimi una volta sola**, alla fine del calcolo di
+   riga; da lì in poi tutti — riepilogo a schermo, subtotale, ordine — usano
+   quel valore. Fino alla v36 il server arrotondava tre volte lungo il
+   percorso e il sito mai, arrotondando solo il numero disegnato: due catene
+   diverse che davano lo stesso risultato solo perché tutti i prezzi in
+   database hanno esattamente due decimali.
+5. **La quantità resta fuori**: il modulo calcola il prezzo di *una* riga.
+6. **Le rimozioni non hanno prezzo** (§18) e non entrano nel calcolo, in
+   nessun percorso.
+
+**Gli ingressi si leggono con gli stessi filtri da entrambe le parti (v37,
+vincolante)**: disponibilità dell'articolo, disponibilità dell'opzione,
+attivazione della riga di prezzo, store. Un'opzione che il server rifiuterebbe
+**non va offerta dal menu**: fino alla v36 il sito proponeva contorni e
+bibite senza filtrare la disponibilità, e il cliente poteva comporre un ordine
+che al pagamento veniva respinto.
+
+**Che cosa questo chiude, e che cosa no.** Chiude le divergenze di **regola**:
+dopo l'unificazione non è più possibile che sito e server contino in modo
+diverso. **Non chiude** le divergenze di **dato**: chi tiene la pagina aperta
+mentre un prezzo cambia continua a vedere quello vecchio, perché il menu è
+stato letto una volta sola. Il requisito qui sopra — confrontare il prezzo
+mostrato con quello reale e fermarsi con un avviso — **resta una condizione di
+apertura** e non viene assorbito da questo lavoro.
+
+*Stato di partenza, verificato il 29/07/2026*: le due implementazioni sono
+state eseguite su **609 configurazioni reali** — ogni prodotto per ogni
+proteina, con e senza extra carne dove ammesso; ogni combo per ogni contorno e
+ogni bibita — con **zero divergenze**. Nessun cliente ha mai pagato un importo
+diverso da quello mostrato. La verifica ha però confrontato **due formule
+riscritte leggendo il codice**, non il codice in esecuzione (`route.js` non è
+importabile fuori da Next, i componenti non lo sono fuori da un render):
+dimostra che le regole coincidono sui dati di oggi, non l'instradamento.
+
+*Ordine dei lavori deciso il 29/07/2026*: prima il modulo con il sito, poi il
+server, in due commit separati — così la persistenza del carrello (§36-40) si
+sblocca già dal primo, senza attendere che si tocchi il percorso di pagamento.
 
 ## 46b. Validazioni server-side e convenzioni di errore API (aggiunto in v14, vincolante)
 
