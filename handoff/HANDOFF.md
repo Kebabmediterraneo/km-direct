@@ -260,31 +260,47 @@ non ricopiati da qui.
   `succeeded`, in sandbox; gli altri 5 sono `pending`. `KM-0004`, `KM-0005` e
   `KM-0006` sono le prove di checkout della migrazione salse. **Si azzerano
   entrambe le tabelle.**
-- **`staff_action_log`: 47 righe, di cui 28 di test** su tre identificatori —
-  `staff:test-fase1` (12), `staff:test-fase2a` (9), `staff:test-merge` (7). Le
-  altre **19** (`staff:bologna@kebabmediterraneo.com`) sono azioni vere e **non
-  vanno toccate**.
+- **`staff_action_log`: 60 righe, di cui 41 di test** su quattro identificatori
+  — `staff:test-fase1` (12), `staff:test-fase2a` (9), `staff:test-merge` (7),
+  `staff:test-spice` (13). Le altre **19**
+  (`staff:bologna@kebabmediterraneo.com`) sono azioni vere e **non vanno
+  toccate**.
 
 ---
 
 ## 9) To-do / prossimi passi (in ordine)
 
-### PROSSIMO — piccantezza (ciò che resta della Fase 2B)
+### PROSSIMO — piccantezza, SECONDO TEMPO (interfaccia)
 
-Unico pezzo rimasto della Fase 2B, e **non riguarda solo le salse**: va aggiunto
-all'editor per tutti gli articoli. Regole in §34-35 (v32):
+Il **primo tempo è fatto** (commit `b2166f0`): `lib/menu-spice.js` con la lista
+chiusa, e `lib/menu-editor.js` che valida il livello e ricava la dicitura dal
+server. Verificato sul codice vero, 15 casi.
+
+Resta il **secondo tempo**: la GET `app/api/staff/menu/route.js` deve
+restituire `spice_level` e `spice_label`, e il form del pannello
+(`app/staff/page.js`) deve offrire la scelta del livello. Verifica dal vivo di
+Andrea.
+
+Regole in §34-35 (v34):
 
 - `spice_level` vale **0, 1, 2 o 3** (0 = non piccante);
-- `spice_label` è una **lista chiusa** — "Poco piccante" (1), "Piccante" (2),
-  "Molto piccante" (3) — obbligatoria da 1 in su, vuota a 0;
-- **l'editor presenta una sola scelta** e scrive entrambe le colonne insieme:
-  livello e dicitura non possono divergere;
-- la lista vive nel codice come quella dei badge, `lib/menu-badges.js` è il
-  modello;
+- `spice_label` è una **lista chiusa** — "Leggermente piccante" (1),
+  "Piccante" (2), "Molto piccante" (3) — vuota a 0;
+- **il client invia solo il livello**, la dicitura la ricava il server: non
+  esiste un percorso che possa farli divergere;
+- ⚠️ **le diciture sono testo di menu**: §19-20 prevale su §34-35. Cambiarne
+  una è una decisione sul menu, non un dettaglio tecnico;
 - su "Ajvar piccante" la ridondanza col nome è **accettata consapevolmente**
   (§30).
 
-Oggi `spice_level` è 0 e `spice_label` vuota su tutti gli articoli.
+⚠️ **6 articoli hanno già la piccantezza valorizzata**: Il Turco e Il Turco
+Bowl (livello 1, "Leggermente piccante"); Il Libanese, Il Libanese Bowl, KM
+Special e KM Special Bowl (livello 2, "Piccante"). Verificato il 29/07/2026 che
+tutte e 6 le diciture nel database coincidono con quelle ricavate dalla lista:
+aprire e salvare uno di quegli articoli non cambia nulla di visibile al cliente.
+*La versione precedente di questo documento affermava che tutti gli articoli
+fossero a 0, ed era falso: nasceva dalla stessa ricognizione mai completata che
+ha prodotto la dicitura sbagliata in §34-35.*
 
 ### Poi — Fase 3 (creazione di articoli semplici)
 
