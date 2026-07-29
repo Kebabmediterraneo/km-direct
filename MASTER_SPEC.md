@@ -1,10 +1,46 @@
 # KM DIRECT — MASTER SPECIFICATION
 
-**Versione 35** — sostituisce la v34.
+**Versione 36** — sostituisce la v35.
 
 Documento di riferimento definitivo per lo sviluppo. Le decisioni qui
 contenute sono approvate: non vanno reinterpretate senza un motivo concreto
 (vedi §73). Ogni file di codice del progetto deve rispettare queste regole.
+
+**Novità della v36** (vincolanti):
+
+1. §36-40 — **si conservano anche i dati del checkout**, non solo gli
+   articoli, sotto una regola sola: **si salva ciò che il cliente ha scritto
+   o scelto, mai ciò che il sistema ha concluso.** Indirizzo, contatti e
+   orario richiesto sì; prezzi, esito del geofence e disponibilità dello slot
+   no — quelli si riverificano al rientro. *Decisione dell'utente del
+   29/07/2026: per il Delivery l'indirizzo non è una comodità, è la
+   condizione che decide se la consegna è possibile (§10).*
+2. §36-40 — **i consensi non si ripristinano mai.** Privacy, marketing e
+   casella "18 anni" sono atti, non dati: vanno rifatti a ogni giro.
+3. §36-40 — **dopo un pagamento riuscito il carrello salvato si svuota.**
+   Regola assente in v33, dove non serviva: il carrello moriva da sé a ogni
+   caricamento.
+4. §36-40 — **il prezzo di una riga deve vivere in un punto solo.** Oggi il
+   calcolo è chiuso dentro i componenti di configurazione e la ricostruzione
+   non può richiamarlo; riscriverlo significherebbe avere due calcoli che
+   divergono, cioè rifabbricarsi il problema di §46.
+5. §34-35 e §36-40 — **i due "−" si uniformano**: anche nel carrello si
+   scende a zero e l'articolo si rimuove. Fino alla v35 il "−" della card
+   rimuoveva e quello del carrello si fermava a 1; nessuno l'aveva deciso,
+   era venuta così. Il comando "Rimuovi" resta.
+6. §18 e §46b — **le variazioni sono validate lato server** contro le
+   rimozioni di *quel* prodotto. Implementato e verificato il 29/07/2026: era
+   l'unica scelta di configurazione che arrivava in cucina senza controllo.
+   **Un guasto di lettura non è un rifiuto**: 500, mai "variazione non
+   disponibile".
+7. §66 — **il perimetro della pulizia pre-apertura era incompleto, non
+   vecchio.** Mancavano tre tabelle intere, `customers` fra queste. Nuova
+   regola: l'elenco **si costruisce interrogando tutte le tabelle**, non
+   ricordando quali si sono usate. Al go-live **si azzera tutto** (decisione
+   dell'utente del 29/07/2026).
+8. §65 — con la persistenza non si moltiplicheranno solo gli ordini in
+   sospeso, ma anche le **righe cliente**, che vengono scritte prima
+   dell'ordine e restano anche se il checkout non arriva in fondo.
 
 **Novità della v35** (vincolanti):
 
@@ -904,6 +940,34 @@ Selezione singola, mai multipla (radio/select, non checkbox).
 Rimozioni multiple, guidate, definite prodotto per prodotto. Niente limite
 artificiale di 3-4, niente campo note libero sul prodotto.
 
+**Le rimozioni sono validate lato server (v36, vincolante)**
+
+"Definite prodotto per prodotto" è un vincolo sui dati, non solo sulla forma
+dell'interfaccia: al checkout ogni variazione ricevuta va confrontata con le
+rimozioni **di quel prodotto**, e una che non corrisponde fa rifiutare la riga
+esattamente come già accade per proteina, accompagnamento, contorno e bibita
+(§46b). Il confronto è **esatto**, senza normalizzazioni di maiuscole, spazi o
+accenti: le altre opzioni si confrontano così, e due regole diverse per la
+stessa cosa sarebbero peggio del problema.
+
+Il confronto va fatto **per prodotto e mai su un elenco globale di etichette**:
+al 29/07/2026 le 70 rimozioni esistenti usano 23 etichette distinte e **tutte e
+23 sono condivise da più prodotti** — la coppia Roll+Bowl come minimo, e alcune
+fra articoli diversi ("Senza tabulì" sta su Libanese, KM Special ed Egiziano).
+Un controllo su elenco globale accetterebbe "Senza feta" su Il Turco.
+
+**Roll e Bowl non si deducono l'uno dall'altro** neanche qui: hanno righe
+proprie e indipendenti, e la validazione della Bowl usa l'id della Bowl. È la
+stessa regola che §67 impone per gli allergeni. Per il menu combo l'unico
+riferimento sensato è il **Roll scelto**, che è già quello usato per validare
+la proteina.
+
+*Perché mancava: proteina, accompagnamento, contorno e bibita vengono letti dal
+database perché **spostano il prezzo**, e il controllo è nato come effetto
+collaterale del calcolo. Le rimozioni sono sempre gratuite — non esiste nemmeno
+una colonna prezzo — quindi non venivano lette, quindi non venivano controllate.
+Dove il calcolo non serviva, il controllo non c'era.*
+
 ## 19. ROLL — catalogo completo
 
 **Nota sull'etichetta del gruppo proteina (v20)**: nella UI cliente, il
@@ -1246,6 +1310,9 @@ Prodotti con scelte: bottone "Scegli" (sempre per Roll/Bowl). Prodotti
 semplici: "+ Aggiungi", poi contatore "− 1 +". Piccantezza sempre con testo
 oltre all'icona 🌶️, mai solo icona/colore.
 
+**Il "−" a quantità 1 rimuove l'articolo (v36)**: vale sulla card e nel
+carrello, con lo stesso comportamento nei due posti. La regola sta in §36-40.
+
 **La piccantezza si disegna su TUTTE le card (v35, vincolante)**
 
 La regola "icona più testo" vale ovunque compaia un articolo, senza eccezioni
@@ -1395,7 +1462,93 @@ costruita: conservare il carrello fuori dalla pagina.
   sbagliato**. La ricostruzione dal menu fresco serve a evitare la *sorpresa*,
   non l'errore — l'errore era già impossibile.
 
+**Che cosa sopravvive, oltre agli articoli (v36, vincolante)**
+
+La v33 parlava solo del carrello. Ma chi torna indietro dal pagamento ha già
+inserito indirizzo, citofono, piano, orario e contatti: ritrovare gli articoli
+e dover riscrivere tutto il resto lascia in piedi metà del fastidio. E per il
+Delivery l'indirizzo non è una comodità, è **la condizione che decide se la
+consegna è possibile** (§10): farlo riscrivere significa rimettere il cliente
+davanti al rischio di scoprire solo alla fine di essere fuori zona.
+
+Si conservano quindi anche i dati del checkout, sotto una regola sola:
+
+> **Si salva ciò che il cliente ha scritto o scelto. Mai ciò che il sistema ha
+> concluso.**
+
+- **Si salva**: modalità Delivery o Ritiro; indirizzo e civico come li ha
+  scelti il cliente; citofono, piano, scala e note; nome, telefono ed email;
+  giorno e orario richiesti; la richiesta di GIVEMEFIVE.
+- **Non si salva mai**: nessun prezzo e nessun totale (§36-40 v33); l'esito
+  del geofence; la disponibilità dello slot; il fatto che l'ordine fosse
+  accettabile. Sono **conclusioni**, e una conclusione conservata è una
+  conclusione vecchia mostrata come se fosse valida — lo stesso identico
+  meccanismo per cui non si salvano i prezzi.
+- **Al rientro si riverifica**: la posizione va riottenuta e l'indirizzo
+  ricontrollato contro il geofence (§10); giorno e orario ricontrollati contro
+  finestre ed eccezioni (§13, §68), esattamente come farebbe il server (§46b).
+- **Se qualcosa non regge più, si dice in chiaro cosa e perché**, al rientro e
+  **non alla pressione di "Paga ora"**: stesso trattamento degli articoli non
+  più disponibili. Un rifiuto secco davanti al pagamento è il modo peggiore di
+  comunicarlo, ed è precisamente ciò che questa sezione esiste per evitare.
+- **Restano dati personali** (§41-45): vivono nel browser del cliente, non
+  vengono trasmessi a nessuno per il solo fatto di essere conservati, e
+  spariscono con la scheda insieme al carrello.
+
+**I consensi non si ripristinano mai (v36, vincolante)**
+
+L'accettazione della privacy (§41-45), il consenso marketing (§45) e la
+casella "18 anni" (§33) sono **atti, non dati**: si rifanno a ogni giro, senza
+eccezioni. Ritrovarli già spuntati al ritorno dal pagamento significherebbe
+far pagare qualcuno che in quel passaggio non ha mai acconsentito, e per il
+marketing conservare un consenso che il cliente non ha ridato. Sono tre
+tocchi, ed è l'unico punto in cui la comodità cede senza discussione.
+
+**Dopo un pagamento riuscito il carrello salvato si svuota (v36, vincolante)**
+
+Finora la domanda non si poneva: il carrello moriva da sé a ogni caricamento.
+Da quando sopravvive, chi paga e torna sul menu si ritroverebbe dentro
+**l'ordine appena pagato**. Lo svuotamento avviene all'arrivo sulla pagina di
+conferma (§47-51). Si svuotano gli **articoli**; i dati del checkout possono
+restare per il resto della visita, perché un secondo ordine dallo stesso
+indirizzo è un caso normale — i consensi no, per la regola qui sopra.
+
+**Il prezzo di una riga deve vivere in un punto solo (v36, vincolante)**
+
+Poiché i prezzi non si salvano, al rientro vanno **ricalcolati**. Per un
+articolo semplice è immediato; per Roll, Bowl e combo il totale dipende dalle
+opzioni scelte (proteina, extra carne, accompagnamento, contorno, bibita), e
+quel calcolo oggi vive **dentro i componenti** che disegnano le finestre di
+configurazione, non richiamabile da fuori. Va **estratto in un punto unico**,
+usato sia dalla finestra sia dalla ricostruzione del carrello.
+
+Riscriverlo una seconda volta per la ricostruzione è **vietato**, per la stessa
+ragione per cui §46b lo vieta al server sugli orari: due implementazioni
+divergono, sempre. E qui divergerebbero sul prezzo mostrato, cioè
+rifabbricherebbero in casa il problema di §46.
+
 **Condizione da chiudere prima del go-live**, insieme alle altre di §46.
+
+**Il "−" a quantità 1 rimuove l'articolo (v36, vincolante)**
+
+Fino alla v35 il "−" sulla card del menu rimuoveva l'articolo quando la
+quantità scendeva sotto 1, mentre il "−" dentro il carrello si fermava a 1 e
+non toglieva nulla: per rimuovere serviva il comando "Rimuovi". Due pulsanti
+con lo stesso segno e due comportamenti diversi. **Nessuno l'aveva deciso**: la
+spec non ha mai detto nulla su come si toglie un articolo dal carrello, e la
+differenza è semplicemente venuta così.
+
+I due si uniformano sul comportamento della card: **anche nel carrello, "−" a
+quantità 1 rimuove la riga**. Il comando **"Rimuovi" resta**, e non diventa
+ridondante: su una riga con quantità 5 il "−" richiederebbe cinque tocchi.
+Nessuna conferma di sicurezza, coerentemente con "Rimuovi", che già oggi
+cancella senza chiedere.
+
+*Vale la pena registrare come è emerso: durante una verifica dal vivo l'utente
+ha usato il "−" del carrello mentre la prova, scritta male, descriveva quello
+della card. La differenza non l'ha scoperta un'analisi, l'ha scoperta un
+malinteso — e un'interfaccia che confonde chi l'ha costruita confonderà anche
+il cliente.*
 
 ## 41-45. Checkout
 
@@ -1496,6 +1649,21 @@ Condizioni da riverificare obbligatoriamente lato server al checkout:
      di `/api/service-status`, che resta l'unica fonte di verità.
      Riscrivere la logica di calcolo in una seconda implementazione è
      vietato: due implementazioni divergono, sempre.
+4. **Opzioni e variazioni dell'articolo** — proteina, accompagnamento,
+   contorno e bibita erano già riverificati; dalla v36 lo sono anche le
+   **rimozioni**, contro quelle definite per quel prodotto (§18). Una
+   variazione che non corrisponde fa rifiutare la riga, come le altre.
+
+**Un guasto di lettura non è un rifiuto (v36, vincolante)**
+
+Se una verifica non può essere svolta perché la lettura dal database
+fallisce, l'esito **non è** "condizione non soddisfatta": è un errore nostro,
+e va risposto **500** con il messaggio di errore interno, mai un 400 o un 409
+che addossano al cliente un problema che non ha. La differenza è visibile e
+conta: un cliente onesto respinto con "questa variazione non è disponibile" per
+un guasto momentaneo cambierebbe il suo ordine per una ragione inesistente.
+Serve quindi un canale distinto da quello del rifiuto — non basta trattare
+l'errore come una lista vuota.
 
 **Convenzioni di errore delle route API** (prima definizione esplicita in
 spec — fino alla v13 status code e formato erano convenzioni del codice,
@@ -2157,6 +2325,14 @@ Va tenuto presente **quando la pagina verrà costruita**, non quando i numeri
 sembreranno disastrosi: un `pending` seguito a pochi minuti da un ordine
 completato dallo stesso cliente non è un carrello abbandonato.
 
+**Anche le righe cliente si moltiplicano (v36)**: il cliente viene scritto in
+`customers` **prima** dell'ordine e resta lì anche se il checkout non arriva in
+fondo. Al 29/07/2026 le righe cliente sono 27 e solo 8 hanno un ordine
+collegato: le altre 19 sono passaggi interrotti. Con la persistenza del
+carrello ogni giro in più ne lascerà un'altra. Non è un errore — serve a
+riprendere l'ordine — ma va saputo prima di leggere quei numeri come "clienti".
+Vale su di essi lo stesso divieto d'uso a fini di ricontatto scritto qui sotto.
+
 **Vincolo legale non negoziabile**: questi dati servono ESCLUSIVAMENTE a
 scopo statistico interno. È vietato usarli per ricontattare i clienti a
 fini di marketing (SMS, email, WhatsApp, chiamate) — il consenso
@@ -2211,29 +2387,61 @@ Conseguenze:
   produzione"** (§46): non c'è nulla da travasare. I dati del menu, gli
   allergeni e i flag dietetici sono già dove serviranno. È una condizione in
   meno, ed era fra le più laboriose e più esposte a errore.
-- **Vanno rimossi i residui dei test prima del go-live.** Elenco **riletto dal
-  database ordine per ordine il 29/07/2026**, dopo che le due versioni
-  precedenti erano risultate entrambe incomplete: la v31 nominava il solo
-  `KM-0003`, la v32 correggeva il conteggio ma partiva da un numero
-  **dedotto** invece che letto. Stato reale:
-  - **`orders`: 6 righe, tutte di prova**, create fra il 26 e il 28/07/2026.
-    `KM-0001` (delivery, 29,50 €) è l'unico con pagamento `succeeded`, in
-    sandbox; gli altri 5 sono rimasti `pending`. `KM-0004`, `KM-0005` e
-    `KM-0006` sono le prove di checkout del 28/07 che hanno verificato la
-    migrazione delle salse — si riconoscono perché contengono **Ajvar
-    registrato come `[salse]`**, cosa impossibile prima di §30. Si azzerano
-    `orders` e `order_items` (8 righe).
-  - **`staff_action_log`: 53 righe, di cui 34 di test** su quattro
-    identificatori — `staff:test-fase1` (12), `staff:test-fase2a` (9),
-    `staff:test-merge` (7), `staff:test-spice` (6). Le altre **19** sono
-    azioni vere e **non si toccano**.
-  Oggi tutto questo è invisibile al cliente e innocuo; dal giorno
-  dell'apertura starebbe in mezzo ai dati veri, falsando i carrelli abbandonati
-  (§65) e il registro delle azioni staff.
-  *Lezione di metodo*: questo elenco è stato sbagliato due volte, sempre
-  perché ricostruito **per differenza** invece che letto. Prima del go-live va
-  riletto dal database, non ricopiato da qui: i numeri scritti sopra valgono
-  al 29/07/2026 e invecchiano a ogni prova.
+- **Vanno rimossi i residui dei test prima del go-live.** Al go-live **si
+  azzera tutto ciò che è di prova**, senza tenere nulla "per storico"
+  (decisione dell'utente del 29/07/2026): oggi è invisibile al cliente e
+  innocuo, dal giorno dell'apertura starebbe in mezzo ai dati veri, falsando i
+  carrelli abbandonati (§65) e il registro delle azioni staff.
+
+  **Come si costruisce l'elenco (v36, vincolante).** Interrogando **tutte** le
+  tabelle dello schema, una per una, non ricordando quali si sono usate e mai
+  ricostruendo per differenza. Le tre versioni precedenti di questo elenco
+  erano tutte sbagliate, e per due ragioni diverse: la v31 e la v32 avevano
+  numeri **dedotti** invece che letti; la v33, che pure li aveva riletti dal
+  database, guardava **solo dentro le tabelle che qualcuno si ricordava di aver
+  toccato**, e ne mancavano tre intere. Rileggere non basta: bisogna sapere
+  *dove* rileggere, e l'unico modo affidabile di saperlo è chiedere a tutte.
+
+  **Fotografia del 29/07/2026** — letta interrogando tutte e 23 le tabelle.
+  Vale a quella data e **invecchia a ogni prova**: va riletta prima del
+  go-live, mai ricopiata da qui.
+
+  - **`orders`: 8 righe, tutte di prova** (26-29/07/2026), e **`order_items`:
+    12 righe**. Due ordini con pagamento `succeeded` in sandbox — `KM-0001`
+    (delivery, 29,50 €) e `KM-0008` (delivery, 23,50 €, verifica dal vivo
+    della validazione delle variazioni di §18) — gli altri sei `pending`.
+    `KM-0008` porta le **prime rimozioni mai finite in un ordine** da quando il
+    progetto esiste. Si azzerano entrambe le tabelle.
+  - **`customers`: 27 righe, tutte di prova.** Assenti da questo elenco fino
+    alla v35, ed è l'omissione più grave: sono **dati personali**, per quanto
+    inventati. Solo 8 hanno un ordine collegato; le altre 19 sono passaggi di
+    checkout interrotti (§65). Nessuna ha email, nessuna ha dato il consenso
+    marketing, nessuna corrisponde a una persona che abbia davvero ordinato —
+    inclusa la riga intestata "Andrea Pastore", che è anch'essa una prova. Si
+    azzera.
+  - **`order_status_history`: 12 righe**, tutte su `KM-0001`, avanzamenti e
+    ritorni indietro provati il 26/07. Segue gli ordini per vincolo di
+    cancellazione a catena, ma va **nominata**: una tabella che non compare in
+    un elenco non viene riletta.
+  - **`promo_redemptions`: 1 riga** — `GIVEMEFIVE` su `KM-0001`. Conta più di
+    quanto il numero suggerisca: §14 concede **un solo utilizzo per cliente**,
+    quindi finché quella riga esiste quel telefono non può più usare il codice.
+    Si azzera.
+  - **`staff_action_log`: 64 righe, di cui 43 di test** su quattro
+    identificatori — `staff:test-spice` (15), `staff:test-fase1` (12),
+    `staff:test-fase2a` (9), `staff:test-merge` (7). Le altre **21**, tutte
+    dall'identificatore reale, sono **azioni vere sul menu vero**: restano.
+    Sono l'audit trail imposto da questa stessa sezione, non un residuo, e
+    costituiscono **l'unica eccezione all'azzeramento**.
+  - **Vuote al 29/07/2026, quindi nessun residuo**: `analytics_events`,
+    `coupons`, `staff_settings`, `store_schedule_exceptions`. Vanno comunque
+    ricontrollate, non date per vuote.
+  - **Non sono residui** e non si toccano: le tabelle di menu e configurazione
+    (`stores`, `store_order_windows`, `store_geofences`, `products`,
+    `product_choice_options`, `product_removals`, `product_addons`,
+    `product_accompaniments`, `combo_side_options`, `combo_drink_options`,
+    `combo_pricing`, `allergens`, `product_allergens`), che contengono i dati
+    veri già pronti per l'apertura.
 - **L'immutabilità dello storico non vincola i dati di oggi (v32).** La regola
   qui sopra descrive come si deve comportare il **sistema** quando gli ordini
   saranno di clienti veri: nessuna schermata deve ricavare nome o prezzo di un
