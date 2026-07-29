@@ -4,6 +4,7 @@ import { supabaseAdmin } from "../../../lib/supabase-admin";
 import { getActiveStore } from "../../../lib/get-active-store";
 import { getStoreGeofencePolygon } from "../../../lib/get-store-geofence";
 import { isPointInPolygon } from "../../../lib/geo";
+import { validateRemovals } from "../../../lib/menu-removals";
 import { computeScheduledDeliveryAt, getScheduledSlots } from "../../../lib/scheduled-slots";
 import {
   todayRomeDate,
@@ -28,6 +29,53 @@ const SYSTEM_ERROR_MESSAGE =
 
 function round2(value) {
   return Math.round(value * 100) / 100;
+}
+
+// §18/§46b: sentinella per distinguere un GUASTO DI LETTURA dal rifiuto della
+// riga. `null` significa "questa riga non è accettabile" e produce un 400; un
+// errore nel leggere `product_removals` non è "variazione non disponibile" ed è
+// un problema nostro, quindi deve produrre il 500 di §46b — come già fanno le
+// letture di store_order_windows e store_schedule_exceptions più sotto.
+const READ_ERROR = Symbol("read-error");
+
+// §18: assente, null o elenco vuoto = niente da controllare. È il caso normale
+// della gran parte degli ordini e non deve costare una query. Qualunque altro
+// valore passa dal modulo — comprese le forme sbagliate (una stringa, un
+// oggetto), che vanno rifiutate e non ignorate in silenzio.
+function needsRemovalCheck(requested) {
+  if (requested === null || requested === undefined) return false;
+  return !(Array.isArray(requested) && requested.length === 0);
+}
+
+// §18/§46b: le rimozioni non spostano il prezzo, quindi finora non le
+// controllava nulla — il controllo su proteina, accompagnamento, contorno e
+// bibita è nato come effetto del ricalcolo prezzo, e dove il ricalcolo non
+// serviva non c'era. Ma quello che il client manda finisce in
+// `order_items.configuration` e da lì sotto gli occhi di chi prepara, in
+// evidenza forte (§56): va verificato come tutto il resto.
+//
+// Le etichette ammesse sono quelle di QUEL prodotto (`product_removals` lega
+// ogni riga a un `product_id`, §18): tutte le etichette del menu sono condivise
+// fra prodotti diversi — a partire dalla coppia Roll/Bowl, che resta fatta di
+// due dati distinti (§16) — quindi una lista globale accetterebbe "Senza feta"
+// su "Il Turco". Il verdetto lo dà `lib/menu-removals.js`, funzione pura e
+// testata in `tests/menu-removals.test.mjs`.
+async function resolveRemovals(productId, requested) {
+  if (!needsRemovalCheck(requested)) return { removals: [] };
+
+  const { data, error } = await supabaseAdmin
+    .from("product_removals")
+    .select("label")
+    .eq("product_id", productId);
+
+  if (error) {
+    console.error("[POST /api/checkout] Errore lettura product_removals:", error);
+    return READ_ERROR;
+  }
+
+  const verdict = validateRemovals((data ?? []).map((row) => row.label), requested);
+  if (!verdict.ok) return null;
+  return { removals: verdict.removals };
 }
 
 // §46b: rifiuto 409 di uno slot programmato (Delivery o Ritiro) in base al
@@ -69,8 +117,13 @@ async function resolveProduct(ref) {
     configuration.choice = choice.label;
   }
 
-  if (ref.removals && ref.removals.length > 0) {
-    configuration.removals = ref.removals;
+  // §18/§46b: rimozioni verificate contro le etichette di QUESTO prodotto.
+  // Si salvano quelle ripulite dal modulo, mai il valore grezzo del client.
+  const productRemovals = await resolveRemovals(ref.id, ref.removals);
+  if (productRemovals === READ_ERROR) return READ_ERROR;
+  if (!productRemovals) return null;
+  if (productRemovals.removals.length > 0) {
+    configuration.removals = productRemovals.removals;
   }
 
   // §21: accompagnamento obbligatorio e validato per i prodotti che lo
@@ -147,8 +200,14 @@ async function resolveCombo(ref, storeId) {
     configuration.protein = choice.label;
   }
 
-  if (ref.removals && ref.removals.length > 0) {
-    configuration.removals = ref.removals;
+  // §18/§46b: le rimozioni del combo sono quelle del Roll scelto (il combo non
+  // è un prodotto e non ha righe proprie in `product_removals`), come già fa la
+  // validazione della proteina qui sopra.
+  const comboRemovals = await resolveRemovals(ref.rollProductId, ref.removals);
+  if (comboRemovals === READ_ERROR) return READ_ERROR;
+  if (!comboRemovals) return null;
+  if (comboRemovals.removals.length > 0) {
+    configuration.removals = comboRemovals.removals;
   }
 
   if (ref.sideLabel) {
@@ -394,6 +453,12 @@ export async function POST(request) {
       // base_price, controllo is_available, e category ('salse') + product_id
       // ricavati dal DB, non scritti a mano.
       resolved = await resolveProduct(ref);
+    }
+
+    // §46b: un guasto nella lettura delle etichette ammesse è un errore
+    // interno, non un rifiuto della riga — va distinto PRIMA del caso `null`.
+    if (resolved === READ_ERROR) {
+      return NextResponse.json({ error: SYSTEM_ERROR_MESSAGE }, { status: 500 });
     }
 
     if (!resolved) {
