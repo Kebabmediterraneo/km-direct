@@ -1,10 +1,39 @@
 # KM DIRECT — MASTER SPECIFICATION
 
-**Versione 38** — sostituisce la v37.
+**Versione 39** — sostituisce la v38.
 
 Documento di riferimento definitivo per lo sviluppo. Le decisioni qui
 contenute sono approvate: non vanno reinterpretate senza un motivo concreto
 (vedi §73). Ogni file di codice del progetto deve rispettare queste regole.
+
+**Novità della v39** (vincolanti):
+
+1. §36-40 e §10 — **l'indirizzo si conserva con le sue coordinate e la zona si
+   ricontrolla al rientro.** *Decisione dell'utente del 30/07/2026.* Corregge
+   una formulazione della v36 che diceva di **riottenere la posizione**: le
+   coordinate di un indirizzo non cambiano, cambia **il nostro perimetro di
+   consegna**. Ciò che va rifatto è il controllo, non la geolocalizzazione.
+2. §36-40 e §14 — **lo sconto si ritrova applicato al rientro.** *Decisione
+   dell'utente del 30/07/2026.* Si conserva l'**intenzione** del cliente, mai
+   l'importo: la soglia viene riverificata dal vivo e il diritto all'utilizzo
+   ricontrollato dal server, come già avviene.
+3. §10 e §41-45 — **la conferma di consegna si dà solo quando c'è il numero
+   civico.** Senza civico il controllo di zona gira su un punto che non è
+   quello di consegna, e civici diversi della stessa via possono cadere dentro
+   o fuori il perimetro.
+4. §36-40 e §41-45 — **i consensi restano stato locale della schermata di
+   checkout**, e questo non è un dettaglio implementativo: è **il meccanismo
+   che garantisce la regola**. Vivendo lì si azzerano a ogni apertura, e
+   nessuna persistenza può ripristinarli nemmeno per errore.
+5. §41-45 — **ciò che il cliente ha scritto sopravvive alla chiusura del
+   checkout**: contatti e dettagli di consegna non si azzerano più uscendo e
+   rientrando.
+
+*Le due protezioni verificate il 30/07/2026 e risultate già solide, registrate
+perché non vengano indebolite: un ordine Delivery **non può essere piazzato
+senza civico** (bloccato sul sito e rifiutato dal server, e nessuno dei sei
+ordini delivery in database ne è privo); e lo sconto **evapora da solo** se il
+carrello scende sotto la soglia, nel totale mostrato e nell'addebito.*
 
 **Novità della v38** (vincolanti):
 
@@ -709,6 +738,32 @@ Verifica su coordinate precise, mai solo CAP: autocomplete indirizzo, civico
 obbligatorio, conversione in coordinate, point-in-polygon, gestione
 ambiguità, eventuale pin su mappa.
 
+**La conferma di consegna si dà solo con il civico (v39, vincolante)**
+
+Il messaggio che conferma al cliente di essere in zona **non compare finché
+manca il numero civico**, nemmeno se il punto restituito cade dentro il
+perimetro. Il messaggio contrario — "qui non arriviamo" — resta invece
+mostrato: se il punto di una via è fuori zona, la via lo è quasi certamente,
+ed è un'informazione utile subito.
+
+*Motivo (utente, 30/07/2026)*: **il perimetro si decide sul civico, non sulla
+via**. Civici diversi della stessa strada possono cadere dentro o fuori, quindi
+senza numero il controllo gira su un punto che non è quello di consegna, e
+confermare la consegna sarebbe una promessa che non possiamo mantenere.
+
+**Il civico è obbligatorio, e lo è già** (verificato il 30/07/2026): il
+pulsante di pagamento resta disabilitato senza, il campo non è digitabile a
+mano — deve venire dalla selezione, mai da testo libero (§41-45) — e il server
+rifiuta comunque l'ordine. Nessuno dei sei ordini Delivery in database ne è
+privo. Quello che mancava era **la spiegazione**: chi sceglieva una via o un
+luogo senza numero trovava il pagamento bloccato senza capire perché. Ora un
+avviso dice cosa manca e cosa fare.
+
+⚠️ **Limite dichiarato**: quale punto esatto restituisca il servizio di
+geocoding per un indirizzo numerato — il portone reale o una stima sul tratto
+di via — non è determinato dal nostro codice. Per un civico proprio al confine
+del perimetro, la risposta dipende dalla precisione di quel servizio.
+
 ## 11. Ritiro/Pickup
 
 "Ritiro da KM, Via San Mamolo 25/A, Bologna". Nessuna fee, nessun minimo,
@@ -968,6 +1023,22 @@ cliente (telefono come identificatore principale, email come controllo
 secondario). Consumata solo su ordine valido/completato: mai su pagamento
 fallito, ordine abbandonato, o annullato per rider non disponibile. Mantenere
 comunque un campo coupon generico per codici futuri.
+
+**Si conserva l'intenzione, mai l'importo (v39, vincolante)**
+
+Se il cliente aveva applicato il codice prima di uscire verso il pagamento, al
+rientro lo **ritrova applicato** (§36-40). Si conserva soltanto il fatto che
+l'abbia chiesto: l'importo viene **ricalcolato** e la soglia **riverificata dal
+vivo**, come già accade.
+
+Il caso che questa regola non deve poter creare — carrello sceso sotto soglia
+con lo sconto rimasto attivo — **è già impossibile** (verificato il
+30/07/2026): la soglia viene ricontrollata a ogni ricalcolo, quindi lo sconto
+**evapora da solo** se il carrello scende, sparisce dal riepilogo e ricompare
+se il carrello risale. Il server, dal canto suo, ricontrolla la soglia **sul
+subtotale che ricalcola lui**, non su quello ricevuto: dal sito arriva solo
+un'intenzione, mai un importo. Registrato qui perché nessuna modifica futura
+lo indebolisca.
 
 ## 15. Categorie menu (ordine fisso)
 
@@ -1614,9 +1685,27 @@ Si conservano quindi anche i dati del checkout, sotto una regola sola:
   accettabile. Sono **conclusioni**, e una conclusione conservata è una
   conclusione vecchia mostrata come se fosse valida — lo stesso identico
   meccanismo per cui non si salvano i prezzi.
-- **Al rientro si riverifica**: la posizione va riottenuta e l'indirizzo
-  ricontrollato contro il geofence (§10); giorno e orario ricontrollati contro
-  finestre ed eccezioni (§13, §68), esattamente come farebbe il server (§46b).
+- **Al rientro si riverifica**: l'indirizzo si conserva **con le sue
+  coordinate** e la **zona si ricontrolla** contro il perimetro aggiornato
+  (§10); giorno e orario ricontrollati contro finestre ed eccezioni (§13,
+  §68), esattamente come farebbe il server (§46b).
+
+  *Correzione della v36 (v39)*: la v36 diceva che "la posizione va
+  riottenuta". È sbagliato nel modo che conta: **le coordinate di un indirizzo
+  non cambiano**, e richiederle di nuovo a ogni rientro non aggiungerebbe
+  nulla. Ciò che cambia è **il nostro perimetro di consegna**, quindi la cosa
+  da rifare è il **controllo**, non la geolocalizzazione. La regola generale
+  resta identica: le coordinate sono parte dell'indirizzo che il cliente ha
+  scelto (dato), l'essere in zona è una conclusione (§36-40) e non si conserva
+  mai.
+
+  ⚠️ **L'indirizzo ripristinato non è testo libero**: §41-45 pretende che
+  l'indirizzo al checkout venga da una selezione verificata, mai digitato a
+  mano. Un indirizzo ripristinato dalla memoria della visita **è** stato
+  selezionato — dal cliente stesso, pochi minuti prima — e viene ricontrollato
+  contro il perimetro prima di poter essere usato. Il vincolo è rispettato
+  nella sostanza: nessun indirizzo arriva al pagamento senza essere passato dal
+  controllo di zona.
 - **Se qualcosa non regge più, si dice in chiaro cosa e perché**, al rientro e
   **non alla pressione di "Paga ora"**: stesso trattamento degli articoli non
   più disponibili. Un rifiuto secco davanti al pagamento è il modo peggiore di
@@ -1633,6 +1722,15 @@ eccezioni. Ritrovarli già spuntati al ritorno dal pagamento significherebbe
 far pagare qualcuno che in quel passaggio non ha mai acconsentito, e per il
 marketing conservare un consenso che il cliente non ha ridato. Sono tre
 tocchi, ed è l'unico punto in cui la comodità cede senza discussione.
+
+**Il meccanismo che lo garantisce (v39, vincolante)**: i tre consensi vivono
+nello **stato locale della schermata di checkout**, non in quello della pagina.
+Vivendo lì si azzerano da soli ogni volta che il checkout si apre, e **nessuna
+persistenza può ripristinarli**, nemmeno per errore: il modulo che conserva i
+dati del checkout non li conosce affatto. Non è un dettaglio di
+implementazione, è la regola resa impossibile da violare — e per questo i tre
+consensi **non vanno spostati altrove per simmetria** con gli altri campi,
+neanche se un giorno sembrerà più ordinato.
 
 **Dopo un pagamento riuscito il carrello salvato si svuota (v36, vincolante)**
 
@@ -1709,6 +1807,19 @@ verificati con la geofence nel selettore Delivery (§9-10) — **sola
 lettura, non un campo libero riscrivibile**. Solo citofono, piano/interno,
 edificio/scala e note rider restano campi liberi al checkout (non
 influenzano la posizione geografica, quindi non serve verificarli).
+
+**Ciò che il cliente ha scritto sopravvive alla chiusura del checkout (v39,
+vincolante)**
+
+Contatti e dettagli di consegna — nome, cognome, telefono, email, citofono,
+piano, scala, note per il rider — **non si azzerano** uscendo e rientrando dal
+checkout. Fino alla v38 vivevano nello stato locale di quella schermata e
+sparivano a ogni chiusura: chi tornava indietro anche solo per correggere il
+carrello doveva riscrivere tutto.
+
+**I tre consensi fanno eccezione e restano dove sono** (§36-40 v39): sono atti,
+non dati, e il fatto che vivano nello stato locale è ciò che li fa azzerare a
+ogni apertura.
 
 Se il cliente vuole un indirizzo diverso, deve tornare al selettore
 indirizzo iniziale e rifare la verifica — non può aggirarla scrivendo un
