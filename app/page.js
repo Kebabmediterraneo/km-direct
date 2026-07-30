@@ -222,6 +222,10 @@ function buildCatalogProduct(product, choicesByProduct, removalsByProduct, accom
   const extraMeatAddon = addonRows.length === 1 ? addonRows[0] : null;
   const extraMeatPrice = extraMeatAddon ? Number(extraMeatAddon.price) : null;
   const allowExtraMeat = extraMeatPrice !== null && Number.isFinite(extraMeatPrice);
+  // §22: la proteina che sblocca l'extra carne — `requires_protein` grezzo
+  // (underscore), NULL = vale sempre. Conservata invece di essere buttata come
+  // prima si buttava il prezzo, così la regola non è più cablata nel codice.
+  const extraMeatRequiresProtein = allowExtraMeat ? extraMeatAddon.requires_protein ?? null : null;
   const hasConfig = choices.length > 0 || removals.length > 0 || accompaniments.length > 0;
 
   const base = {
@@ -254,9 +258,13 @@ function buildCatalogProduct(product, choicesByProduct, removalsByProduct, accom
         choices.length > 0
           ? choices.map((c) => ({
               // choice_key in DB arriva dall'ex enum protein_key (underscore,
-              // es. "pollo_tacchino"); normalizzato a trattino per combaciare
-              // con l'id "pollo-tacchino" già atteso dal resto del codice.
+              // es. "pollo_tacchino"); normalizzato a trattino per l'`id` già
+              // atteso dal resto del codice (radio, stato, nota Planted).
               id: c.choice_key.replace(/_/g, "-"),
+              // §22: la chiave grezza (underscore) si conserva per il confronto
+              // con `requires_protein` dell'addon — stesso confronto del server,
+              // senza una seconda conversione.
+              choiceKey: c.choice_key,
               label: c.label,
               priceDelta: Number(c.price_delta),
               included: c.is_default,
@@ -266,6 +274,7 @@ function buildCatalogProduct(product, choicesByProduct, removalsByProduct, accom
       accompaniments: accompaniments.length > 0 ? accompaniments : undefined,
       allowExtraMeat: allowExtraMeat || undefined,
       extraMeatPrice: allowExtraMeat ? extraMeatPrice : undefined,
+      extraMeatRequiresProtein: allowExtraMeat ? extraMeatRequiresProtein : undefined,
     },
   };
 }
@@ -484,9 +493,9 @@ function AllergenList({ allergens }) {
 
 // §19/§67: sottotesto discreto sull'opzione Planted (alternativa vegetale a
 // base soia). Riconosce Planted per la chiave stabile `id === "planted"`
-// (derivata da choice_key), come già si fa per "pollo-tacchino". È SOLO UI del
-// configuratore: non tocca label/prezzo/ordine (il carrello resta "Planted
-// Kebab"). Riutilizzato in ProductConfigurator e ComboBuilder per coerenza.
+// (derivata da choice_key). È SOLO UI del configuratore: non tocca
+// label/prezzo/ordine (il carrello resta "Planted Kebab"). Riutilizzato in
+// ProductConfigurator e ComboBuilder per coerenza.
 const PLANTED_NOTE = "Alternativa vegetale · contiene soia";
 
 function ProteinOptionLabel({ protein }) {
@@ -519,8 +528,14 @@ function ProductConfigurator({ productKey, productId, config, onAddToCart }) {
   const selectedProtein = hasProteins
     ? config.proteins.find((p) => p.id === proteinId)
     : null;
+  // §22: stessa identica regola del server — l'extra carne si mostra quando la
+  // proteina scelta corrisponde a `requires_protein` dell'addon, oppure quando
+  // `requires_protein` è NULL (vale sempre). Confronto sui choice_key grezzi,
+  // nessuna proteina scritta nel codice.
   const showExtraMeat =
-    config.allowExtraMeat && selectedProtein?.id === "pollo-tacchino";
+    config.allowExtraMeat &&
+    (config.extraMeatRequiresProtein == null ||
+      selectedProtein?.choiceKey === config.extraMeatRequiresProtein);
   const appliedExtraMeat = showExtraMeat && extraMeat;
   // §46 (v37): unico calcolo del prezzo di riga, condiviso col server via
   // lib/menu-pricing.js. Il prezzo dell'extra carne arriva dal dato del menu
