@@ -1,10 +1,40 @@
 # KM DIRECT — MASTER SPECIFICATION
 
-**Versione 40** — sostituisce la v39.
+**Versione 41** — sostituisce la v40.
 
 Documento di riferimento definitivo per lo sviluppo. Le decisioni qui
 contenute sono approvate: non vanno reinterpretate senza un motivo concreto
 (vedi §73). Ogni file di codice del progetto deve rispettare queste regole.
+
+**Novità della v41** (vincolanti):
+
+1. §36-40 — **si conserva anche la scelta fra "prima possibile" e "orario
+   programmato"** (`asap`/`scheduled`). *Decisione dell'utente del 30/07/2026.*
+   L'elenco della v36 nominava la modalità e l'orario, ma non questa scelta,
+   che è del cliente a tutti gli effetti (§41-45, "momento dell'ordine"). Al
+   rientro si riverifica come tutto il resto: se l'ASAP non è più disponibile
+   valgono le regole di §12, mai un cambio silenzioso.
+2. §36-40 e §12b — **si conserva se l'orario di ritiro è stato scelto dal
+   cliente o soltanto preselezionato**, perché da quella distinzione dipende
+   un comportamento visibile: lo slot automatico che scade si aggiorna in
+   silenzio, quello esplicito azzera e avvisa. *Decisione dell'utente del
+   30/07/2026.* **Se il dato manca o è illeggibile si riparte da "scelto dal
+   cliente"**: è la direzione prudente, perché il costo è un avviso in più da
+   leggere invece di un orario spostato di nascosto, che §12b vieta.
+3. §36-40 e §41-45 — **un indirizzo ripristinato che non è più in zona resta
+   mostrato**, con l'avviso accanto e il pagamento bloccato finché il cliente
+   non ne sceglie un altro. *Decisione dell'utente del 30/07/2026.* Non si
+   cancella in silenzio: sparirebbe una cosa che il cliente aveva inserito e
+   l'avviso resterebbe senza l'indirizzo a cui si riferisce.
+4. §41-45 — **conseguenza vincolante del punto 3**: sul sito l'**esito del
+   controllo di zona diventa una condizione per pagare**, accanto a indirizzo,
+   civico e coordinate. Fino alla v40 bastava che quei tre fossero presenti,
+   ed era sufficiente **solo perché** le coordinate potevano arrivare unicamente
+   da una selezione appena verificata. Con il ripristino quel presupposto cade.
+
+*La v41 non cambia nulla di ciò che è già costruito: aggiunge le tre decisioni
+che mancavano per poter scrivere la persistenza dei dati del checkout, emerse
+dalla ricognizione del 30/07/2026 fatta prima di aprire il modulo.*
 
 **Novità della v40** (vincolanti):
 
@@ -1723,10 +1753,32 @@ Si conservano quindi anche i dati del checkout, sotto una regola sola:
 
 - **Si salva**: modalità Delivery o Ritiro; indirizzo e civico come li ha
   scelti il cliente; citofono, piano, scala e note; nome, **cognome**, telefono
-  ed email; giorno e orario richiesti; la richiesta di GIVEMEFIVE.
+  ed email; la scelta fra **"prima possibile" e "orario programmato"**; giorno
+  e orario richiesti; **se l'orario di ritiro è stato scelto dal cliente o
+  soltanto preselezionato**; la richiesta di GIVEMEFIVE.
   *Il cognome mancava da questo elenco fino alla v39, pur essendo un dato
   obbligatorio in §41-45: aggiunto in v40, perché è proprio questo elenco a
-  guidare il modulo di persistenza.*
+  guidare il modulo di persistenza. Le due voci sul momento dell'ordine sono
+  della v41, per la stessa ragione.*
+
+  **La scelta fra ASAP e programmata è un dato (v41)**, non una conclusione:
+  la fa il cliente, e §41-45 la tratta come parte del momento dell'ordine. Si
+  conserva e **si riverifica** al rientro: se l'ASAP non è più disponibile,
+  valgono le regole di §12 — l'opzione sparisce dall'interfaccia e il cliente
+  sceglie un orario, mai uno spostamento silenzioso.
+
+  **"Scelto dal cliente" oppure "solo preselezionato" è un dato (v41)**, e
+  serve perché §12b ne fa dipendere due comportamenti diversi: uno slot di
+  ritiro **automatico** che scade si aggiorna in silenzio sul primo utile,
+  uno **esplicito** azzera la selezione e avvisa. Senza questo dato, al
+  rientro bisognerebbe sceglierne uno d'ufficio per tutti.
+
+  ⚠️ **Se manca o è illeggibile, si riparte da "scelto dal cliente".** È la
+  direzione prudente: il costo dell'errore in quel verso è **un avviso in più
+  da leggere**, mentre nell'altro verso sarebbe **un orario spostato di
+  nascosto**, che §12b vieta espressamente. Vale la stessa logica dell'ordine
+  delle scritture sugli allergeni (§67): quando si può sbagliare, si sbaglia
+  dalla parte che non fa danni.
 - **Non si salva mai**: nessun prezzo e nessun totale (§36-40 v33); l'esito
   del geofence; la disponibilità dello slot; il fatto che l'ordine fosse
   accettabile. Sono **conclusioni**, e una conclusione conservata è una
@@ -1757,6 +1809,23 @@ Si conservano quindi anche i dati del checkout, sotto una regola sola:
   **non alla pressione di "Paga ora"**: stesso trattamento degli articoli non
   più disponibili. Un rifiuto secco davanti al pagamento è il modo peggiore di
   comunicarlo, ed è precisamente ciò che questa sezione esiste per evitare.
+
+  **L'indirizzo fuori zona resta mostrato (v41, vincolante)**
+
+  Se al rientro il controllo di zona non passa, l'indirizzo **non si cancella**:
+  resta a schermo, con l'avviso accanto che spiega che lì non arriviamo (§10) e
+  il **pagamento bloccato** finché il cliente non ne sceglie un altro dal
+  selettore indirizzo, rifacendo la verifica (§41-45).
+
+  *Motivo (utente, 30/07/2026)*: cancellarlo in silenzio farebbe sparire una
+  cosa che il cliente aveva inserito, e lascerebbe l'avviso senza l'indirizzo a
+  cui si riferisce — il cliente leggerebbe "qui non arriviamo" senza vedere
+  *dove*. Tenerlo mostrato non indebolisce nulla, perché ciò che sblocca il
+  pagamento non è la presenza dell'indirizzo ma l'**esito** del controllo, che
+  non si conserva mai ed è appena stato rifatto.
+
+  *Lo stesso vale per un orario che non regge più*: si azzera la selezione,
+  come già impone §12b caso 3, e si dice perché.
 - **Restano dati personali** (§41-45): vivono nel browser del cliente, non
   vengono trasmessi a nessuno per il solo fatto di essere conservati, e
   spariscono con la scheda insieme al carrello.
@@ -1871,6 +1940,27 @@ ogni apertura.
 Se il cliente vuole un indirizzo diverso, deve tornare al selettore
 indirizzo iniziale e rifare la verifica — non può aggirarla scrivendo un
 indirizzo diverso direttamente al checkout.
+
+**L'esito del controllo di zona è una condizione per pagare (v41,
+vincolante)**
+
+Sul sito il pulsante di pagamento si sblocca quando indirizzo, civico e
+coordinate sono presenti **e il controllo di zona è passato**. Fino alla v40
+bastavano i primi tre, ed era sufficiente **solo per come stavano le cose**:
+le coordinate potevano arrivare unicamente da una selezione appena verificata
+nel selettore indirizzo, quindi la loro presenza implicava che il controllo
+fosse stato fatto e superato.
+
+Con il ripristino dei dati del checkout (§36-40) quel presupposto **cade**: le
+coordinate possono arrivare dalla memoria della visita, e il perimetro nel
+frattempo può essere cambiato. Da qui in avanti la condizione va scritta sul
+**verdetto**, non sulla presenza dei dati — che è la stessa distinzione fra
+dato e conclusione su cui poggia §36-40.
+
+⚠️ **Non sostituisce il controllo del server**, che resta obbligatorio e
+invariato (§46b): questa è la protezione dell'interfaccia, e serve a dire al
+cliente cosa non va **prima** che prema "Paga ora", invece di fargli incassare
+un rifiuto nel momento peggiore.
 
 In aggiunta, coerentemente col principio del §46 ("mai fidarsi del
 browser"): la route server-side che crea l'ordine deve ri-verificare essa
