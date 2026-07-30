@@ -1,11 +1,24 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 
 // §47-51: pagina di stato persistente — 15-30s va bene, stesso principio
 // del polling già usato nel pannello staff.
 const POLL_INTERVAL_MS = 20000;
+
+// §36-40 (v36): chiave della memoria di scheda del carrello. DEVE combaciare
+// con CART_STORAGE_KEY di app/page.js: qui la si svuota dopo un pagamento
+// riuscito. Accesso protetto: se la memoria non è disponibile, non succede
+// nulla.
+const CART_STORAGE_KEY = "km_direct_cart";
+function clearSavedCart() {
+  try {
+    window.sessionStorage.removeItem(CART_STORAGE_KEY);
+  } catch {
+    /* memoria non disponibile: niente da svuotare */
+  }
+}
 
 // Stati finali: non cambiano più, si può fermare il polling una volta
 // raggiunti. "problema" NON è finale (può tornare attivo o diventare
@@ -54,6 +67,11 @@ function ConfirmationScreen() {
 
   const [phase, setPhase] = useState("loading"); // loading | ready | error
   const [order, setOrder] = useState(null); // { pickupCode, status, fulfillment }
+  // §36-40 (v36): il carrello conservato si svuota UNA VOLTA SOLA, quando
+  // l'ordine si carica con successo. Si arriva qui solo dalla success_url di
+  // Stripe; per prudenza non si svuota se il pagamento risulta fallito
+  // (l'endpoint espone paymentStatus).
+  const cartClearedRef = useRef(false);
 
   // §47-51: nessuna differenza di comportamento tra "appena pagato" e
   // "riaperto ore dopo" — sempre lo stesso fetch + polling, guidato solo
@@ -86,6 +104,14 @@ function ConfirmationScreen() {
           fulfillment: data.fulfillment,
         });
         setPhase("ready");
+
+        // §36-40 (v36): pagamento riuscito → svuota il carrello conservato.
+        // Non si svuota su 'failed' (fallimento reale); 'pending' è successo in
+        // attesa del webhook, non un fallimento, quindi si svuota.
+        if (!cartClearedRef.current && data.paymentStatus !== "failed") {
+          cartClearedRef.current = true;
+          clearSavedCart();
+        }
 
         if (TERMINAL_STATUSES.includes(data.status) && intervalId) {
           clearInterval(intervalId);

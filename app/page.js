@@ -5,6 +5,7 @@ import { supabase } from "../lib/supabase";
 import { isPointInPolygon } from "../lib/geo";
 import { classifyScheduledSelection, firstAvailableSlot } from "../lib/scheduled-selection";
 import { productLinePrice, comboLinePrice } from "../lib/menu-pricing";
+import { prepareCart, restoreCart } from "../lib/cart-persistence";
 
 const CATEGORIES = [
   "ROLL",
@@ -65,6 +66,33 @@ const DELIVERY_MINIMUM_ORDER = 15;
 // §14: valido sia Delivery sia Ritiro, sconto fisso su soglia prodotti.
 const GIVEMEFIVE_THRESHOLD = 25;
 const GIVEMEFIVE_DISCOUNT = 5;
+
+// §36-40 (v36): il carrello si conserva nella memoria della SINGOLA SCHEDA
+// (sessionStorage): dura la visita, sopravvive all'andata e ritorno dal
+// pagamento perché è la stessa scheda, sparisce chiudendo la scheda. La chiave
+// è dichiarata qui e deve combaciare con quella usata in app/conferma/page.js
+// per lo svuotamento dopo il pagamento.
+const CART_STORAGE_KEY = "km_direct_cart";
+
+// Ogni accesso alla memoria della scheda è protetto: se non è disponibile
+// (navigazione privata, impostazioni del browser, quota) il sito funziona come
+// oggi, senza persistenza e senza errori. Un JSON malformato viene trattato
+// come "niente conservato".
+function readSavedCart() {
+  try {
+    const raw = window.sessionStorage.getItem(CART_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+function writeSavedCart(data) {
+  try {
+    window.sessionStorage.setItem(CART_STORAGE_KEY, JSON.stringify(data));
+  } catch {
+    /* memoria non disponibile: il carrello vive solo nella pagina, come prima */
+  }
+}
 
 // §7: colori del semaforo stato-servizio, puramente informativo.
 const SERVICE_STATUS_COLORS = {
@@ -2800,6 +2828,12 @@ export default function Home() {
   const [menuData, setMenuData] = useState(null);
   const [geofence, setGeofence] = useState(null);
   const [serviceStatus, setServiceStatus] = useState(null);
+  // §36-40 (v36): elenco degli articoli tolti alla ricostruzione, per l'avviso
+  // al rientro (nome di oggi + motivo). `hydratedRef` è la guardia "idratato":
+  // finché la ricostruzione non è stata TENTATA, il salvataggio non parte, così
+  // il carrello vuoto del mount non cancella quello conservato prima di leggerlo.
+  const [removedFromCart, setRemovedFromCart] = useState([]);
+  const hydratedRef = useRef(false);
   const isMenuCombo = activeCategory === "MENU COMBO";
   const products = menuData?.categoryProducts[activeCategory] ?? [];
 
@@ -2813,6 +2847,47 @@ export default function Home() {
       .then((data) => setGeofence(data.polygon ?? null))
       .catch((err) => console.error("Errore caricamento geofence:", err));
   }, []);
+
+  // §36-40 (v36): RICOSTRUZIONE. Parte quando il menu fresco è pronto e UNA
+  // VOLTA SOLA (guardia hydratedRef). Se non c'è nulla di conservato il
+  // comportamento è identico a oggi. Il catalogo che restoreCart si aspetta si
+  // ottiene qui con un adattatore inline: una mappa piatta id→prodotto ricavata
+  // da categoryProducts (esauriti inclusi: restoreCart deve poterli vedere per
+  // toglierli col motivo); gli altri tre campi combaciano già con menuData.
+  useEffect(() => {
+    if (!menuData || hydratedRef.current) return;
+    hydratedRef.current = true;
+
+    const saved = readSavedCart();
+    if (!saved) return; // niente conservato → come oggi
+
+    const productsById = {};
+    for (const list of Object.values(menuData.categoryProducts)) {
+      for (const p of list) productsById[p.id] = p;
+    }
+
+    const { items, removed } = restoreCart(saved, {
+      productsById,
+      comboPricingByRoll: menuData.comboPricingByRoll,
+      comboSideOptions: menuData.comboSideOptions,
+      comboDrinkOptions: menuData.comboDrinkOptions,
+    });
+
+    if (items.length > 0) setCartItems(items);
+    if (removed.length > 0) setRemovedFromCart(removed);
+    // Riscrive la memoria con il carrello RIPULITO, così ciò che è stato tolto
+    // non viene ri-segnalato a un successivo caricamento della stessa scheda.
+    writeSavedCart(prepareCart(items));
+  }, [menuData]);
+
+  // §36-40 (v36): SALVATAGGIO. A ogni cambiamento del carrello si riscrive la
+  // struttura conservata (solo ref e quantità, mai prezzi né nomi: lo garantisce
+  // prepareCart). La guardia hydratedRef impedisce il salvataggio prima che la
+  // ricostruzione sia stata tentata.
+  useEffect(() => {
+    if (!hydratedRef.current) return;
+    writeSavedCart(prepareCart(cartItems));
+  }, [cartItems]);
 
   // §7: semaforo puramente informativo — ricalcolato a intervalli perché
   // può cambiare fascia mentre la pagina resta aperta (es. passaggio da
@@ -3077,6 +3152,54 @@ export default function Home() {
           </div>
         )}
       </header>
+
+      {/* §36-40 (v36): avviso di ciò che è stato tolto al RIENTRO — non alla
+          pressione di "Paga ora". Compare solo sul menu (mai in checkout), è
+          chiudibile, elenca gli articoli col nome di oggi e il motivo. Per un
+          articolo sparito dal menu (senza nome, §36-40) usa una formula
+          generica. */}
+      {removedFromCart.length > 0 && !checkoutOpen && (
+        <div
+          style={{
+            background: "var(--surface-white)",
+            border: "1px solid var(--warning-yellow)",
+            borderRadius: 12,
+            padding: 14,
+            marginBottom: 16,
+            display: "flex",
+            flexDirection: "column",
+            gap: 8,
+          }}
+        >
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
+            <span style={{ fontWeight: 700, fontSize: 14, color: "var(--navy)" }}>
+              Abbiamo aggiornato il tuo carrello
+            </span>
+            <button
+              onClick={() => setRemovedFromCart([])}
+              aria-label="Chiudi avviso"
+              style={{
+                background: "none",
+                border: "none",
+                color: "var(--text-on-dark)",
+                fontSize: 18,
+                lineHeight: 1,
+                cursor: "pointer",
+                padding: 0,
+              }}
+            >
+              ×
+            </button>
+          </div>
+          <ul style={{ margin: 0, paddingLeft: 18, display: "flex", flexDirection: "column", gap: 4 }}>
+            {removedFromCart.map((r, i) => (
+              <li key={i} style={{ fontSize: 13, color: "var(--text-on-dark)" }}>
+                {`${r.name ?? "Un articolo"}: ${r.reason}.`}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       {!menuData ? (
         <p style={{ fontSize: 14, color: "var(--text-on-dark)" }}>
