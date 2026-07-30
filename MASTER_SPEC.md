@@ -1,10 +1,53 @@
 # KM DIRECT — MASTER SPECIFICATION
 
-**Versione 39** — sostituisce la v38.
+**Versione 40** — sostituisce la v39.
 
 Documento di riferimento definitivo per lo sviluppo. Le decisioni qui
 contenute sono approvate: non vanno reinterpretate senza un motivo concreto
 (vedi §73). Ogni file di codice del progetto deve rispettare queste regole.
+
+**Novità della v40** (vincolanti):
+
+1. §46b — **il controllo server-side sull'orario di Ritiro esiste.** La spec
+   affermava il contrario dalla v14, e l'affermazione era **falsa dal
+   24/07/2026**: il guard c'è, sta nel ramo del pickup, e usa la regola della
+   **chiusura inclusa** propria del Ritiro. La frase vecchia è stata sostituita
+   dallo stato reale. *Una nota di stato lasciata indietro aveva fatto
+   sospettare un buco inesistente: è la lezione `x` dell'handoff presa dal
+   verso opposto.*
+2. §46b — registrato fra i **lavori decisi e non fatti**: il server **non
+   riverifica il tempo di preparazione né la griglia dei quarti d'ora**, per
+   **entrambe** le modalità. Non è una condizione di apertura (decisione
+   dell'utente del 30/07/2026); si chiude insieme all'estrazione della route di
+   pagamento in `lib/` (§46, lavoro 1).
+3. §46b — **il limite dei 2 giorni regge per costruzione, non per controllo**:
+   il sito manda un'etichetta (`today`/`tomorrow`), mai una data. È una
+   protezione solida ma **silenziosa**, che si romperebbe senza rumore il
+   giorno in cui si decidesse di far viaggiare una data vera. Registrata perché
+   nessuno la indebolisca per distrazione.
+4. §46b — registrata la **doppia costruzione delle finestre orarie**
+   (`buildWindowsByDow` per il guard, `buildLinearWindows` per gli slot
+   offerti). Oggi danno lo stesso risultato, ma sono due copie.
+5. §66 — **la fotografia dei residui di prova esce dalla spec.** Resta qui solo
+   la **regola** su come si costruisce l'elenco; i numeri vivono
+   nell'`HANDOFF.md`. *Decisione dell'utente del 30/07/2026.* Motivo: quei
+   numeri cambiano a ogni verifica dal vivo, quindi la spec sarebbe sbagliata
+   in quel punto quasi ogni giorno — e un documento abitualmente sbagliato in
+   un punto insegna a non fidarsi anche negli altri. La spec tiene le
+   decisioni, l'handoff tiene lo stato.
+6. §63-64 e §67 — **aggiornati i blocchi di stato dell'editor menu**: le Fasi
+   2A e 2B sono **complete e verificate** dal 29/07/2026. La spec le descriveva
+   ancora come da costruire.
+7. §36-40 — aggiunto **cognome** all'elenco di ciò che si conserva del
+   checkout: c'era in §41-45 e mancava qui, cioè proprio nell'elenco su cui si
+   scrive il modulo di persistenza.
+8. §34-35 e §63-64 — il conteggio dei prodotti passa da **55 a 62**, superato
+   dall'unificazione delle salse (§30).
+
+*La v40 non prende alcuna decisione di prodotto: allinea la spec al codice
+reale e sposta nell'handoff ciò che invecchia. L'unica scelta nuova è quella
+del punto 2, che stabilisce dove va a finire un buco trovato — registrato, non
+fra le condizioni di apertura.*
 
 **Novità della v39** (vincolanti):
 
@@ -1612,9 +1655,10 @@ stata completata, e la regola è stata scritta lo stesso. Corretta il
 29/07/2026, prima che l'editor la riscrivesse sui due articoli. Gli altri due
 livelli combaciavano già con il database.*
 
-**Immagini — nessuna, per nessun articolo (v29)**: il campo `image_url`
-esiste su `products` ed è **vuoto su tutti i 55 prodotti**; la v29 lo
-aggiunge anche alle salse. Non esiste alcun modo di caricare un'immagine dal
+**Immagini — nessuna, per nessun articolo (v29, conteggio aggiornato in
+v40)**: il campo `image_url` esiste su `products` ed è **vuoto su tutti i 62
+articoli** — 55 prodotti più le 7 salse, che dalla v32 sono prodotti anch'esse
+(§30). Non esiste alcun modo di caricare un'immagine dal
 pannello staff, per nessun articolo. Finché il campo è vuoto la card si
 disegna esattamente come oggi, senza spazi vuoti né segnaposto. La gestione
 delle immagini è un lavoro autonomo, non ancora affrontato (§63-64).
@@ -1678,8 +1722,11 @@ Si conservano quindi anche i dati del checkout, sotto una regola sola:
 > concluso.**
 
 - **Si salva**: modalità Delivery o Ritiro; indirizzo e civico come li ha
-  scelti il cliente; citofono, piano, scala e note; nome, telefono ed email;
-  giorno e orario richiesti; la richiesta di GIVEMEFIVE.
+  scelti il cliente; citofono, piano, scala e note; nome, **cognome**, telefono
+  ed email; giorno e orario richiesti; la richiesta di GIVEMEFIVE.
+  *Il cognome mancava da questo elenco fino alla v39, pur essendo un dato
+  obbligatorio in §41-45: aggiunto in v40, perché è proprio questo elenco a
+  guidare il modulo di persistenza.*
 - **Non si salva mai**: nessun prezzo e nessun totale (§36-40 v33); l'esito
   del geofence; la disponibilità dello slot; il fatto che l'ordine fosse
   accettabile. Sono **conclusioni**, e una conclusione conservata è una
@@ -2036,10 +2083,82 @@ non prescritte):
 - Orario fuori apertura o in un turno chiuso: `In quell'orario siamo
   chiusi. Scegli un altro orario tra quelli proposti.`
 
-**Stato di implementazione al momento della v14**: il guard è implementato
-per la sola Delivery. Il guard per il Ritiro va implementato insieme a
-§12b; finché non esiste, un ordine Ritiro può essere creato via HTTP anche
-a locale chiuso.
+**Stato di implementazione (v40, verificato)**
+
+*Sostituisce la nota della v14, che diceva "il guard è implementato per la sola
+Delivery" e che un ordine Ritiro poteva essere creato via HTTP anche a locale
+chiuso. **Era vera quando è stata scritta e falsa dal 24/07/2026**, quando il
+guard del Ritiro è stato aggiunto; non è mai stata aggiornata. Una nota di
+stato lasciata indietro non invecchia in silenzio: afferma una cosa falsa con
+la stessa autorità del resto del documento, e il 30/07/2026 ha fatto sospettare
+un buco che non esisteva.*
+
+Il guard esiste **per entrambe le modalità**. Per il Ritiro copre l'orario nel
+passato, le finestre di §13 con la regola della **chiusura inclusa** che gli è
+propria (§12b — il flag che la seleziona è passato solo dal ramo pickup), i
+turni chiusi da eccezioni (§68) e l'orizzonte di 2 giorni. Un guasto di lettura
+risponde **500** e non un rifiuto, come impone il blocco qui sopra. La logica è
+quella **condivisa** con `/api/service-status`: dentro la route non esiste
+alcun calcolo di finestre riscritto a parte, come §46b vieta.
+
+⚠️ **Verificato leggendo il codice, non con una prova dal vivo** (30/07/2026):
+è stato seguito il percorso della route dall'ingresso fino alla scrittura
+dell'ordine, verificando che nessun percorso pickup raggiunga la scrittura
+saltando il guard. Nessuna richiesta è stata costruita per farsi respingere dal
+vivo, perché una prova di rifiuto attribuibile costerebbe prima un ordine di
+prova riuscito (lezione `ad` dell'handoff, e un residuo in più). La verifica
+vale come **statica** e va dichiarata così: se un domani si toccherà quel ramo,
+è il punto da riprovare per primo.
+
+**L'orizzonte di 2 giorni regge per costruzione, non per controllo (v40)**
+
+Non esiste alcuna riga che rifiuti un orario oltre domani. Il limite tiene
+perché il sito non manda **mai una data**: manda un'etichetta, `today` o
+`tomorrow`, e il giorno vero lo ricava il server dal proprio orologio. Ogni
+altro valore viene respinto con 400, quindi non esiste un payload che esprima
+un ritiro oltre domani, nemmeno costruito a mano.
+
+È una protezione **solida ma silenziosa**: si romperebbe **senza rumore** il
+giorno in cui si decidesse di far viaggiare una data vera dal client — per
+esempio estendendo l'orizzonte del Ritiro, che §12b registra come possibile.
+Chi lo farà deve sapere che sta togliendo l'unica cosa che oggi impone quel
+limite, e deve aggiungere il controllo esplicito nello stesso lavoro.
+
+**Lavori decisi e non fatti (v40, registrati)**
+
+1. **Il tempo di preparazione e la griglia dei quarti d'ora non sono
+   riverificati dal server**, per **entrambe** le modalità: §12b prescrive 15
+   minuti per il Ritiro e §12 sessanta (o apertura + 30) per la Delivery, e il
+   guard non li conosce; l'orario viene inoltre accettato in qualunque forma
+   `HH:MM`, quindi anche fuori dai quarti d'ora. Una richiesta costruita a mano
+   può prenotare un ritiro "fra un minuto", o alle 12:07, purché cada dentro
+   una finestra aperta.
+
+   *Perché conta, e non per il furbo di turno*: chi volesse sfruttarlo dovrebbe
+   costruirsi una richiesta **e pagare davvero**, per ottenere una scocciatura
+   in cucina. Il motivo vero è l'altro — **il server è la rete di sicurezza
+   sotto agli errori del sito**: se un domani il client sbagliasse a gestire
+   uno slot che scade durante la compilazione (§12b, i tre casi), oggi non
+   ci sarebbe nulla a fermarlo. È esattamente la famiglia di buchi per cui
+   questa sezione esiste.
+
+   **Non è una condizione di apertura** (decisione dell'utente del
+   30/07/2026): il cliente onesto non può raggiungerlo, perché il sito offre
+   solo gli slot calcolati, e il danno è un orario irrealistico, non un ordine
+   a locale chiuso né un prezzo sbagliato. **Si chiude insieme al lavoro 1 di
+   §46** — l'estrazione della logica della route in `lib/` — perché vive nello
+   stesso punto e vale la stessa regola: non si rimaneggia il percorso del
+   pagamento insieme ad altro.
+
+2. **Le finestre orarie si costruiscono in due punti**: uno alimenta il guard,
+   l'altro genera gli slot **offerti** al cliente. Confrontati il 30/07/2026,
+   producono oggi lo stesso risultato — stesso ordinamento, stessa
+   denominazione dei turni, stesso insieme di chiusure — e l'unica differenza
+   di scrittura non è osservabile, perché riguarda una colonna che non può
+   essere nulla. **Non è la seconda implementazione vietata sopra**, che
+   riguarda il *calcolo* di finestre ed eccezioni, condiviso davvero. Ma sono
+   due copie, e due copie divergono: da unificare quando si toccherà uno dei
+   due, non prima.
 
 ## 47-51. Conferma e stati ordine
 
@@ -2464,12 +2583,16 @@ separato. L'introduzione di ruoli/permessi admin distinti dallo staff è
   ciò che la migrazione elimina. La conferma sul cambio di prezzo si estende
   alle salse **automaticamente**, perché smette di esistere un percorso
   separato in cui potrebbe mancare.
-  **Stato (v33)**: la migrazione di §30 è **eseguita e verificata**, quindi la
-  parte che doveva dissolversi si è dissolta — le salse sono modificabili
-  dall'editor sui cinque campi della Fase 1, verificato dal vivo il
-  28/07/2026, e la conferma sul cambio di prezzo scatta anche per loro. Della
-  Fase 2B resta **soltanto la piccantezza**, ancora da costruire, per tutti
-  gli articoli.
+  **Stato (v40): Fase 2B COMPLETA.** La migrazione di §30 è eseguita e
+  verificata, quindi la parte che doveva dissolversi si è dissolta — le salse
+  sono modificabili dall'editor sui cinque campi della Fase 1, verificato dal
+  vivo il 28/07/2026, e la conferma sul cambio di prezzo scatta anche per loro.
+  L'unico pezzo rimasto, la **piccantezza**, è stato costruito il 29/07/2026
+  per **tutti** gli articoli: lista chiusa dei livelli in `lib/menu-spice.js`,
+  dicitura ricavata dal server, rendering esteso a tutte le card (§34-35), e
+  scelta del livello nel form del pannello. Verificato dal vivo da Andrea
+  impostando **Ajvar piccante a 1 e Acuka a 2** dal pannello (§30) e
+  ritrovandole nel menu con icona e dicitura.
 - **Fase 3** — creazione di **articoli semplici**: prodotti (fritti, sides,
   dolci, drink) **e salse**, con **dichiarazione allergeni obbligatoria alla
   creazione**: un articolo nuovo non può nascere senza che gli allergeni
@@ -2592,17 +2715,22 @@ modifica i cinque campi semplici con validazioni server-side complete,
 lista chiusa dei badge condivisa tra server e interfaccia, conferma sul
 cambio di prezzo, form inline nella sezione Menu del pannello staff
 (coerente con §34-35) e registrazione di ogni modifica in
-`staff_action_log`, esteso anche al toggle disponibile/esaurito. Restano
-da fare, nell'ordine, la Fase 2A (allergeni e flag dietetici su prodotti e
-salse), la Fase 2B (salse al pari sui campi semplici) e la Fase 3
-(creazione di articoli semplici, con dichiarazione allergeni obbligatoria).
+`staff_action_log`, esteso anche al toggle disponibile/esaurito.
 
-**Stato di avanzamento della Fase 2A (v31)**: il **core è realizzato e
-verificato** — `lib/menu-allergens.js` (validazioni, ordine insert-poi-delete,
-flag dietetico, `allergens_verified_at`, log) e la route sottile
-`app/api/staff/menu/allergens/route.js`. Una sola funzione gestisce prodotti
-e salse, così le regole sono identiche per costruzione e non per disciplina.
-Resta da costruire l'**interfaccia**, con le regole del blocco §67 v31.
+**Stato di avanzamento (v40)**: **Fase 1, Fase 2A e Fase 2B sono complete e
+verificate dal vivo**. Prima del go-live resta la sola **Fase 3** (creazione di
+articoli semplici, con dichiarazione allergeni obbligatoria), che non è ancora
+iniziata. *Le formulazioni precedenti di questo blocco e di quello della Fase
+2A descrivevano lavori già fatti come da fare: erano note di stato lasciate
+indietro, dello stesso tipo corretto in §46b dalla v40.*
+
+**Stato di avanzamento della Fase 2A (v40): COMPLETA.** Il core è
+`lib/menu-allergens.js` (validazioni, ordine insert-poi-delete, flag dietetico,
+`allergens_verified_at`, log) con la route sottile
+`app/api/staff/menu/allergens/route.js`. Una sola funzione gestisce prodotti e
+salse, così le regole sono identiche per costruzione e non per disciplina.
+L'**interfaccia** è stata costruita con le regole del blocco §67 v31 ed è
+verificata: allergeni e flag dietetici si modificano dal pannello.
 
 **Forma del codice da riusare (precisata in v29)**: la Fase 1 non ha messo
 validazioni e regole dentro la route HTTP, come diceva la formulazione
@@ -2614,8 +2742,9 @@ verifiche esercitano il codice vero e non una sua copia. **Le fasi successive
 riusano questa forma**, non la reinventano.
 
 **Immagini degli articoli — non gestibili, per nessun articolo (v29)**: il
-campo `image_url` esiste su `products`, è **vuoto su tutti i 55 prodotti**, e
-la v29 lo aggiunge anche alle salse per uniformità di struttura (§30). Non
+campo `image_url` esiste su `products`, è **vuoto su tutti i 62 articoli**
+(55 prodotti più le 7 salse, che dalla v32 sono prodotti anch'esse, §30 —
+conteggio aggiornato in v40). Non
 esiste alcun modo di caricare un'immagine dal pannello staff. La gestione
 delle immagini **non fa parte di nessuna delle fasi qui elencate**: è un
 lavoro autonomo, di natura diversa dagli altri campi dell'editor (caricamento
@@ -2747,55 +2876,33 @@ Conseguenze:
   toccato**, e ne mancavano tre intere. Rileggere non basta: bisogna sapere
   *dove* rileggere, e l'unico modo affidabile di saperlo è chiedere a tutte.
 
-  **Fotografia del 29/07/2026** — letta interrogando tutte e 23 le tabelle.
-  Vale a quella data e **invecchia a ogni prova**: va riletta prima del
-  go-live, mai ricopiata da qui.
+  **Che cosa va riletto, e dove vivono i numeri (v40).** L'elenco copre
+  **tutte e 23 le tabelle** dello schema, e in particolare quelle che è già
+  successo di dimenticare: `orders`, `order_items`, `customers`,
+  `order_status_history`, `promo_redemptions`, `staff_action_log`, più quelle
+  che risultano vuote — vanno **ricontrollate, non date per vuote**.
 
-  ⚠️ **Già superata (v38).** Il ciclo dei prezzi ha aggiunto **quattro ordini
-  di prova, da `KM-0009` a `KM-0012`**, con le relative righe in `order_items`,
-  e **quattro clienti intestati "Prova Server"**: sono le richieste HTTP con cui
-  è stato verificato che il server calcolasse i prezzi giusti dopo l'aggancio
-  al modulo unico (commit `ef08e0b`). I tentativi rifiutati nelle stesse prove
-  non hanno lasciato nulla, verificato. **I totali qui sotto non vanno corretti
-  a mano sommando questi quattro**: sarebbe di nuovo ricostruire per differenza,
-  l'errore che questa sezione ha già commesso tre volte. Si rilegge tutto.
+  ⚠️ **La fotografia con i numeri non sta più in questo documento**, ed è una
+  decisione, non una dimenticanza (utente, 30/07/2026). Quei conteggi cambiano
+  a **ogni verifica dal vivo** che arriva alla pagina di pagamento: tenerli qui
+  significava avere una spec sbagliata in quel punto quasi ogni giorno, e un
+  documento abitualmente sbagliato in un punto insegna a non fidarsi anche
+  negli altri. Le quattro versioni precedenti di questo elenco sono state tutte
+  superate, e l'ultima nel giro di **una sola giornata**. **La fotografia vive
+  ora nell'`HANDOFF.md`**, che è il documento dello stato; qui resta la regola,
+  che non invecchia. *La spec tiene le decisioni, l'handoff tiene lo stato.*
 
-  - **`orders`: 8 righe, tutte di prova** (26-29/07/2026), e **`order_items`:
-    12 righe**. Due ordini con pagamento `succeeded` in sandbox — `KM-0001`
-    (delivery, 29,50 €) e `KM-0008` (delivery, 23,50 €, verifica dal vivo
-    della validazione delle variazioni di §18) — gli altri sei `pending`.
-    `KM-0008` porta le **prime rimozioni mai finite in un ordine** da quando il
-    progetto esiste. Si azzerano entrambe le tabelle.
-  - **`customers`: 27 righe, tutte di prova.** Assenti da questo elenco fino
-    alla v35, ed è l'omissione più grave: sono **dati personali**, per quanto
-    inventati. Solo 8 hanno un ordine collegato; le altre 19 sono passaggi di
-    checkout interrotti (§65). Nessuna ha email, nessuna ha dato il consenso
-    marketing, nessuna corrisponde a una persona che abbia davvero ordinato —
-    inclusa la riga intestata "Andrea Pastore", che è anch'essa una prova. Si
-    azzera.
-  - **`order_status_history`: 12 righe**, tutte su `KM-0001`, avanzamenti e
-    ritorni indietro provati il 26/07. Segue gli ordini per vincolo di
-    cancellazione a catena, ma va **nominata**: una tabella che non compare in
-    un elenco non viene riletta.
-  - **`promo_redemptions`: 1 riga** — `GIVEMEFIVE` su `KM-0001`. Conta più di
-    quanto il numero suggerisca: §14 concede **un solo utilizzo per cliente**,
-    quindi finché quella riga esiste quel telefono non può più usare il codice.
-    Si azzera.
-  - **`staff_action_log`: 64 righe, di cui 43 di test** su quattro
-    identificatori — `staff:test-spice` (15), `staff:test-fase1` (12),
-    `staff:test-fase2a` (9), `staff:test-merge` (7). Le altre **21**, tutte
-    dall'identificatore reale, sono **azioni vere sul menu vero**: restano.
-    Sono l'audit trail imposto da questa stessa sezione, non un residuo, e
-    costituiscono **l'unica eccezione all'azzeramento**.
-  - **Vuote al 29/07/2026, quindi nessun residuo**: `analytics_events`,
-    `coupons`, `staff_settings`, `store_schedule_exceptions`. Vanno comunque
-    ricontrollate, non date per vuote.
-  - **Non sono residui** e non si toccano: le tabelle di menu e configurazione
-    (`stores`, `store_order_windows`, `store_geofences`, `products`,
-    `product_choice_options`, `product_removals`, `product_addons`,
-    `product_accompaniments`, `combo_side_options`, `combo_drink_options`,
-    `combo_pricing`, `allergens`, `product_allergens`), che contengono i dati
-    veri già pronti per l'apertura.
+  **`staff_action_log` è l'unica eccezione all'azzeramento**: le righe scritte
+  dall'identificatore staff reale sono **azioni vere sul menu vero**, cioè
+  l'audit trail imposto da questa stessa sezione, e **restano**. Si rimuovono
+  solo quelle degli identificatori di test.
+
+  **Non sono residui** e non si toccano: le tabelle di menu e configurazione
+  (`stores`, `store_order_windows`, `store_geofences`, `products`,
+  `product_choice_options`, `product_removals`, `product_addons`,
+  `product_accompaniments`, `combo_side_options`, `combo_drink_options`,
+  `combo_pricing`, `allergens`, `product_allergens`), che contengono i dati
+  veri già pronti per l'apertura.
 - **L'immutabilità dello storico non vincola i dati di oggi (v32).** La regola
   qui sopra descrive come si deve comportare il **sistema** quando gli ordini
   saranno di clienti veri: nessuna schermata deve ricavare nome o prezzo di un
@@ -3145,13 +3252,20 @@ visibili al cliente compaiono soltanto quando i nuovi campi delle salse
 (vegetariano, badge, piccantezza) verranno compilati dal pannello.*
 La soia della variante Planted è segnalata nel configuratore (v23).
 
-**Ancora da fare (aggiornato in v29)**: i **dati** degli allergeni sono
-completi e verificati (registro qui sopra), il **rendering** al cliente è
-fatto, i flag legacy sono stati bonificati. Resta da costruire la
-**modificabilità dal pannello** — Fase 2A dell'editor menu (§63-64) — con le
-regole di questa sezione: selezione dai soli 14 allergeni UE, mai testo
-libero, mai deduzione, selettore dietetico a tre voci sul solo food,
-scrittura di `allergens_verified_at`, log della lista prima/dopo.
+**Stato (aggiornato in v40)**: i **dati** degli allergeni sono completi e
+verificati (registro qui sopra), il **rendering** al cliente è fatto, i flag
+legacy sono stati bonificati, e la **modificabilità dal pannello** — Fase 2A
+dell'editor menu (§63-64) — è **costruita e verificata**, con le regole di
+questa sezione: selezione dai soli 14 allergeni UE, mai testo libero, mai
+deduzione, selettore dietetico a tre voci sul solo food, scrittura di
+`allergens_verified_at`, log della lista prima/dopo.
+
+**Resta da dichiarare, mai da dedurre**: **2 salse — Tzatziki e Yogurt** —
+hanno il flag vegetariano ancora vuoto, quindi non mostrano alcun badge
+dietetico. Si riconoscono perché aprendo il form allergeni il selettore
+dietetico si presenta vuoto. E le **21 bevande** restano fuori dal
+tracciamento, con la colonna di verifica a NULL: vanno compilate prima di
+poterle dichiarare senza allergeni.
 
 ## 68. Sezione Impostazioni pannello staff — chiusure eccezionali (aggiunta dopo l'MVP iniziale, vincolante)
 
