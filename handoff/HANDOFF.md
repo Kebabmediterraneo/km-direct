@@ -12,26 +12,29 @@ Web app per ordini **delivery e ritiro** di **FAME Srl / KM Kebab Mediterraneo**
 (Bologna, store `san-mamolo`). Stack **Next.js 14 + Supabase + Stripe (sandbox)**.
 Repo: **github.com/Kebabmediterraneo/km-direct** (branch `main`, push via SSH).
 La fonte di verità di tutte le decisioni è **`MASTER_SPEC.md`** — versione attuale
-**v36** (leggila sempre dall'intestazione, riga 3).
+**v38** (leggila sempre dall'intestazione, riga 3).
 
 ---
 
 ## 2) Stato git
 
 - Branch **`main`**, working tree **pulita**, allineata a `origin/main`.
-- HEAD: **`71d9d12`**.
+- HEAD: **`62d962d`**.
 - Ultimi commit (dal più recente):
 
 ```
+62d962d spec: v38 — addon identificato dalla proteina §22, extra carne fuori dai combo §25, §46 resta condizione di apertura
+a5b434f checkout: l'extra carne non è ammessa nei combo, che contengono solo Roll §22
+cbea453 menu: la regola dell'extra carne si legge dal dato anche sul sito §22
+ef08e0b prezzi: server agganciato al modulo unico, addon scelto per proteina §46 §22
+7e91766 prezzi: sito agganciato al modulo unico, extra carne dal database §46 §22 §25
+8a32ef5 prezzi: modulo unico per il prezzo di riga con fotografia dei 609 prezzi §46
+d502271 spec: v37 — un solo calcolo del prezzo di riga §46, extra carne dal database §22, supplementi qualunque segno §25
+bae6e00 handoff: aggiorna a v36 — carrello e variazioni validate, residui riletti su tutte le tabelle, persistenza come prossimo lavoro
 71d9d12 carrello: il "−" rimuove la riga a quantità 1, uniformato alla card §36-40
 1b52a8b spec: v36 — persistenza carrello e dati checkout §36-40, variazioni validate §18 §46b, pulizia riscritta §66
 5ee101c checkout: variazioni validate contro le rimozioni del prodotto, modulo puro con test §46b
 d7de8cb carrello: chiave per id sulle righe aggiunte dai suggerimenti, fusione e contatore allineati
-2e8dc4e handoff: aggiorna a v35 — Fase 2B chiusa con la piccantezza, lezioni su next build e ricognizioni incomplete
-6359e6c pannello: scelta della piccantezza nel form e campi nella GET §34-35 §63-64
-aebac0e menu pubblico: piccantezza disegnata anche sulla card semplice, componente condiviso §34-35
-55c42e7 spec: v35 — piccantezza disegnata su tutte le card §34-35, livelli delle salse §30, modifica dal pannello §63-64
-2438d12 handoff: corregge la dicitura della piccantezza e i 6 articoli già valorizzati
 ```
 
 ---
@@ -48,7 +51,7 @@ Conseguenze, tutte in spec (§66):
 
 - **non esiste la condizione di apertura "travaso dati test → produzione"**:
   non c'è nulla da travasare;
-- **vanno rimossi i residui di test prima del go-live** (elenco al punto 9);
+- **vanno rimossi i residui di test prima del go-live** (elenco al punto 10);
 - **ogni modifica dal pannello tocca dati vivi**, senza rete di protezione. È la
   ragione delle regole "fuori orario di servizio" (§67) e delle conferme
   esplicite (§63-64, §67).
@@ -200,7 +203,37 @@ ac. **Prima di provare un percorso di rifiuto, verificare sul codice che non
    state precedute dal controllo che il rifiuto avvenga **prima** di ogni
    scrittura; verificato dopo, il database era intatto. Il percorso
    **positivo**, invece, crea un ordine e va deciso apertamente: costa un
-   residuo di prova in più (punto 9).
+   residuo di prova in più (punto 10).
+
+**Lezioni aggiunte il 30/07/2026 (ciclo dei prezzi)**
+
+ad. ⚠️ **Un rifiuto ottenuto per il motivo sbagliato sembra un successo.**
+   Provando che il server rifiutasse l'extra carne con la proteina sbagliata,
+   il primo tentativo era privo di accompagnamento e sarebbe stato respinto
+   comunque da §21, **prima** di arrivare al controllo cercato. Il 400 sarebbe
+   stato scambiato per la prova che la regola funzionava. Una prova di rifiuto
+   vale solo se è **attribuibile**: si costruisce partendo da un payload che
+   passa e si cambia **un campo solo**, come fatto poi riusando quello di
+   `KM-0010` con il solo `extraMeat` aggiunto.
+ae. **Una conclusione sbagliata che torna non si corregge ricordandosene.**
+   Durante il ciclo dei prezzi la conclusione "i due calcoli ora coincidono,
+   quindi §46 è risolto" è ricomparsa **tre volte**, sempre nella stessa forma
+   e sempre in buona fede: è una scorciatoia ragionevole che salta un
+   passaggio. Correggerla a voce non è servito. È stata chiusa **scrivendola in
+   spec** con la frase che toglie l'ambiguità (§46, v38: "va tolto da questo
+   elenco solo quando quel confronto sarà implementato e verificato"). Quando
+   un errore si ripete, il rimedio è il documento, non l'attenzione.
+af. **Una fotografia di verifica non si rigenera dopo la modifica.** La fixture
+   dei 609 prezzi vale perché è stata scattata **prima** ed è rimasta ferma:
+   rigenerarla dopo un cambiamento la farebbe coincidere sempre, e non
+   dimostrerebbe più nulla. Per lo stesso motivo il test non interroga il
+   database: un test che rilegge i prezzi vivi fallirebbe al primo cambio dal
+   pannello e verrebbe **disattivato invece che ascoltato**.
+ag. **Un'opzione si identifica dal dato che la caratterizza, mai dalla sua
+   posizione.** È la convenzione già in uso nel server (la label della
+   proteina, del contorno, l'id della bibita) ed è stata estesa all'extra carne
+   con `requires_protein` (§22, v38). "Prendi la prima riga" funziona finché le
+   righe sono una sola, e smette di funzionare in silenzio.
 
 ---
 
@@ -229,6 +262,8 @@ ac. **Prima di provare un percorso di rifiuto, verificare sul codice che non
   punto 8.
 - **Carrello: chiave unica per id e "−" uniformato** (§36-40) — *29/07/2026*,
   punto 8.
+- **Calcolo unico del prezzo di riga, sito e server** (§46, §22, §25) —
+  *30/07/2026*, punto 9.
 
 ---
 
@@ -397,7 +432,110 @@ Ricognizione del 29/07/2026, tuttora valida:
 
 ---
 
-## 9) Stato dei dati (29/07/2026)
+## 9) Il ciclo dei prezzi (29-30/07/2026)
+
+Nato come **prerequisito della persistenza del carrello**: al rientro il
+carrello va ricostruito dal menu fresco e i prezzi vanno ricalcolati, perché
+§36-40 vieta di salvarli. Il calcolo però viveva **dentro i componenti** che
+disegnano le finestre di configurazione, non richiamabile da fuori. Estrarlo ha
+aperto una questione più grande, ed è diventato un ciclo di sei commit.
+
+**a. La ricognizione, e cosa ha trovato**
+
+Prezzo mostrato e prezzo addebitato nascevano da **due calcoli diversi**,
+scritti in posti diversi. Eseguendoli entrambi su **609 configurazioni reali**:
+**zero divergenze**. Nessun cliente ha mai pagato un importo diverso da quello
+visto. Ma coincidevano **perché il dato di oggi è benevolo** — un addon per
+prodotto tutti a 4 €, nessun supplemento negativo, tutte le righe combo attive,
+un solo store — non perché il codice lo impedisse. Cinque strade di divergenza,
+tutte inattive e tutte pronte a partire insieme il giorno in cui l'editor
+crescesse fino a toccare quei valori.
+
+**b. Le decisioni (v37 e v38)**
+
+- **un solo calcolo**, usato da sito e server: non due che devono coincidere,
+  uno che non può divergere;
+- il **prezzo dell'extra carne dal database**, non da una costante nel codice;
+- i **supplementi si applicano sempre**, qualunque segno: uno sconto è un
+  supplemento negativo e va applicato;
+- **si arrotonda una volta sola**, a fine riga;
+- **gli stessi filtri da entrambe le parti**: il menu non offre ciò che il
+  server rifiuterebbe;
+- l'**addon si identifica dalla proteina a cui si applica**, non dalla
+  posizione — e questo ha chiuso anche §22 lato server;
+- l'**extra carne non è ammessa nei combo**: i combo contengono solo Roll,
+  l'extra carne esiste solo sulle Bowl (decisione dell'utente).
+
+**c. Il modulo** — `lib/menu-pricing.js` (commit `8a32ef5`)
+
+Puro, senza database e senza React. Due funzioni, `productLinePrice` e
+`comboLinePrice`, nella forma `{ ok }` degli altri moduli.
+
+⚠️ **Aritmetica in centesimi interi**: ogni importo diventa un intero, la somma
+avviene fra interi, la divisione per 100 avviene **una volta sola alla fine**.
+Serve a non ereditare i decimali sporchi della virgola mobile.
+
+Comportamento sui valori mancanti, tutto deciso e coperto da test: **prezzo
+base assente → rifiuto** (mai zero, sarebbe un articolo regalato); supplemento
+assente → nessun supplemento (caso legittimo: due Roll non hanno scelta
+proteina); **qualunque valore presente ma non numerico → rifiuto**; extra carne
+applicata senza prezzo → rifiuto, invece di indovinare 4; **prezzo di riga
+negativo → rifiuto** (decisione dell'utente: uno sconto che supera il prezzo è
+un dato sbagliato, non un'offerta — zero invece è valido).
+
+**La rete**: `tests/menu-pricing-fixture.mjs`, **609 prezzi congelati**,
+calcolati con le formule di *prima* della modifica. Il test li ripassa dal
+modulo e pretende gli stessi identici numeri. Statica e versionata, **non
+interroga il database** (lezione `af`). Ha retto a ogni passo del ciclo:
+`differenze: 0` dopo ciascun aggancio.
+
+**d. Gli agganci** — sito (`7e91766`), server (`ef08e0b`), regola sul sito
+(`cbea453`), combo (`a5b434f`)
+
+Sul **sito**, tre punti: configuratore, builder del combo e prodotti semplici.
+Spariti `EXTRA_MEAT_PRICE` (la costante 4) e `parsePrice` (l'andirivieni
+stringa→numero per riottenere un prezzo). Il catalogo ora conserva
+`basePriceValue` numerico **accanto** alla stringa da mostrare: convertire
+quella stringa avrebbe rotto le card, che si aspettano `"4,50 €"`.
+
+Sul **server**, `resolveProduct` e `resolveCombo` chiamano lo stesso modulo.
+Spariti i `+=` e il `round2` sul prezzo unitario; `lineTotal`, `subtotal` e
+`total` invariati. Un rifiuto del modulo risponde **500**, non 400: gli input
+vengono tutti dal nostro database, quindi è un problema di integrità nostro e
+non qualcosa che il cliente possa correggere (regola v36 sul guasto di
+lettura).
+
+**Verifiche**: undici punti dal vivo sul sito; quattro ordini via HTTP con gli
+attesi **dichiarati prima** di leggerli (4,00 / 15,00 / 13,00 / 21,50 — tutti
+combacianti); il rifiuto dell'extra carne con Adana provato in modo
+attribuibile.
+
+**e. Cosa NON è chiuso**
+
+⚠️ **§46 resta una condizione di apertura.** L'unificazione ha chiuso le
+divergenze **di regola**, non quelle **di dato**: il menu è letto dal browser
+una volta sola, quindi chi tiene la pagina aperta mentre un prezzo cambia vede
+il vecchio e pagherebbe il nuovo. Manca il confronto fra prezzo mostrato e
+prezzo reale, con arresto e avviso. *Questa conclusione è stata sbagliata tre
+volte durante il ciclo (lezione `ae`): §46 v38 contiene ora la frase che chiude
+la questione.*
+
+Altri tre, registrati in §46 v38 e non fatti:
+
+1. **il calcolo dentro la route non è verificabile da un test** (`route.js` non
+   importabile fuori da Next): la strada è estrarre la logica in `lib/`
+   lasciando la route sottile sopra, come già fatto altrove. Rinviato
+   deliberatamente: non si rimaneggia il percorso di pagamento insieme
+   all'unificazione dei prezzi;
+2. **il sito non filtra per store** — nessuna sua lettura conosce uno
+   `store_id`. Il server filtra comunque al checkout, quindi il vincolo è
+   coperto; il sito diventerà consapevole degli store quando i locali saranno
+   due;
+3. **la nota Planted** (§23) confronta ancora una stringa scritta nel codice
+   (`app/page.js`, `protein.id === "planted"`): stesso tipo di problema curato
+   sull'extra carne, ma su un testo informativo, non su un prezzo.
+
+## 10) Stato dei dati (30/07/2026)
 
 **Allergeni**
 
@@ -431,22 +569,27 @@ primo giorno di apertura. **Decisione di Andrea del 29/07/2026: al go-live si
 azzera tutto**, senza tenere nulla "per storico".
 
 ⚠️ **Questo elenco era incompleto, non vecchio**: mancavano **tre tabelle
-intere**, `customers` compresa. I numeri qui sotto sono letti il **29/07/2026
+intere**, `customers` compresa. I numeri qui sotto sono letti il **30/07/2026
 interrogando tutte e 23 le tabelle** e **invecchiano a ogni prova**: prima del
-go-live vanno riletti così, non ricopiati da qui (lezioni `s` e `z`).
+go-live vanno riletti così, non ricopiati da qui (lezioni `s` e `z`). *Fra il
+29 e il 30/07 quattro numeri su sei sono già cambiati: `orders` 8→12,
+`order_items` 12→16, `customers` 27→31, `order_status_history` 12→18.*
 
-- **`orders`: 8 righe, tutte di prova** (26-29/07/2026), più **12 righe** in
+- **`orders`: 12 righe, tutte di prova** (26-30/07/2026), più **16 righe** in
   `order_items`, di cui **2 con rimozioni** (le prime da quando il progetto
   esiste, dalla verifica di §18). Due ordini con pagamento `succeeded` in
-  sandbox — `KM-0001` (29,50 €) e `KM-0008` (23,50 €) — gli altri sei `pending`.
-- **`customers`: 27 righe, tutte di prova.** Sono **dati personali**, per quanto
-  inventati. Solo 8 hanno un ordine collegato: le altre 19 sono passaggi di
+  sandbox — `KM-0001` (29,50 €) e `KM-0008` (23,50 €) — gli altri dieci
+  `pending`. **`KM-0009`…`KM-0012`** sono le quattro prove HTTP dell'aggancio
+  del server (punto 9).
+- **`customers`: 31 righe, tutte di prova.** Sono **dati personali**, per quanto
+  inventati. Solo 12 hanno un ordine collegato: le altre 19 sono passaggi di
   checkout interrotti, perché il cliente viene scritto **prima** dell'ordine.
   Nessuna ha email o consenso marketing. Anche la riga intestata "Andrea
   Pastore" è una prova, non una persona.
-- **`order_status_history`: 12 righe**, tutte su `KM-0001`. Segue gli ordini per
+- **`order_status_history`: 18 righe**, tutte su `KM-0001`. Segue gli ordini per
   cancellazione a catena, ma va **nominata**: una tabella che non compare in un
-  elenco non viene riletta.
+  elenco non viene riletta. *Erano 12 il 29/07: le sei in più sono prove
+  dell'utente sui passaggi di stato dal pannello, confermate il 30/07.*
 - **`promo_redemptions`: 1 riga** — `GIVEMEFIVE` su `KM-0001`. §14 dà **un solo
   utilizzo per cliente**: finché esiste, quel telefono non può più usare il
   codice.
@@ -461,17 +604,16 @@ go-live vanno riletti così, non ricopiati da qui (lezioni `s` e `z`).
 
 ---
 
-## 10) To-do / prossimi passi (in ordine)
+## 11) To-do / prossimi passi (in ordine)
 
 ### PROSSIMO — Persistenza del carrello (§36-40), in tre passi
 
 Chiude una **condizione di apertura**. Le regole sono già tutte in spec (v36).
 
-1. **Estrarre il calcolo del prezzo di riga in un punto solo** (§36-40 v36,
-   punto 4). È il prerequisito: al rientro i prezzi vanno **ricalcolati**
-   perché non si salvano, e oggi il calcolo è chiuso dentro
-   `ProductConfigurator` e `ComboBuilder`. Riscriverlo una seconda volta è
-   vietato — due implementazioni divergono, sempre (§46).
+1. ~~Estrarre il calcolo del prezzo di riga in un punto solo~~ — **fatto**
+   (punto 9). Il prerequisito è soddisfatto: `lib/menu-pricing.js` è puro e
+   richiamabile, e la ricostruzione può usarlo senza riscrivere un secondo
+   calcolo.
 2. **Il cervello**: salvataggio e ricostruzione, verificati da Code, con le
    regole della v36 — si salva ciò che il cliente ha **scritto o scelto**, mai
    ciò che il sistema ha **concluso**; indirizzo e orario **riverificati** al
@@ -482,7 +624,7 @@ Chiude una **condizione di apertura**. Le regole sono già tutte in spec (v36).
    di Andrea.
 
 *Nota: ogni verifica dal vivo che arriva alla pagina di pagamento crea un ordine
-`pending` in più (punto 9).*
+`pending` in più (punto 10).*
 
 *Rimasta non verificata*: se il **tasto Indietro del browser** si comporti come
 il ritorno da Stripe o restituisca la pagina con lo stato ancora vivo (cache di
@@ -502,6 +644,36 @@ Da decidere prima di partire: come si genera lo `slug` di un articolo nuovo
 (obbligatorio e unico per store) e cosa succede se collide con uno esistente. La
 convenzione osservata sui 62 articoli è: minuscolo, accenti tolti, spazi e
 apostrofi → trattino, "&" eliminato, numeri e unità invariati.
+
+### Da valutare — campo codice sconto generico
+
+*Annotato dall'utente il 30/07/2026.* Oggi il meccanismo di sconto è cablato
+sul solo **GIVEMEFIVE**, con la regola di §14 (un utilizzo per cliente). Parte
+dell'impianto esiste già: la tabella `coupons` (vuota) e `promo_redemptions`
+che registra gli utilizzi.
+
+⚠️ **Va pensato in concomitanza con GIVEMEFIVE, non dopo**: i due meccanismi
+coesisterebbero, quindi va deciso anche se sono **cumulabili** o se si
+escludono, e con quale precedenza. Da decidere inoltre: chi crea i codici e da
+dove, se hanno scadenza, importo fisso o percentuale, soglia minima, se valgono
+una volta per cliente o una volta in assoluto.
+
+*Si incrocia con la regola di §46 v37 sul prezzo di riga negativo*: con codici
+liberi accanto a uno sconto fisso, il caso "lo sconto supera il prezzo" smette
+di essere teorico. Va verificato dove agisce lo sconto — oggi sul **totale del
+carrello**, non sulla riga.
+
+### Residui minori aperti
+
+- **La nota Planted** (§23) confronta una stringa scritta nel codice
+  (`app/page.js`, `protein.id === "planted"`). Ultimo caso rimasto del tipo
+  curato in v37 e v38 sull'extra carne; meno rischioso perché riguarda un testo
+  informativo.
+- **Rendere verificabile il calcolo dentro la route di pagamento** estraendolo
+  in `lib/` (§46 v38). Lavoro a sé: non si tocca il percorso del pagamento
+  insieme ad altro.
+- **Il sito non filtra per store** (§46 v38): da fare quando i locali saranno
+  due.
 
 ### Dopo il go-live (§63-64)
 
@@ -523,12 +695,12 @@ apostrofi → trattino, "&" eliminato, numeri e unità invariati.
 - **Stripe live** (oggi sandbox).
 - **Dominio** `ordina.kebabmediterraneo.it`.
 - **Analytics** (§65).
-- **Pulizia dei residui di test** (punto 9).
+- **Pulizia dei residui di test** (punto 10).
 - **WhatsApp** (fase 1.1).
 
 ---
 
-## 11) Note di attenzione
+## 12) Note di attenzione
 
 - **Allergeni = sicurezza alimentare**: mai dedurli, sempre da **fonte verificata
   da Andrea**. Allergeni e flag dietetici si modificano **solo fuori dall'orario
@@ -538,10 +710,14 @@ apostrofi → trattino, "&" eliminato, numeri e unità invariati.
   rimozioni** (§18). Nessun codice deve mai ricavare i dati di un articolo da
   quelli di un altro. *Al 29/07/2026 tutte e 7 le coppie hanno set di allergeni
   identici, di fatto e non per vincolo.*
-- **Prezzo mostrato vs prezzo addebitato** (§46): chi tiene la pagina già aperta
-  durante un cambio prezzo vede il vecchio e paga il nuovo. Lo stesso meccanismo
-  vale per gli allergeni, ma lì **non c'è alcun controllo al checkout**: è la
-  ragione della regola "fuori orario di servizio".
+- ⚠️ **Prezzo mostrato vs prezzo addebitato** (§46): chi tiene la pagina già
+  aperta durante un cambio prezzo vede il vecchio e paga il nuovo. **Il ciclo
+  dei prezzi NON ha chiuso questa condizione di apertura**: ha unificato il
+  calcolo, quindi sito e server non possono più contare in modo diverso, ma il
+  menu resta letto **una volta sola** e il confronto fra prezzo mostrato e
+  prezzo reale non esiste ancora. Non dichiararla risolta (lezione `ae`). Lo
+  stesso meccanismo vale per gli allergeni, ma lì **non c'è alcun controllo al
+  checkout**: è la ragione della regola "fuori orario di servizio".
 - **Ordini in sospeso destinati a moltiplicarsi** (§65): ogni arrivo alla pagina
   di pagamento crea un `pending`. Con la persistenza del carrello tornare
   indietro diventerà normale, e ogni giro lascerà un `pending` orfano di un
