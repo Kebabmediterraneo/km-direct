@@ -1,10 +1,35 @@
 # KM DIRECT — MASTER SPECIFICATION
 
-**Versione 37** — sostituisce la v36.
+**Versione 38** — sostituisce la v37.
 
 Documento di riferimento definitivo per lo sviluppo. Le decisioni qui
 contenute sono approvate: non vanno reinterpretate senza un motivo concreto
 (vedi §73). Ogni file di codice del progetto deve rispettare queste regole.
+
+**Novità della v38** (vincolanti):
+
+1. §22 — **l'addon si identifica dalla proteina a cui si applica**
+   (`requires_protein`), non dalla sua posizione nell'elenco. La regola "extra
+   carne solo con Pollo e tacchino" **si legge dal dato da entrambe le parti**:
+   il server la fa rispettare, il sito mostra la casella in base alla stessa
+   colonna. Chiude i due residui registrati in v37.
+2. §22 e §25 — **l'extra carne non è ammessa nei menu combo.** I combo
+   contengono solo Roll, l'extra carne esiste solo sulle Bowl: non è un caso
+   limite da irrobustire, è **una configurazione che il menu non prevede**.
+3. §46 — **ribadito che la condizione di apertura resta aperta.** Unificare il
+   calcolo (v37) ha chiuso le divergenze di *regola*, non quelle di *dato*. Il
+   confronto fra prezzo mostrato e prezzo addebitato **non esiste ancora**.
+4. §46 e §63-64 — registrati tre lavori **decisi ma non fatti**: rendere
+   verificabile il calcolo dentro la route di pagamento, il filtro per store
+   che il sito non applica, e l'ultima regola di prodotto ancora scritta nel
+   codice (nota Planted).
+5. §66 — la fotografia dei residui **è di nuovo superata**: il ciclo dei prezzi
+   ha lasciato quattro ordini e quattro clienti di prova.
+
+*Con la v38 il ciclo dei prezzi è chiuso nel codice: modulo unico, sito,
+server, regola dell'extra carne letta dal dato, combo che la rifiuta. Tutte le
+divergenze condizionali trovate nella ricognizione del 29/07/2026 sono state
+risolte.*
 
 **Novità della v37** (vincolanti):
 
@@ -1084,24 +1109,46 @@ avrebbe potuto tenere allineate: la costante non è modificabile da nessuna
 schermata. Vale la regola generale di §46, un solo calcolo e una sola fonte
 per ogni prezzo.
 
-⚠️ **La regola sulla proteina non è riverificata dal server (registrato in
-v37)**: il vincolo "solo con Pollo e tacchino" vive **soltanto
-nell'interfaccia**. La colonna `product_addons.requires_protein` esiste ed è
-valorizzata su tutte e 5 le righe, ma non viene mai letta al checkout: una
-richiesta costruita a mano può aggiungere l'extra carne a una Bowl con
-Planted o Adana. Il prezzo resterebbe coerente — si paga ciò che si aggiunge —
-ma la regola di prodotto no, e a preparare arriverebbe una Bowl che il menu
-non prevede. È la stessa famiglia del buco chiuso in v36 sulle variazioni
-(§18), e va chiusa allo stesso modo (§46b). **Non implementato**: lavoro a sé,
-da non incastrare dentro l'unificazione del calcolo.
+**L'addon si identifica dalla proteina a cui si applica (v38, vincolante)**
 
-⚠️ **Un secondo addon non è identificato (registrato in v37)**: il server
-sceglie la riga di `product_addons` prendendo la prima che il database
-restituisce, senza ordinamento né filtro. Con un addon per prodotto — la
-situazione di oggi su tutte e 5 le righe — l'esito è determinato. Il giorno in
-cui un prodotto ne avesse due, **quale dei due viene addebitato dipenderebbe
-dall'ordine di lettura**. Da chiudere prima di introdurre il secondo addon,
-non dopo.
+La riga di `product_addons` che fissa il prezzo si sceglie confrontando
+`requires_protein` con la proteina scelta, **mai prendendo la prima riga che il
+database restituisce**. `requires_protein` vuoto significa "vale per qualunque
+proteina". La regola vale identica dalle due parti: il sito mostra la casella
+solo quando la colonna combacia, il server rifiuta l'ordine quando non
+combacia. **Nessuna proteina va scritta nel codice**, da nessuna delle due
+parti: il confronto è fra i valori grezzi del database, senza conversioni
+aggiunte.
+
+Questo chiude insieme due cose che la v37 aveva registrato come aperte:
+
+- **la regola di §22 non era fatta rispettare dal server.** Il vincolo "solo
+  con Pollo e tacchino" viveva soltanto nell'interfaccia, e una richiesta
+  costruita a mano poteva aggiungere l'extra carne a una Bowl con Planted o
+  Adana: il prezzo restava coerente, ma a preparare sarebbe arrivata una Bowl
+  che il menu non prevede;
+- **un secondo addon non era identificato.** Con più righe sullo stesso
+  prodotto, quale venisse addebitata dipendeva dall'ordine di lettura.
+
+*Perché `requires_protein` e non `sort_order`*: le altre opzioni del progetto
+si identificano dal dato che le caratterizza (la label della proteina, del
+contorno, l'id della bibita), mai dalla posizione. Per l'extra carne il tratto
+distintivo è **a quale proteina si applica**, che è esattamente quella colonna.
+Sceglierla per posizione avrebbe significato "prendi la prima"; sceglierla per
+`requires_protein` significa "prendi quella che vale per questa configurazione".
+
+**Se due righe risultassero valide per la stessa scelta**, il prezzo tornerebbe
+ambiguo: è un dato sbagliato, non una richiesta del cliente, quindi si risponde
+**500** e non un rifiuto (§46b, regola v36 sul guasto di lettura).
+
+**L'extra carne non è ammessa nei menu combo (v38, vincolante)**
+
+I combo contengono **solo Roll**; l'extra carne esiste **solo sulle Bowl**, e
+tutte le righe di `product_addons` stanno infatti su Bowl. Un combo con extra
+carne non è quindi un caso limite raro: è una **configurazione che il menu non
+prevede**, e il server la rifiuta. Dal sito non è raggiungibile — il builder
+non la offre — ma una richiesta costruita a mano otterrebbe altrimenti
+qualcosa che il menu non contempla.
 
 ## 23-26. MENU COMBO
 
@@ -1767,6 +1814,50 @@ dimostra che le regole coincidono sui dati di oggi, non l'instradamento.
 *Ordine dei lavori deciso il 29/07/2026*: prima il modulo con il sito, poi il
 server, in due commit separati — così la persistenza del carrello (§36-40) si
 sblocca già dal primo, senza attendere che si tocchi il percorso di pagamento.
+
+⚠️ **La condizione di apertura resta aperta (v38)**
+
+Il lavoro sull'unificazione del calcolo è concluso nel codice — modulo unico,
+sito, server — e **non ha chiuso questa sezione**. È stato scambiato per una
+chiusura più volte durante il lavoro, quindi va detto senza ambiguità:
+
+- ciò che è stato chiuso sono le divergenze **di regola**: sito e server non
+  possono più contare in modo diverso, perché non contano più due volte;
+- ciò che resta aperto sono le divergenze **di dato**: il menu è letto dal
+  browser **una volta sola** al caricamento della pagina, quindi chi tiene il
+  sito aperto mentre un prezzo cambia continua a vedere il vecchio, e al
+  pagamento gli verrebbe addebitato il nuovo. Lo stesso modulo, alimentato da
+  due fotografie diverse dello stesso database, dà due risultati diversi — ed è
+  corretto che li dia.
+
+**Il requisito resta quello scritto sopra**: al checkout il server deve
+confrontare il prezzo mostrato al cliente con quello reale e **fermarsi con un
+avviso comprensibile**. Non esiste ancora. Va tolto da questo elenco solo
+quando quel confronto sarà implementato e verificato, non prima.
+
+**Lavori decisi e non fatti (v38, registrati)**
+
+1. **Il calcolo dentro la route di pagamento non è verificabile da un test.**
+   `app/api/checkout/route.js` non è importabile fuori da Next, quindi
+   l'instradamento — che la route chiami davvero il modulo — è provato solo da
+   un campione di richieste HTTP, non da un test ripetibile. La strada già
+   scelta altrove dal progetto (§63-64) è **estrarre la logica in `lib/`
+   lasciando la route sottile sopra**: è l'unico modo di rendere quella prova
+   automatica, e non lascia ordini di prova a ogni verifica. *Rinviato
+   deliberatamente*: rimaneggiare il percorso di pagamento insieme
+   all'unificazione dei prezzi avrebbe significato cambiare due cose insieme
+   nel punto in cui si incassa il denaro.
+2. **Il sito non filtra per store.** Nessuna lettura del menu lato cliente
+   conosce uno `store_id`: l'intero menu poggia sul fatto che il locale è uno
+   solo. Il server filtra comunque per store al checkout, quindi il vincolo
+   vero è coperto. Aggiungere il filtro in un punto solo darebbe l'illusione di
+   una consapevolezza che non c'è: rendere il sito consapevole degli store è un
+   lavoro suo, da fare quando i locali saranno due.
+3. **Un'ultima regola di prodotto è ancora scritta nel codice**: il sottotesto
+   della nota Planted (§23) confronta una stringa scritta a mano invece di
+   leggere un dato. È meno rischiosa delle altre — riguarda un testo
+   informativo, non un prezzo né una disponibilità — ma è lo stesso tipo di
+   problema curato in v37 e v38 sull'extra carne.
 
 ## 46b. Validazioni server-side e convenzioni di errore API (aggiunto in v14, vincolante)
 
@@ -2548,6 +2639,15 @@ Conseguenze:
   **Fotografia del 29/07/2026** — letta interrogando tutte e 23 le tabelle.
   Vale a quella data e **invecchia a ogni prova**: va riletta prima del
   go-live, mai ricopiata da qui.
+
+  ⚠️ **Già superata (v38).** Il ciclo dei prezzi ha aggiunto **quattro ordini
+  di prova, da `KM-0009` a `KM-0012`**, con le relative righe in `order_items`,
+  e **quattro clienti intestati "Prova Server"**: sono le richieste HTTP con cui
+  è stato verificato che il server calcolasse i prezzi giusti dopo l'aggancio
+  al modulo unico (commit `ef08e0b`). I tentativi rifiutati nelle stesse prove
+  non hanno lasciato nulla, verificato. **I totali qui sotto non vanno corretti
+  a mano sommando questi quattro**: sarebbe di nuovo ricostruire per differenza,
+  l'errore che questa sezione ha già commesso tre volte. Si rilegge tutto.
 
   - **`orders`: 8 righe, tutte di prova** (26-29/07/2026), e **`order_items`:
     12 righe**. Due ordini con pagamento `succeeded` in sandbox — `KM-0001`
