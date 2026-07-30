@@ -2335,6 +2335,10 @@ function CheckoutScreen({
   serviceStatus,
   giveMeFiveApplied,
   birreProducts,
+  deliveryDetails,
+  customerDetails,
+  onDeliveryFieldChange,
+  onCustomerFieldChange,
   onBack,
   onChangeAddress,
 }) {
@@ -2343,31 +2347,22 @@ function CheckoutScreen({
     birreProducts.some((beer) => beer.id === item.ref?.id)
   );
 
-  const [deliveryDetails, setDeliveryDetails] = useState({
-    intercom: "",
-    floorInterior: "",
-    buildingStaircase: "",
-    riderNotes: "",
-  });
-  const [customerDetails, setCustomerDetails] = useState({
-    firstName: "",
-    lastName: "",
-    phone: "",
-    email: "",
-  });
+  // §36-40 (v36): dati SCRITTI dal cliente (dettagli delivery e contatti) →
+  // stato sollevato in Home, così sopravvivono alla chiusura/riapertura del
+  // checkout (e in futuro alla persistenza). Arrivano come prop.
+  //
+  // I tre consensi restano stato LOCALE di CheckoutScreen: sono ATTI, non dati
+  // (§36-40 v36), e devono azzerarsi a ogni apertura del checkout. Vivere qui è
+  // ciò che lo garantisce — NON spostarli in Home per simmetria coi campi
+  // scritti: li si ripristinerebbe, ed è esattamente ciò che la regola vieta.
   const [privacyAccepted, setPrivacyAccepted] = useState(false);
   const [marketingOptIn, setMarketingOptIn] = useState(false);
   const [ageConfirmed, setAgeConfirmed] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [payError, setPayError] = useState(null);
 
-  function updateDeliveryField(field, value) {
-    setDeliveryDetails((prev) => ({ ...prev, [field]: value }));
-  }
-
-  function updateCustomerField(field, value) {
-    setCustomerDetails((prev) => ({ ...prev, [field]: value }));
-  }
+  const updateDeliveryField = onDeliveryFieldChange;
+  const updateCustomerField = onCustomerFieldChange;
 
   const subtotal = items.reduce(
     (sum, item) => sum + item.price * item.quantity,
@@ -2841,6 +2836,23 @@ export default function Home() {
   const [fulfillmentMode, setFulfillmentMode] = useState("delivery");
   const [deliveryAddress, setDeliveryAddress] = useState("");
   const [deliveryAddressDetails, setDeliveryAddressDetails] = useState(null);
+  // §36-40 (v36): dati SCRITTI dal cliente nel checkout, sollevati qui da
+  // CheckoutScreen così sopravvivono alla chiusura/riapertura (e, in futuro,
+  // alla persistenza dei dati del checkout). I consensi NON stanno qui: sono
+  // atti e restano stato locale di CheckoutScreen, dove si azzerano a ogni
+  // apertura (vedi commento in CheckoutScreen).
+  const [deliveryDetails, setDeliveryDetails] = useState({
+    intercom: "",
+    floorInterior: "",
+    buildingStaircase: "",
+    riderNotes: "",
+  });
+  const [customerDetails, setCustomerDetails] = useState({
+    firstName: "",
+    lastName: "",
+    phone: "",
+    email: "",
+  });
   const [timingType, setTimingType] = useState("asap");
   const [scheduledDay, setScheduledDay] = useState("today");
   const [scheduledTime, setScheduledTime] = useState(null);
@@ -3079,6 +3091,15 @@ export default function Home() {
     setCartItems((prev) => prev.filter((item) => item.key !== key));
   }
 
+  // §36-40 (v36): aggiornatori dei campi scritti dal cliente nel checkout —
+  // stessa forma di prima, ora in Home perché lo stato vive qui.
+  function updateDeliveryField(field, value) {
+    setDeliveryDetails((prev) => ({ ...prev, [field]: value }));
+  }
+  function updateCustomerField(field, value) {
+    setCustomerDetails((prev) => ({ ...prev, [field]: value }));
+  }
+
   function incrementSimpleProduct(product) {
     // §46 (v37): anche una riga semplice nasce dal modulo unico — nessun
     // supplemento, solo il prezzo base numerico. Se il modulo rifiutasse
@@ -3264,6 +3285,10 @@ export default function Home() {
           serviceStatus={serviceStatus}
           giveMeFiveApplied={giveMeFiveApplied}
           birreProducts={menuData.categoryProducts.BIRRE}
+          deliveryDetails={deliveryDetails}
+          customerDetails={customerDetails}
+          onDeliveryFieldChange={updateDeliveryField}
+          onCustomerFieldChange={updateCustomerField}
           onBack={() => {
             setCheckoutOpen(false);
             setCartOpen(true);
