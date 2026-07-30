@@ -3,7 +3,11 @@
 import { useEffect, useRef, useState } from "react";
 import { supabase } from "../lib/supabase";
 import { isPointInPolygon } from "../lib/geo";
-import { classifyScheduledSelection, firstAvailableSlot } from "../lib/scheduled-selection";
+import {
+  classifyScheduledSelection,
+  classifyPickupSelection,
+  firstAvailableSlot,
+} from "../lib/scheduled-selection";
 import { productLinePrice, comboLinePrice } from "../lib/menu-pricing";
 import { prepareCart, restoreCart } from "../lib/cart-persistence";
 
@@ -2382,7 +2386,8 @@ function CheckoutScreen({
   // §12b/§5: in modalità Ritiro il pagamento è impossibile senza uno slot
   // valido selezionato (lo slot scelto deve essere ancora tra quelli proposti).
   const pickupDaySlots = serviceStatus?.pickup?.slots?.[pickupDay] ?? [];
-  const pickupSlotValid = pickupTime != null && pickupDaySlots.includes(pickupTime);
+  const pickupSlotValid =
+    classifyPickupSelection({ pickupTime, daySlots: pickupDaySlots }) === "ok";
 
   // §12 (v17): in Delivery, se l'orario di consegna programmata è scaduto (slot
   // non più disponibile) il pagamento è bloccato — ASAP resta valido (nessuno
@@ -3014,7 +3019,7 @@ export default function Home() {
   function handlePickupDayChange(day) {
     setPickupDay(day);
     const daySlots = serviceStatus?.pickup?.slots?.[day] ?? [];
-    setPickupTime(daySlots[0] ?? null);
+    setPickupTime(firstAvailableSlot(daySlots));
     setPickupTimeExplicit(true);
     setPickupSlotExpired(false);
   }
@@ -3036,7 +3041,7 @@ export default function Home() {
     const pickup = serviceStatus?.pickup;
     if (!pickup) return;
     const daySlots = pickup.slots?.[pickupDay] ?? [];
-    const stillValid = pickupTime != null && daySlots.includes(pickupTime);
+    const stillValid = classifyPickupSelection({ pickupTime, daySlots }) === "ok";
 
     if (!pickupTimeExplicit) {
       if (pickup.firstSlotDay !== pickupDay) setPickupDay(pickup.firstSlotDay ?? "today");
