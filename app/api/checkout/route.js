@@ -5,6 +5,7 @@ import { getActiveStore } from "../../../lib/get-active-store";
 import { getStoreGeofencePolygon } from "../../../lib/get-store-geofence";
 import { isPointInPolygon } from "../../../lib/geo";
 import { validateRemovals } from "../../../lib/menu-removals";
+import { productLinePrice, comboLinePrice } from "../../../lib/menu-pricing";
 import { computeScheduledDeliveryAt, getScheduledSlots } from "../../../lib/scheduled-slots";
 import {
   todayRomeDate,
@@ -31,11 +32,14 @@ function round2(value) {
   return Math.round(value * 100) / 100;
 }
 
-// §18/§46b: sentinella per distinguere un GUASTO DI LETTURA dal rifiuto della
+// §18/§46/§46b: sentinella per distinguere un PROBLEMA NOSTRO dal rifiuto della
 // riga. `null` significa "questa riga non è accettabile" e produce un 400; un
-// errore nel leggere `product_removals` non è "variazione non disponibile" ed è
-// un problema nostro, quindi deve produrre il 500 di §46b — come già fanno le
-// letture di store_order_windows e store_schedule_exceptions più sotto.
+// problema dei nostri dati — un errore nel leggere `product_removals`/
+// `product_addons`, un addon ambiguo (più righe valide per la stessa
+// configurazione), o un prezzo che il modulo non riesce a calcolare — non è
+// "non disponibile" ed è colpa nostra, quindi produce il 500 di §46b, come già
+// fanno le letture di store_order_windows e store_schedule_exceptions. Un solo
+// tipo di esito per tutti questi casi (§46b, "riusa la struttura").
 const READ_ERROR = Symbol("read-error");
 
 // §18: assente, null o elenco vuoto = niente da controllare. È il caso normale
@@ -101,9 +105,13 @@ async function resolveProduct(ref) {
 
   if (!product) return null;
 
-  let unitPrice = Number(product.base_price);
   const configuration = {};
 
+  // Proteina: il choice_key (forma con underscore, es. "pollo_tacchino") serve
+  // sia al prezzo sia alla lookup dell'extra carne (§22), quindi vive fuori dal
+  // blocco. proteinKey resta null se non è stata scelta una proteina.
+  let proteinSurcharge = null;
+  let proteinKey = null;
   if (ref.proteinLabel) {
     const { data: choice } = await supabaseAdmin
       .from("product_choice_options")
@@ -112,7 +120,8 @@ async function resolveProduct(ref) {
       .eq("label", ref.proteinLabel)
       .maybeSingle();
     if (!choice) return null;
-    unitPrice += Number(choice.price_delta);
+    proteinSurcharge = Number(choice.price_delta);
+    proteinKey = choice.choice_key;
     configuration.choiceLabel = choice.choice_label;
     configuration.choice = choice.label;
   }
@@ -144,23 +153,51 @@ async function resolveProduct(ref) {
     configuration.accompaniment = ref.accompanimentLabel;
   }
 
+  // §22 (chiusura lato server): l'addon dell'extra carne valido è quello che si
+  // applica alla proteina scelta — `requires_protein` uguale al choice_key —
+  // oppure che vale sempre (`requires_protein` NULL). Niente più `.limit(1)`:
+  // si contano le righe valide. Se `ref.extraMeat` arriva senza proteina,
+  // proteinKey è null e restano valide solo le righe NULL: sulle Bowl reali, che
+  // richiedono "Pollo e tacchino", non ce ne sono, quindi l'ordine è rifiutato —
+  // mai un extra carne che passa senza proteina.
+  let extraMeatPrice;
+  let extraMeatApplied = false;
   if (ref.extraMeat) {
-    const { data: addon } = await supabaseAdmin
+    const { data: addons, error } = await supabaseAdmin
       .from("product_addons")
-      .select("*")
-      .eq("product_id", ref.id)
-      .limit(1)
-      .maybeSingle();
-    if (!addon) return null;
-    unitPrice += Number(addon.price);
+      .select("price, requires_protein")
+      .eq("product_id", ref.id);
+    if (error) {
+      console.error("[POST /api/checkout] Errore lettura product_addons:", error);
+      return READ_ERROR;
+    }
+    const valid = (addons ?? []).filter(
+      (a) => a.requires_protein === null || a.requires_protein === proteinKey
+    );
+    if (valid.length === 0) return null; // §22: extra carne non ammessa con questa proteina → 400
+    if (valid.length > 1) return READ_ERROR; // addon ambiguo: dato nostro, non scelta del cliente → 500
+    extraMeatPrice = Number(valid[0].price);
+    extraMeatApplied = true;
     configuration.extraMeat = true;
   }
+
+  // §46 (v37): unico calcolo del prezzo di riga. Le letture e le validazioni qui
+  // sopra restano; cambia solo che a sommare è il modulo. Un rifiuto del modulo
+  // (prezzo non numerico o negativo) nasce dai NOSTRI dati, non dalla richiesta:
+  // è un 500, come READ_ERROR (§46b).
+  const priceResult = productLinePrice({
+    basePrice: Number(product.base_price),
+    proteinSurcharge,
+    extraMeatPrice,
+    extraMeatApplied,
+  });
+  if (!priceResult.ok) return READ_ERROR;
 
   return {
     productId: product.id,
     name: product.name,
     category: product.category,
-    unitPrice: round2(unitPrice),
+    unitPrice: priceResult.price,
     configuration,
   };
 }
@@ -185,9 +222,9 @@ async function resolveCombo(ref, storeId) {
 
   if (!pricing) return null;
 
-  let unitPrice = Number(pricing.combo_base_price);
   const configuration = { roll: roll.name };
 
+  let proteinSurcharge = null;
   if (ref.proteinLabel) {
     const { data: choice } = await supabaseAdmin
       .from("product_choice_options")
@@ -196,7 +233,7 @@ async function resolveCombo(ref, storeId) {
       .eq("label", ref.proteinLabel)
       .maybeSingle();
     if (!choice) return null;
-    unitPrice += Number(choice.price_delta);
+    proteinSurcharge = Number(choice.price_delta);
     configuration.protein = choice.label;
   }
 
@@ -210,6 +247,7 @@ async function resolveCombo(ref, storeId) {
     configuration.removals = comboRemovals.removals;
   }
 
+  let sideSurcharge = null;
   if (ref.sideLabel) {
     const { data: side } = await supabaseAdmin
       .from("combo_side_options")
@@ -219,10 +257,11 @@ async function resolveCombo(ref, storeId) {
       .eq("is_available", true)
       .maybeSingle();
     if (!side) return null;
-    unitPrice += Number(side.price_delta);
+    sideSurcharge = Number(side.price_delta);
     configuration.side = side.label;
   }
 
+  let drinkSurcharge = null;
   if (ref.drinkProductId) {
     const { data: drink } = await supabaseAdmin
       .from("combo_drink_options")
@@ -232,15 +271,25 @@ async function resolveCombo(ref, storeId) {
       .eq("is_available", true)
       .maybeSingle();
     if (!drink) return null;
-    unitPrice += Number(drink.price_delta);
+    drinkSurcharge = Number(drink.price_delta);
     configuration.drink = drink.products.name;
   }
+
+  // §25/§46 (v37): unico calcolo, dal prezzo combo del Roll scelto e con i tre
+  // supplementi sommati qualunque sia il segno. Rifiuto del modulo → 500 (§46b).
+  const priceResult = comboLinePrice({
+    comboBasePrice: Number(pricing.combo_base_price),
+    proteinSurcharge,
+    sideSurcharge,
+    drinkSurcharge,
+  });
+  if (!priceResult.ok) return READ_ERROR;
 
   return {
     productId: roll.id,
     name: `Menu Combo · ${roll.name}`,
     category: "menu_combo",
-    unitPrice: round2(unitPrice),
+    unitPrice: priceResult.price,
     configuration,
   };
 }
