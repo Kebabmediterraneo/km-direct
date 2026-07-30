@@ -12,29 +12,29 @@ Web app per ordini **delivery e ritiro** di **FAME Srl / KM Kebab Mediterraneo**
 (Bologna, store `san-mamolo`). Stack **Next.js 14 + Supabase + Stripe (sandbox)**.
 Repo: **github.com/Kebabmediterraneo/km-direct** (branch `main`, push via SSH).
 La fonte di verità di tutte le decisioni è **`MASTER_SPEC.md`** — versione attuale
-**v38** (leggila sempre dall'intestazione, riga 3).
+**v39** (leggila sempre dall'intestazione, riga 3).
 
 ---
 
 ## 2) Stato git
 
 - Branch **`main`**, working tree **pulita**, allineata a `origin/main`.
-- HEAD: **`62d962d`**.
+- HEAD: **`7a71576`**.
 - Ultimi commit (dal più recente):
 
 ```
+7a71576 spec: v39 — indirizzo conservato e zona riverificata §36-40 §10, intenzione sconto §14, consensi come atti §41-45
+1f36370 checkout: i campi compilati vivono in Home e sopravvivono alla chiusura, consensi esclusi §36-40
+2d06a73 indirizzo: avviso quando manca il numero civico e conferma di zona solo con civico §10 §41-45
+384c0bf carrello: sopravvive alla visita, ricostruito dal menu fresco e svuotato dopo il pagamento §36-40
+2b9cca7 carrello: modulo di persistenza, prepara e ricostruisce dal menu fresco §36-40
+70a6130 handoff: aggiorna a v38 — ciclo dei prezzi con calcolo unico, lezioni su prove attribuibili e conclusioni ricorrenti, residui riletti
 62d962d spec: v38 — addon identificato dalla proteina §22, extra carne fuori dai combo §25, §46 resta condizione di apertura
 a5b434f checkout: l'extra carne non è ammessa nei combo, che contengono solo Roll §22
 cbea453 menu: la regola dell'extra carne si legge dal dato anche sul sito §22
 ef08e0b prezzi: server agganciato al modulo unico, addon scelto per proteina §46 §22
 7e91766 prezzi: sito agganciato al modulo unico, extra carne dal database §46 §22 §25
 8a32ef5 prezzi: modulo unico per il prezzo di riga con fotografia dei 609 prezzi §46
-d502271 spec: v37 — un solo calcolo del prezzo di riga §46, extra carne dal database §22, supplementi qualunque segno §25
-bae6e00 handoff: aggiorna a v36 — carrello e variazioni validate, residui riletti su tutte le tabelle, persistenza come prossimo lavoro
-71d9d12 carrello: il "−" rimuove la riga a quantità 1, uniformato alla card §36-40
-1b52a8b spec: v36 — persistenza carrello e dati checkout §36-40, variazioni validate §18 §46b, pulizia riscritta §66
-5ee101c checkout: variazioni validate contro le rimozioni del prodotto, modulo puro con test §46b
-d7de8cb carrello: chiave per id sulle righe aggiunte dai suggerimenti, fusione e contatore allineati
 ```
 
 ---
@@ -51,7 +51,7 @@ Conseguenze, tutte in spec (§66):
 
 - **non esiste la condizione di apertura "travaso dati test → produzione"**:
   non c'è nulla da travasare;
-- **vanno rimossi i residui di test prima del go-live** (elenco al punto 10);
+- **vanno rimossi i residui di test prima del go-live** (elenco al punto 11);
 - **ogni modifica dal pannello tocca dati vivi**, senza rete di protezione. È la
   ragione delle regole "fuori orario di servizio" (§67) e delle conferme
   esplicite (§63-64, §67).
@@ -203,7 +203,7 @@ ac. **Prima di provare un percorso di rifiuto, verificare sul codice che non
    state precedute dal controllo che il rifiuto avvenga **prima** di ogni
    scrittura; verificato dopo, il database era intatto. Il percorso
    **positivo**, invece, crea un ordine e va deciso apertamente: costa un
-   residuo di prova in più (punto 10).
+   residuo di prova in più (punto 11).
 
 **Lezioni aggiunte il 30/07/2026 (ciclo dei prezzi)**
 
@@ -235,6 +235,18 @@ ag. **Un'opzione si identifica dal dato che la caratterizza, mai dalla sua
    con `requires_protein` (§22, v38). "Prendi la prima riga" funziona finché le
    righe sono una sola, e smette di funzionare in silenzio.
 
+**Lezione aggiunta il 30/07/2026 (persistenza)**
+
+ah. ⚠️ **Le decisioni chiuse si ripresentano come aperte, e vanno richiuse
+   ogni volta.** Nel riepilogo di fine lavoro le decisioni già prese
+   dall'utente sono state elencate come "in sospeso" **tre volte** (indirizzo,
+   sconto, refactoring dello stato del checkout). È il cugino della lezione
+   `ae`: là era una conclusione sbagliata che tornava, qui è una decisione
+   presa che sparisce. Il rimedio è lo stesso — **scriverla nel documento**, a
+   nome di chi l'ha presa e con la data — e il riflesso da tenere è: prima di
+   rimettere una cosa nell'elenco degli aperti, cercarla in spec e
+   nell'handoff.
+
 ---
 
 ## 5) Stato funzionale — aree COMPLETE e verificate
@@ -264,6 +276,11 @@ ag. **Un'opzione si identifica dal dato che la caratterizza, mai dalla sua
   punto 8.
 - **Calcolo unico del prezzo di riga, sito e server** (§46, §22, §25) —
   *30/07/2026*, punto 9.
+- **Persistenza del carrello per la durata della visita** (§36-40) —
+  *30/07/2026*, punto 10.
+- **Avviso sul numero civico mancante** (§10, §41-45) — *30/07/2026*, punto 10.
+- **Campi del checkout che sopravvivono alla chiusura** (§41-45) —
+  *30/07/2026*, punto 10.
 
 ---
 
@@ -535,7 +552,100 @@ Altri tre, registrati in §46 v38 e non fatti:
    (`app/page.js`, `protein.id === "planted"`): stesso tipo di problema curato
    sull'extra carne, ma su un testo informativo, non su un prezzo.
 
-## 10) Stato dei dati (30/07/2026)
+## 10) La persistenza del carrello (30/07/2026)
+
+Chiude **metà** della condizione di apertura §36-40: il carrello sopravvive,
+i dati del checkout non ancora.
+
+**a. Il modulo** — `lib/cart-persistence.js` (commit `2b9cca7`)
+
+Puro: niente browser, niente React, niente database; importa solo
+`lib/menu-pricing.js`. Due responsabilità: **preparare** ciò che si conserva
+(solo `ref` + quantità, più un numero di versione del formato — mai prezzi, mai
+nomi, mai totali) e **ricostruire** dal catalogo appena caricato, producendo le
+righe di carrello **e l'elenco di ciò che è stato tolto, con il motivo**. Il
+prezzo di ogni riga si ottiene chiamando `menu-pricing`: nessun secondo calcolo
+(§46 v37). **44 asserzioni**, incluso il round-trip.
+
+Regole della ricostruzione, tutte decise: articolo sparito o esaurito → tolto
+con motivo; **opzione scelta che non esiste più → la riga si toglie, non si
+aggiusta** (non si sostituisce mai una scelta del cliente con un'altra);
+versione del formato diversa → si scarta tutto e si riparte da vuoto; struttura
+illeggibile o manomessa → stessa cosa, **in silenzio** (non è un cambio di menu
+da raccontare al cliente); quantità non valida → riga scartata.
+
+*Nota sull'articolo sparito*: il nome non si conserva, quindi per un articolo
+che non è più nel menu l'avviso è generico. Va bene così — **oggi un articolo
+non può sparire**: il pannello permette di modificare e segnare esaurito, non
+di cancellare. Il caso realistico è l'esaurito, dove il nome fresco c'è.
+
+**b. L'integrazione** (commit `384c0bf`)
+
+Si conserva nella memoria della **singola scheda** (`sessionStorage`, chiave
+`km_direct_cart`): dura la visita, sopravvive all'andata e ritorno dal
+pagamento perché è la stessa scheda, sparisce chiudendola. Ogni accesso è
+protetto: senza quella memoria disponibile il sito funziona come prima, senza
+persistenza e senza errori.
+
+⚠️ **La guardia "idratato" è la parte fragile.** Al montaggio il carrello è
+vuoto: un salvataggio agganciato ai cambiamenti del carrello, senza guardia,
+**cancellerebbe quanto conservato un istante prima che la ricostruzione lo
+legga**. Sarebbe sembrato "la persistenza non funziona", senza alcun errore
+visibile. Il salvataggio non parte finché la ricostruzione non è stata tentata.
+
+Completano: l'**avviso** di ciò che è stato tolto, mostrato **al rientro** e mai
+alla pressione di "Paga ora" (§36-40); e lo **svuotamento** all'arrivo sulla
+pagina di conferma, saltato se il pagamento risulta fallito.
+
+**Verificato dal vivo**: andata e ritorno dal pagamento, ricarica della pagina
+col carrello pieno, chiusura della scheda (carrello vuoto, come deve),
+svuotamento dopo un pagamento completato, e l'avviso provato mettendo un
+articolo esaurito dal pannello.
+
+✅ **Il dubbio sulla cache di navigazione del browser è chiuso.** Tornando dal
+pagamento con la freccia del browser, **la modalità torna a Delivery**: se la
+pagina fosse stata restituita dalla cache con lo stato ancora vivo, sarebbe
+rimasta su Ritiro. Quindi la pagina si ricarica davvero, e il carrello che si
+ritrova pieno è merito della persistenza.
+
+**c. Il numero civico** (commit `2d06a73`)
+
+Segnalato dall'utente mentre provava il ripristino. Le due protezioni
+risultavano **già solide** (pagamento bloccato senza civico, campo non
+digitabile, server che rifiuta, zero ordini senza civico in database): mancava
+solo **la spiegazione**. Ora un avviso dice cosa manca e cosa fare, e la
+conferma "arriviamo fin qui" **non compare senza civico** — il perimetro si
+decide sul civico, non sulla via (§10 v39).
+
+**d. Il passo preparatorio ai dati del checkout** (commit `1f36370`)
+
+I dati del checkout erano **spaccati in due**: modalità, indirizzo e orari in
+`Home`; **contatti e dettagli di consegna nello stato locale della schermata**,
+che sparivano anche solo chiudendo il checkout. Quelli sono stati sollevati in
+`Home` — cambiamento a comportamento invariato, tranne il miglioramento voluto:
+ora sopravvivono a chiusura e riapertura.
+
+⚠️ **I tre consensi NON sono stati spostati, ed è deliberato** (§36-40 e §41-45
+v39): vivendo nello stato locale si azzerano a ogni apertura, e nessuna
+persistenza può ripristinarli nemmeno per errore. Nel codice c'è un commento
+che lo difende da futuri spostamenti "per simmetria".
+
+**e. Quello che manca** — i dati del checkout
+
+Le regole sono tutte in spec (§36-40 e §41-45, v36 e v39) e le decisioni prese:
+si salva ciò che il cliente ha **scritto o scelto**; l'indirizzo si conserva
+**con le sue coordinate** e la **zona si ricontrolla** al rientro (le coordinate
+non cambiano, cambia il perimetro); gli orari si conservano e si ricontrollano;
+l'**intenzione** dello sconto si conserva ma mai l'importo; i **consensi mai**.
+
+Da fare: un **secondo modulo** `lib/checkout-persistence.js` — non un
+allargamento di `cart-persistence`, perché il carrello si *ricostruisce* da un
+catalogo mentre il checkout si *riverifica*, e tenere i consensi fuori è più
+difficile da sbagliare in un modulo che non li conosce. Le funzioni riusabili
+per la riverifica esistono già: `isPointInPolygon` (`lib/geo.js`) col poligono
+da `/api/geofence`, e `classifyScheduledSelection` contro `/api/service-status`.
+
+## 11) Stato dei dati (30/07/2026)
 
 **Allergeni**
 
@@ -570,65 +680,76 @@ azzera tutto**, senza tenere nulla "per storico".
 
 ⚠️ **Questo elenco era incompleto, non vecchio**: mancavano **tre tabelle
 intere**, `customers` compresa. I numeri qui sotto sono letti il **30/07/2026
-interrogando tutte e 23 le tabelle** e **invecchiano a ogni prova**: prima del
-go-live vanno riletti così, non ricopiati da qui (lezioni `s` e `z`). *Fra il
-29 e il 30/07 quattro numeri su sei sono già cambiati: `orders` 8→12,
-`order_items` 12→16, `customers` 27→31, `order_status_history` 12→18.*
+(sera) interrogando tutte e 23 le tabelle** e **invecchiano a ogni prova**:
+prima del go-live vanno riletti così, non ricopiati da qui (lezioni `s` e `z`).
+*In una sola giornata sono cambiati tutti: `orders` 8→19, `order_items` 12→29,
+`customers` 27→38, `order_status_history` 12→23. Ogni verifica dal vivo che
+arriva alla pagina di pagamento ne aggiunge.*
 
-- **`orders`: 12 righe, tutte di prova** (26-30/07/2026), più **16 righe** in
-  `order_items`, di cui **2 con rimozioni** (le prime da quando il progetto
-  esiste, dalla verifica di §18). Due ordini con pagamento `succeeded` in
-  sandbox — `KM-0001` (29,50 €) e `KM-0008` (23,50 €) — gli altri dieci
-  `pending`. **`KM-0009`…`KM-0012`** sono le quattro prove HTTP dell'aggancio
-  del server (punto 9).
-- **`customers`: 31 righe, tutte di prova.** Sono **dati personali**, per quanto
-  inventati. Solo 12 hanno un ordine collegato: le altre 19 sono passaggi di
-  checkout interrotti, perché il cliente viene scritto **prima** dell'ordine.
-  Nessuna ha email o consenso marketing. Anche la riga intestata "Andrea
-  Pastore" è una prova, non una persona.
-- **`order_status_history`: 18 righe**, tutte su `KM-0001`. Segue gli ordini per
-  cancellazione a catena, ma va **nominata**: una tabella che non compare in un
-  elenco non viene riletta. *Erano 12 il 29/07: le sei in più sono prove
-  dell'utente sui passaggi di stato dal pannello, confermate il 30/07.*
+- **`orders`: 19 righe, tutte di prova** (26-30/07/2026), più **29 righe** in
+  `order_items`, di cui **4 con rimozioni**. Quattro ordini con pagamento
+  `succeeded` in sandbox — `KM-0001`, `KM-0008`, `KM-0015`, `KM-0019` — gli
+  altri quindici `pending`. Da `KM-0009` in poi sono tutte verifiche dal vivo
+  del ciclo dei prezzi e della persistenza (punti 9 e 10).
+- **`customers`: 38 righe, tutte di prova.** Sono **dati personali**, per quanto
+  inventati. Diciannove hanno un ordine collegato, **diciannove no**: sono
+  passaggi di checkout interrotti, perché il cliente viene scritto **prima**
+  dell'ordine. Nessuna ha email o consenso marketing. Anche la riga intestata
+  "Andrea Pastore" è una prova, non una persona.
+- **`order_status_history`: 23 righe** — venti su `KM-0001`, tre su `KM-0015`.
+  Segue gli ordini per cancellazione a catena, ma va **nominata**: una tabella
+  che non compare in un elenco non viene riletta. *Sono prove dell'utente sui
+  passaggi di stato dal pannello.*
 - **`promo_redemptions`: 1 riga** — `GIVEMEFIVE` su `KM-0001`. §14 dà **un solo
   utilizzo per cliente**: finché esiste, quel telefono non può più usare il
   codice.
-- **`staff_action_log`: 64 righe, di cui 43 di test** su quattro identificatori
+- **`staff_action_log`: 66 righe, di cui 43 di test** su quattro identificatori
   — `staff:test-spice` (15), `staff:test-fase1` (12), `staff:test-fase2a` (9),
-  `staff:test-merge` (7). Le altre **21**
+  `staff:test-merge` (7). Le altre **23**
   (`staff:bologna@kebabmediterraneo.com`) sono azioni vere sul menu vero:
   **restano**, sono l'audit trail imposto da §66 e sono **l'unica eccezione**
-  all'azzeramento.
+  all'azzeramento. *Erano 21: le due in più sono la messa e rimessa in
+  disponibilità di un articolo durante la verifica dell'avviso (punto 10).*
 - **Vuote al 29/07/2026**, da ricontrollare comunque: `analytics_events`,
   `coupons`, `staff_settings`, `store_schedule_exceptions`.
 
 ---
 
-## 11) To-do / prossimi passi (in ordine)
+## 12) To-do / prossimi passi (in ordine)
 
-### PROSSIMO — Persistenza del carrello (§36-40), in tre passi
+### PROSSIMO — Persistenza dei dati del checkout (§36-40, §41-45)
 
-Chiude una **condizione di apertura**. Le regole sono già tutte in spec (v36).
+È **la seconda metà** della condizione di apertura §36-40: il carrello
+sopravvive già (punto 10), i dati del checkout no. Regole tutte in spec (v36 e
+v39), decisioni tutte prese — si può scrivere.
 
-1. ~~Estrarre il calcolo del prezzo di riga in un punto solo~~ — **fatto**
-   (punto 9). Il prerequisito è soddisfatto: `lib/menu-pricing.js` è puro e
-   richiamabile, e la ricostruzione può usarlo senza riscrivere un secondo
-   calcolo.
-2. **Il cervello**: salvataggio e ricostruzione, verificati da Code, con le
-   regole della v36 — si salva ciò che il cliente ha **scritto o scelto**, mai
-   ciò che il sistema ha **concluso**; indirizzo e orario **riverificati** al
-   rientro; **consensi mai ripristinati**; carrello svuotato dopo un pagamento
-   riuscito.
-3. **L'interfaccia**: gli avvisi di ciò che è stato tolto o non regge più,
-   mostrati **al rientro** e non alla pressione di "Paga ora". Verifica dal vivo
-   di Andrea.
+1. **Il cervello**: un secondo modulo `lib/checkout-persistence.js`, con i suoi
+   test. Non un allargamento di `cart-persistence`: il carrello si
+   *ricostruisce* da un catalogo, il checkout si *riverifica*. Versione del
+   formato indipendente.
+   - **si salva**: modalità Delivery/Ritiro, indirizzo **con le sue
+     coordinate** e civico, citofono, piano, scala, note, nome, cognome,
+     telefono, email, giorno e orario richiesti, l'**intenzione** GIVEMEFIVE;
+   - **non si salva mai**: prezzi, fee, sconto, totale, esito del controllo di
+     zona, disponibilità dello slot — sono conclusioni;
+   - **mai i tre consensi**: il modulo non deve nemmeno conoscerli.
+2. **L'integrazione**: scrittura e lettura nella memoria della scheda, con la
+   **stessa guardia "idratato"** del carrello (punto 10b — è il punto in cui è
+   facile introdurre un bug silenzioso), e al rientro la **riverifica**: zona
+   contro il perimetro aggiornato (§10), orario contro finestre ed eccezioni
+   (§13, §68).
+3. **Gli avvisi**: se l'indirizzo non è più in zona o lo slot è scaduto, si dice
+   **cosa** e **perché** al rientro, mai alla pressione di "Paga ora". Verifica
+   dal vivo di Andrea.
+
+Le funzioni per la riverifica **esistono già** e non vanno riscritte:
+`isPointInPolygon` (`lib/geo.js`) col poligono da `/api/geofence`;
+`classifyScheduledSelection` (`lib/scheduled-selection.js`) contro
+`/api/service-status`. Il meccanismo che rileva uno slot scaduto mentre il
+cliente è fermo sulla pagina esiste già e vale anche al caricamento.
 
 *Nota: ogni verifica dal vivo che arriva alla pagina di pagamento crea un ordine
-`pending` in più (punto 10).*
-
-*Rimasta non verificata*: se il **tasto Indietro del browser** si comporti come
-il ritorno da Stripe o restituisca la pagina con lo stato ancora vivo (cache di
-navigazione). Da chiarire con una prova durante il passo 3.
+`pending` in più (punto 11).*
 
 ### Poi — Fase 3: creazione di articoli semplici
 
@@ -689,18 +810,19 @@ carrello**, non sulla riga.
 
 ### Condizioni di apertura (aperte)
 
-- **Persistenza del carrello** (§36-40, regole complete in v36).
+- **Persistenza** (§36-40): il **carrello è fatto** (punto 10); restano i
+  **dati del checkout**.
 - **Confronto prezzo mostrato vs prezzo addebitato** al checkout (§46).
 - **Informativa privacy**: serve il documento, poi link nel checkout (§41-45).
 - **Stripe live** (oggi sandbox).
 - **Dominio** `ordina.kebabmediterraneo.it`.
 - **Analytics** (§65).
-- **Pulizia dei residui di test** (punto 10).
+- **Pulizia dei residui di test** (punto 11).
 - **WhatsApp** (fase 1.1).
 
 ---
 
-## 12) Note di attenzione
+## 13) Note di attenzione
 
 - **Allergeni = sicurezza alimentare**: mai dedurli, sempre da **fonte verificata
   da Andrea**. Allergeni e flag dietetici si modificano **solo fuori dall'orario
