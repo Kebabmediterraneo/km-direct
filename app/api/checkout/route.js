@@ -203,6 +203,14 @@ async function resolveProduct(ref) {
 }
 
 async function resolveCombo(ref, storeId) {
+  // §22: l'extra carne non esiste nei combo. I combo contengono solo Roll, e
+  // tutte le righe di `product_addons` sono su Bowl — quindi un combo con
+  // extra carne non è un caso limite, è una configurazione che il menu non
+  // prevede e che solo una richiesta costruita a mano potrebbe inviare. Va
+  // rifiutata come ogni altra opzione che non corrisponde (return null → 400).
+  // Se ref.extraMeat è assente o falso, comportamento identico a prima.
+  if (ref.extraMeat) return null;
+
   const { data: roll } = await supabaseAdmin
     .from("products")
     .select("*")
