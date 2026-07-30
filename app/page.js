@@ -1604,6 +1604,10 @@ function FulfillmentSelector({
 }) {
   const [suggestions, setSuggestions] = useState([]);
   const [geofenceStatus, setGeofenceStatus] = useState(null);
+  // §41-45: la voce scelta dai suggerimenti ha coordinate ma nessun numero
+  // civico (via senza numero, POI). Il campo civico è readOnly e "Paga ora"
+  // resta disabilitato: senza questo avviso il cliente non capirebbe perché.
+  const [addressMissingCivico, setAddressMissingCivico] = useState(false);
   const sessionTokenRef = useRef(null);
   const debounceRef = useRef(null);
 
@@ -1639,6 +1643,7 @@ function FulfillmentSelector({
     // selezione autocomplete fresca, mai da testo libero.
     onAddressDetailsChange(null);
     setGeofenceStatus(null);
+    setAddressMissingCivico(false);
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => fetchSuggestions(value), 300);
   }
@@ -1669,6 +1674,9 @@ function FulfillmentSelector({
         )?.longText ?? "";
 
       onAddressDetailsChange({ civico, lat, lng });
+      // §41-45: coordinate presenti ma civico assente → avviso (punto 5:
+      // sparisce appena si sceglie un indirizzo col numero).
+      setAddressMissingCivico(civico.trim() === "");
 
       if (geofence) {
         const inside = isPointInPolygon([lng, lat], geofence);
@@ -1676,6 +1684,7 @@ function FulfillmentSelector({
       }
     } else {
       onAddressDetailsChange(null);
+      setAddressMissingCivico(false);
     }
   }
 
@@ -1819,7 +1828,13 @@ function FulfillmentSelector({
             )}
           </div>
 
-          {geofenceStatus === "inside" && (
+          {/* §10: senza civico il controllo di zona gira su un punto che non è
+              quello di consegna — civici diversi della stessa via possono cadere
+              dentro o fuori. Confermare la consegna su una via intera è una
+              promessa che non possiamo mantenere, quindi il verde compare solo
+              col civico. Il "fuori zona" invece resta anche senza: se quel punto
+              è fuori, la via intera lo è quasi certamente. */}
+          {geofenceStatus === "inside" && !addressMissingCivico && (
             <span
               style={{ fontSize: 13, fontWeight: 600, color: "var(--success-green)" }}
             >
@@ -1845,6 +1860,25 @@ function FulfillmentSelector({
           {geofenceStatus === "inside" && (
             <div style={{ fontSize: 13, color: "var(--text-on-dark)" }}>
               {`Delivery ${formatPrice(DELIVERY_FEE)} · Ordine minimo ${formatPrice(DELIVERY_MINIMUM_ORDER)}`}
+            </div>
+          )}
+
+          {/* §41-45: indirizzo scelto senza numero civico. Stesso box del "fuori
+              zona"; "Paga ora" resta disabilitato e il campo civico readOnly —
+              qui si aggiunge solo la spiegazione. */}
+          {addressMissingCivico && (
+            <div
+              style={{
+                fontSize: 13,
+                color: "var(--text-on-dark)",
+                background: "var(--surface-white)",
+                border: "1px solid var(--card-border)",
+                borderRadius: 8,
+                padding: 10,
+              }}
+            >
+              Manca il numero civico. Scegli dai suggerimenti l&apos;indirizzo
+              completo di numero: senza, non possiamo consegnare.
             </div>
           )}
 
