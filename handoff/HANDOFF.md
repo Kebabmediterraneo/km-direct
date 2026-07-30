@@ -12,17 +12,19 @@ Web app per ordini **delivery e ritiro** di **FAME Srl / KM Kebab Mediterraneo**
 (Bologna, store `san-mamolo`). Stack **Next.js 14 + Supabase + Stripe (sandbox)**.
 Repo: **github.com/Kebabmediterraneo/km-direct** (branch `main`, push via SSH).
 La fonte di verità di tutte le decisioni è **`MASTER_SPEC.md`** — versione attuale
-**v39** (leggila sempre dall'intestazione, riga 3).
+**v40** (leggila sempre dall'intestazione, riga 3).
 
 ---
 
 ## 2) Stato git
 
 - Branch **`main`**, working tree **pulita**, allineata a `origin/main`.
-- HEAD: **`7a71576`**.
+- HEAD: **`f76cf11`**.
 - Ultimi commit (dal più recente):
 
 ```
+f76cf11 spec: v40 — guard Ritiro verificato e stato reale §46b, orizzonte 2 giorni per costruzione, residui e stato editor allineati §66 §63-64 §67
+21a3475 handoff: aggiorna a v39 — persistenza del carrello e civico, cache di navigazione chiarita, residui riletti
 7a71576 spec: v39 — indirizzo conservato e zona riverificata §36-40 §10, intenzione sconto §14, consensi come atti §41-45
 1f36370 checkout: i campi compilati vivono in Home e sopravvivono alla chiusura, consensi esclusi §36-40
 2d06a73 indirizzo: avviso quando manca il numero civico e conferma di zona solo con civico §10 §41-45
@@ -31,11 +33,12 @@ La fonte di verità di tutte le decisioni è **`MASTER_SPEC.md`** — versione a
 70a6130 handoff: aggiorna a v38 — ciclo dei prezzi con calcolo unico, lezioni su prove attribuibili e conclusioni ricorrenti, residui riletti
 62d962d spec: v38 — addon identificato dalla proteina §22, extra carne fuori dai combo §25, §46 resta condizione di apertura
 a5b434f checkout: l'extra carne non è ammessa nei combo, che contengono solo Roll §22
-cbea453 menu: la regola dell'extra carne si legge dal dato anche sul sito §22
-ef08e0b prezzi: server agganciato al modulo unico, addon scelto per proteina §46 §22
-7e91766 prezzi: sito agganciato al modulo unico, extra carne dal database §46 §22 §25
-8a32ef5 prezzi: modulo unico per il prezzo di riga con fotografia dei 609 prezzi §46
 ```
+
+*Nota ricorrente, non un errore*: l'HEAD scritto qui è sempre quello
+**precedente** al commit che aggiorna questo documento — l'handoff fotografa
+per forza l'istante prima di sé stesso. Va confrontato con `git log`, non
+corretto.
 
 ---
 
@@ -247,6 +250,32 @@ ah. ⚠️ **Le decisioni chiuse si ripresentano come aperte, e vanno richiuse
    rimettere una cosa nell'elenco degli aperti, cercarla in spec e
    nell'handoff.
 
+**Lezioni aggiunte il 30/07/2026 (allineamento della spec alla v40)**
+
+ai. ⚠️ **Il file da copiare si identifica dall'impronta, mai dal nome.**
+   Scaricando la v40, il browser ha salvato `MASTER_SPEC_10.md` e ha lasciato
+   in `~/Downloads` un `MASTER_SPEC.md` **del 28/07 fermo a 2277 righe** —
+   undici versioni indietro. Un comando che avesse detto "copia
+   `MASTER_SPEC.md` dai download" avrebbe riportato indietro tutto in
+   silenzio, con un diff enorme che nessuno aveva chiesto. È la lezione `aa`
+   un passo più in là: là si verificava l'impronta del documento **prima di
+   riscriverlo**, qui quella del file **prima di copiarlo**. Il comando deve
+   dare **sha256, `wc -l` e `wc -c` attesi** e ordinare di fermarsi se anche
+   uno solo non combacia. *Il file vecchio è ancora lì e la trappola si
+   riarma a ogni aggiornamento col metodo file.*
+aj. **Una nota di stato lasciata indietro non invecchia in silenzio: mente
+   con l'autorità del documento.** §46b dichiarava dalla v14 che il controllo
+   server sul Ritiro non esisteva. Era vera quando fu scritta e **falsa dal
+   24/07/2026**, quando il guard fu aggiunto; nessuno l'aveva più guardata. Il
+   30/07 ha prodotto un sospetto di buco inesistente e un giro di verifica —
+   che è il costo *basso*: lo stesso testo, riletto fra un anno, avrebbe
+   prodotto un lavoro per costruire una cosa già costruita. Il rimedio non è
+   rileggere di più, è **tenere lo stato fuori dalla spec**: la v40 ha
+   riscritto quel blocco e ha spostato qui la fotografia dei residui (punto
+   11). *La spec tiene le decisioni, l'handoff tiene lo stato.* Le stesse
+   note stantie erano in §63-64 e §67, che descrivevano come da fare le Fasi
+   2A e 2B già concluse.
+
 ---
 
 ## 5) Stato funzionale — aree COMPLETE e verificate
@@ -281,6 +310,11 @@ ah. ⚠️ **Le decisioni chiuse si ripresentano come aperte, e vanno richiuse
 - **Avviso sul numero civico mancante** (§10, §41-45) — *30/07/2026*, punto 10.
 - **Campi del checkout che sopravvivono alla chiusura** (§41-45) —
   *30/07/2026*, punto 10.
+- **Guard server-side sull'orario di Ritiro** (§46b, §12b) — costruito il
+  **24/07/2026** (commit `1e0d6d8`), **verificato il 30/07/2026** leggendo il
+  codice: sta nel ramo del pickup, usa la regola della **chiusura inclusa** che
+  è propria del Ritiro, e nessun percorso arriva alla scrittura dell'ordine
+  saltandolo. ⚠️ **Verifica statica, non dal vivo** — vedi punto 13.
 
 ---
 
@@ -674,6 +708,13 @@ su un elenco globale.
 
 **Residui di test da rimuovere prima del go-live**
 
+⚠️ **Questa è ora l'unica sede di questi numeri.** La v40 li ha tolti dalla
+spec, dove restano soltanto la **regola** su come si costruisce l'elenco e
+l'eccezione di `staff_action_log` (§66). Motivo: cambiano a ogni verifica dal
+vivo, quindi in spec sarebbero sbagliati quasi ogni giorno, e un documento
+abitualmente sbagliato in un punto insegna a non fidarsi anche negli altri.
+**Se questa sezione sparisse, non resterebbe traccia da nessuna parte.**
+
 Il database è uno solo, quindi questi dati staranno in mezzo a quelli veri dal
 primo giorno di apertura. **Decisione di Andrea del 29/07/2026: al go-live si
 azzera tutto**, senza tenere nulla "per storico".
@@ -720,8 +761,11 @@ arriva alla pagina di pagamento ne aggiunge.*
 ### PROSSIMO — Persistenza dei dati del checkout (§36-40, §41-45)
 
 È **la seconda metà** della condizione di apertura §36-40: il carrello
-sopravvive già (punto 10), i dati del checkout no. Regole tutte in spec (v36 e
-v39), decisioni tutte prese — si può scrivere.
+sopravvive già (punto 10), i dati del checkout no. Regole tutte in spec (v36,
+v39 e v40), decisioni tutte prese — si può scrivere. *La v40 ha allineato la
+spec al codice reale e non ha cambiato nulla di questo lavoro: ha solo aggiunto
+**cognome** all'elenco di §36-40, che lo ometteva pur essendo obbligatorio in
+§41-45.*
 
 1. **Il cervello**: un secondo modulo `lib/checkout-persistence.js`, con i suoi
    test. Non un allargamento di `cart-persistence`: il carrello si
@@ -792,7 +836,24 @@ carrello**, non sulla riga.
   informativo.
 - **Rendere verificabile il calcolo dentro la route di pagamento** estraendolo
   in `lib/` (§46 v38). Lavoro a sé: non si tocca il percorso del pagamento
-  insieme ad altro.
+  insieme ad altro. ⚠️ **Da fare insieme al punto seguente**, perché vivono
+  nello stesso file e vale la stessa regola.
+- **Il server non riverifica il tempo di preparazione né i quarti d'ora**
+  (§46b v40), su **entrambe** le modalità: controlla che l'orario non sia
+  passato e che il locale sia aperto, ma non i 15 minuti del Ritiro (§12b) né
+  i 60 della Delivery (§12), e accetta un orario in qualunque forma `HH:MM`,
+  quindi anche `12:07`. Una richiesta costruita a mano può prenotare un ritiro
+  "fra un minuto". **Non è una condizione di apertura** (decisione di Andrea
+  del 30/07/2026): il cliente onesto non può raggiungerlo. *Il motivo per cui
+  va comunque chiuso non è il furbo di turno — è che il server è la rete sotto
+  agli errori del sito: se un domani il client sbagliasse a gestire uno slot
+  scaduto, oggi non ci sarebbe nulla a fermarlo.*
+- **Le finestre orarie si costruiscono in due punti** (§46b v40): uno alimenta
+  il guard, l'altro genera gli slot offerti al cliente. Confrontati riga per
+  riga il 30/07/2026, oggi danno lo stesso risultato e l'unica differenza non
+  è osservabile. **Non è la doppia implementazione vietata da §46b** — il
+  calcolo di finestre ed eccezioni è davvero condiviso — ma sono due copie, e
+  due copie divergono. Da unificare quando si toccherà una delle due.
 - **Il sito non filtra per store** (§46 v38): da fare quando i locali saranno
   due.
 
@@ -818,7 +879,11 @@ carrello**, non sulla riga.
 - **Dominio** `ordina.kebabmediterraneo.it`.
 - **Analytics** (§65).
 - **Pulizia dei residui di test** (punto 11).
-- **WhatsApp** (fase 1.1).
+
+*Non è una condizione di apertura*: **WhatsApp**, che la spec colloca in
+**fase 1.1** (§71) e che §52-56 dichiara esplicitamente fuori dalla specifica
+attuale. Compariva in questo elenco fino alla v39, in contraddizione con la
+spec; tolto in v40.
 
 ---
 
@@ -847,8 +912,23 @@ carrello**, non sulla riga.
   dei carrelli abbandonati.
 - **Anche le righe cliente si moltiplicano** (§65, v36): `customers` viene
   scritta **prima** dell'ordine e resta anche se il checkout non arriva in
-  fondo. Al 29/07/2026 sono 27, di cui 19 senza alcun ordine. Non è un errore,
-  ma vale il divieto d'uso a fini di ricontatto.
+  fondo. Al 30/07/2026 sono 38, di cui 19 senza alcun ordine (punto 11). Non è
+  un errore, ma vale il divieto d'uso a fini di ricontatto.
+- ⚠️ **Il limite dei 2 giorni regge per costruzione, non per controllo**
+  (§46b v40). Nessuna riga rifiuta un orario oltre domani: il limite tiene solo
+  perché il sito manda un'etichetta (`oggi`/`domani`) e mai una data, e il
+  giorno vero lo ricava il server. È una protezione solida ma **silenziosa**:
+  chi un domani volesse allungare l'orizzonte del Ritiro — cosa che §12b
+  registra come possibile — starebbe togliendo l'unica cosa che oggi impone
+  quel limite, **senza che nulla faccia rumore**. Il controllo esplicito va
+  aggiunto nello stesso lavoro.
+- ⚠️ **Il guard sul Ritiro è verificato staticamente, non dal vivo** (§46b
+  v40). È stato seguito il percorso del codice dall'ingresso della route fino
+  alla scrittura dell'ordine; **nessuna richiesta è stata costruita per farsi
+  respingere davvero**, perché una prova di rifiuto attribuibile (lezione `ad`)
+  richiede prima un ordine di prova riuscito, cioè un residuo in più. Vale come
+  verifica parziale ai sensi della lezione `v`: se si toccherà quel ramo, è il
+  primo punto da riprovare.
 - **I consensi non sono dati** (§36-40, v36): privacy, marketing e "18 anni"
   sono **atti** e si rifanno a ogni ordine. Nessun meccanismo di comodità può
   ripristinarli.
