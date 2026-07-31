@@ -10,6 +10,7 @@ import {
 } from "../lib/scheduled-selection";
 import { productLinePrice, comboLinePrice } from "../lib/menu-pricing";
 import { prepareCart, restoreCart } from "../lib/cart-persistence";
+import { prepareCheckout, restoreCheckout } from "../lib/checkout-persistence";
 
 const CATEGORIES = [
   "ROLL",
@@ -95,6 +96,28 @@ function writeSavedCart(data) {
     window.sessionStorage.setItem(CART_STORAGE_KEY, JSON.stringify(data));
   } catch {
     /* memoria non disponibile: il carrello vive solo nella pagina, come prima */
+  }
+}
+
+// §36-40 (v41, v42): i DATI DEL CHECKOUT si conservano nella stessa memoria di
+// scheda del carrello, ma sotto una chiave **separata**. Due strutture distinte
+// con due numeri di versione indipendenti (vedi lib/checkout-persistence.js):
+// un cambio di formato del carrello non deve buttare l'indirizzo, e viceversa.
+const CHECKOUT_STORAGE_KEY = "km_direct_checkout";
+
+function readSavedCheckout() {
+  try {
+    const raw = window.sessionStorage.getItem(CHECKOUT_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+function writeSavedCheckout(data) {
+  try {
+    window.sessionStorage.setItem(CHECKOUT_STORAGE_KEY, JSON.stringify(data));
+  } catch {
+    /* memoria non disponibile: i dati vivono solo nella pagina, come prima */
   }
 }
 
@@ -1604,14 +1627,19 @@ function FulfillmentSelector({
   onPickupTimeChange,
   pickupSlotExpired,
   serviceStatus,
-  geofence,
+  // §36-40 (v42) / §41-45 (v41): il verdetto di zona e l'avviso sul civico
+  // NON sono più stato locale di questa schermata: si DERIVANO in Home da
+  // coordinate + perimetro e arrivano qui già pronti. Due ragioni:
+  //  1. un indirizzo ripristinato dalla memoria non passa da questo componente,
+  //     e un verdetto calcolato solo alla selezione non lo vedrebbe mai;
+  //  2. §41-45 v41 fa dell'esito di zona una condizione per pagare, e "Paga
+  //     ora" vive in CheckoutScreen: il verdetto deve stare sopra entrambe.
+  // `zoneStatus` ha TRE valori: "unknown" (non ancora verificabile), "inside",
+  // "outside". Vedi il commento in Home.
+  zoneStatus,
+  addressMissingCivico,
 }) {
   const [suggestions, setSuggestions] = useState([]);
-  const [geofenceStatus, setGeofenceStatus] = useState(null);
-  // §41-45: la voce scelta dai suggerimenti ha coordinate ma nessun numero
-  // civico (via senza numero, POI). Il campo civico è readOnly e "Paga ora"
-  // resta disabilitato: senza questo avviso il cliente non capirebbe perché.
-  const [addressMissingCivico, setAddressMissingCivico] = useState(false);
   const sessionTokenRef = useRef(null);
   const debounceRef = useRef(null);
 
@@ -1646,8 +1674,6 @@ function FulfillmentSelector({
     // e le coordinate mostrati al checkout devono venire solo da una
     // selezione autocomplete fresca, mai da testo libero.
     onAddressDetailsChange(null);
-    setGeofenceStatus(null);
-    setAddressMissingCivico(false);
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => fetchSuggestions(value), 300);
   }
@@ -1677,18 +1703,13 @@ function FulfillmentSelector({
           component.types?.includes("street_number")
         )?.longText ?? "";
 
+      // §41-45: coordinate e civico sono il DATO scelto dal cliente. Il
+      // verdetto di zona e l'avviso sul civico non si calcolano più qui: si
+      // derivano in Home da questo stesso dato, così valgono identici per un
+      // indirizzo appena scelto e per uno ripristinato dalla memoria.
       onAddressDetailsChange({ civico, lat, lng });
-      // §41-45: coordinate presenti ma civico assente → avviso (punto 5:
-      // sparisce appena si sceglie un indirizzo col numero).
-      setAddressMissingCivico(civico.trim() === "");
-
-      if (geofence) {
-        const inside = isPointInPolygon([lng, lat], geofence);
-        setGeofenceStatus(inside ? "inside" : "outside");
-      }
     } else {
       onAddressDetailsChange(null);
-      setAddressMissingCivico(false);
     }
   }
 
@@ -1838,7 +1859,7 @@ function FulfillmentSelector({
               promessa che non possiamo mantenere, quindi il verde compare solo
               col civico. Il "fuori zona" invece resta anche senza: se quel punto
               è fuori, la via intera lo è quasi certamente. */}
-          {geofenceStatus === "inside" && !addressMissingCivico && (
+          {zoneStatus === "inside" && !addressMissingCivico && (
             <span
               style={{ fontSize: 13, fontWeight: 600, color: "var(--success-green)" }}
             >
@@ -1846,7 +1867,7 @@ function FulfillmentSelector({
             </span>
           )}
 
-          {geofenceStatus === "outside" && (
+          {zoneStatus === "outside" && (
             <div
               style={{
                 fontSize: 13,
@@ -1861,7 +1882,7 @@ function FulfillmentSelector({
             </div>
           )}
 
-          {geofenceStatus === "inside" && (
+          {zoneStatus === "inside" && (
             <div style={{ fontSize: 13, color: "var(--text-on-dark)" }}>
               {`Delivery ${formatPrice(DELIVERY_FEE)} · Ordine minimo ${formatPrice(DELIVERY_MINIMUM_ORDER)}`}
             </div>
@@ -2325,6 +2346,7 @@ function CheckoutScreen({
   address,
   civico,
   coords,
+  zoneStatus,
   timingType,
   scheduledDay,
   scheduledTime,
@@ -2402,7 +2424,13 @@ function CheckoutScreen({
     customerDetails.lastName.trim() !== "" &&
     customerDetails.phone.trim() !== "" &&
     privacyAccepted &&
-    (!isDelivery || (address.trim() !== "" && civico.trim() !== "" && coords)) &&
+    // §41-45 (v41): non basta che indirizzo, civico e coordinate ci siano — il
+    // controllo di zona deve essere PASSATO. Con "unknown" (perimetro non
+    // ancora arrivato, o richiesta fallita) il pagamento resta bloccato, che è
+    // già il suo stato prima di ogni verifica: non è un blocco nuovo, è quello
+    // di sempre che non si scioglie prima del tempo (§36-40 v42).
+    (!isDelivery ||
+      (address.trim() !== "" && civico.trim() !== "" && coords && zoneStatus === "inside")) &&
     (isDelivery || pickupSlotValid) &&
     (!isDelivery || deliverySlotValid) &&
     (!hasBeer || ageConfirmed) &&
@@ -2885,8 +2913,55 @@ export default function Home() {
   // il carrello vuoto del mount non cancella quello conservato prima di leggerlo.
   const [removedFromCart, setRemovedFromCart] = useState([]);
   const hydratedRef = useRef(false);
+  // §36-40 (v42): guardia del CHECKOUT, separata da quella del carrello e con
+  // una condizione di prontezza sua. Quella del carrello attende `menuData`,
+  // perché senza catalogo non c'è nulla da ricostruire; il checkout non si
+  // ricostruisce da niente — si rilegge e basta — quindi è pronto **subito**,
+  // al montaggio. Riusare la stessa guardia legherebbe il ripristino
+  // dell'indirizzo all'arrivo del menu, senza alcuna ragione.
+  const checkoutHydratedRef = useRef(false);
+  // ⚠️ Perché qui serve anche uno STATO e non basta il ref, a differenza del
+  // carrello: al montaggio TUTTE le effect girano, comprese quelle del
+  // salvataggio. Un ref messo a true dentro il ripristino sarebbe già true
+  // quando, nello stesso commit, parte l'effect di salvataggio — che però vede
+  // ancora lo stato PRIMA del ripristino, e riscriverebbe la memoria con i
+  // campi vuoti un istante dopo averla letta. Il carrello non ha il problema
+  // perché il suo ripristino aspetta `menuData`, quindi cade in un commit in
+  // cui le dipendenze del salvataggio non sono cambiate. Con uno stato, il
+  // salvataggio si arma solo al render SUCCESSIVO, quando i campi ripristinati
+  // ci sono davvero.
+  const [checkoutHydrated, setCheckoutHydrated] = useState(false);
   const isMenuCombo = activeCategory === "MENU COMBO";
   const products = menuData?.categoryProducts[activeCategory] ?? [];
+
+  // §36-40 (v42) — ⚠️ IL VERDETTO DI ZONA HA TRE VALORI, NON DUE.
+  //  - "unknown": non lo sappiamo ancora. È il valore finché il perimetro non è
+  //    arrivato da /api/geofence (o se quella richiesta è fallita), e quando non
+  //    c'è alcun indirizzo da giudicare. NON è un rifiuto: è la regola §46b
+  //    "un guasto di lettura non è un rifiuto" portata sul lato cliente.
+  //  - "inside" / "outside": verdetto vero, dato solo con entrambi i dati in mano.
+  //
+  // È **derivato**, non tenuto in uno stato: è ciò che rende impossibile un
+  // verdetto prematuro. Non esiste un istante in cui `zoneStatus` valga
+  // "outside" mentre `geofence` è ancora null, perché è una funzione di
+  // (coordinate, perimetro) e non il residuo di un calcolo fatto prima.
+  // Il calcolo resta l'unico che c'era, `isPointInPolygon` (§46b: mai una
+  // seconda implementazione).
+  const deliveryCoords = deliveryAddressDetails
+    ? { lat: deliveryAddressDetails.lat, lng: deliveryAddressDetails.lng }
+    : null;
+  const zoneStatus =
+    !deliveryCoords || !geofence
+      ? "unknown"
+      : isPointInPolygon([deliveryCoords.lng, deliveryCoords.lat], geofence)
+        ? "inside"
+        : "outside";
+
+  // §41-45: indirizzo scelto senza numero civico (via senza numero, POI). Anche
+  // questo derivato dal dato, così vale identico per un indirizzo appena scelto
+  // e per uno ripristinato. Non dipende dalla rete: si può dire subito.
+  const addressMissingCivico =
+    !!deliveryAddressDetails && (deliveryAddressDetails.civico ?? "").trim() === "";
 
   useEffect(() => {
     fetchMenuData()
@@ -2930,6 +3005,93 @@ export default function Home() {
     // non viene ri-segnalato a un successivo caricamento della stessa scheda.
     writeSavedCart(prepareCart(items));
   }, [menuData]);
+
+  // §36-40 (v42): RIPRISTINO DEI DATI DEL CHECKOUT. Parte al montaggio e UNA
+  // VOLTA SOLA (guardia checkoutHydratedRef, messa a true PRIMA di leggere: si
+  // segna il TENTATIVO, non il successo, come fa quella del carrello).
+  //
+  // ⚠️ Qui si ripristinano solo i CAMPI, mai i verdetti. I campi non dipendono
+  // dalla rete e il cliente deve rivederli subito; zona e slot si giudicano
+  // altrove, quando i loro dati saranno arrivati. Aspettare la rete per
+  // riempire le caselle le farebbe comparire a scatti; giudicare senza rete
+  // direbbe una bugia.
+  useEffect(() => {
+    if (checkoutHydratedRef.current) return;
+    checkoutHydratedRef.current = true;
+
+    // Il tentativo si segna SEMPRE, anche quando non c'era nulla da leggere o
+    // la struttura è stata scartata: è il tentativo ad armare il salvataggio,
+    // non il suo esito.
+    setCheckoutHydrated(true);
+
+    const saved = readSavedCheckout();
+    if (!saved) return; // niente conservato → come oggi
+
+    const { fields } = restoreCheckout(saved);
+
+    if (fields.fulfillmentMode !== undefined) setFulfillmentMode(fields.fulfillmentMode);
+    if (fields.deliveryAddress !== undefined) setDeliveryAddress(fields.deliveryAddress);
+    if (fields.deliveryAddressDetails !== undefined) {
+      setDeliveryAddressDetails(fields.deliveryAddressDetails);
+    }
+    // ⚠️ I due gruppi di caselle si FONDONO, non si sostituiscono: `fields` è
+    // parziale per costruzione (una casella illeggibile non trascina le altre),
+    // e rimpiazzare l'oggetto intero lascerebbe `undefined` nelle caselle
+    // mancanti, trasformando input controllati in non controllati.
+    if (fields.deliveryDetails) {
+      setDeliveryDetails((prev) => ({ ...prev, ...fields.deliveryDetails }));
+    }
+    if (fields.customerDetails) {
+      setCustomerDetails((prev) => ({ ...prev, ...fields.customerDetails }));
+    }
+    if (fields.timingType !== undefined) setTimingType(fields.timingType);
+    if (fields.scheduledDay !== undefined) setScheduledDay(fields.scheduledDay);
+    if (fields.scheduledTime !== undefined) setScheduledTime(fields.scheduledTime);
+    if (fields.pickupDay !== undefined) setPickupDay(fields.pickupDay);
+    if (fields.pickupTime !== undefined) setPickupTime(fields.pickupTime);
+    if (fields.pickupTimeExplicit !== undefined) setPickupTimeExplicit(fields.pickupTimeExplicit);
+    if (fields.giveMeFiveApplied !== undefined) setGiveMeFiveApplied(fields.giveMeFiveApplied);
+  }, []);
+
+  // §36-40 (v42): SALVATAGGIO DEI DATI DEL CHECKOUT. La guardia impedisce che
+  // lo stato vuoto del montaggio sovrascriva quanto conservato un istante prima
+  // che il ripristino lo legga — è lo stesso punto fragile del carrello.
+  // Che cosa esce di qui lo decide `prepareCheckout`, che copia una lista
+  // chiusa di chiavi: i tre consensi non passano di qui e non sono nemmeno
+  // nominati (§36-40 v39, sono atti e si rifanno a ogni giro).
+  useEffect(() => {
+    if (!checkoutHydrated) return;
+    writeSavedCheckout(
+      prepareCheckout({
+        fulfillmentMode,
+        deliveryAddress,
+        deliveryAddressDetails,
+        deliveryDetails,
+        customerDetails,
+        timingType,
+        scheduledDay,
+        scheduledTime,
+        pickupDay,
+        pickupTime,
+        pickupTimeExplicit,
+        giveMeFiveApplied,
+      })
+    );
+  }, [
+    checkoutHydrated,
+    fulfillmentMode,
+    deliveryAddress,
+    deliveryAddressDetails,
+    deliveryDetails,
+    customerDetails,
+    timingType,
+    scheduledDay,
+    scheduledTime,
+    pickupDay,
+    pickupTime,
+    pickupTimeExplicit,
+    giveMeFiveApplied,
+  ]);
 
   // §36-40 (v36): SALVATAGGIO. A ogni cambiamento del carrello si riscrive la
   // struttura conservata (solo ref e quantità, mai prezzi né nomi: lo garantisce
@@ -3271,11 +3433,8 @@ export default function Home() {
           fulfillmentMode={fulfillmentMode}
           address={deliveryAddress}
           civico={deliveryAddressDetails?.civico ?? ""}
-          coords={
-            deliveryAddressDetails
-              ? { lat: deliveryAddressDetails.lat, lng: deliveryAddressDetails.lng }
-              : null
-          }
+          coords={deliveryCoords}
+          zoneStatus={zoneStatus}
           timingType={timingType}
           scheduledDay={scheduledDay}
           scheduledTime={scheduledTime}
@@ -3351,7 +3510,8 @@ export default function Home() {
             onPickupTimeChange={handlePickupTimeChange}
             pickupSlotExpired={pickupSlotExpired}
             serviceStatus={serviceStatus}
-            geofence={geofence}
+            zoneStatus={zoneStatus}
+            addressMissingCivico={addressMissingCivico}
           />
 
           <CategoryTabs
