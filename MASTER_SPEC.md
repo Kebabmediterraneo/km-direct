@@ -1,10 +1,38 @@
 # KM DIRECT — MASTER SPECIFICATION
 
-**Versione 43** — sostituisce la v42.
+**Versione 44** — sostituisce la v43.
 
 Documento di riferimento definitivo per lo sviluppo. Le decisioni qui
 contenute sono approvate: non vanno reinterpretate senza un motivo concreto
 (vedi §73). Ogni file di codice del progetto deve rispettare queste regole.
+
+**Novità della v44** (vincolanti):
+
+1. §46 — **deciso come si chiude la condizione di apertura sui prezzi.** Al
+   checkout il server confronta il prezzo che il cliente ha davanti con quello
+   reale di quel momento e, se differiscono, **si ferma** con `409` e il testo
+   `Abbiamo aggiornato il listino, controlla il tuo carrello`. Vale in entrambe
+   le direzioni, aumento e ribasso. Regola di sicurezza che non va persa di
+   vista: **il prezzo ricevuto dal browser serve solo al confronto e non entra
+   mai nel calcolo dell'addebito** (§46, "mai fidarsi del browser").
+2. §46 — **se il prezzo mostrato non arriva, la richiesta è malformata**
+   (`400`), non un confronto da saltare. Senza questa riga il controllo si
+   aggira omettendo un campo.
+3. §46 — **il confronto precede la creazione dell'ordine `pending`** e
+   qualunque chiamata a Stripe: un tentativo fermato non lascia righe da
+   ripulire (§65).
+4. §46 — **ambito deciso da Andrea il 31/07/2026: solo i prezzi.** Gli
+   allergeni restano fuori **finché resta in piedi** la regola operativa che li
+   si modifica fuori dall'orario di servizio (§67). È quella regola a rendere
+   impossibile la divergenza, non la scarsità del rischio: se cade, la
+   decisione va rifatta prima di toccare gli allergeni durante il servizio.
+5. §46b — aggiunto il rimando al testo del nuovo messaggio nell'elenco dei
+   testi, che resta l'indice di dove i messaggi vivono.
+
+*La v44 decide, non descrive: al momento in cui è scritta il confronto **non
+esiste ancora nel codice**, e la condizione di apertura di §46 resta aperta. Va
+tolta dall'elenco solo quando il confronto sarà implementato e verificato dal
+vivo, non prima (§46, blocco v38).*
 
 **Novità della v43** (vincolanti):
 
@@ -2198,6 +2226,58 @@ confrontare il prezzo mostrato al cliente con quello reale e **fermarsi con un
 avviso comprensibile**. Non esiste ancora. Va tolto da questo elenco solo
 quando quel confronto sarà implementato e verificato, non prima.
 
+**Come si chiude: il confronto prezzo mostrato / prezzo reale (v44,
+vincolante)**
+
+Decisione presa il 31/07/2026. Il requisito scritto sopra fin dalla v28 —
+"confrontare e fermarsi con un avviso comprensibile" — diceva *cosa* fare e non
+*come*. Qui si fissa il come, perché il come contiene le scelte che possono
+sbagliarsi in silenzio.
+
+1. **Cosa manda il sito.** Per ogni riga del carrello, insieme alla
+   composizione, il **prezzo unitario mostrato** — quello calcolato dal modulo
+   unico (v37) sui dati letti al caricamento della pagina — e la quantità.
+2. ⚠️ **Il prezzo ricevuto serve solo al confronto.** Non entra **mai** nel
+   calcolo di ciò che si addebita, che resta il ricalcolo server-side dal
+   database vivo (§46, prima riga). Se questa distinzione si perde, il
+   controllo si trasforma nel suo contrario: il browser detterebbe il prezzo.
+3. **Cosa fa il server.** Ricalcola ogni riga con lo stesso modulo unico dai
+   dati vivi e confronta con il valore ricevuto, **al centesimo**, sui valori
+   già arrotondati una volta sola (punto 4 del calcolo di riga). Basta **una**
+   riga diversa.
+4. **Esito del rifiuto**: `409` con `{ "error": "Abbiamo aggiornato il listino,
+   controlla il tuo carrello" }`, secondo le convenzioni di §46b — richiesta
+   ben formata ma non accettabile nello stato attuale del servizio.
+5. **Vale in entrambe le direzioni.** Anche un prezzo **sceso** ferma il
+   checkout: il totale che il cliente sta per pagare sarebbe comunque diverso
+   da quello che ha visto, e la sorpresa gradita resta una sorpresa.
+6. **Se il prezzo mostrato non arriva, la richiesta è malformata**: `400`, mai
+   un confronto saltato. Una richiesta costruita a mano che omette il campo
+   non deve poter aggirare il controllo — è lo stesso principio di §46b, un
+   blocco che si può omettere è vero solo per i clienti onesti.
+7. **Quando scatta**: **prima** che venga creato l'ordine `pending` e prima di
+   qualunque chiamata a Stripe. Un tentativo fermato non lascia righe da
+   ripulire (§65).
+8. **Cosa vede il cliente**: il carrello **non viene svuotato** (§9, §46b),
+   torna al carrello con prezzi e totale aggiornati, e l'avviso compare **una
+   volta sola** — se conferma e nel frattempo nulla è cambiato ancora, prosegue
+   senza ulteriori interruzioni.
+
+**Ambito: solo i prezzi delle righe di carrello (decisione di Andrea,
+31/07/2026)**
+
+Gli **allergeni non entrano** in questo confronto. La ragione registrata non è
+che il rischio sia basso — un allergene sbagliato fa danni incomparabilmente
+peggiori di un prezzo sbagliato — ma che la divergenza è **già resa impossibile
+da un'altra regola**: gli allergeni si modificano fuori dall'orario di servizio
+(§67). ⚠️ **La decisione dipende da quella regola e cade con lei**: chi un
+domani volesse modificare gli allergeni durante il servizio deve rifare questo
+ragionamento **prima**, non dopo.
+
+Il confronto copre il prezzo delle righe. Se in futuro altri importi
+diventassero modificabili durante il servizio, la stessa domanda va rifatta per
+loro invece di essere data per risposta.
+
 **Lavori decisi e non fatti (v38, registrati)**
 
 1. **Il calcolo dentro la route di pagamento non è verificabile da un test.**
@@ -2287,6 +2367,8 @@ non prescritte):
   più disponibile. Scegline un altro tra quelli proposti.`
 - Orario fuori apertura o in un turno chiuso: `In quell'orario siamo
   chiusi. Scegli un altro orario tra quelli proposti.`
+- Prezzo cambiato mentre il cliente ordinava: `Abbiamo aggiornato il
+  listino, controlla il tuo carrello` — testo e regole in §46 (v44).
 
 **Stato di implementazione (v40, verificato)**
 
