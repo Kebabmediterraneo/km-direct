@@ -12,27 +12,27 @@ Web app per ordini **delivery e ritiro** di **FAME Srl / KM Kebab Mediterraneo**
 (Bologna, store `san-mamolo`). Stack **Next.js 14 + Supabase + Stripe (sandbox)**.
 Repo: **github.com/Kebabmediterraneo/km-direct** (branch `main`, push via SSH).
 La fonte di verità di tutte le decisioni è **`MASTER_SPEC.md`** — versione attuale
-**v43** (leggila sempre dall'intestazione, riga 3).
+**v45** (leggila sempre dall'intestazione, riga 3).
 
 ---
 
 ## 2) Stato git
 
 - Branch **`main`**, working tree **pulita**, allineata a `origin/main`.
-- HEAD: **`d254612`**.
+- HEAD: **`b186fd8`**.
 - Ultimi commit (dal più recente):
 
 ```
+b186fd8 spec: v45 — contratto del modulo di confronto, tre esiti e nessun importo in uscita, righe risolte e elenchi coerenti a carico del chiamante §46 §46b
+0e3495a price-guard: confronto fra prezzo mostrato e reale con tre esiti e nessun importo in uscita, conversione in centesimi condivisa con menu-pricing §46 §46b
+5cb87c5 spec: v44 — confronto prezzo mostrato/addebitato deciso, prezzo dal browser solo per il confronto, richiesta senza prezzo rifiutata, ambito ai soli prezzi §46 §46b
+850c603 handoff: aggiorna a v43 — §46 scelto come prossimo lavoro, Fase 3 collocata fra i lavori pre-apertura, lezioni su guard che confronta numeri e zone da dichiarare con la sezione
 d254612 spec: v43 — frasi di stato allineate al codice §36-40 §63-64 §66, orario citato per intero §46b, conteggi fuori dalla spec §65 §22 §67
 16b9c34 handoff: aggiorna a v42 — persistenza del checkout chiusa e verificata, due strade non provate dichiarate, lezioni su citazioni parziali e guardia non trasferibile
 8561504 checkout: i dati compilati sopravvivono al pagamento, zona verificata al rientro e condizione per pagare §36-40 §41-45
 04343e7 checkout: modulo di persistenza, prepara e ricostruisce con indirizzo indivisibile §36-40
 e71a497 spec: v42 — ripristino parziale con indirizzo indivisibile e nessun verdetto prima dei dati §36-40
 36218f7 ritiro: validità e primo slot dal modulo condiviso, come la Delivery §12b §46b
-c6a2308 spec: v41 — momento dell'ordine e ritiro esplicito fra i dati conservati §36-40, indirizzo fuori zona mostrato e zona condizione per pagare §41-45
-0ae95e0 handoff: aggiorna a v40 — guard Ritiro verificato staticamente, residui solo qui, lezioni su impronta del file e note di stato
-f76cf11 spec: v40 — guard Ritiro verificato e stato reale §46b, orizzonte 2 giorni per costruzione, residui e stato editor allineati §66 §63-64 §67
-21a3475 handoff: aggiorna a v39 — persistenza del carrello e civico, cache di navigazione chiarita, residui riletti
 ```
 
 *Nota ricorrente, non un errore*: l'HEAD scritto qui è sempre quello
@@ -336,6 +336,31 @@ ao. **Le zone attese di un diff vanno dichiarate con la sezione, non come
    **totale** torni, non che le modifiche siano atterrate dove dovevano: dieci
    zone giuste in punti sbagliati darebbero lo stesso "10". **D'ora in poi
    l'elenco va dichiarato prima, con sezione e dimensione di ciascuna zona.**
+ap. ⚠️ **Una sonda che cerca ciò che ci si aspetta, quando non trova, sembra
+   dire "non c'è".** Il 31/07/2026 tre comandi di ricognizione hanno mancato il
+   bersaglio nello stesso modo: cercavano test chiamati `*.test.js` mentre qui
+   sono `.mjs` (otto suite esistenti diventate zero), leggevano la richiesta con
+   `req.json` mentre la route usa `request` e destruttura in blocco, e
+   estraevano gli export con `export function|const` mentre `menu-pricing` usa
+   un blocco `export { … }` finale. **Un filtro vuoto non è una risposta
+   vuota**: è "ho guardato nel posto sbagliato", e va distinto. *Rimedio: la
+   sonda si costruisce dalla forma reale del file — che si legge — non da come
+   ci si aspetta che sia fatto.*
+aq. ⚠️ **Una variabile vuota dentro un filtro corrisponde a TUTTO.** Caso
+   peggiore del precedente, stesso giorno: `NAMES` è rimasto vuoto e
+   `grep -nE "$NAMES"` ha stampato 34 KB, cioè il file intero, dando
+   l'impressione di aver risposto. Il calcolo successivo, che cercava la "prima
+   occorrenza", ha risposto riga 1. **Una sonda che non trova insospettisce;
+   una che trova tutto sembra un risultato.** *Rimedio: ogni comando che
+   costruisce un filtro al volo deve fermarsi se il filtro è vuoto, prima di
+   usarlo.*
+ar. **Se si approva su prova indiretta, va scritto su cosa poggiava il sì.** Il
+   modulo `price-guard` è stato approvato sui suoi 31 test e sull'elenco dei
+   punti di uscita, **non sulla lettura diretta**: il file era stato chiesto due
+   volte e non era mai arrivato nella conversazione. Procedere è stata una
+   scelta ragionevole — i 13 casi erano stati scritti prima di vedere il codice
+   — ma la differenza fra "l'ho letto" e "ho letto le prove che lo riguardano"
+   non va lasciata implicita, perché fra sei mesi nessuno la ricostruisce.
 
 ---
 
@@ -910,6 +935,87 @@ di `POST` visto nel log è un indizio, non un conteggio.
 
 ---
 
+## 11b) Il confronto dei prezzi — §46, primo tempo (31/07/2026)
+
+**a. Cosa è stato costruito** — `lib/price-guard.js` (108 righe) e
+`tests/price-guard.test.mjs` (104), commit `0e3495a`.
+
+Modulo **puro**: niente database, niente React, niente import da `app/` o da
+Next. Importa solo `lib/menu-pricing.js`. Confronta i prezzi **mostrati** al
+cliente con quelli **reali** ricalcolati e restituisce uno di tre esiti —
+`OK`, `CHANGED` (→ 409), `MALFORMED` (→ 400) — esportati come costanti, così
+chi chiama non riscrive le stringhe a mano.
+
+⚠️ **Non restituisce mai un importo**, né mostrato né reale: solo un verdetto.
+Verificato scorrendo tutti i `return`. È il punto 2 della v44 reso impossibile
+da violare **per costruzione**, non per disciplina: a valle non c'è nulla da
+addebitare per sbaglio.
+
+La conversione in centesimi (`centsOf`) è stata inizialmente **duplicata** dal
+modulo dei prezzi e poi unificata nello stesso commit: ora è esportata da
+`lib/menu-pricing.js` e importata qui. Due arrotondamenti diversi avrebbero
+prodotto differenze inventate proprio sul confine fra ciò che il cliente vede e
+ciò che paga.
+
+**b. Come è stato verificato** — 31 asserzioni, tutte passate, su 13 casi
+**dichiarati prima** di vedere il codice: prezzo identico, salito, sceso,
+differenza di un centesimo, mostrato assente/null/stringa/NaN/negativo, più
+righe tutte uguali, più righe con una sola diversa, lunghezze diverse, e il
+caso `0.1 + 0.2` contro `0.30` che dimostra che il confronto avviene davvero in
+centesimi interi.
+
+Rieseguite **tutte e nove** le suite dopo la modifica a `menu-pricing`: tutte
+passate, inclusa la fotografia dei **609 prezzi congelati** con `differenze: 0`
+— la prova che aggiungere un nome all'export non ha spostato un centesimo.
+
+⚠️ **c. Su cosa poggia l'approvazione** — il modulo è stato approvato **sui
+test e sull'elenco dei suoi punti di uscita, non sulla lettura diretta del
+codice**: il file è stato chiesto due volte e non è mai arrivato nella
+conversazione, e si è deciso di procedere invece di insistere una terza. Chi
+rilegge deve saperlo: se un giorno qualcosa non tornasse in questo modulo, il
+"va bene" non era fondato su una lettura riga per riga. *Le prove restano
+robuste — i 13 casi erano stati scritti prima — ma la distinzione va detta e
+non nascosta.*
+
+**d. Cosa NON è stato fatto, ed è deliberato** — **nessun aggancio**.
+`lib/price-guard.js` non è importato da nessun file e
+`app/api/checkout/route.js` è rimasto identico. Il sito si comporta come prima
+e nessun cliente può accorgersi di nulla. È un lavoro **fermato al punto
+giusto**, non lasciato a metà: riprendere da qui è sicuro anche fra settimane.
+
+**e. La ricognizione della route, per non rifarla** — verificata il
+31/07/2026 su `app/api/checkout/route.js`, **691 righe**, un solo export
+(`POST`, riga 330):
+
+| riga | cosa c'è |
+|---|---|
+| 332-342 | destrutturazione del corpo della richiesta — **nessun campo di prezzo** |
+| 344 | rifiuto se `items` non è un array o è vuoto |
+| 188, 288 | gli **unici due** punti che calcolano un prezzo di riga (`menu-pricing`) |
+| 488-490 | `resolvedItems` e il ciclo `for (const item of items)` |
+| 490-543 | la regione del ricalcolo: forma del `ref`, lettura, 500 vs 400, totale di riga |
+| 545 | si chiude il `subtotal` |
+| 631 | `payment_status: "pending"` nel payload |
+| **638** | **l'ordine viene scritto in database** |
+| 645 | insert delle righe `order_items` |
+| 656 | `stripe.checkout.sessions.create` |
+
+⚠️ **Il confronto deve cadere prima di riga 631** (§46 v44, punto 7): dopo quel
+punto un rifiuto lascerebbe comunque un ordine `pending`, cioè un residuo in
+più per ogni cliente respinto. Il posto naturale è **dentro o subito dopo il
+ciclo 490-543**, dove il prezzo reale di ogni riga esiste già — quasi cento
+righe prima del confine.
+
+Dentro ogni `item` arrivano oggi **due soli campi**: `quantity` e `ref`.
+Nessun prezzo. Il campo nuovo dovrà entrare in **due** posti: la
+destrutturazione a 332-342 e il ciclo.
+
+**f. Come si eseguono i test** — **nove** suite, tutte in `tests/` e con
+estensione **`.mjs`** (non `.js`), perché vanno eseguite da Node fuori da Next.
+In `package.json` **non esiste uno script `test`**: si lanciano uno per uno con
+`node tests/<nome>.test.mjs`, oppure tutti con
+`for t in tests/*.test.mjs; do echo "== $t"; node "$t" || echo "FALLITO: $t"; done`.
+
 ## 12) To-do / prossimi passi (in ordine)
 
 ### FATTA — Persistenza dei dati del checkout (§36-40, §41-45)
@@ -962,12 +1068,28 @@ configurare, e possono camminare in parallelo. *Fino alla v42 questa riga
 diceva "le prime due sono lavoro di codice", in contraddizione con la frase
 successiva: era sbagliata.*
 
-**§46 si porta dietro tre lavori registrati** che vivono nello stesso file e
-vanno fatti insieme (vedi "Residui minori aperti"): l'estrazione della logica
-della route di pagamento in `lib/`, il controllo su tempo di preparazione e
-quarti d'ora, e l'unificazione delle due costruzioni delle finestre orarie.
+**Il lavoro è in quattro tappe. La prima è fatta.**
+
+1. ✅ **Il modulo che decide** — `lib/price-guard.js`, costruito e verificato
+   il 31/07/2026 (§11b). Non agganciato a nulla.
+2. ⬜ **Il riordino della route** — `app/api/checkout/route.js` è lunga 691
+   righe e **nessun test la può raggiungere**, perché non è importabile fuori
+   da Next. Va spezzata estraendo la logica in `lib/` e lasciando la route
+   sottile sopra, **senza cambiarne il comportamento**. È la tappa lunga, ed è
+   il residuo registrato dalla v38 (vedi "Residui minori aperti").
+3. ⬜ **L'aggancio** — campo del prezzo mostrato nella destrutturazione del
+   corpo (righe 332-342), chiamata al guard dentro o subito dopo il ciclo
+   490-543, i due esiti `409` e `400` con i testi di §46 punti 4 e 6. Insieme
+   agli altri due lavori registrati che vivono nello stesso file: tempo di
+   preparazione e quarti d'ora, e l'unificazione delle due costruzioni delle
+   finestre orarie.
+4. ⬜ **Il lato sito e la prova dal vivo** — il sito manda il prezzo mostrato
+   e, al `409`, riporta il cliente al carrello **senza svuotarlo**, con prezzi
+   e totale aggiornati. Poi Andrea prova: carrello pieno, prezzo cambiato da
+   un'altra finestra, e deve comparire l'avviso.
+
 *Non si rimaneggia il percorso del pagamento insieme ad altro: se si apre, si
-apre per tutti e quattro.*
+apre per tutti e quattro i lavori registrati.*
 
 ⚠️ **Perché prima della Fase 3**, motivo registrato: §46 è l'unica delle sei
 condizioni che dipenda da noi e non da terzi, ed è il punto in cui si incassa
@@ -1025,7 +1147,8 @@ carrello**, non sulla riga.
 - **Rendere verificabile il calcolo dentro la route di pagamento** estraendolo
   in `lib/` (§46 v38). Lavoro a sé: non si tocca il percorso del pagamento
   insieme ad altro. ⚠️ **Da fare insieme al punto seguente**, perché vivono
-  nello stesso file e vale la stessa regola.
+  nello stesso file e vale la stessa regola. *Dal 31/07/2026 è la **tappa 2**
+  di §46 (vedi il to-do): la route è di 691 righe e nessun test la raggiunge.*
 - **Il server non riverifica il tempo di preparazione né i quarti d'ora**
   (§46b v40), su **entrambe** le modalità: controlla che l'orario non sia
   passato e che il locale sia aperto, ma non i 15 minuti del Ritiro (§12b) né
