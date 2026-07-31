@@ -1,10 +1,31 @@
 # KM DIRECT — MASTER SPECIFICATION
 
-**Versione 44** — sostituisce la v43.
+**Versione 45** — sostituisce la v44.
 
 Documento di riferimento definitivo per lo sviluppo. Le decisioni qui
 contenute sono approvate: non vanno reinterpretate senza un motivo concreto
 (vedi §73). Ogni file di codice del progetto deve rispettare queste regole.
+
+**Novità della v45** (vincolanti):
+
+1. §46 — **fissato il contratto del modulo di confronto**, cioè cosa chi lo
+   chiama deve garantire e cosa il modulo garantisce in cambio. Le due regole
+   sotto erano state decise il 31/07/2026 mentre si costruiva e vivevano nei
+   soli commenti del codice: un commento non è un vincolo e nessuno lo rilegge.
+2. §46 — **un confronto senza righe da confrontare è `malformato`, mai "ok"**:
+   elenchi vuoti, o di lunghezza diversa fra mostrati e reali. "Nessuna riga
+   verificata" non deve poter valere come via libera.
+3. §46 — **gli esiti restano tre e non quattro.** Il modulo non distingue il
+   caso "prezzo reale inutilizzabile" perché **non deve mai riceverlo**: chi lo
+   chiama passa solo righe risolte con successo, e un guasto di lettura è già
+   `500` per §46b, non un rifiuto addossato al cliente. La garanzia sta a monte,
+   e va scritta qui perché chi un domani riusasse il modulo altrove sappia cosa
+   deve garantire prima di chiamarlo.
+
+*La v45 non cambia nulla di ciò che il cliente vede né di ciò che il server
+addebita: mette per iscritto due decisioni già prese e una garanzia che finora
+esisteva solo dentro un commento. Il confronto di §46 resta **non agganciato**
+al percorso di pagamento, e la condizione di apertura resta aperta.*
 
 **Novità della v44** (vincolanti):
 
@@ -2277,6 +2298,43 @@ ragionamento **prima**, non dopo.
 Il confronto copre il prezzo delle righe. Se in futuro altri importi
 diventassero modificabili durante il servizio, la stessa domanda va rifatta per
 loro invece di essere data per risposta.
+
+**Contratto del modulo di confronto (v45, vincolante)**
+
+Il confronto vive in un **modulo puro** separato dalla route, per la stessa
+ragione del calcolo del prezzo (v37): perché sia verificabile da un test senza
+passare da Next e senza lasciare ordini di prova. Quello che segue è il patto
+fra chi chiama e il modulo, e vale **anche se un domani il modulo verrà usato
+da un altro punto del programma**.
+
+**Cosa il modulo garantisce:**
+
+1. **Tre esiti, mai ambigui**: si prosegue, prezzo cambiato (`409`), richiesta
+   malformata (`400`). Nessun quarto esito.
+2. ⚠️ **Non restituisce mai un importo**, né quello mostrato né quello reale:
+   solo un verdetto. Così il punto 2 della v44 — il prezzo del browser non
+   entra nell'addebito — non dipende dall'attenzione di chi scriverà la route,
+   ma è **impossibile da violare per costruzione**: a valle non c'è nulla da
+   addebitare per sbaglio.
+3. **La conversione in centesimi è quella di `lib/menu-pricing.js`**, importata,
+   non riscritta. Confrontare due valori arrotondati da due implementazioni
+   diverse produrrebbe differenze inventate: è la seconda implementazione che
+   §46b vieta, nel punto in cui farebbe più danno.
+
+**Cosa chi chiama deve garantire:**
+
+4. **Solo righe risolte con successo.** Se il prezzo reale non è leggibile, il
+   caso è già chiuso prima del confronto: è un guasto nostro e vale `500`
+   (§46b, "un guasto di lettura non è un rifiuto"), non un `400` che addossa al
+   cliente un problema che non ha. Il modulo non distingue quel caso perché non
+   deve riceverlo; se malgrado tutto gli arrivasse un valore inutilizzabile,
+   l'esito è `malformato` — deterministico e mai silenzioso.
+5. **Elenchi coerenti.** Un confronto **senza righe** — elenchi vuoti, o di
+   lunghezza diversa fra prezzi mostrati e righe reali — è `malformato`, **mai
+   "ok"**: "nessuna riga verificata" non deve poter valere come via libera. Nel
+   percorso reale il caso è irraggiungibile, perché il carrello vuoto viene già
+   rifiutato prima; la regola vale comunque, perché è il genere di porta che si
+   apre da sola quando qualcuno riusa il modulo altrove.
 
 **Lavori decisi e non fatti (v38, registrati)**
 
