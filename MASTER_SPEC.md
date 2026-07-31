@@ -1,10 +1,52 @@
 # KM DIRECT — MASTER SPECIFICATION
 
-**Versione 42** — sostituisce la v41.
+**Versione 43** — sostituisce la v42.
 
 Documento di riferimento definitivo per lo sviluppo. Le decisioni qui
 contenute sono approvate: non vanno reinterpretate senza un motivo concreto
 (vedi §73). Ogni file di codice del progetto deve rispettare queste regole.
+
+**Novità della v43** (vincolanti):
+
+1. §36-40 — **la persistenza è costruita, e la spec smette di descriverla come
+   da fare.** Le frasi che dicevano che il carrello "oggi non sopravvive" e che
+   il calcolo del prezzo di riga "va estratto" erano vere quando furono scritte
+   e **false dal 30/07/2026**. Tolta anche la riga "Condizione da chiudere
+   prima del go-live": quella condizione è chiusa, e lo stato di ciò che è
+   costruito vive nell'`HANDOFF.md`.
+2. §46b — **corretta una citazione parziale sulla validazione dell'orario.** La
+   spec diceva che il server accetta un orario "in qualunque forma `HH:MM`". È
+   troppo largo e falso: la validazione sta su **due** righe, e la seconda
+   rifiuta le ore oltre 23 e i minuti oltre 59, quindi `24:00` e `12:60` **non
+   passano**. Il buco registrato resta vero — `12:07` passa davvero, perché la
+   griglia dei quarti d'ora non è imposta — ma va descritto per quello che è.
+   *Una citazione parziale è più pericolosa di una sbagliata: non suona falsa.*
+3. §63-64 — **aggiornato lo stato dell'editor menu nel corpo della sezione**,
+   che lo descriveva ancora come "in sviluppo" e capace del solo
+   disponibile/esaurito. Le Fasi 1, 2A e 2B sono complete e verificate dal
+   29/07/2026; prima del go-live resta la sola Fase 3. Il blocco di stato più
+   sotto lo diceva già dalla v40: le due parti si contraddicevano.
+4. §66 — **il toggle disponibile/esaurito è registrato.** La regola sul log si
+   chiudeva con "che oggi non viene loggato", in contraddizione con §63-64, che
+   dalla v28 registra anche quel comando.
+5. §67 — **le salse senza flag dietetico dichiarato sono 2, non 3**: Tzatziki e
+   Yogurt. Il "3 salse su 7" era il numero della v30, sopravvissuto alla
+   compilazione della terza.
+6. §65 e §22 — **tolte due fotografie rimaste indietro**: il conteggio delle
+   righe cliente, che ora rimanda all'`HANDOFF.md` come già fatto in v40 per i
+   residui di prova, e la frase che descriveva la costante dell'extra carne
+   come ancora presente nel codice, dove non c'è più.
+
+*La v43 non prende alcuna decisione di prodotto: allinea il corpo della spec al
+codice di oggi e sposta nell'handoff ciò che invecchia. È lo stesso lavoro
+della v40, sulle frasi che quella passata non aveva raccolto — segno che una
+passata sola non basta, e che queste frasi vanno cercate una per una invece che
+ricordate.*
+
+*I blocchi "Novità" delle versioni passate non sono stati toccati: sono il
+diario del progetto e raccontano cosa fu deciso allora, non come stanno le cose
+adesso. Tutte le correzioni qui sopra riguardano il corpo delle sezioni, che è
+ciò che si legge per sapere lo stato di oggi.*
 
 **Novità della v42** (vincolanti):
 
@@ -1272,10 +1314,10 @@ può cumulare ulteriori +100 g oltre alla propria extra dose inclusa.
 **Il prezzo si legge dal database (v37, vincolante)**: la fonte è
 `product_addons.price`, mai un numero scritto nel codice. Fino alla v36 il
 sito mostrava +4 € da una costante mentre il server addebitava il valore del
-database: due fonti per lo stesso importo, che oggi coincidono e che nessuno
-avrebbe potuto tenere allineate: la costante non è modificabile da nessuna
-schermata. Vale la regola generale di §46, un solo calcolo e una sola fonte
-per ogni prezzo.
+database: due fonti per lo stesso importo, che allora coincidevano e che
+nessuno avrebbe potuto tenere allineate, perché la costante non era
+modificabile da nessuna schermata. Vale la regola generale di §46, un solo
+calcolo e una sola fonte per ogni prezzo.
 
 **L'addon si identifica dalla proteina a cui si applica (v38, vincolante)**
 
@@ -1728,18 +1770,19 @@ salsa → suggerisci salsa; vicino ai 25 € → suggerisci per raggiungere sogl
 **Persistenza del carrello per la durata della visita (v33, vincolante)**
 
 Il carrello deve **sopravvivere all'uscita e al rientro dal sito**, in
-particolare al ritorno dalla pagina di pagamento Stripe. Oggi non sopravvive:
-chi arriva davanti al pagamento, si accorge di aver dimenticato qualcosa e
-torna indietro, ritrova il menu con il **carrello vuoto** e deve ricomporre
-l'ordine. È il momento peggiore in cui poteva succedere.
+particolare al ritorno dalla pagina di pagamento Stripe. Fino al 30/07/2026 non
+sopravviveva: chi arrivava davanti al pagamento, si accorgeva di aver
+dimenticato qualcosa e tornava indietro, ritrovava il menu con il **carrello
+vuoto** e doveva ricomporre l'ordine. Era il momento peggiore in cui poteva
+succedere.
 
 **Non era una regola disattesa: era assente.** Questa spec afferma tre volte
 che il carrello non si perde — cambio di tab Delivery/Ritiro (§8), indirizzo
 fuori zona (§9), rifiuto del server (§46b) — ma tutti e tre sono casi in cui
 la pagina **non si scarica mai**, e il carrello sopravvive da sé perché vive
 nella memoria della pagina. Il ritorno da Stripe è il primo caso in cui il
-cliente esce davvero dal sito, e richiede una cosa che non è mai stata
-costruita: conservare il carrello fuori dalla pagina.
+cliente esce davvero dal sito, e ha richiesto una cosa che allora non esisteva:
+conservare il carrello fuori dalla pagina.
 
 - **Durata: la sola visita.** Il carrello si conserva finché la scheda del
   browser resta aperta e si perde alla chiusura. Non si conservano carrelli
@@ -1935,16 +1978,15 @@ indirizzo è un caso normale — i consensi no, per la regola qui sopra.
 Poiché i prezzi non si salvano, al rientro vanno **ricalcolati**. Per un
 articolo semplice è immediato; per Roll, Bowl e combo il totale dipende dalle
 opzioni scelte (proteina, extra carne, accompagnamento, contorno, bibita), e
-quel calcolo oggi vive **dentro i componenti** che disegnano le finestre di
-configurazione, non richiamabile da fuori. Va **estratto in un punto unico**,
-usato sia dalla finestra sia dalla ricostruzione del carrello.
+quel calcolo deve vivere in **un punto unico** richiamabile da fuori, usato sia
+dalla finestra di configurazione sia dalla ricostruzione del carrello. Fino
+alla v36 viveva **dentro i componenti** che disegnano le finestre, dove la
+ricostruzione non poteva raggiungerlo.
 
 Riscriverlo una seconda volta per la ricostruzione è **vietato**, per la stessa
 ragione per cui §46b lo vieta al server sugli orari: due implementazioni
 divergono, sempre. E qui divergerebbero sul prezzo mostrato, cioè
 rifabbricherebbero in casa il problema di §46.
-
-**Condizione da chiudere prima del go-live**, insieme alle altre di §46.
 
 **Il "−" a quantità 1 rimuove l'articolo (v36, vincolante)**
 
@@ -2292,10 +2334,19 @@ limite, e deve aggiungere il controllo esplicito nello stesso lavoro.
 1. **Il tempo di preparazione e la griglia dei quarti d'ora non sono
    riverificati dal server**, per **entrambe** le modalità: §12b prescrive 15
    minuti per il Ritiro e §12 sessanta (o apertura + 30) per la Delivery, e il
-   guard non li conosce; l'orario viene inoltre accettato in qualunque forma
-   `HH:MM`, quindi anche fuori dai quarti d'ora. Una richiesta costruita a mano
-   può prenotare un ritiro "fra un minuto", o alle 12:07, purché cada dentro
-   una finestra aperta.
+   guard non li conosce; **la griglia dei quarti d'ora non è imposta**, quindi
+   un orario come `12:07` viene accettato. La **forma** dell'orario è invece
+   validata, e su **due** righe, non una: l'espressione regolare
+   `^\d{2}:\d{2}$` e, subito dopo, un controllo che rifiuta le ore oltre 23 e i
+   minuti oltre 59 — quindi `24:00` e `12:60` **non passano**. Una richiesta
+   costruita a mano può prenotare un ritiro "fra un minuto", o alle 12:07,
+   purché cada dentro una finestra aperta.
+
+   ⚠️ *Fino alla v42 questo punto diceva che l'orario è accettato "in qualunque
+   forma `HH:MM`", tacendo la seconda riga: chi leggeva concludeva
+   ragionevolmente il contrario del vero. Il buco descritto resta reale, ma una
+   citazione parziale è più pericolosa di una sbagliata, perché non suona
+   falsa.*
 
    *Perché conta, e non per il furbo di turno*: chi volesse sfruttarlo dovrebbe
    costruirsi una richiesta **e pagare davvero**, per ottenere una scocciatura
@@ -2709,12 +2760,13 @@ propagazioni automatiche in fase 1. Multi-store: predisporre `store_id`,
 filtro store, disponibilità/orari/fee/geofence/Glovo outlet ID per store —
 ma niente UI multi-store complessa adesso.
 
-**Editor menu nel pannello staff (in sviluppo, decisione aggiornata in
-v25)**: il pannello Menu oggi consente **solo** di cambiare lo stato
-disponibile/esaurito; nomi, descrizioni, prezzi, allergeni e label opzioni
-non sono editabili dall'interfaccia. Si sta costruendo un **editor del menu**
-(a fasi: campi semplici → allergeni/flag → creazione prodotti semplici →
-creazione/editing Roll/Bowl con opzioni). **Decisione: NIENTE ruolo admin
+**Editor menu nel pannello staff (decisione aggiornata in v25)**: fino alla
+v25 il pannello Menu consentiva **solo** di cambiare lo stato
+disponibile/esaurito, e nomi, descrizioni, prezzi, allergeni e label opzioni
+non erano editabili dall'interfaccia. L'**editor del menu** si costruisce a
+fasi (campi semplici → allergeni/flag → creazione prodotti semplici →
+creazione/editing Roll/Bowl con opzioni); lo stato di avanzamento delle fasi è
+più sotto, in fondo alla sezione. **Decisione: NIENTE ruolo admin
 distinto per ora** — l'editor vive nella pagina staff esistente (autenticata
 via Supabase Auth + `requireStaffSession`, §66), senza un livello di accesso
 separato. L'introduzione di ruoli/permessi admin distinti dallo staff è
@@ -2949,11 +3001,11 @@ con:
 
 **Ordini in sospeso: destinati a moltiplicarsi (v33)**
 
-Ogni arrivo alla pagina di pagamento crea un ordine `pending`. Oggi tornare
-indietro è raro, perché chi lo fa perde il carrello e spesso rinuncia del
-tutto; con la persistenza del carrello (§36-40) tornare indietro diventerà
-**normale** — torno, aggiungo la salsa dimenticata, ripago — e ogni giro
-lascerà un `pending` orfano di un cliente che invece **ha comprato**.
+Ogni arrivo alla pagina di pagamento crea un ordine `pending`. Prima della
+persistenza tornare indietro era raro, perché chi lo faceva perdeva il carrello
+e spesso rinunciava del tutto; con la persistenza del carrello (§36-40) tornare
+indietro è **normale** — torno, aggiungo la salsa dimenticata, ripago — e ogni
+giro lascia un `pending` orfano di un cliente che invece **ha comprato**.
 
 Non è un errore contabile e non nasce con quella modifica: quegli ordini
 esistono già oggi. Ma la pagina qui descritta li conterebbe come rinunce,
@@ -2964,11 +3016,13 @@ completato dallo stesso cliente non è un carrello abbandonato.
 
 **Anche le righe cliente si moltiplicano (v36)**: il cliente viene scritto in
 `customers` **prima** dell'ordine e resta lì anche se il checkout non arriva in
-fondo. Al 29/07/2026 le righe cliente sono 27 e solo 8 hanno un ordine
-collegato: le altre 19 sono passaggi interrotti. Con la persistenza del
-carrello ogni giro in più ne lascerà un'altra. Non è un errore — serve a
-riprendere l'ordine — ma va saputo prima di leggere quei numeri come "clienti".
-Vale su di essi lo stesso divieto d'uso a fini di ricontatto scritto qui sotto.
+fondo. Una parte consistente di quelle righe non ha alcun ordine collegato:
+sono passaggi di checkout interrotti, e con la persistenza del carrello ogni
+giro in più ne lascia un'altra. Non è un errore — serve a riprendere l'ordine —
+ma va saputo prima di leggere quei numeri come "clienti". Vale su di essi lo
+stesso divieto d'uso a fini di ricontatto scritto qui sotto. *Il conteggio
+aggiornato vive nell'`HANDOFF.md` e non qui, per la stessa ragione dei residui
+di prova: cambia a ogni verifica dal vivo (§66).*
 
 **Vincolo legale non negoziabile**: questi dati servono ESCLUSIVAMENTE a
 scopo statistico interno. È vietato usarli per ricontattare i clienti a
@@ -3008,7 +3062,8 @@ menu, prezzi inclusi. Il controllo compensativo è la tracciabilità: ogni
 scrittura fatta dall'editor menu va registrata in `staff_action_log`
 (tabella già esistente, con `order_id` nullable e `action`/`detail` liberi)
 indicando **quale prodotto, quale campo, valore precedente e valore nuovo**.
-Vale anche per il toggle disponibile/esaurito, che oggi non viene loggato.
+Vale anche per il toggle disponibile/esaurito, che dalla v28 viene registrato
+come gli altri campi (§63-64).
 
 **Un solo database, nessun ambiente di test separato (v30, vincolante)**
 
@@ -3245,10 +3300,10 @@ allergeni o flag dietetici, su prodotti e su salse.
   già adottato per i prodotti con scelta gusto ("sovra-dichiarare è più
   sicuro che sotto-dichiarare"). L'errore resta visibile riaprendo la scheda.
 - **Nessuna preselezione del flag dietetico quando il dato manca**: sugli
-  articoli food con flag ancora NULL (oggi 3 salse su 7) il selettore a tre
-  voci si presenta **senza nulla di selezionato** e obbliga a una scelta
-  esplicita prima di salvare. Preselezionare "Nessuno dei due" produrrebbe
-  una dichiarazione che nessuno ha fatto.
+  articoli food con flag ancora NULL (Tzatziki e Yogurt, vedi in fondo alla
+  sezione) il selettore a tre voci si presenta **senza nulla di selezionato**
+  e obbliga a una scelta esplicita prima di salvare. Preselezionare "Nessuno
+  dei due" produrrebbe una dichiarazione che nessuno ha fatto.
 - **Ogni salvataggio scrive `allergens_verified_at`** con la data del
   momento, anche quando la selezione non cambia: la verifica è un atto, non
   un effetto collaterale della modifica.
