@@ -12,17 +12,19 @@ Web app per ordini **delivery e ritiro** di **FAME Srl / KM Kebab Mediterraneo**
 (Bologna, store `san-mamolo`). Stack **Next.js 14 + Supabase + Stripe (sandbox)**.
 Repo: **github.com/Kebabmediterraneo/km-direct** (branch `main`, push via SSH).
 La fonte di verità di tutte le decisioni è **`MASTER_SPEC.md`** — versione attuale
-**v42** (leggila sempre dall'intestazione, riga 3).
+**v43** (leggila sempre dall'intestazione, riga 3).
 
 ---
 
 ## 2) Stato git
 
 - Branch **`main`**, working tree **pulita**, allineata a `origin/main`.
-- HEAD: **`8561504`**.
+- HEAD: **`d254612`**.
 - Ultimi commit (dal più recente):
 
 ```
+d254612 spec: v43 — frasi di stato allineate al codice §36-40 §63-64 §66, orario citato per intero §46b, conteggi fuori dalla spec §65 §22 §67
+16b9c34 handoff: aggiorna a v42 — persistenza del checkout chiusa e verificata, due strade non provate dichiarate, lezioni su citazioni parziali e guardia non trasferibile
 8561504 checkout: i dati compilati sopravvivono al pagamento, zona verificata al rientro e condizione per pagare §36-40 §41-45
 04343e7 checkout: modulo di persistenza, prepara e ricostruisce con indirizzo indivisibile §36-40
 e71a497 spec: v42 — ripristino parziale con indirizzo indivisibile e nessun verdetto prima dei dati §36-40
@@ -31,8 +33,6 @@ c6a2308 spec: v41 — momento dell'ordine e ritiro esplicito fra i dati conserva
 0ae95e0 handoff: aggiorna a v40 — guard Ritiro verificato staticamente, residui solo qui, lezioni su impronta del file e note di stato
 f76cf11 spec: v40 — guard Ritiro verificato e stato reale §46b, orizzonte 2 giorni per costruzione, residui e stato editor allineati §66 §63-64 §67
 21a3475 handoff: aggiorna a v39 — persistenza del carrello e civico, cache di navigazione chiarita, residui riletti
-7a71576 spec: v39 — indirizzo conservato e zona riverificata §36-40 §10, intenzione sconto §14, consensi come atti §41-45
-1f36370 checkout: i campi compilati vivono in Home e sopravvivono alla chiusura, consensi esclusi §36-40
 ```
 
 *Nota ricorrente, non un errore*: l'HEAD scritto qui è sempre quello
@@ -111,7 +111,15 @@ g. **Aggiornamenti spec col METODO FILE**: si genera il `MASTER_SPEC.md`
    verbatim), **diff verificato prima del commit**. Controlli standard: riga 3,
    blocco Novità, numero di righe, `numstat` atteso, zone del diff. Il conteggio
    delle zone va dichiarato **come lo conta git** (con le righe di contesto, che
-   fondono le zone vicine). Vale anche per l'handoff.
+   fondono le zone vicine), e **insieme alla mappa zona → sezione** con la
+   dimensione di ciascuna: un numero da solo non è un riscontro (lezione `ao`).
+   Ogni misura confrontata dentro un comando va ripulita con `| tr -d ' '`
+   (lezione `an`). Vale anche per l'handoff.
+   *Nota su questo file*: `handoff/HANDOFF.md` **non termina con un a capo**,
+   a differenza di `MASTER_SPEC.md`. È una caratteristica di come viene
+   generato, non del repo: un editor che lo riaprisse e lo "sistemasse"
+   aggiungendolo cambierebbe l'impronta senza cambiare una sola parola. Da
+   sapere al prossimo confronto, non da correggere.
 h. **Claude Code NON può eseguire DDL** (solo PostgREST): `ALTER`/`DROP TABLE` li
    esegue **Andrea nel SQL editor Supabase**, con **migration versionata in `sql/`**.
 i. **Verifiche dal vivo**: Code avvia **un solo** `next dev` — controllando prima
@@ -311,6 +319,23 @@ am. **Prima di dichiarare che la spec non dice, cercare.** La domanda "i dati
    creduto a una frase vecchia, qui si era data per assente una frase che
    c'è. *Stesso rimedio: cercare nel documento prima di concludere, in
    entrambe le direzioni.*
+an. ⚠️ **Un guard che confronta numeri come testo si rompe sugli spazi.** Il
+   comando di copia della v43 confrontava righe e byte con `[ "$L" != "$RIGHE" ]`.
+   Su macOS `wc` allinea l'output a destra, quindi `L` valeva `" 3731"` e non
+   `"3731"`: stringhe diverse, blocco scattato su un file perfettamente
+   integro. Gli attesi erano stati calcolati su Linux, dove gli spazi non ci
+   sono. **Rimedio: `| tr -d ' '` su ogni misura prima di confrontarla.** La
+   spia, nell'output, è il divario di spaziatura fra i due numeri stampati
+   accanto. *Code ha fatto la cosa giusta a non aggirare il blocco (metodo
+   `k`): che il difetto fosse del guard e non del file non autorizza a
+   scavalcarlo.*
+ao. **Le zone attese di un diff vanno dichiarate con la sezione, non come
+   numero.** Per la v43 era stato dichiarato "10 zone": Code le ha trovate
+   dieci, ma ha dovuto costruirsi da solo la mappa zona → sezione, che non
+   aveva un atteso contro cui rompersi. Un numero solo verifica che il
+   **totale** torni, non che le modifiche siano atterrate dove dovevano: dieci
+   zone giuste in punti sbagliati darebbero lo stesso "10". **D'ora in poi
+   l'elenco va dichiarato prima, con sezione e dimensione di ciascuna zona.**
 
 ---
 
@@ -904,25 +929,61 @@ documenti aveva previsto.
 la lezione `al`: quel meccanismo **non si trasferisce**. Serve una guardia
 indipendente, e va fatta con uno **stato**, non con un `useRef`.
 
-### PROSSIMO — a scelta fra i due qui sotto
+### FATTA — Spec allineata al codice (v43, 31/07/2026, `d254612`)
 
-Non c'è più un lavoro obbligato: la condizione di apertura §36-40 è chiusa.
-Restano **sei** condizioni di apertura (elenco più sotto), di cui le prime due
-sono lavoro di codice e le altre quattro sono cose da procurare o configurare.
+Lavoro di sola manutenzione della verità: **nessuna decisione nuova**. Sette
+frasi del corpo della spec descrivevano uno stato superato e sono state
+riscritte — il carrello che "non sopravvive" e il calcolo del prezzo "da
+estrarre" (§36-40, entrambi fatti il 30/07), l'editor menu dato ancora "in
+sviluppo" mentre venti righe più sotto la stessa sezione lo dichiarava alle
+Fasi 1-2B (§63-64), il toggle disponibile/esaurito dato per non loggato mentre
+lo è dalla v28 (§66), le salse senza flag dietetico contate 3 invece di 2
+(§67), il conteggio delle righe cliente uscito dalla spec per finire qui (§65)
+e la costante dell'extra carne descritta come ancora nel codice (§22). In più
+§46b cita ora **per intero** la validazione dell'orario, invece della sola
+prima riga.
 
-**Il candidato naturale è §46** — il confronto fra prezzo mostrato e prezzo
-addebitato — perché è l'unica condizione di apertura rimasta che richieda di
-scrivere codice, e perché **si porta dietro tre lavori registrati** che vivono
-nello stesso file e vanno fatti insieme (vedi "Residui minori aperti"):
-l'estrazione della logica della route di pagamento in `lib/`, il controllo su
-tempo di preparazione e quarti d'ora, e l'unificazione delle due costruzioni
-delle finestre orarie. *Non si rimaneggia il percorso del pagamento insieme ad
-altro: se si apre, si apre per tutti e quattro.*
+⚠️ **Due delle sette frasi dichiaravano aperta una condizione di apertura
+chiusa il giorno prima**: chi avesse contato le condizioni leggendo la sola
+spec ne avrebbe trovate otto invece di sei. È la lezione `aj` vista una seconda
+volta, ed è il motivo per cui questo lavoro è stato fatto prima del resto.
 
-**L'alternativa è la Fase 3**, qui sotto, che non è una condizione di apertura
-ma serve ad Andrea per lavorare in autonomia sul menu.
+*I blocchi "Novità" delle versioni passate non sono stati toccati: sono il
+diario delle decisioni di allora, non affermazioni sull'oggi.*
+
+### PROSSIMO — §46, deciso da Andrea il 31/07/2026
+
+**Il confronto fra prezzo mostrato e prezzo addebitato al checkout.** Scelto da
+Andrea fra i due lavori rimasti, con la Fase 3 subito dopo.
+
+Restano **sei** condizioni di apertura (elenco più sotto): **§46 è l'unica che
+richieda di scrivere codice**; le altre cinque sono cose da procurare o
+configurare, e possono camminare in parallelo. *Fino alla v42 questa riga
+diceva "le prime due sono lavoro di codice", in contraddizione con la frase
+successiva: era sbagliata.*
+
+**§46 si porta dietro tre lavori registrati** che vivono nello stesso file e
+vanno fatti insieme (vedi "Residui minori aperti"): l'estrazione della logica
+della route di pagamento in `lib/`, il controllo su tempo di preparazione e
+quarti d'ora, e l'unificazione delle due costruzioni delle finestre orarie.
+*Non si rimaneggia il percorso del pagamento insieme ad altro: se si apre, si
+apre per tutti e quattro.*
+
+⚠️ **Perché prima della Fase 3**, motivo registrato: §46 è l'unica delle sei
+condizioni che dipenda da noi e non da terzi, ed è il punto in cui si incassa
+il denaro — quello che meno di tutti va fatto sotto la pressione dell'apertura.
+In più la Fase 3 crea articoli, e un articolo ha un prezzo: costruire il modo
+di aggiungere prezzi nuovi prima del controllo che il prezzo mostrato sia
+quello addebitato è l'ordine sbagliato.
 
 ### Poi — Fase 3: creazione di articoli semplici
+
+⚠️ **Non è un extra rimandabile.** Non è una *condizione di apertura* — non è
+in quell'elenco — ma §63-64 la colloca fra i lavori **pre-go-live**, e il
+blocco di stato della v40 lo dice testualmente: prima del go-live resta la sola
+Fase 3, che non è ancora iniziata. Letto da solo, fino alla v42 questo
+documento la faceva sembrare facoltativa. **Va fatta prima di aprire**, subito
+dopo §46.
 
 Prodotti (fritti, sides, dolci, drink) **e salse**, che ora sono la stessa cosa.
 Dichiarazione allergeni obbligatoria alla creazione: o gli allergeni, o la
@@ -976,14 +1037,15 @@ carrello**, non sulla riga.
   agli errori del sito: se un domani il client sbagliasse a gestire uno slot
   scaduto, oggi non ci sarebbe nulla a fermarlo.*
 
-  ⚠️ **Correzione del 30/07/2026 (lezione `ak`)**: questo punto diceva che il
-  server accetta un orario **"in qualunque forma `HH:MM`"**. È troppo largo e
-  **falso**. La validazione sta su **due** righe, non una: alla regex
-  `/^\\d{2}:\\d{2}$/` segue un controllo che rifiuta ore oltre 23 e minuti oltre
-  59, quindi `24:00` e `12:60` **non passano**. Verificato eseguendo le due
-  funzioni su tredici ingressi: zero divergenze rispetto al modulo di
+  ⚠️ **Correzione del 30/07/2026 (lezione `ak`), ora in spec**: questo punto
+  diceva che il server accetta un orario **"in qualunque forma `HH:MM`"**. È
+  troppo largo e **falso**. La validazione sta su **due** righe, non una: alla
+  regex `/^\\d{2}:\\d{2}$/` segue un controllo che rifiuta ore oltre 23 e minuti
+  oltre 59, quindi `24:00` e `12:60` **non passano**. Verificato eseguendo le
+  due funzioni su tredici ingressi: zero divergenze rispetto al modulo di
   persistenza. *Il buco registrato resta vero — `12:07` passa davvero — ma
-  nasceva da una citazione parziale della sola prima riga.*
+  nasceva da una citazione parziale della sola prima riga.* **La v43 ha portato
+  la citazione per intero dentro §46b**: la verità non vive più soltanto qui.
 - **Le finestre orarie si costruiscono in due punti** (§46b v40): uno alimenta
   il guard, l'altro genera gli slot offerti al cliente. Confrontati riga per
   riga il 30/07/2026, oggi danno lo stesso risultato e l'unica differenza non
