@@ -12,27 +12,27 @@ Web app per ordini **delivery e ritiro** di **FAME Srl / KM Kebab Mediterraneo**
 (Bologna, store `san-mamolo`). Stack **Next.js 14 + Supabase + Stripe (sandbox)**.
 Repo: **github.com/Kebabmediterraneo/km-direct** (branch `main`, push via SSH).
 La fonte di verità di tutte le decisioni è **`MASTER_SPEC.md`** — versione attuale
-**v40** (leggila sempre dall'intestazione, riga 3).
+**v42** (leggila sempre dall'intestazione, riga 3).
 
 ---
 
 ## 2) Stato git
 
 - Branch **`main`**, working tree **pulita**, allineata a `origin/main`.
-- HEAD: **`f76cf11`**.
+- HEAD: **`8561504`**.
 - Ultimi commit (dal più recente):
 
 ```
+8561504 checkout: i dati compilati sopravvivono al pagamento, zona verificata al rientro e condizione per pagare §36-40 §41-45
+04343e7 checkout: modulo di persistenza, prepara e ricostruisce con indirizzo indivisibile §36-40
+e71a497 spec: v42 — ripristino parziale con indirizzo indivisibile e nessun verdetto prima dei dati §36-40
+36218f7 ritiro: validità e primo slot dal modulo condiviso, come la Delivery §12b §46b
+c6a2308 spec: v41 — momento dell'ordine e ritiro esplicito fra i dati conservati §36-40, indirizzo fuori zona mostrato e zona condizione per pagare §41-45
+0ae95e0 handoff: aggiorna a v40 — guard Ritiro verificato staticamente, residui solo qui, lezioni su impronta del file e note di stato
 f76cf11 spec: v40 — guard Ritiro verificato e stato reale §46b, orizzonte 2 giorni per costruzione, residui e stato editor allineati §66 §63-64 §67
 21a3475 handoff: aggiorna a v39 — persistenza del carrello e civico, cache di navigazione chiarita, residui riletti
 7a71576 spec: v39 — indirizzo conservato e zona riverificata §36-40 §10, intenzione sconto §14, consensi come atti §41-45
 1f36370 checkout: i campi compilati vivono in Home e sopravvivono alla chiusura, consensi esclusi §36-40
-2d06a73 indirizzo: avviso quando manca il numero civico e conferma di zona solo con civico §10 §41-45
-384c0bf carrello: sopravvive alla visita, ricostruito dal menu fresco e svuotato dopo il pagamento §36-40
-2b9cca7 carrello: modulo di persistenza, prepara e ricostruisce dal menu fresco §36-40
-70a6130 handoff: aggiorna a v38 — ciclo dei prezzi con calcolo unico, lezioni su prove attribuibili e conclusioni ricorrenti, residui riletti
-62d962d spec: v38 — addon identificato dalla proteina §22, extra carne fuori dai combo §25, §46 resta condizione di apertura
-a5b434f checkout: l'extra carne non è ammessa nei combo, che contengono solo Roll §22
 ```
 
 *Nota ricorrente, non un errore*: l'HEAD scritto qui è sempre quello
@@ -276,6 +276,42 @@ aj. **Una nota di stato lasciata indietro non invecchia in silenzio: mente
    note stantie erano in §63-64 e §67, che descrivevano come da fare le Fasi
    2A e 2B già concluse.
 
+**Lezioni aggiunte il 30/07/2026 (persistenza del checkout)**
+
+ak. ⚠️ **Ciò che un comando dichiara come atteso va letto dal file, mai
+   ricordato — e va citato per intero.** In una sola giornata lo stesso
+   difetto si è presentato **quattro volte**, sempre da parte di chi scriveva
+   i comandi e mai del codice: l'elenco delle zone attese di un diff ricavato
+   a memoria (due zone collocate male); la forma `{ ok }` attribuita a
+   `cart-persistence`, che invece la consuma soltanto; due righe rimosse
+   descritte come "voci dell'elenco" quando una era la coda di una nota. La
+   quarta è la più insidiosa perché **il fatto citato era vero**: la
+   validazione dell'orario in `computeScheduledDeliveryAt` è stata citata
+   riportando la sola regex di riga 243 e tacendo la riga 246, che rifiuta
+   `24:00` e `12:60` — chi legge conclude ragionevolmente il contrario del
+   vero. *Una citazione parziale è più pericolosa di una sbagliata: non
+   suona falsa.* Il rimedio è meccanico: l'elenco delle zone si ricava dal
+   diff, la forma di un modulo si legge dal modulo, e una validazione si cita
+   tutta o non si cita.
+al. **Il modo in cui il carrello si difende dal salvataggio prematuro NON si
+   trasferisce al checkout.** Il carrello usa un `useRef`; copiarlo per il
+   checkout ha prodotto un difetto che non dava alcun errore. Al montaggio
+   girano **tutte** le effect: il ref risultava già armato quando partiva il
+   salvataggio, che però vedeva lo stato **prima** del ripristino e riscriveva
+   la memoria con i campi vuoti un istante dopo averla letta. Il carrello ne è
+   immune solo perché il suo ripristino **attende `menuData`**, e quell'attesa
+   sposta l'ordine dei giri. La soluzione è uno **stato** invece di un ref, che
+   arma il salvataggio al render successivo. *Sarebbe sembrato "la persistenza
+   ogni tanto non funziona": nessun errore a schermo, nessuno nel log.*
+am. **Prima di dichiarare che la spec non dice, cercare.** La domanda "i dati
+   del checkout spariscono dopo un ordine completato?" è stata posta come
+   aperta **due volte** nella stessa sessione. §36-40 (v36) la chiude da mesi:
+   si svuotano gli **articoli**, i dati del checkout **possono restare** per
+   il resto della visita. È il gemello opposto della lezione `aj`: là si era
+   creduto a una frase vecchia, qui si era data per assente una frase che
+   c'è. *Stesso rimedio: cercare nel documento prima di concludere, in
+   entrambe le direzioni.*
+
 ---
 
 ## 5) Stato funzionale — aree COMPLETE e verificate
@@ -315,6 +351,10 @@ aj. **Una nota di stato lasciata indietro non invecchia in silenzio: mente
   codice: sta nel ramo del pickup, usa la regola della **chiusura inclusa** che
   è propria del Ritiro, e nessun percorso arriva alla scrittura dell'ordine
   saltandolo. ⚠️ **Verifica statica, non dal vivo** — vedi punto 13.
+- **Persistenza dei dati del checkout** (§36-40, §41-45) — *30/07/2026*, punto
+  10b. **Verificata dal vivo da Andrea su sei prove, tutte superate.** Chiude
+  la condizione di apertura §36-40. ⚠️ Due strade restano **non provate dal
+  vivo** per scelta: vedi punto 10b.
 
 ---
 
@@ -679,6 +719,86 @@ difficile da sbagliare in un modulo che non li conosce. Le funzioni riusabili
 per la riverifica esistono già: `isPointInPolygon` (`lib/geo.js`) col poligono
 da `/api/geofence`, e `classifyScheduledSelection` contro `/api/service-status`.
 
+## 10b) La persistenza dei dati del checkout (30/07/2026)
+
+**Chiude la condizione di apertura §36-40**, di cui il carrello (punto 10) era
+la prima metà. Tre commit, in tre passi deliberatamente separati.
+
+**Perché in tre passi.** I primi due non cambiano nulla di visibile: se
+sbagliano, sbagliano dove non si vede. Il terzo non è stato spezzato **apposta**
+— un giro intermedio che ripristinasse l'indirizzo *senza* il controllo di zona
+avrebbe prodotto un sito **più fragile di prima**, dove un indirizzo torna dalla
+memoria e arriva al pagamento senza che nessuno lo ricontrolli.
+
+1. **`36218f7` — la funzione pura per lo slot di Ritiro.** Non esisteva: per la
+   Delivery c'era `classifyScheduledSelection`, per il Ritiro la stessa cosa era
+   calcolata **in linea** dentro `app/page.js`. Estratta come
+   `classifyPickupSelection` accanto alla gemella, con 17 asserzioni. Nello
+   stesso commit è sparita anche la duplicazione di `firstAvailableSlot` su una
+   riga. *Risultato netto: in `app/page.js` non resta alcun calcolo in linea su
+   validità o preselezione degli slot di ritiro.*
+2. **`04343e7` — il cervello.** `lib/checkout-persistence.js`,
+   `prepareCheckout(state)` e `restoreCheckout(persisted) -> { fields, dropped }`,
+   **110 asserzioni**. Puro, zero dipendenze, non tocca la memoria del browser e
+   **non giudica niente**: non verifica la zona, non giudica gli slot.
+3. **`8561504` — l'integrazione**, più la modifica a `canPay` che la v41 rende
+   vincolante. Verificata dal vivo da Andrea.
+
+**I tre consensi sono impossibili da salvare, non solo vietati.** Il modulo non
+fa mai lo spread dello stato: copia una **lista chiusa di chiavi dichiarate**,
+quindi una chiave non dichiarata non attraversa il modulo nemmeno passandogli
+l'intera schermata. È verificato da due asserzioni, una delle quali gli passa
+uno stato pieno di roba estranea.
+
+**Il verdetto di zona è derivato, non scritto.** Non è uno stato che qualcuno
+aggiorna: è una funzione di *(coordinate, perimetro)*, quindi **non esiste un
+istante** in cui valga "fuori zona" mentre il perimetro è ancora nullo — in
+quel caso vale "non ancora verificato", che non è un rifiuto (§36-40 v42). La
+garanzia è nella **forma**, non in un controllo che qualcuno potrebbe
+dimenticare.
+
+⚠️ **Lo stato della zona ha tre valori, non due**: non ancora verificato /
+in zona / fuori zona. Chi un domani lo riducesse a un booleano
+riaprirebbe esattamente il difetto che la v42 esiste per impedire.
+
+**Le sei prove dal vivo di Andrea, tutte superate**: campi ripristinati; i tre
+consensi vuoti; pagamento bloccato prima di rispuntarli; **nessun avviso che
+compare e sparisce** nel primo istante del rientro; carrello svuotato dopo un
+pagamento vero, con i dati personali ancora presenti; ritiro con l'orario
+scelto. Log del server pulito, nessun errore.
+
+**Cosa NON è stato provato dal vivo, e perché (dichiarato, non nascosto)**
+
+- **Un indirizzo ripristinato che non è più in zona.** Richiederebbe di
+  **restringere il perimetro** in `store_geofences`, dato di configurazione
+  vivo sull'unico database. ⚠️ **Decisione di Andrea del 30/07/2026: il
+  perimetro non si tocca, nemmeno temporaneamente** — la finestra in cui il
+  caso potrebbe verificarsi è di pochi minuti e il perimetro cambia solo se lo
+  cambiamo noi.
+- **Un orario che scade mentre il cliente è via.** Richiederebbe di restare
+  fermi finché uno slot passa.
+
+*Perché l'assenza di queste due prove pesa poco*: entrambe riguardano la
+direzione **innocua**. Il pericolo vero è l'opposto — un indirizzo **buono**
+giudicato fuori zona per un difetto nostro, che bloccherebbe un cliente onesto
+— e quella direzione **è coperta dalla prova 1**: se la riverifica avesse un
+errore (per esempio le coordinate passate nell'ordine sbagliato, facile in
+quella funzione), l'indirizzo buono verrebbe rifiutato e il pagamento
+resterebbe bloccato senza motivo. Restano inoltre coperte dai test del modulo.
+
+**Un cambiamento di comportamento dichiarato**: prima, se il perimetro non era
+ancora arrivato quando il cliente sceglieva l'indirizzo, il verdetto **non
+compariva mai più** finché non ne sceglieva un altro. Ora compare appena il
+perimetro arriva. Discende dall'aver reso il verdetto derivato, ed è nella
+direzione che §36-40 v42 chiede.
+
+**Dopo un ordine completato i dati del checkout restano**, e non è una
+dimenticanza: §36-40 (v36) lo dice esplicitamente — si svuotano gli
+**articoli**, i dati del checkout possono restare per il resto della visita,
+perché un secondo ordine dallo stesso indirizzo è normale. I **consensi** no,
+per la regola separata. *Questa domanda è stata posta come aperta due volte in
+un giorno: vedi lezione `am`.*
+
 ## 11) Stato dei dati (30/07/2026)
 
 **Allergeni**
@@ -727,6 +847,15 @@ prima del go-live vanno riletti così, non ricopiati da qui (lezioni `s` e `z`).
 `customers` 27→38, `order_status_history` 12→23. Ogni verifica dal vivo che
 arriva alla pagina di pagamento ne aggiunge.*
 
+⚠️ **GIÀ SUPERATI DALLE PROVE DEL PASSO 3 (punto 10b).** Il log del server
+mostra **quattro `POST /api/checkout`** andati a buon fine durante le sei
+prove, quindi almeno **quattro ordini in più** e le righe collegate in
+`order_items`, `customers` e `order_status_history`. **I totali qui sotto non
+sono stati aggiornati di proposito**: aggiornarli a mente è precisamente
+l'errore delle lezioni `s` e `z`, commesso già quattro volte su questo stesso
+elenco. Vanno **riletti dal database**, mai ricalcolati per somma — il numero
+di `POST` visto nel log è un indizio, non un conteggio.
+
 - **`orders`: 19 righe, tutte di prova** (26-30/07/2026), più **29 righe** in
   `order_items`, di cui **4 con rimozioni**. Quattro ordini con pagamento
   `succeeded` in sandbox — `KM-0001`, `KM-0008`, `KM-0015`, `KM-0019` — gli
@@ -758,42 +887,40 @@ arriva alla pagina di pagamento ne aggiunge.*
 
 ## 12) To-do / prossimi passi (in ordine)
 
-### PROSSIMO — Persistenza dei dati del checkout (§36-40, §41-45)
+### FATTA — Persistenza dei dati del checkout (§36-40, §41-45)
 
-È **la seconda metà** della condizione di apertura §36-40: il carrello
-sopravvive già (punto 10), i dati del checkout no. Regole tutte in spec (v36,
-v39 e v40), decisioni tutte prese — si può scrivere. *La v40 ha allineato la
-spec al codice reale e non ha cambiato nulla di questo lavoro: ha solo aggiunto
-**cognome** all'elenco di §36-40, che lo ometteva pur essendo obbligatorio in
-§41-45.*
+**Chiusa il 30/07/2026**, tre commit, sei prove dal vivo superate. Il racconto
+completo è al **punto 10b**; qui restano solo le correzioni a ciò che questo
+elenco diceva quando era un to-do, perché sono errori del tipo che si ripete:
 
-1. **Il cervello**: un secondo modulo `lib/checkout-persistence.js`, con i suoi
-   test. Non un allargamento di `cart-persistence`: il carrello si
-   *ricostruisce* da un catalogo, il checkout si *riverifica*. Versione del
-   formato indipendente.
-   - **si salva**: modalità Delivery/Ritiro, indirizzo **con le sue
-     coordinate** e civico, citofono, piano, scala, note, nome, cognome,
-     telefono, email, giorno e orario richiesti, l'**intenzione** GIVEMEFIVE;
-   - **non si salva mai**: prezzi, fee, sconto, totale, esito del controllo di
-     zona, disponibilità dello slot — sono conclusioni;
-   - **mai i tre consensi**: il modulo non deve nemmeno conoscerli.
-2. **L'integrazione**: scrittura e lettura nella memoria della scheda, con la
-   **stessa guardia "idratato"** del carrello (punto 10b — è il punto in cui è
-   facile introdurre un bug silenzioso), e al rientro la **riverifica**: zona
-   contro il perimetro aggiornato (§10), orario contro finestre ed eccezioni
-   (§13, §68).
-3. **Gli avvisi**: se l'indirizzo non è più in zona o lo slot è scaduto, si dice
-   **cosa** e **perché** al rientro, mai alla pressione di "Paga ora". Verifica
-   dal vivo di Andrea.
+⚠️ **"Le funzioni per la riverifica esistono già e non vanno riscritte" era
+vero a metà.** Vero per la zona (`isPointInPolygon`). **Falso per l'orario di
+Ritiro**: `classifyScheduledSelection` copriva la sola Delivery, e per il
+Ritiro la validità era calcolata **in linea** dentro `app/page.js`. È stato il
+passo 1 del lavoro (`36218f7`) a estrarla, ed era lavoro che nessuno dei due
+documenti aveva previsto.
 
-Le funzioni per la riverifica **esistono già** e non vanno riscritte:
-`isPointInPolygon` (`lib/geo.js`) col poligono da `/api/geofence`;
-`classifyScheduledSelection` (`lib/scheduled-selection.js`) contro
-`/api/service-status`. Il meccanismo che rileva uno slot scaduto mentre il
-cliente è fermo sulla pagina esiste già e vale anche al caricamento.
+⚠️ **"La stessa guardia idratato del carrello" era sbagliato**, ed è diventato
+la lezione `al`: quel meccanismo **non si trasferisce**. Serve una guardia
+indipendente, e va fatta con uno **stato**, non con un `useRef`.
 
-*Nota: ogni verifica dal vivo che arriva alla pagina di pagamento crea un ordine
-`pending` in più (punto 11).*
+### PROSSIMO — a scelta fra i due qui sotto
+
+Non c'è più un lavoro obbligato: la condizione di apertura §36-40 è chiusa.
+Restano **sei** condizioni di apertura (elenco più sotto), di cui le prime due
+sono lavoro di codice e le altre quattro sono cose da procurare o configurare.
+
+**Il candidato naturale è §46** — il confronto fra prezzo mostrato e prezzo
+addebitato — perché è l'unica condizione di apertura rimasta che richieda di
+scrivere codice, e perché **si porta dietro tre lavori registrati** che vivono
+nello stesso file e vanno fatti insieme (vedi "Residui minori aperti"):
+l'estrazione della logica della route di pagamento in `lib/`, il controllo su
+tempo di preparazione e quarti d'ora, e l'unificazione delle due costruzioni
+delle finestre orarie. *Non si rimaneggia il percorso del pagamento insieme ad
+altro: se si apre, si apre per tutti e quattro.*
+
+**L'alternativa è la Fase 3**, qui sotto, che non è una condizione di apertura
+ma serve ad Andrea per lavorare in autonomia sul menu.
 
 ### Poi — Fase 3: creazione di articoli semplici
 
@@ -841,13 +968,22 @@ carrello**, non sulla riga.
 - **Il server non riverifica il tempo di preparazione né i quarti d'ora**
   (§46b v40), su **entrambe** le modalità: controlla che l'orario non sia
   passato e che il locale sia aperto, ma non i 15 minuti del Ritiro (§12b) né
-  i 60 della Delivery (§12), e accetta un orario in qualunque forma `HH:MM`,
-  quindi anche `12:07`. Una richiesta costruita a mano può prenotare un ritiro
+  i 60 della Delivery (§12), e **non impone la griglia dei quarti d'ora**,
+  quindi `12:07` passa. Una richiesta costruita a mano può prenotare un ritiro
   "fra un minuto". **Non è una condizione di apertura** (decisione di Andrea
   del 30/07/2026): il cliente onesto non può raggiungerlo. *Il motivo per cui
   va comunque chiuso non è il furbo di turno — è che il server è la rete sotto
   agli errori del sito: se un domani il client sbagliasse a gestire uno slot
   scaduto, oggi non ci sarebbe nulla a fermarlo.*
+
+  ⚠️ **Correzione del 30/07/2026 (lezione `ak`)**: questo punto diceva che il
+  server accetta un orario **"in qualunque forma `HH:MM`"**. È troppo largo e
+  **falso**. La validazione sta su **due** righe, non una: alla regex
+  `/^\\d{2}:\\d{2}$/` segue un controllo che rifiuta ore oltre 23 e minuti oltre
+  59, quindi `24:00` e `12:60` **non passano**. Verificato eseguendo le due
+  funzioni su tredici ingressi: zero divergenze rispetto al modulo di
+  persistenza. *Il buco registrato resta vero — `12:07` passa davvero — ma
+  nasceva da una citazione parziale della sola prima riga.*
 - **Le finestre orarie si costruiscono in due punti** (§46b v40): uno alimenta
   il guard, l'altro genera gli slot offerti al cliente. Confrontati riga per
   riga il 30/07/2026, oggi danno lo stesso risultato e l'unica differenza non
@@ -869,16 +1005,21 @@ carrello**, non sulla riga.
   **vuoto ovunque** e non c'è modo di caricare una foto dal pannello. Lavoro
   autonomo, da fare per tutti gli articoli insieme.
 
-### Condizioni di apertura (aperte)
+### Condizioni di apertura — **sei aperte, una chiusa**
 
-- **Persistenza** (§36-40): il **carrello è fatto** (punto 10); restano i
-  **dati del checkout**.
-- **Confronto prezzo mostrato vs prezzo addebitato** al checkout (§46).
+- ✅ **Persistenza** (§36-40): **CHIUSA il 30/07/2026.** Carrello (punto 10) e
+  dati del checkout (punto 10b), entrambi verificati dal vivo. *È la prima
+  condizione di apertura che si chiude.*
+- **Confronto prezzo mostrato vs prezzo addebitato** al checkout (§46). ⚠️ Non
+  è stata chiusa dal ciclo dei prezzi: quello ha unificato il **calcolo**, non
+  ha creato il **confronto**. Chi tiene la pagina aperta durante un cambio di
+  prezzo vede il vecchio e pagherebbe il nuovo.
 - **Informativa privacy**: serve il documento, poi link nel checkout (§41-45).
 - **Stripe live** (oggi sandbox).
 - **Dominio** `ordina.kebabmediterraneo.it`.
 - **Analytics** (§65).
-- **Pulizia dei residui di test** (punto 11).
+- **Pulizia dei residui di test** (punto 11) — da **rileggere** dal database,
+  mai ricopiare da qui.
 
 *Non è una condizione di apertura*: **WhatsApp**, che la spec colloca in
 **fase 1.1** (§71) e che §52-56 dichiara esplicitamente fuori dalla specifica
