@@ -1,10 +1,34 @@
 # KM DIRECT — MASTER SPECIFICATION
 
-**Versione 41** — sostituisce la v40.
+**Versione 42** — sostituisce la v41.
 
 Documento di riferimento definitivo per lo sviluppo. Le decisioni qui
 contenute sono approvate: non vanno reinterpretate senza un motivo concreto
 (vedi §73). Ogni file di codice del progetto deve rispettare queste regole.
+
+**Novità della v42** (vincolanti):
+
+1. §36-40 — **il ripristino del checkout è parziale, campo per campo, ma
+   l'indirizzo è indivisibile.** *Decisione dell'utente del 30/07/2026.* Ciò
+   che si legge si tiene; ciò che non si legge si lascia vuoto. **Indirizzo,
+   civico e coordinate però si ripristinano tutti insieme o per niente**: sono
+   una cosa sola, e ripristinarne un pezzo produrrebbe un indirizzo senza
+   coordinate — lo stato che il codice impedisce apposta (§41-45). Diverge
+   dalla regola del carrello, che butta tutto: là il costo è un carrello da
+   rifare, qui sarebbe **l'indirizzo da rifare**, che §36-40 non tratta come
+   una comodità ma come la condizione che decide se possiamo consegnare.
+2. §36-40 — **finché i dati su cui poggia una verifica non sono arrivati, non
+   si dà alcun verdetto.** *Decisione dell'utente del 30/07/2026.* Zona e
+   orario si riverificano contro dati che arrivano dalla rete (il perimetro,
+   gli slot); nell'istante in cui non ci sono ancora, rispondere significherebbe
+   dire "qui non arriviamo" e "il tuo orario è scaduto" quando la verità è che
+   **non lo sappiamo ancora**. È la regola di §46b — un guasto di lettura non è
+   un rifiuto — applicata al lato cliente. Nessun avviso, pagamento bloccato
+   com'è già prima di ogni verifica, e verdetto solo quando c'è su cosa darlo.
+
+*La v42 non aggiunge dati conservati né cambia comportamenti già costruiti:
+fissa due regole che servono a scrivere il modulo di persistenza del checkout e
+che, non scritte, sarebbero state decise per inerzia da chi scriveva il codice.*
 
 **Novità della v41** (vincolanti):
 
@@ -1829,6 +1853,55 @@ Si conservano quindi anche i dati del checkout, sotto una regola sola:
 - **Restano dati personali** (§41-45): vivono nel browser del cliente, non
   vengono trasmessi a nessuno per il solo fatto di essere conservati, e
   spariscono con la scheda insieme al carrello.
+
+**Se i dati salvati non si leggono: si tiene il leggibile, ma l'indirizzo è
+indivisibile (v42, vincolante)**
+
+Può accadere in due casi: un cambio di formato futuro, o una manomissione
+della memoria del browser. La regola:
+
+- **Campo per campo**: ciò che si legge si tiene, ciò che non si legge resta
+  vuoto. Sono caselle che il cliente ha davanti e può correggere.
+- ⚠️ **Indirizzo, civico e coordinate fanno eccezione: tutti insieme o per
+  niente.** Non sono tre campi, sono **una cosa sola**. Ripristinarne un pezzo
+  produrrebbe un indirizzo senza coordinate, che è precisamente lo stato
+  impedito apposta dal codice (§41-45: scrivere a mano azzera i dettagli). Un
+  indirizzo senza coordinate non è riverificabile contro il perimetro, quindi
+  sarebbe un dato che **non può essere controllato** e che porterebbe il
+  cliente fino al rifiuto del server.
+- **Se il formato è di una versione che non conosciamo**, si scarta tutto: non
+  si indovina il significato di una struttura che non si sa leggere.
+
+*Perché diverge dal carrello (§36-40 v36), che invece butta tutto*: là il
+costo di ributtare è **un carrello da rifare**, seccante ma di pochi tocchi.
+Qui sarebbe **l'indirizzo da rifare**, che questa stessa sezione non tratta
+come una comodità ma come la condizione che decide se possiamo consegnare.
+Regole diverse per un motivo, non per disattenzione.
+
+**Finché non si sa, non si risponde (v42, vincolante)**
+
+Zona e orario si riverificano contro dati che arrivano dalla rete: il
+perimetro di consegna (§10) e gli slot disponibili (§13, §68). Nell'istante fra
+il ripristino e l'arrivo di quei dati **non si sa nulla**, e va trattato come
+tale.
+
+- **Nessun verdetto**: non si dice "qui non arriviamo" né "il tuo orario è
+  scaduto" finché non è arrivato ciò che serve per dirlo.
+- **Nessun avviso** in quella finestra: un avviso ritirato dopo mezzo secondo
+  è peggio del silenzio.
+- **Il pagamento resta bloccato**, esattamente com'è già prima di ogni
+  verifica. Non è un blocco nuovo: è quello che c'è sempre stato, che
+  semplicemente non si scioglie prima del tempo.
+- La riverifica **parte quando i suoi dati sono arrivati**, come la
+  ricostruzione del carrello parte quando è arrivato il menu.
+
+*Motivo*: è la regola di §46b — **un guasto di lettura non è un rifiuto** —
+applicata al lato cliente. Un dato che non è ancora arrivato e un dato che dice
+"no" sono cose diverse, e confonderle è il modo più facile di respingere un
+cliente che poteva ordinare. ⚠️ Il caso non è teorico: la funzione che giudica
+uno slot risponde **"scaduto" su un elenco vuoto**, e l'elenco è vuoto anche
+mentre la risposta di rete è in viaggio. Chi collega le due cose senza questa
+regola introduce il difetto **senza accorgersene**.
 
 **I consensi non si ripristinano mai (v36, vincolante)**
 
