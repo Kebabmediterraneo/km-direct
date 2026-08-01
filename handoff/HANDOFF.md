@@ -12,27 +12,27 @@ Web app per ordini **delivery e ritiro** di **FAME Srl / KM Kebab Mediterraneo**
 (Bologna, store `san-mamolo`). Stack **Next.js 14 + Supabase + Stripe (sandbox)**.
 Repo: **github.com/Kebabmediterraneo/km-direct** (branch `main`, push via SSH).
 La fonte di verità di tutte le decisioni è **`MASTER_SPEC.md`** — versione attuale
-**v45** (leggila sempre dall'intestazione, riga 3).
+**v46** (leggila sempre dall'intestazione, riga 3).
 
 ---
 
 ## 2) Stato git
 
 - Branch **`main`**, working tree **pulita**, allineata a `origin/main`.
-- HEAD: **`f1bf533`**.
+- HEAD: **`71d0c88`**.
 - Ultimi commit (dal più recente):
 
 ```
+71d0c88 spec: v46 — forma dell'estrazione della route, sentinella importata e mai ricreata con il danno reale nei due punti, rinunce motivate e confine oltre cui serve una decisione §46 §46b
+4feb96d checkout-timing: guard degli orari estratto con i tre rami intatti, guasto di lettura come READ_ERROR tradotto dalla route e primo test su un ramo di guasto reale §46b
+a0114a7 checkout-resolve: resolver degli articoli estratti in un modulo che possiede supabaseAdmin, READ_ERROR condiviso per identita' e asimmetria store preservata §46 §46b
+2ff7225 checkout: la scelta del messaggio di rifiuto slot passa al modulo dei calendari, 409 confezionato dalla route e comportamento invariato §46b
+0f981e7 checkout: la route delega le validazioni di forma al modulo estratto, comportamento invariato e fotografia identica sui 20 casi §46
+5a41b5f checkout-validation: validazioni di forma estratte dalla route come modulo puro, messaggi verificati identici e comportamenti registrati bloccati dai test §46
+7b60721 handoff: registra la fotografia del comportamento della route, 18 uscite su 25 con le sette scoperte dichiarate, e le lezioni su prove che non raggiungono il bersaglio e spazio di contesto
 f1bf533 snapshot: fotografia del comportamento della route di pagamento, 20 casi su slot programmati e base di confronto per il riordino §46
 48dd2dd handoff: aggiorna a v45 — primo tempo di §46 con modulo verificato e non agganciato, ricognizione della route e quattro tappe, lezioni su sonde costruite sull'attesa e approvazione indiretta
 b186fd8 spec: v45 — contratto del modulo di confronto, tre esiti e nessun importo in uscita, righe risolte e elenchi coerenti a carico del chiamante §46 §46b
-0e3495a price-guard: confronto fra prezzo mostrato e reale con tre esiti e nessun importo in uscita, conversione in centesimi condivisa con menu-pricing §46 §46b
-5cb87c5 spec: v44 — confronto prezzo mostrato/addebitato deciso, prezzo dal browser solo per il confronto, richiesta senza prezzo rifiutata, ambito ai soli prezzi §46 §46b
-850c603 handoff: aggiorna a v43 — §46 scelto come prossimo lavoro, Fase 3 collocata fra i lavori pre-apertura, lezioni su guard che confronta numeri e zone da dichiarare con la sezione
-d254612 spec: v43 — frasi di stato allineate al codice §36-40 §63-64 §66, orario citato per intero §46b, conteggi fuori dalla spec §65 §22 §67
-16b9c34 handoff: aggiorna a v42 — persistenza del checkout chiusa e verificata, due strade non provate dichiarate, lezioni su citazioni parziali e guardia non trasferibile
-8561504 checkout: i dati compilati sopravvivono al pagamento, zona verificata al rientro e condizione per pagare §36-40 §41-45
-04343e7 checkout: modulo di persistenza, prepara e ricostruisce con indirizzo indivisibile §36-40
 ```
 
 *Nota ricorrente, non un errore*: l'HEAD scritto qui è sempre quello
@@ -382,6 +382,42 @@ au. **Lo spazio di contesto è una risorsa da controllare PRIMA di aprire un
    compaiono le modifiche a file che si era detto di non toccare. *Chiudere a
    punto pulito e ripartire costa nulla quando spec e handoff sono aggiornati:
    è precisamente ciò per cui esistono.*
+av. ⚠️ **Sei sonde sbagliate in una sola sessione, tutte della stessa
+   famiglia.** Il 01/08/2026: `\<`/`\>` non supportati dall'awk di macOS (zero
+   risultati per **tutte** le variabili, comprese quelle certamente usate);
+   `grep … | head -20 || echo "nessuna"` — l'exit code del pipe è quello di
+   `head`, sempre 0, quindi il ramo di allarme **non può scattare** e "vuoto"
+   significa *non lo so*; `grep -A3` su JSON caduto sul ramo "verifica
+   manuale"; un apostrofo che ha chiuso la stringa della shell; `grep
+   "supabase"` che ha classificato come dipendente dal database un file la cui
+   unica occorrenza era **un commento che dichiara il contrario**;
+   `^const NOME = ` che ha contato sei costanti invece di sette, perché una ha
+   il valore sulla riga dopo.
+   **Rimedio, in tre regole**: la sonda si costruisce sulla forma **vera** del
+   file, che si legge prima; un guard che non può fallire non sta controllando
+   (lezione `w`); e un risultato vuoto va distinto da un filtro che non ha
+   funzionato — se conta, si ricontrolla con un metodo diverso.
+aw. ⚠️ **La v46 è stata pubblicata con una descrizione FALSA della sua regola
+   più pericolosa.** Il punto sulla sentinella affermava che una copia locale
+   avrebbe degradato il guasto in *"articolo non disponibile"* con 400. Falso:
+   un `Symbol` è **veritiero**, quindi `if (!resolved)` non scatta, la
+   sentinella estranea prosegue **come riga valida**, il prezzo diventa `NaN`,
+   e **scavalca ordine minimo e controllo dei 18 anni** prima di schiantarsi
+   sull'insert — dopo che la riga cliente è già scritta. Nel guard degli orari
+   la conseguenza è ancora diversa: solleva. *Il danno vero era peggiore di
+   quello descritto, e non uniforme fra i due punti.*
+   La frase **suonava giusta**, era coerente col resto del blocco ed era stata
+   scritta da chi il codice l'aveva appena spostato: **nessuna rilettura
+   l'avrebbe smentita**. L'ha smentita l'esecuzione, richiesta apposta prima
+   del commit. **Rimedio: le affermazioni della spec su cosa succede se una
+   regola viene violata si verificano eseguendole, non rileggendole** —
+   soprattutto quando la spec stessa le definisce le più pericolose.
+ax. **Le impronte proteggono il trasporto, non il senso.** La v46 sbagliata era
+   già copiata nel repo con tutte e tre le misure combacianti: erano giuste,
+   perché il file era arrivato integro — era il **contenuto** a essere
+   sbagliato. Nessun guard automatico poteva accorgersene, dato che gli attesi
+   li calcola chi ha scritto il file. *Il controllo del contenuto resta un
+   lavoro di lettura, e va fatto prima del commit: dopo, è cronaca.*
 
 ---
 
@@ -1008,36 +1044,45 @@ giusto**, non lasciato a metà: riprendere da qui è sicuro anche fra settimane.
 31/07/2026 su `app/api/checkout/route.js`, **691 righe**, un solo export
 (`POST`, riga 330):
 
-| riga | cosa c'è |
+⚠️ **Questa ricognizione è SUPERATA dalla tappa 2 (§11d).** Descriveva la route
+com'era a 691 righe, prima dell'estrazione: **ogni numero di riga è cambiato**.
+La mappa valida è quella di §11d, scritta per fasi proprio perché i numeri
+invecchiano da soli. *Il testo resta qui come cronaca del punto di partenza,
+non come riferimento.*
+
+| riga (ALLORA) | cosa c'era |
 |---|---|
 | 332-342 | destrutturazione del corpo della richiesta — **nessun campo di prezzo** |
 | 344 | rifiuto se `items` non è un array o è vuoto |
-| 188, 288 | gli **unici due** punti che calcolano un prezzo di riga (`menu-pricing`) |
+| 188, 288 | gli **unici due** punti che calcolavano un prezzo di riga (`menu-pricing`) |
 | 488-490 | `resolvedItems` e il ciclo `for (const item of items)` |
 | 490-543 | la regione del ricalcolo: forma del `ref`, lettura, 500 vs 400, totale di riga |
-| 545 | si chiude il `subtotal` |
+| 545 | si chiudeva il `subtotal` |
 | 631 | `payment_status: "pending"` nel payload |
-| **638** | **l'ordine viene scritto in database** |
+| **638** | **l'ordine veniva scritto in database** |
 | 645 | insert delle righe `order_items` |
 | 656 | `stripe.checkout.sessions.create` |
 
-⚠️ **Il confronto deve cadere prima di riga 631** (§46 v44, punto 7): dopo quel
-punto un rifiuto lascerebbe comunque un ordine `pending`, cioè un residuo in
-più per ogni cliente respinto. Il posto naturale è **dentro o subito dopo il
-ciclo 490-543**, dove il prezzo reale di ogni riga esiste già — quasi cento
-righe prima del confine.
+⚠️ **Il confronto deve cadere prima che l'ordine `pending` venga scritto**
+(§46 v44, punto 7): dopo quel punto un rifiuto lascerebbe comunque un ordine,
+cioè un residuo in più per ogni cliente respinto. Il posto naturale è **dentro
+o subito dopo il ciclo degli articoli**, dove il prezzo reale di ogni riga
+esiste già. *Righe attuali in §11d.*
 
 Dentro ogni `item` arrivano oggi **due soli campi**: `quantity` e `ref`.
 Nessun prezzo. Il campo nuovo dovrà entrare in **due** posti: la
-destrutturazione a 332-342 e il ciclo.
+destrutturazione del corpo e il ciclo.
 
-**f. Come si eseguono i test** — **nove** suite, tutte in `tests/` e con
-estensione **`.mjs`** (non `.js`), perché vanno eseguite da Node fuori da Next.
-In `package.json` **non esiste uno script `test`**: si lanciano uno per uno con
-`node tests/<nome>.test.mjs`, oppure tutti con
+**f. Come si eseguono i test** — **dodici** suite (erano nove), tutte in
+`tests/` e con estensione **`.mjs`** (non `.js`), perché vanno eseguite da Node
+fuori da Next. In `package.json` **non esiste uno script `test`**: si lanciano
+uno per uno con `node tests/<nome>.test.mjs`, oppure tutti con
 `for t in tests/*.test.mjs; do echo "== $t"; node "$t" || echo "FALLITO: $t"; done`.
+⚠️ `tests/checkout-timing.test.mjs` **costa ~7 secondi** — provoca un guasto di
+lettura reale puntando il client a una porta chiusa, e il client Supabase
+impiega quel tempo ad arrendersi. Non è un blocco.
 
-## 11c) La fotografia del comportamento della route (31/07/2026)
+## 11c) La fotografia del comportamento della route (01/08/2026)
 
 **a. A cosa serve** — la route di pagamento va riordinata (tappa 2 di §46), e
 un riordino **non deve cambiare nulla**. Ma quel file non è raggiungibile dai
@@ -1116,12 +1161,106 @@ Cambiarlo sarebbe una decisione nuova, da mettere prima in spec.
 **f. Lo scatto crea ordini di prova** — il caso 690 arriva fino in fondo:
 crea un `pending` e una sessione Stripe. È voluto e autorizzato (§11): con
 Stripe in sandbox non esistono ordini veri, e la pulizia pre-apertura è già una
-condizione di §46. Due scatti la notte del 31/07 = due ordini in più.
+condizione di §46. *Il conteggio degli scatti e degli ordini che ne derivano
+sta in §11d.g, in un punto solo: erano due al momento in cui questa sezione è
+stata scritta, e sono cresciuti con il riordino.*
 
 ⚠️ **Se lo stato del servizio differisce fra i due scatti**, il confronto lo
 dichiara **in testa**, prima delle differenze: a locale aperto il caso 473
 risponde 200 invece di 409, e senza quell'avviso lo si attribuirebbe al
 riordino.
+
+## 11d) Il riordino della route — §46 tappa 2, chiusa (01/08/2026)
+
+**a. Cosa è successo** — `app/api/checkout/route.js` è passata da **691 a 332
+righe** (−52%) in cinque commit, tutti fra le 05:34 e le 06:45 del 01/08/2026:
+
+| commit | cosa | route dopo |
+|---|---|---|
+| `5a41b5f` | `lib/checkout-validation.js` (156 righe) + 73 asserzioni, **non agganciato** | 691 |
+| `0f981e7` | la route lo usa | 651 |
+| `2ff7225` | `scheduledRejectionMessage` in `lib/schedule-exceptions.js` | 645 |
+| `a0114a7` | `lib/checkout-resolve.js` (301) — i resolver degli articoli | 389 |
+| `4feb96d` | `lib/checkout-timing.js` (121) — il guard degli orari | 332 |
+
+⚠️ **Il comportamento non è mai cambiato**, e non è un'opinione: la fotografia
+(§11c) è stata riscattata **quattro volte**, sempre con **zero differenze** sui
+20 casi. Le decisioni di forma che ne sono uscite stanno in **spec §46, blocco
+"Forma dell'estrazione"** (v46) — non qui: qui c'è lo stato.
+
+Suite: **9 → 12**, asserzioni **345 → 449**.
+
+**b. La mappa della route, per fasi** — *scritta per fasi e non per numeri di
+riga, perché i numeri invecchiano da soli: quelli di §11b.e sono diventati
+falsi in tre ore. I pochi numeri qui sotto vanno riverificati prima dell'uso.*
+
+| # | fase | dove vive ora |
+|---|---|---|
+| 1 | lettura del corpo (`request.json`, **non protetto**) | route |
+| 2 | validazioni di forma — 8 uscite 400 | `checkout-validation` |
+| 3 | store attivo e geofence | `get-active-store`, `get-store-geofence` |
+| 4 | guard degli orari — 2×500, 3×409 | `checkout-timing` |
+| 5 | ciclo articoli: forma del `ref`, risoluzione, prezzo di riga | route + `checkout-resolve` |
+| 6 | minimo Delivery e 18 anni — 2 uscite 400 | `checkout-validation` |
+| 7 | cliente (upsert), sconto, totali, payload | route |
+| 8 | **scrittura dell'ordine**, righe, Stripe, aggiornamento sessione | route |
+
+Nella route restano tre funzioni: `round2`, `insertOrderWithPickupCode`, `POST`.
+
+⚠️ **Il confronto dei prezzi (tappa 3) va agganciato nella fase 5**, dove il
+prezzo reale di ogni riga esiste già e si è ancora **prima** della scrittura
+dell'ordine (fase 8) — che è il vincolo di §46 v44 punto 7.
+
+**c. Contare le uscite senza spaventarsi** — le risposte HTTP possibili sono
+**25** e non sono cambiate; i `return NextResponse.json` **scritti nella route**
+sono **15**, perché dieci uscite sono accorpate in quattro punti di delega. La
+spiegazione completa è in spec §46, punto 7 del blocco. ⚠️ **Tre uscite hanno
+ora uno status dinamico**: leggendo la sola route non si sa che codice
+rispondono, bisogna aprire il modulo.
+
+**d. Cosa NON è stato toccato, di proposito** — i tre casi noti restano
+identici e sono **decisioni rinviate, non dimenticanze**: l'uscita non censita
+di `getActiveStore` (un 404 o un 500 confezionati dentro quel modulo, fuori
+dalle 25 e fuori dalla fotografia), il `request.json()` **non protetto** (un
+corpo non-JSON non produce nessuna delle 25 uscite), e l'update della sessione
+Stripe **senza controllo d'errore** (se fallisce, il cliente riceve comunque il
+200). Cambiarli è modificare il comportamento: prima la decisione in spec.
+
+**e. Cosa la tappa 2 ha guadagnato in copertura** — una delle sette uscite
+scoperte non lo è più: `tests/checkout-timing.test.mjs` esercita un **guasto di
+lettura reale** puntando il client Supabase a una porta chiusa, e verifica che
+il modulo risponda con la sentinella importata. *È la prima volta che uno dei
+rami di guasto passa sotto un test automatico, e la strada esiste anche per gli
+altri.*
+
+⚠️ **Un ramo resta scoperto e va saputo**: il **rifiuto** della Delivery
+programmata. Tutti i casi Delivery della fotografia usano uno slot valido e
+attraversano quel ramo senza fermarsi, quindi nessuno lo fa rifiutare. Il
+gemello del Ritiro — stessa funzione, cambia solo il flag della chiusura
+inclusa — è invece provato due volte.
+
+**f. Perché ci si è fermati qui** — ciò che resta è la **sequenza delle
+scritture**: cliente, sconto, totali, ordine, righe, Stripe. *Non è un grumo, è
+un filo*: ogni passo produce il valore che serve al successivo. Spezzarlo non è
+riordino, è decidere dove passa il confine di ciò che, fallendo a metà, lascia
+dati incoerenti — e per metodo quella decisione va **prima in spec** (§46,
+punto 8 del blocco v46).
+
+**g. Costo** — **quattro** scatti della fotografia, tutti la mattina del
+01/08/2026 fra le 05:42 e le 06:43 = **quattro ordini `pending` di prova** in
+più, con le relative sessioni Stripe sandbox: **uno dopo ciascuno dei quattro
+commit che hanno toccato la route** (`0f981e7`, `2ff7225`, `a0114a7`,
+`4feb96d`). *Nessuno scatto dopo `5a41b5f`, che costruiva solo il modulo e il
+suo test: la route era intatta e non c'era nulla da confrontare.* La base di
+confronto `tests/snapshot-prima.json` viene dalla sessione precedente, ed è
+quella che §11c contava a parte.
+*Contati dai log dei quattro server avviati — 20 POST ciascuno, di cui una sola
+200 — non a memoria: la prima stesura di questa riga diceva "tre" e
+contraddiceva il punto (a) trenta righe sopra; la seconda aveva il numero
+giusto ma lo scomponeva in tre passi invece di quattro, cioè offriva a chi
+volesse ricontrollarlo una strada che porta al numero sbagliato.*
+Vanno nel conto della pulizia pre-apertura, che si rilegge dal database e non
+si ricopia da qui.
 
 ## 12) To-do / prossimi passi (in ordine)
 
@@ -1175,29 +1314,29 @@ configurare, e possono camminare in parallelo. *Fino alla v42 questa riga
 diceva "le prime due sono lavoro di codice", in contraddizione con la frase
 successiva: era sbagliata.*
 
-**Il lavoro è in quattro tappe. La prima è fatta.**
+**Il lavoro è in cinque tappe. Le prime tre sono fatte.**
 
 1. ✅ **Il modulo che decide** — `lib/price-guard.js`, costruito e verificato
    il 31/07/2026 (§11b). Non agganciato a nulla.
 1b. ✅ **La rete di sicurezza** — la fotografia del comportamento della route,
    20 casi, 18 uscite su 25, verificata con tutti i casi coincidenti (§11c).
    `tests/snapshot-prima.json` è la base di confronto.
-2. ⬜ **Il riordino della route** — `app/api/checkout/route.js` è lunga 691
-   righe e **nessun test la può raggiungere**, perché non è importabile fuori
-   da Next. Va spezzata estraendo la logica in `lib/` e lasciando la route
-   sottile sopra, **senza cambiarne il comportamento**. È la tappa lunga, ed è
-   il residuo registrato dalla v38 (vedi "Residui minori aperti").
-   ⚠️ **Non si interrompe a metà**: un file spezzato per tre quarti è peggio di
-   uno intero. Va affrontata con spazio di contesto sufficiente — la sessione
-   del 31/07 si è fermata qui, a punto pulito, proprio per questo.
-   **Alla fine: riscattare la fotografia e confrontarla con
-   `tests/snapshot-prima.json`. Zero differenze, o non è finita.**
+2. ✅ **Il riordino della route** — fatto il 01/08/2026 in cinque commit
+   (§11d): da **691 a 332 righe**, fotografia riscattata quattro volte con zero
+   differenze. Le regole di forma che ne sono uscite sono in **spec §46 v46**.
+   ⚠️ *L'estrazione si è fermata alla logica; la sequenza delle scritture resta
+   nella route e non si spezza senza prima decidere dove passa il confine
+   dell'incoerenza (§11d.f).*
 3. ⬜ **L'aggancio** — campo del prezzo mostrato nella destrutturazione del
-   corpo (righe 332-342), chiamata al guard dentro o subito dopo il ciclo
-   490-543, i due esiti `409` e `400` con i testi di §46 punti 4 e 6. Insieme
+   corpo, chiamata al guard **nella fase 5** della mappa di §11d.b (dove il
+   prezzo reale esiste già e si è ancora prima della scrittura dell'ordine), i
+   due esiti `409` e `400` con i testi di §46 punti 4 e 6. Insieme
    agli altri due lavori registrati che vivono nello stesso file: tempo di
    preparazione e quarti d'ora, e l'unificazione delle due costruzioni delle
    finestre orarie.
+   ⚠️ **Alla fine: riscattare la fotografia.** Questa volta le differenze
+   attese **non sono zero** — il comportamento cambia di proposito — quindi
+   vanno previste *prima* e confrontate una per una con quanto previsto.
 4. ⬜ **Il lato sito e la prova dal vivo** — il sito manda il prezzo mostrato
    e, al `409`, riporta il cliente al carrello **senza svuotarlo**, con prezzi
    e totale aggiornati. Poi Andrea prova: carrello pieno, prezzo cambiato da
@@ -1259,11 +1398,12 @@ carrello**, non sulla riga.
   (`app/page.js`, `protein.id === "planted"`). Ultimo caso rimasto del tipo
   curato in v37 e v38 sull'extra carne; meno rischioso perché riguarda un testo
   informativo.
-- **Rendere verificabile il calcolo dentro la route di pagamento** estraendolo
-  in `lib/` (§46 v38). Lavoro a sé: non si tocca il percorso del pagamento
-  insieme ad altro. ⚠️ **Da fare insieme al punto seguente**, perché vivono
-  nello stesso file e vale la stessa regola. *Dal 31/07/2026 è la **tappa 2**
-  di §46 (vedi il to-do): la route è di 691 righe e nessun test la raggiunge.*
+- ✅ **FATTO il 01/08/2026** — *Rendere verificabile il calcolo dentro la route
+  di pagamento* estraendolo in `lib/` (§46 v38). Eseguito in cinque commit
+  (§11d): da 691 a 332 righe, comportamento verificato identico. Le regole di
+  forma sono in **spec §46 v46**. ⚠️ *L'estrazione si è fermata alla logica:
+  la sequenza delle scritture resta nella route e proseguire richiede prima una
+  decisione in spec (§11d.f).*
 - **Il server non riverifica il tempo di preparazione né i quarti d'ora**
   (§46b v40), su **entrambe** le modalità: controlla che l'orario non sia
   passato e che il locale sia aperto, ma non i 15 minuti del Ritiro (§12b) né
