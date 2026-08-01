@@ -1,10 +1,48 @@
 # KM DIRECT — MASTER SPECIFICATION
 
-**Versione 45** — sostituisce la v44.
+**Versione 46** — sostituisce la v45.
 
 Documento di riferimento definitivo per lo sviluppo. Le decisioni qui
 contenute sono approvate: non vanno reinterpretate senza un motivo concreto
 (vedi §73). Ogni file di codice del progetto deve rispettare queste regole.
+
+**Novità della v46** (vincolanti):
+
+1. §46 — **il lavoro 1 registrato dalla v38 è chiuso**: la route di pagamento è
+   passata da 691 a 332 righe e ciò che decide se un ordine è accettabile vive
+   ora in moduli raggiungibili da un test. Resta dentro la sequenza delle
+   scritture, e la spec dice perché non si spezza oltre.
+2. §46 — **fissata la forma dell'estrazione**: moduli puri per ciò che calcola,
+   moduli che possiedono `supabaseAdmin` per ciò che legge, e la **route che
+   confeziona sempre la risposta HTTP**. Nessun modulo restituisce
+   `NextResponse`.
+3. §46b — ⚠️ **la sentinella dei guasti di lettura si importa e non si ricrea
+   mai.** È un `Symbol`, e due `Symbol()` distinti non sono mai uguali: una
+   copia locale renderebbe il confronto **sempre falso**. La conseguenza è
+   stata **verificata eseguendola** e non è quella che si immaginerebbe: nei
+   resolver la sentinella estranea prosegue **come una riga valida** — è un
+   valore veritiero — corrompe gli importi in `NaN` e **scavalca l'ordine
+   minimo e il controllo dei 18 anni** prima di schiantarsi sull'inserimento;
+   nel guard degli orari solleva invece un'eccezione non gestita. È la regola
+   più pericolosa da violare di tutta la sezione, e **il danno non è uniforme
+   fra i due punti di confronto**.
+4. §46b — **il testo del guasto di sistema appartiene alla route**, non ai
+   moduli: sette uscite lo usano e solo alcune sono estratte. I moduli
+   restituiscono la sentinella, la route possiede la parola.
+5. §46 — **registrate due rinunce motivate**: `round2` e `needsRemovalCheck`
+   restano nella route, con le ragioni, perché una rinuncia non spiegata viene
+   "completata" da qualcuno mesi dopo.
+6. §46 — **l'asimmetria fra i due resolver è preservata di proposito**:
+   `resolveCombo` filtra per store, `resolveProduct` no. Sanarla è una
+   decisione, non una pulizia (è il lavoro 2 registrato dalla v38).
+7. §46 — **oltre questo punto l'estrazione richiede prima una decisione**: dove
+   taglia il confine di ciò che, fallendo a metà, lascia dati incoerenti. Oggi
+   quel confine non è scritto da nessuna parte, quindi il lavoro non si apre.
+
+*La v46 non cambia nulla di ciò che il cliente vede né di ciò che il server
+addebita: il comportamento è stato verificato identico su 20 casi dopo ognuno
+dei cinque passi. Mette per iscritto le decisioni prese mentre si costruiva,
+che vivevano nei soli commenti del codice — la stessa ragione della v45.*
 
 **Novità della v45** (vincolanti):
 
@@ -2336,18 +2374,154 @@ da un altro punto del programma**.
    rifiutato prima; la regola vale comunque, perché è il genere di porta che si
    apre da sola quando qualcuno riusa il modulo altrove.
 
+**Forma dell'estrazione della route di pagamento (v46, vincolante)**
+
+Il lavoro 1 qui sotto è stato eseguito il 01/08/2026 in cinque passi
+(`5a41b5f`, `0f981e7`, `2ff7225`, `a0114a7`, `4feb96d`): la route è passata da
+**691 a 332 righe**. Quello che segue non è la cronaca — quella sta
+nell'`HANDOFF.md` — ma le regole che il prossimo lavoro su quel file deve
+rispettare.
+
+**1. Tre categorie, tre trattamenti.**
+
+| cosa | dove vive | forma |
+|---|---|---|
+| calcola, non legge nulla | modulo **puro** in `lib/` | testabile da `node`, nessuna dipendenza |
+| legge o scrive sul database | modulo in `lib/` che **possiede** `supabaseAdmin` | come `lib/menu-editor.js` e `lib/menu-allergens.js` |
+| confeziona la risposta HTTP | **solo la route** | nessun modulo restituisce `NextResponse` |
+
+La terza riga è la più importante e non ammette eccezioni: un modulo che
+restituisse `NextResponse` non sarebbe verificabile fuori da Next, che è
+esattamente il difetto per cui questo lavoro è nato. I moduli restituiscono
+`{ ok, status, body }` oppure una sentinella; la route traduce.
+
+**2. ⚠️ La sentinella dei guasti di lettura si importa, mai si ricrea.**
+
+`READ_ERROR` distingue il **guasto nostro** (500) dalla **riga rifiutata**
+(400). Vive in `lib/checkout-resolve.js` ed è importata da chi la confronta —
+oggi la route e `lib/checkout-timing.js`. *Quel legame è semanticamente storto:
+il guard degli orari non ha nulla a che vedere con la risoluzione degli
+articoli. Con due consumatori aggiungere un file per una costante sarebbe
+peggio del difetto; **al terzo, la casa giusta diventa un modulo di vocabolario
+condiviso**.*
+
+È un `Symbol`, e questo la rende una trappola particolare: due
+`Symbol("read-error")` distinti **non sono mai uguali**. Chi la riscrivesse
+invece di importarla otterrebbe un confronto **sempre falso** — e quel che
+segue è stato **verificato eseguendolo**, non dedotto, perché la conseguenza
+non è quella che verrebbe da immaginare e **non è la stessa nei due punti**:
+
+- **Nei resolver** il ramo successivo è `if (!resolved)`. Un `Symbol` è
+  **veritiero**, quindi quel ramo **non scatta**: la sentinella estranea
+  prosegue **come se fosse una riga valida**. Il prezzo diventa `NaN`, che
+  attraversa il totale e **scavalca in silenzio sia l'ordine minimo sia il
+  controllo dei 18 anni** (il confronto con `NaN` è sempre falso, e la
+  categoria non è leggibile). L'ordine si schianta solo all'inserimento, contro
+  il vincolo `not null` su `subtotal` e `total` — **dopo** che la riga cliente è
+  già stata scritta.
+- **Nel guard degli orari** il ramo successivo è `if (!timing.ok)`. Un `Symbol`
+  non ha `.ok`, quindi il ramo **scatta** e chiama `NextResponse.json` con
+  valori indefiniti, che **solleva**: eccezione non gestita, 500 generico di
+  Next al posto del nostro messaggio.
+
+*Nessuno dei due produce un rifiuto pulito.* Il primo corrompe gli importi e
+salta due controlli prima di fermarsi; il secondo si rompe rumorosamente in un
+punto che non c'entra con la causa. **Nessun test dei resolver esercita quel
+percorso**, e nemmeno la fotografia: i suoi 20 casi non provocano mai un guasto
+di lettura. Il guard degli orari fa eccezione — `tests/checkout-timing.test.mjs`
+esercita un guasto **reale** e asserisce l'identità con il `Symbol` importato,
+quindi lì una copia locale farebbe fallire un test.
+
+⚠️ **Corollario: la sentinella deve restare veritiera.** È ciò che impedisce a
+`if (!resolved)` di inghiottirla. Chi un domani la "semplificasse" in `null`,
+`false` o una stringa vuota farebbe crollare l'intera distinzione fra guasto
+nostro e riga rifiutata, senza toccare una sola riga dei confronti.
+
+*Fino alla v46 questo punto affermava che il guasto sarebbe degradato in
+"articolo non disponibile" con `400`. **Era falso**, e nel modo peggiore: dava
+per pulita una conseguenza che invece corrompe gli importi. Chi l'avesse letto
+avrebbe cercato il sintomo sbagliato.*
+
+**3. Il testo del guasto di sistema appartiene alla route.**
+
+`SYSTEM_ERROR_MESSAGE` (§46b, scelta della v19) è usato da **sette** uscite,
+solo alcune delle quali sono state estratte. Farlo possedere a un modulo lo
+metterebbe nel posto sbagliato; copiarlo sarebbe la trappola del punto 2 in
+forma di stringa — peggiore, perché due copie **funzionano** finché qualcuno
+non ne cambia una sola, e allora lo stesso guasto produce due messaggi diversi.
+Il modulo dice "guasto di lettura", la route possiede la parola.
+
+**4. Due rinunce registrate, con la ragione.**
+
+- **`round2` resta nella route.** Non va in `lib/menu-pricing.js`: la regola 5
+  della v37 dice che quel modulo calcola il prezzo di **una riga** e la
+  quantità resta fuori, mentre i tre usi di `round2` sono aritmetica
+  **d'ordine** (riga × quantità, subtotale, totale). Metterlo lì allargherebbe
+  di nascosto l'ambito di un modulo verificato, e affiancherebbe due
+  arrotondamenti diversi — centesimi interi contro virgola mobile — rendendo
+  "quale uso?" una domanda viva a ogni chiamata. Un modulo nuovo che contenesse
+  solo lui sarebbe battezzato per un lavoro che non fa, perché il resto
+  dell'aritmetica dei totali resta nella route. *Si sposterà insieme a loro, se
+  e quando.*
+  ⚠️ Nota verificata eseguendola: `round2(1.005)` restituisce **1**, non 1,01,
+  perché `1.005 * 100` vale `100.49999999999999`. Oggi è irraggiungibile — i
+  prezzi unitari nascono già arrotondati in centesimi — ma va saputo prima di
+  usarla altrove.
+- **`needsRemovalCheck` resta col suo unico chiamante.** Separarla da
+  `resolveRemovals` avrebbe lasciato quattro righe in un file e la funzione che
+  le consuma in un altro. *Non tutto ciò che è puro va estratto.*
+
+**5. L'asimmetria fra i due resolver è deliberata.**
+
+`resolveCombo(ref, storeId)` filtra per store su tre tabelle; `resolveProduct(ref)`
+**non riceve lo store** e legge `products` per solo `id` e disponibilità. Non è
+una svista da sanare per simmetria: è il lavoro 2 registrato qui sotto, e
+renderlo simmetrico è una **decisione da prendere prima in spec**, quando i
+locali saranno due.
+
+**6. ⚠️ Tre uscite hanno ora uno status dinamico.**
+
+Dove la route delega a un modulo, il codice di risposta arriva dal modulo e non
+è più scritto nella route. **Leggendo la sola route non si può più sapere che
+codice risponde** in quei tre punti: bisogna aprire il modulo. È il prezzo
+accettato dell'estrazione, e va saputo da chi conta le uscite — vedi il punto 7.
+
+**7. Come contare le uscite senza sbagliare.**
+
+Le risposte HTTP possibili sono **25** e non sono cambiate. I
+`return NextResponse.json` **scritti nella route** sono **15**, perché dieci
+uscite sono state accorpate in quattro punti di delega (le otto validazioni di
+forma in uno, i due guasti di lettura degli orari in uno, i due rifiuti slot più
+l'ASAP in uno, minimo Delivery più i 18 anni in uno).
+
+*Chi rifacesse il conteggio con la sonda di prima otterrebbe 15 dove il
+documento dice 25, senza che nulla sia rotto.* Le due misure vanno dichiarate
+insieme, o il numero da solo fa sospettare una regressione.
+
+**8. Oltre questo punto serve prima una decisione.**
+
+Ciò che resta nella route è la **sequenza delle scritture** — cliente, sconto,
+totali, ordine, righe, Stripe, aggiornamento della sessione. Non è un grumo, è
+un filo: ogni passo produce il valore che serve al successivo. Spezzarlo non è
+riordino, è decidere **dove passa il confine di ciò che, fallendo a metà,
+lascia dati incoerenti** — e quel confine oggi non è scritto da nessuna parte.
+Finché non lo è, il lavoro non si apre.
+
 **Lavori decisi e non fatti (v38, registrati)**
 
-1. **Il calcolo dentro la route di pagamento non è verificabile da un test.**
-   `app/api/checkout/route.js` non è importabile fuori da Next, quindi
-   l'instradamento — che la route chiami davvero il modulo — è provato solo da
-   un campione di richieste HTTP, non da un test ripetibile. La strada già
-   scelta altrove dal progetto (§63-64) è **estrarre la logica in `lib/`
-   lasciando la route sottile sopra**: è l'unico modo di rendere quella prova
-   automatica, e non lascia ordini di prova a ogni verifica. *Rinviato
-   deliberatamente*: rimaneggiare il percorso di pagamento insieme
+1. ✅ **FATTO il 01/08/2026** — *Il calcolo dentro la route di pagamento non
+   era verificabile da un test.* `app/api/checkout/route.js` non è importabile
+   fuori da Next, quindi l'instradamento — che la route chiami davvero il
+   modulo — era provato solo da un campione di richieste HTTP, non da un test
+   ripetibile. La strada già scelta altrove dal progetto (§63-64) era
+   **estrarre la logica in `lib/` lasciando la route sottile sopra**. *Rinviato
+   deliberatamente all'epoca*: rimaneggiare il percorso di pagamento insieme
    all'unificazione dei prezzi avrebbe significato cambiare due cose insieme
    nel punto in cui si incassa il denaro.
+   **Eseguito in cinque passi, da 691 a 332 righe, con il comportamento
+   verificato identico su 20 casi dopo ognuno.** Le regole che ne sono uscite
+   sono nel blocco "Forma dell'estrazione" qui sopra; ciò che resta dentro e
+   perché non si spezza oltre, al punto 8 dello stesso blocco.
 2. **Il sito non filtra per store.** Nessuna lettura del menu lato cliente
    conosce uno `store_id`: l'intero menu poggia sul fatto che il locale è uno
    solo. Il server filtra comunque per store al checkout, quindi il vincolo
