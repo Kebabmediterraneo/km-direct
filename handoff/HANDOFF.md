@@ -19,10 +19,12 @@ La fonte di verità di tutte le decisioni è **`MASTER_SPEC.md`** — versione a
 ## 2) Stato git
 
 - Branch **`main`**, working tree **pulita**, allineata a `origin/main`.
-- HEAD: **`b186fd8`**.
+- HEAD: **`f1bf533`**.
 - Ultimi commit (dal più recente):
 
 ```
+f1bf533 snapshot: fotografia del comportamento della route di pagamento, 20 casi su slot programmati e base di confronto per il riordino §46
+48dd2dd handoff: aggiorna a v45 — primo tempo di §46 con modulo verificato e non agganciato, ricognizione della route e quattro tappe, lezioni su sonde costruite sull'attesa e approvazione indiretta
 b186fd8 spec: v45 — contratto del modulo di confronto, tre esiti e nessun importo in uscita, righe risolte e elenchi coerenti a carico del chiamante §46 §46b
 0e3495a price-guard: confronto fra prezzo mostrato e reale con tre esiti e nessun importo in uscita, conversione in centesimi condivisa con menu-pricing §46 §46b
 5cb87c5 spec: v44 — confronto prezzo mostrato/addebitato deciso, prezzo dal browser solo per il confronto, richiesta senza prezzo rifiutata, ambito ai soli prezzi §46 §46b
@@ -31,8 +33,6 @@ d254612 spec: v43 — frasi di stato allineate al codice §36-40 §63-64 §66, o
 16b9c34 handoff: aggiorna a v42 — persistenza del checkout chiusa e verificata, due strade non provate dichiarate, lezioni su citazioni parziali e guardia non trasferibile
 8561504 checkout: i dati compilati sopravvivono al pagamento, zona verificata al rientro e condizione per pagare §36-40 §41-45
 04343e7 checkout: modulo di persistenza, prepara e ricostruisce con indirizzo indivisibile §36-40
-e71a497 spec: v42 — ripristino parziale con indirizzo indivisibile e nessun verdetto prima dei dati §36-40
-36218f7 ritiro: validità e primo slot dal modulo condiviso, come la Delivery §12b §46b
 ```
 
 *Nota ricorrente, non un errore*: l'HEAD scritto qui è sempre quello
@@ -361,6 +361,27 @@ ar. **Se si approva su prova indiretta, va scritto su cosa poggiava il sì.** Il
    scelta ragionevole — i 13 casi erano stati scritti prima di vedere il codice
    — ma la differenza fra "l'ho letto" e "ho letto le prove che lo riguardano"
    non va lasciata implicita, perché fra sei mesi nessuno la ricostruisce.
+as. ⚠️ **Una prova che non raggiunge il punto che crede di provare è peggio di
+   una prova assente.** Il caso costruito per l'uscita 369 mandava la
+   latitudine come stringa numerica; la route non guarda il tipo, applica
+   `Number()`, e `Number("44.48")` è finito, quindi passava oltre e cadeva
+   sull'ordine minimo. La fotografia dichiarava coperta un'uscita che non
+   toccava mai. *Un buco dichiarato si può colmare; uno che sembra colmato no.*
+   **Rimedio: ogni caso deve dichiarare l'esito atteso, e uno scatto vale solo
+   se ogni caso ci arriva davvero** — è così che il difetto è emerso.
+at. **La rete ha smentito un'affermazione, non del codice.** Il difetto di `as`
+   stava in una frase scritta nella tabella delle "forme minime", non in un
+   file: "basta mandare la latitudine come stringa" *suona* giusto e nessuna
+   rilettura l'avrebbe smentita. Solo l'esecuzione l'ha fatto. *È la forma più
+   pura della lezione `ak`: ciò che si può eseguire non si ricorda.*
+au. **Lo spazio di contesto è una risorsa da controllare PRIMA di aprire un
+   lavoro lungo, non quando finisce.** Il 31/07 il riordino della route è stato
+   rinviato a sessione nuova con la finestra al 51%: non per stanchezza, ma
+   perché quella tappa non si può interrompere a metà, e perché una finestra
+   che si riempie inizia a perdere i vincoli dati all'inizio — è lì che
+   compaiono le modifiche a file che si era detto di non toccare. *Chiudere a
+   punto pulito e ripartire costa nulla quando spec e handoff sono aggiornati:
+   è precisamente ciò per cui esistono.*
 
 ---
 
@@ -1016,6 +1037,92 @@ In `package.json` **non esiste uno script `test`**: si lanciano uno per uno con
 `node tests/<nome>.test.mjs`, oppure tutti con
 `for t in tests/*.test.mjs; do echo "== $t"; node "$t" || echo "FALLITO: $t"; done`.
 
+## 11c) La fotografia del comportamento della route (31/07/2026)
+
+**a. A cosa serve** — la route di pagamento va riordinata (tappa 2 di §46), e
+un riordino **non deve cambiare nulla**. Ma quel file non è raggiungibile dai
+test, che è il motivo stesso per cui lo si riordina: mancava un modo di
+dimostrare che dopo sia rimasto identico. La fotografia è quel modo — si scatta
+prima, si riordina, si riscatta, e le due devono coincidere.
+
+Commit `f1bf533`: `tests/route-snapshot-cases.mjs` (338 righe),
+`tests/route-snapshot.mjs` (301), `tests/snapshot-prima.json` (446).
+
+```
+node tests/route-snapshot.mjs --scatta <uscita.json>       # server acceso
+node tests/route-snapshot.mjs --confronta <prima> <dopo>   # esce ≠0 se differisce
+```
+
+**b. Le uscite della route, contate leggendo** — `app/api/checkout/route.js`,
+**691 righe**, **25 uscite** (`return NextResponse.json`, `new Response` non è
+mai usato):
+
+| status | quante | note |
+|---|---|---|
+| 400 | 15 | forma della richiesta o riga non accettabile |
+| 500 | 7 | `SYSTEM_ERROR_MESSAGE`, la scelta della v19 |
+| 409 | 2 | riga 93 (`scheduledRejection`) e 473 (ASAP non più possibile) |
+| 200 | 1 | riga 690 |
+
+⚠️ **Una sola uscita può produrre due messaggi**: la riga 93 sceglie con un
+ternario fra "orario non più disponibile" e "in quell'orario siamo chiusi".
+Contando le uscite si ottiene 25; contando gli **esiti che il cliente vede**,
+sono **17 messaggi distinti**.
+
+**c. Copertura reale: 18 uscite su 25, con 20 casi.** Le **sette scoperte**
+sono tutte quelle che richiedono di rompere o sporcare qualcosa: 427, 447, 585,
+649 (guasti Supabase), 682 (Stripe), e le vie non provocabili di 518 e 641.
+*Sono dichiarate nei commenti dei due file: dopo il riordino restano verificate
+solo dalla lettura del codice, e va detto invece di lasciar credere che la rete
+copra tutto.*
+
+⚠️ **Un buco dentro la copertura**: le uscite **495, 498 e 501** rispondono con
+lo **stesso identico messaggio** ("Articolo non valido."). Se il riordino le
+scambiasse fra loro, la fotografia tornerebbe identica senza accorgersene. Sono
+distinguibili solo dal payload inviato, non dall'esito (lezione `ad`).
+
+**d. Perché i casi usano slot programmati** — il controllo degli orari
+(righe 419-482) sta **prima** del ciclo sugli articoli: a locale chiuso e senza
+uno slot valido, nessuna uscita da 495 in poi è raggiungibile, e la fotografia
+sarebbe piena di risposte tutte uguali. Ma §12 prevede che a semaforo giallo o
+rosso il sito accetti comunque **preordini programmati**: usando uno slot
+programmato la fotografia è scattabile **a qualunque ora**. Il primo scatto è
+avvenuto a `phase: red` — locale chiuso, preordini aperti — e ha funzionato.
+
+⚠️ **Lo slot non è scritto fisso nei casi**: un "13:00" domani sarebbe già
+passato. Viene calcolato allo scatto da `/api/service-status` e registrato nella
+fotografia. E sono **due**, non uno: Ritiro e Delivery hanno tempi di
+preparazione diversi (§12b: 15 minuti; §12: 60), quindi il primo slot utile
+differisce — con uno solo, metà dei casi sarebbe caduta sul guard degli orari
+invece che dove previsto. Il caso della birra (556) è in **Ritiro**: in Delivery
+sarebbe caduto prima sull'ordine minimo, e quel 400 sarebbe stato scambiato per
+la prova che il controllo dei 18 anni funziona.
+
+**e. Cosa la rete ha già trovato, prima ancora di servire** — il caso costruito
+per l'uscita 369 non la raggiungeva. Era stato scritto mandando la latitudine
+come **stringa numerica**, ma la route non guarda il tipo: applica `Number()`,
+e `Number("44.4855346")` è finito, quindi passa. La richiesta proseguiva fino
+all'ordine minimo. *Un'uscita che si credeva coperta e non lo era: il buco
+peggiore, perché sembra colmato.* Corretto con un valore non convertibile.
+
+⚠️ **Comportamento non documentato, scoperto e NON corretto**: latitudine
+`null`, `""` o `[]` diventa **0** con `Number()`, cioè una coordinata valida in
+mezzo all'Atlantico. La richiesta supera il controllo di riga 369 e cade sul
+perimetro (406, "fuori zona"). Il messaggio al cliente resta sensato, quindi
+non è un guasto — ma nessuno l'aveva deciso. È registrato dal caso
+`riga-406-coordinate-vuote`, **da lasciare identico** attraverso il riordino.
+Cambiarlo sarebbe una decisione nuova, da mettere prima in spec.
+
+**f. Lo scatto crea ordini di prova** — il caso 690 arriva fino in fondo:
+crea un `pending` e una sessione Stripe. È voluto e autorizzato (§11): con
+Stripe in sandbox non esistono ordini veri, e la pulizia pre-apertura è già una
+condizione di §46. Due scatti la notte del 31/07 = due ordini in più.
+
+⚠️ **Se lo stato del servizio differisce fra i due scatti**, il confronto lo
+dichiara **in testa**, prima delle differenze: a locale aperto il caso 473
+risponde 200 invece di 409, e senza quell'avviso lo si attribuirebbe al
+riordino.
+
 ## 12) To-do / prossimi passi (in ordine)
 
 ### FATTA — Persistenza dei dati del checkout (§36-40, §41-45)
@@ -1072,11 +1179,19 @@ successiva: era sbagliata.*
 
 1. ✅ **Il modulo che decide** — `lib/price-guard.js`, costruito e verificato
    il 31/07/2026 (§11b). Non agganciato a nulla.
+1b. ✅ **La rete di sicurezza** — la fotografia del comportamento della route,
+   20 casi, 18 uscite su 25, verificata con tutti i casi coincidenti (§11c).
+   `tests/snapshot-prima.json` è la base di confronto.
 2. ⬜ **Il riordino della route** — `app/api/checkout/route.js` è lunga 691
    righe e **nessun test la può raggiungere**, perché non è importabile fuori
    da Next. Va spezzata estraendo la logica in `lib/` e lasciando la route
    sottile sopra, **senza cambiarne il comportamento**. È la tappa lunga, ed è
    il residuo registrato dalla v38 (vedi "Residui minori aperti").
+   ⚠️ **Non si interrompe a metà**: un file spezzato per tre quarti è peggio di
+   uno intero. Va affrontata con spazio di contesto sufficiente — la sessione
+   del 31/07 si è fermata qui, a punto pulito, proprio per questo.
+   **Alla fine: riscattare la fotografia e confrontarla con
+   `tests/snapshot-prima.json`. Zero differenze, o non è finita.**
 3. ⬜ **L'aggancio** — campo del prezzo mostrato nella destrutturazione del
    corpo (righe 332-342), chiamata al guard dentro o subito dopo il ciclo
    490-543, i due esiti `409` e `400` con i testi di §46 punti 4 e 6. Insieme
