@@ -12,27 +12,27 @@ Web app per ordini **delivery e ritiro** di **FAME Srl / KM Kebab Mediterraneo**
 (Bologna, store `san-mamolo`). Stack **Next.js 14 + Supabase + Stripe (sandbox)**.
 Repo: **github.com/Kebabmediterraneo/km-direct** (branch `main`, push via SSH).
 La fonte di verità di tutte le decisioni è **`MASTER_SPEC.md`** — versione attuale
-**v46** (leggila sempre dall'intestazione, riga 3).
+**v50** (leggila sempre dall'intestazione, riga 3).
 
 ---
 
 ## 2) Stato git
 
 - Branch **`main`**, working tree **pulita**, allineata a `origin/main`.
-- HEAD: **`71d0c88`**.
+- HEAD: **`fe4bcc2`**.
 - Ultimi commit (dal più recente):
 
 ```
+fe4bcc2 spec: v50 — conteggio delle uscite aggiornato a 27 e 17, e aritmetica dello scarto corretta con il raggruppamento vero dei rami 409 §46
+98d8f0a spec: v49 — la riga non piu' ordinabile resta nel carrello e blocca il pagamento, e testo per la rilettura del menu fallita §46 §46b
+d5876e7 spec: v48 — al 409 il sito rilegge il listino prima di riportare al carrello, e nessuna evidenziazione della differenza di prezzo §46
+05c6bc9 checkout: confronto fra prezzo mostrato e reale agganciato prima di ogni scrittura, e casi della fotografia estesi ai tre esiti del guard §46 §46b
+c08b30b spec: v47 — fissato il testo del 400 per prezzo mostrato assente e corretta la promessa scaduta sul tempo di preparazione §46 §46b
+9ebc503 handoff: aggiorna a v46 — tappa 2 chiusa con la mappa della route per fasi, quattro ordini di prova contati dai log, e lezioni su sonde che tacciono e impronte che non proteggono il senso
 71d0c88 spec: v46 — forma dell'estrazione della route, sentinella importata e mai ricreata con il danno reale nei due punti, rinunce motivate e confine oltre cui serve una decisione §46 §46b
 4feb96d checkout-timing: guard degli orari estratto con i tre rami intatti, guasto di lettura come READ_ERROR tradotto dalla route e primo test su un ramo di guasto reale §46b
 a0114a7 checkout-resolve: resolver degli articoli estratti in un modulo che possiede supabaseAdmin, READ_ERROR condiviso per identita' e asimmetria store preservata §46 §46b
 2ff7225 checkout: la scelta del messaggio di rifiuto slot passa al modulo dei calendari, 409 confezionato dalla route e comportamento invariato §46b
-0f981e7 checkout: la route delega le validazioni di forma al modulo estratto, comportamento invariato e fotografia identica sui 20 casi §46
-5a41b5f checkout-validation: validazioni di forma estratte dalla route come modulo puro, messaggi verificati identici e comportamenti registrati bloccati dai test §46
-7b60721 handoff: registra la fotografia del comportamento della route, 18 uscite su 25 con le sette scoperte dichiarate, e le lezioni su prove che non raggiungono il bersaglio e spazio di contesto
-f1bf533 snapshot: fotografia del comportamento della route di pagamento, 20 casi su slot programmati e base di confronto per il riordino §46
-48dd2dd handoff: aggiorna a v45 — primo tempo di §46 con modulo verificato e non agganciato, ricognizione della route e quattro tappe, lezioni su sonde costruite sull'attesa e approvazione indiretta
-b186fd8 spec: v45 — contratto del modulo di confronto, tre esiti e nessun importo in uscita, righe risolte e elenchi coerenti a carico del chiamante §46 §46b
 ```
 
 *Nota ricorrente, non un errore*: l'HEAD scritto qui è sempre quello
@@ -418,6 +418,28 @@ ax. **Le impronte proteggono il trasporto, non il senso.** La v46 sbagliata era
    sbagliato. Nessun guard automatico poteva accorgersene, dato che gli attesi
    li calcola chi ha scritto il file. *Il controllo del contenuto resta un
    lavoro di lettura, e va fatto prima del commit: dopo, è cronaca.*
+ay. ⚠️ **Quando la spec DESCRIVE com'è fatto il codice, i fatti si verificano
+   prima di scrivere, non dopo.** Il 01/08 il punto 7 di §46 ha richiesto **tre
+   stesure**: la prima sbagliava il numero di uscite di un gruppo, la seconda
+   azzeccava il numero e affermava che un `409` fosse "scritto separatamente"
+   nella route, dove non c'è. Entrambe suonavano giuste ed erano coerenti col
+   resto del blocco. *La distinzione che serve: **le regole si decidono, le
+   descrizioni si controllano**. Una regola nasce da una scelta e la spec è la
+   sua fonte; una descrizione del codice ha una fonte esterna — il codice — e
+   va confrontata con quella prima di essere pubblicata.*
+   **Rimedio operativo**: prima di scrivere un blocco che descrive il codice,
+   farsi dare i fatti da Code; e includere nella nota storica **come si
+   falsifica** l'errore corretto — nel caso del `409`, un `grep` su
+   `status: 409` nella route. *Un errore descritto insieme al modo di smentirlo
+   non torna una terza volta.*
+az. **I conteggi si eseguono, non si `grep`ano.** Stesso giorno: `grep -c 'id: '`
+   sul catalogo dei casi dava **28** contando anche `storeId:` e gli uuid delle
+   fixture; `grep -n 'status: [a-zA-Z]'` dava **4** status dinamici contando un
+   campo dell'ordine (`delivery_status: isDelivery ? …`) come una risposta HTTP.
+   I numeri veri — **23** casi e **3** status — si ottengono **eseguendo** il
+   catalogo (`CASI.length`) e **leggendo** le righe trovate una per una.
+   *Un conteggio testuale su codice conta stringhe, non cose: se il numero
+   finisce in un documento, va preso da un'esecuzione o da una lettura.*
 
 ---
 
@@ -1084,6 +1106,18 @@ impiega quel tempo ad arrendersi. Non è un blocco.
 
 ## 11c) La fotografia del comportamento della route (01/08/2026)
 
+⚠️ **I numeri di riga di questa sezione sono SUPERATI**, come quelli di §11b.e:
+descrivono la route a 691 righe, prima del riordino della tappa 2 e prima
+dell'aggancio del confronto prezzi. *I **fatti** restano validi e importanti —
+le uscite scoperte, il buco dei tre messaggi identici, il caso delle coordinate
+vuote da lasciare identico — i **numeri di riga** no.* La mappa valida è §11d.b,
+scritta per fasi proprio perché i numeri invecchiano da soli.
+
+⚠️ **Anche il criterio di lettura è cambiato dopo l'aggancio**: "zero
+differenze" non è più un esito possibile. Le regole correnti vivono **in testa a
+`tests/route-snapshot.mjs`**, dove chi lo esegue le trova senza dover aprire
+questo documento — vedi §11e.
+
 **a. A cosa serve** — la route di pagamento va riordinata (tappa 2 di §46), e
 un riordino **non deve cambiare nulla**. Ma quel file non è raggiungibile dai
 test, che è il motivo stesso per cui lo si riordina: mancava un modo di
@@ -1211,12 +1245,15 @@ Nella route restano tre funzioni: `round2`, `insertOrderWithPickupCode`, `POST`.
 prezzo reale di ogni riga esiste già e si è ancora **prima** della scrittura
 dell'ordine (fase 8) — che è il vincolo di §46 v44 punto 7.
 
-**c. Contare le uscite senza spaventarsi** — le risposte HTTP possibili sono
-**25** e non sono cambiate; i `return NextResponse.json` **scritti nella route**
-sono **15**, perché dieci uscite sono accorpate in quattro punti di delega. La
-spiegazione completa è in spec §46, punto 7 del blocco. ⚠️ **Tre uscite hanno
-ora uno status dinamico**: leggendo la sola route non si sa che codice
-rispondono, bisogna aprire il modulo.
+**c. Contare le uscite senza spaventarsi** — ci sono **due misure diverse** e
+vanno sempre dichiarate insieme, o un numero da solo fa sospettare una
+regressione: le **risposte HTTP possibili** e i **`return NextResponse.json`
+scritti nella route**, che non coincidono perché le uscite delegate ai moduli
+si accorpano in un punto solo. ⚠️ **Tre uscite hanno uno status dinamico**:
+leggendo la sola route non si sa che codice rispondono, bisogna aprire il
+modulo. *I numeri correnti e l'aritmetica che li lega stanno in **spec §46,
+punto 7**, in un punto solo: qui non si ripetono, perché cambiano a ogni lavoro
+sul file — questa riga li ha già portati sbagliati una volta.*
 
 **d. Cosa NON è stato toccato, di proposito** — i tre casi noti restano
 identici e sono **decisioni rinviate, non dimenticanze**: l'uscita non censita
@@ -1261,6 +1298,80 @@ giusto ma lo scomponeva in tre passi invece di quattro, cioè offriva a chi
 volesse ricontrollarlo una strada che porta al numero sbagliato.*
 Vanno nel conto della pulizia pre-apertura, che si rilegge dal database e non
 si ricopia da qui.
+
+## 11e) Il confronto dei prezzi agganciato al server — §46 tappa 3, passo 1 (01/08/2026)
+
+**a. Cosa è stato fatto** — commit `05c6bc9`. La route riceve, per ogni riga
+del carrello, il prezzo unitario che il cliente ha davanti, e lo confronta con
+quello ricalcolato dai dati vivi. Se differiscono si ferma; se il campo non
+arriva, rifiuta la richiesta.
+
+Route: **332 → 415 righe**. Import del guard a riga 40, raccolta del campo
+dentro il ciclo degli articoli, confronto subito dopo, le due uscite nuove poco
+sotto. *Numeri di riga verificati il 01/08 — da riverificare prima dell'uso.*
+
+⚠️ **Il confronto scatta prima di QUALUNQUE scrittura**, non solo prima
+dell'ordine: sta prima anche della riga cliente. §46 v44 punto 7 chiede solo
+"prima dell'ordine `pending`", ma anche la riga cliente è un residuo (§65) e
+fermarsi prima non costa nulla. *Verificato: lo scatto in cui tutti i casi
+cadevano sul guard non ha creato né ordini né clienti.*
+
+**b. Il campo si chiama `items[].unitPriceShown`** — dentro la riga, accanto a
+`ref` e `quantity`, non in un elenco parallelo a livello di corpo: un elenco a
+parte identificherebbe i prezzi **per posizione**, con due liste da tenere
+allineate. *Questo diverge dal preventivo di §11b.e, che diceva "due posti": con
+il campo dentro la riga il posto è **uno**, il ciclo.*
+
+⚠️ **Il prezzo ricevuto non entra mai nel calcolo dell'addebito**, e non per
+disciplina: `lib/price-guard.js` restituisce un verdetto e mai un importo, per
+costruzione (§46 v45).
+
+**c. Sito e server usano lo STESSO calcolo** — verificato leggendo tutte e
+cinque le strade che creano una riga di carrello: chiamano `productLinePrice` /
+`comboLinePrice`, gli stessi che usa il server. *Se le due formule fossero
+diverse, il confronto fallirebbe sempre e avremmo costruito una trappola invece
+di un controllo.* Un `409` significa quindi "il listino si è mosso", mai "le due
+formule non coincidono": il sito calcola su un menu letto **una volta sola**
+all'apertura della pagina, il server sui dati vivi.
+
+**d. Come si legge il confronto adesso** — ⚠️ **"zero differenze" non è più un
+esito possibile**, ed è voluto: il catalogo è passato da 20 a **23 casi**, e i
+tre nuovi (`guard-prezzo-salito`, `guard-prezzo-sceso`, `guard-prezzo-assente`)
+non esistono in `snapshot-prima.json`, quindi ogni confronto futuro mostrerà per
+sempre tre righe di "presenza".
+
+**La base NON si rigenera** (lezione `af`): una fotografia rifatta dopo il
+cambiamento coincide sempre e non dimostra più nulla. Le regole correnti stanno
+**in testa a `tests/route-snapshot.mjs`**, dove chi lo esegue le trova: tre
+righe di presenza attese e permanenti, ogni altra differenza da spiegare prima
+di accettarla, e il confronto da leggere insieme all'avviso sullo stato del
+servizio. *Tre righe sono previste; la quarta è una domanda.*
+
+**e. La previsione va scritta PRIMA dello scatto** — è il metodo che ha
+funzionato qui e che vale per ogni cambiamento voluto: si dichiara caso per
+caso cosa deve cambiare, poi si scatta, poi si confronta la realtà **con la
+previsione** e non con la fotografia vecchia. *Guardare le differenze e
+convincersi a posteriori che tornano è troppo facile.*
+
+⚠️ **Una lezione dal primo scatto**: la previsione diceva "3 differenze,
+nessun'altra", ma un quarto caso era stato dichiarato **condizionato allo stato
+del servizio** senza scriverne l'esito — e il semaforo era cambiato. Il
+meccanismo era previsto, **il numero no**. Un numero dichiarato è un impegno: se
+una condizione può spostarlo, va sciolta prima, non annotata a margine.
+
+**f. Copertura: 20 uscite su 27.** Le sette scoperte sono le stesse di sempre.
+Per la prima volta il **`409` è provato attraverso la route vera** e non solo
+sul modulo: senza i due casi nuovi, la regola che dà il nome a tutta la tappa
+non sarebbe esercitata da nulla.
+
+**g. Costo** — due scatti in questa fase: il primo **zero ordini** (tutti i casi
+cadevano sul guard), il secondo **un ordine**, da `riga-690`. *Contati dai log,
+non a memoria.*
+
+⚠️ **h. Il sito e il server sono FUORI PASSO, ed è temporaneo.** `app/page.js`
+non manda ancora `unitPriceShown`: un ordine composto dal browser riceverebbe
+il `400` "Si è verificato un problema". È committato ma **non distribuito**, e
+si chiude con la tappa 4. *Fino ad allora non si prova un ordine dal browser.*
 
 ## 12) To-do / prossimi passi (in ordine)
 
@@ -1314,33 +1425,46 @@ configurare, e possono camminare in parallelo. *Fino alla v42 questa riga
 diceva "le prime due sono lavoro di codice", in contraddizione con la frase
 successiva: era sbagliata.*
 
-**Il lavoro è in cinque tappe. Le prime tre sono fatte.**
+**Il lavoro è in cinque tappe. Le prime tre sono fatte, la terza a metà.**
 
 1. ✅ **Il modulo che decide** — `lib/price-guard.js`, costruito e verificato
    il 31/07/2026 (§11b). Non agganciato a nulla.
-1b. ✅ **La rete di sicurezza** — la fotografia del comportamento della route,
-   20 casi, 18 uscite su 25, verificata con tutti i casi coincidenti (§11c).
-   `tests/snapshot-prima.json` è la base di confronto.
+1b. ✅ **La rete di sicurezza** — la fotografia del comportamento della route
+   (§11c). `tests/snapshot-prima.json` è la base di confronto, e **non si
+   rigenera**.
 2. ✅ **Il riordino della route** — fatto il 01/08/2026 in cinque commit
    (§11d): da **691 a 332 righe**, fotografia riscattata quattro volte con zero
    differenze. Le regole di forma che ne sono uscite sono in **spec §46 v46**.
    ⚠️ *L'estrazione si è fermata alla logica; la sequenza delle scritture resta
    nella route e non si spezza senza prima decidere dove passa il confine
    dell'incoerenza (§11d.f).*
-3. ⬜ **L'aggancio** — campo del prezzo mostrato nella destrutturazione del
-   corpo, chiamata al guard **nella fase 5** della mappa di §11d.b (dove il
-   prezzo reale esiste già e si è ancora prima della scrittura dell'ordine), i
-   due esiti `409` e `400` con i testi di §46 punti 4 e 6. Insieme
-   agli altri due lavori registrati che vivono nello stesso file: tempo di
-   preparazione e quarti d'ora, e l'unificazione delle due costruzioni delle
-   finestre orarie.
-   ⚠️ **Alla fine: riscattare la fotografia.** Questa volta le differenze
-   attese **non sono zero** — il comportamento cambia di proposito — quindi
-   vanno previste *prima* e confrontate una per una con quanto previsto.
-4. ⬜ **Il lato sito e la prova dal vivo** — il sito manda il prezzo mostrato
-   e, al `409`, riporta il cliente al carrello **senza svuotarlo**, con prezzi
-   e totale aggiornati. Poi Andrea prova: carrello pieno, prezzo cambiato da
-   un'altra finestra, e deve comparire l'avviso.
+3a. ✅ **L'aggancio al server** — fatto il 01/08/2026, commit `05c6bc9`
+   (§11e): il campo `items[].unitPriceShown`, il confronto prima di qualunque
+   scrittura, le due uscite nuove, e tre casi nuovi nella fotografia che per la
+   prima volta provano il `409`.
+3b. ⬜ **Gli altri due lavori registrati nello stesso file** — riverifica del
+   tempo di preparazione e della **griglia dei quarti d'ora** (§46b v40, che
+   dalla v47 si chiude **qui**), e unificazione delle **due costruzioni delle
+   finestre orarie**. *Vivono nel percorso di pagamento e vale la regola di
+   sempre: non si riapre quel file per una cosa sola.*
+4. ⬜ **Il lato sito e la prova dal vivo** — **completamente specificato in spec
+   §46 punto 8 (v48 e v49)**, e più intricato di quanto sembrasse: il sito manda
+   `unitPriceShown`; al `409` **rilegge il listino** e ricalcola i prezzi (senza
+   rilettura il messaggio è un vicolo cieco, perché i prezzi del carrello sono
+   congelati); **nessuna evidenziazione** della differenza; una riga non più
+   ordinabile **resta nel carrello** bloccando il pagamento invece di sparire; e
+   un messaggio se la rilettura fallisce. Poi Andrea prova: carrello pieno,
+   prezzo cambiato da un'altra finestra, e deve comparire l'avviso.
+   ⚠️ **Fino ad allora sito e server sono fuori passo** (§11e.h): un ordine dal
+   browser riceverebbe il `400`. Non provare dal browser prima.
+
+⚠️ **L'aggiornamento dei documenti è parte della tappa, non un lavoro a parte**
+(regola di Andrea, 01/08/2026): una tappa non è chiusa finché spec e handoff non
+sono aggiornati, e l'ordine è **prima la spec, poi l'handoff**, perché la spec
+tiene le decisioni e l'handoff le cita. *Il costo di rimandare cresce più che
+proporzionalmente: cinque commit di ritardo non costano cinque volte uno, perché
+lo stato va ricostruito a memoria invece che raccontato mentre è fresco — è da
+lì che sono usciti gli errori sui numeri del 01/08.*
 
 *Non si rimaneggia il percorso del pagamento insieme ad altro: se si apre, si
 apre per tutti e quattro i lavori registrati.*
