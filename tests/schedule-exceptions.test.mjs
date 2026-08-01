@@ -19,6 +19,7 @@ import {
   closedShiftKeys,
   computeReconciliation,
   classifyScheduledSlot,
+  scheduledRejectionMessage,
   nextOpenSlot,
   computeExceptionEffects,
 } from "../lib/schedule-exceptions.js";
@@ -525,6 +526,37 @@ for (let dow = 0; dow <= 6; dow++) {
     computeScheduledDeliveryAt("today", "14:30") instanceof Date,
     "gc4c) giorno+orario validi → Date (non 400)"
   );
+}
+
+// gd) §46b — la frase che traduce il verdetto di classifyScheduledSlot, estratta
+// dalla route (tappa 2 di §46). Era il solo pezzo puro di `scheduledRejection`:
+// il 409 lo confeziona ancora la route. I due testi sono scritti qui a mano,
+// per intero, così che una riscrittura del modulo faccia fallire questo file
+// invece di cambiare in silenzio ciò che il cliente legge.
+{
+  const PAST = "L'orario che hai scelto non è più disponibile. Scegline un altro tra quelli proposti.";
+  const CLOSED = "In quell'orario siamo chiusi. Scegli un altro orario tra quelli proposti.";
+
+  assert(scheduledRejectionMessage("past") === PAST, "gd1) verdetto 'past' → orario non più disponibile");
+  assert(scheduledRejectionMessage("closed") === CLOSED, "gd2) verdetto 'closed' → in quell'orario siamo chiusi");
+
+  // ⚠️ Comportamento REGISTRATO, non da migliorare: il ternario riconosce solo
+  // "past", quindi ogni altro valore — compresi "ok" e un verdetto futuro non
+  // previsto — riceve la frase della chiusura. Nel percorso reale "ok" non
+  // arriva mai qui, perché la route chiama la funzione solo quando il verdetto
+  // è diverso da "ok"; questi due casi bloccano la forma così com'è.
+  assert(scheduledRejectionMessage("ok") === CLOSED, "gd3) 'ok' → frase della chiusura (solo 'past' è riconosciuto)");
+  assert(scheduledRejectionMessage(undefined) === CLOSED, "gd4) verdetto assente → frase della chiusura");
+
+  // I due testi sono e devono restare diversi: sono due uscite 409 distinte
+  // (§46b) e la fotografia li distingue solo dal messaggio.
+  assert(PAST !== CLOSED, "gd5) le due frasi §46b restano distinte");
+
+  // Il confronto è esatto: "Past" con la maiuscola non è "past".
+  assert(scheduledRejectionMessage("Past") === CLOSED, "gd6) confronto esatto, nessuna normalizzazione");
+
+  // Restituisce una stringa, mai una risposta HTTP: il 409 resta alla route.
+  assert(typeof scheduledRejectionMessage("past") === "string", "gd7) restituisce una stringa, non un NextResponse");
 }
 
 console.log(failures === 0 ? "\nTUTTI I TEST PASSATI" : `\n${failures} TEST FALLITI`);

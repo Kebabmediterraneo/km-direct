@@ -11,6 +11,7 @@ import {
   todayRomeDate,
   computeExceptionEffects,
   classifyScheduledSlot,
+  scheduledRejectionMessage,
 } from "../../../lib/schedule-exceptions";
 import {
   validateCheckoutRequest,
@@ -83,17 +84,6 @@ async function resolveRemovals(productId, requested) {
   const verdict = validateRemovals((data ?? []).map((row) => row.label), requested);
   if (!verdict.ok) return null;
   return { removals: verdict.removals };
-}
-
-// §46b: rifiuto 409 di uno slot programmato (Delivery o Ritiro) in base al
-// verdetto di classifyScheduledSlot. Stringhe §46b: "past" → orario non più
-// disponibile; "closed" → fuori apertura o turno chiuso.
-function scheduledRejection(verdict) {
-  const error =
-    verdict === "past"
-      ? "L'orario che hai scelto non è più disponibile. Scegline un altro tra quelli proposti."
-      : "In quell'orario siamo chiusi. Scegli un altro orario tra quelli proposti.";
-  return NextResponse.json({ error }, { status: 409 });
 }
 
 // §46: ricalcola il prezzo di un prodotto (Roll/Bowl/Fritti/Sides/Dolci/
@@ -424,12 +414,16 @@ export async function POST(request) {
       // futuro — con chiusura INCLUSA (un ritiro all'orario di chiusura è
       // valido, §12b). Stesse stringhe §46b della Delivery programmata.
       const verdict = classifyScheduledSlot(scheduledDeliveryAt, now, windows, exceptions, true);
-      if (verdict !== "ok") return scheduledRejection(verdict);
+      if (verdict !== "ok") {
+        return NextResponse.json({ error: scheduledRejectionMessage(verdict) }, { status: 409 });
+      }
     } else if (delivery?.timingType === "scheduled") {
       // §46b/§68: lo slot programmato deve cadere in una finestra base reale non
       // chiusa da eccezione, e nel futuro (chiusura esclusa, come §12).
       const verdict = classifyScheduledSlot(scheduledDeliveryAt, now, windows, exceptions);
-      if (verdict !== "ok") return scheduledRejection(verdict);
+      if (verdict !== "ok") {
+        return NextResponse.json({ error: scheduledRejectionMessage(verdict) }, { status: 409 });
+      }
     } else {
       // §46b: ASAP disponibile solo se il turno corrente è aperto (verde) e non
       // chiuso da un'eccezione — esattamente asapAvailable di §68.4.
