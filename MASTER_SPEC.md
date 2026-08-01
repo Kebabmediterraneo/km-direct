@@ -1,10 +1,33 @@
 # KM DIRECT — MASTER SPECIFICATION
 
-**Versione 48** — sostituisce la v47.
+**Versione 49** — sostituisce la v48.
 
 Documento di riferimento definitivo per lo sviluppo. Le decisioni qui
 contenute sono approvate: non vanno reinterpretate senza un motivo concreto
 (vedi §73). Ogni file di codice del progetto deve rispettare queste regole.
+
+**Novità della v49** (vincolanti):
+
+1. §46 punto 8 — ⚠️ **una riga non più ordinabile NON si toglie dal carrello**
+   (decisione di Andrea, 01/08/2026). La rilettura del menu al `409` può
+   scoprire un articolo sparito, esaurito, o con un'opzione che non esiste più:
+   la riga **resta**, segnata come non disponibile, e **blocca il pagamento**
+   finché il cliente non interviene. *Emerso leggendo il codice: lo strumento
+   che ricalcola i prezzi è lo stesso che ripristina il carrello dopo una
+   chiusura del browser, e quello **toglie** le righe non ordinabili — al `409`
+   sarebbe il rifiuto secco davanti al pagamento che §36-40 vieta.*
+2. §46 punto 8 — **la riga bloccata deve essere visibile dentro il carrello**:
+   l'avviso delle rimozioni è oggi nascosto mentre il checkout è aperto, e non
+   basterebbe comunque, perché con questa decisione non ci sono rimozioni da
+   spiegare.
+3. §46 punto 8 e §46b — **deciso cosa succede se la rilettura del menu
+   fallisce**: `Non riusciamo ad aggiornare il menu. Ricarica la pagina.`
+   Senza questa riga il cliente resterebbe col messaggio del listino e i prezzi
+   vecchi, cioè nel vicolo cieco che la v48 esiste per chiudere.
+
+*La v49 non tocca il codice: chiude i due buchi che la ricognizione del lato
+sito ha trovato nel punto 8, prima che venga costruito. Il confronto è
+agganciato al server dal 01/08 (`05c6bc9`), il lato sito non è ancora fatto.*
 
 **Novità della v48** (vincolanti):
 
@@ -2387,6 +2410,34 @@ sbagliarsi in silenzio.
    differenza passa inosservata, la decisione va rifatta — non aggirata
    aggiungendo l'evidenziazione di passaggio.
 
+   ⚠️ **Se una riga non è più ordinabile, NON si toglie dal carrello**
+   (decisione di Andrea, 01/08/2026, vincolante). La rilettura del menu può
+   scoprire che un articolo è **sparito**, è diventato **esaurito**, o che una
+   sua opzione non esiste più. In quel caso la riga **resta dov'è**, segnata
+   come non disponibile, e **il pagamento è bloccato** finché il cliente non la
+   toglie o la modifica.
+
+   *Perché non si toglie*: è la stessa scelta già fatta per l'indirizzo fuori
+   zona (§36-40 v41) — non si cancella, si mostra e si blocca — e per la stessa
+   ragione. Questa sezione stabilisce che se qualcosa non regge più lo si dice
+   in chiaro **al rientro e non alla pressione di "Paga ora"**; il `409` accade
+   precisamente alla pressione di "Paga ora", quindi togliere una riga in quel
+   momento sarebbe il rifiuto secco che la regola vieta. **Il cliente decide
+   cosa fare del proprio carrello, sempre.**
+
+   ⚠️ **Conseguenza sull'avviso delle rimozioni**: l'avviso che spiega le righe
+   tolte è oggi nascosto mentre il checkout è aperto, perché nasceva per il
+   solo rientro. Con questa decisione al `409` non ci sono righe tolte da
+   spiegare — ma la riga bloccata **deve essere visibile e comprensibile**
+   dentro il carrello, non silenziosa.
+
+   ⚠️ **Se la rilettura del menu fallisce** (rete assente, database che non
+   risponde), il cliente non deve restare col messaggio del listino e i prezzi
+   vecchi, che è il vicolo cieco descritto sopra. Si mostra: `Non riusciamo ad
+   aggiornare il menu. Ricarica la pagina.` (decisione di Andrea, 01/08/2026).
+   *È un guasto nostro e il messaggio lo dice senza accusare il cliente, come
+   il `400` di §46 punto 6.*
+
 **Ambito: solo i prezzi delle righe di carrello (decisione di Andrea,
 31/07/2026)**
 
@@ -2670,6 +2721,10 @@ non prescritte):
   un problema. Ricarica la pagina e riprova.` — §46 punto 6 (v47). *È un `400`
   di forma, non un rifiuto del cliente: ci si arriva solo se il sito si è rotto
   o se la richiesta è costruita a mano.*
+- Rilettura del menu fallita dopo un `409` sui prezzi: `Non riusciamo ad
+  aggiornare il menu. Ricarica la pagina.` — §46 punto 8 (v49). *Non è un
+  messaggio del server: nasce nel sito, che non è riuscito a rileggere il menu
+  per mostrare i prezzi nuovi.*
 
 **Stato di implementazione (v40, verificato)**
 
