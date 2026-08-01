@@ -11,9 +11,13 @@
 // riordino non ha cambiato ciò che il cliente vede. Come la fixture dei 609
 // prezzi, vale perché è scattata prima e non si rigenera (lezione `af`).
 //
-// ┌─ COPRE 18 uscite su 25, più un comportamento non documentato ─────────────
+// ┌─ COPRE 20 uscite su 27, più un comportamento non documentato ─────────────
 // │ 345, 348, 355, 358, 363, 369, 380, 389, 406, 93 ("past" e "closed"), 473,
 // │ 495, 498, 501, 522, 549, 556, 690.
+// │ Dal 01/08/2026 le uscite possibili sono 27, non più 25: l'aggancio del
+// │ confronto dei prezzi (§46 v44) ne ha aggiunte due, entrambe coperte —
+// │ il 409 da `guard-prezzo-salito` e `guard-prezzo-sceso`, il 400 da
+// │ `guard-prezzo-assente`.
 // │ In più `riga-406-coordinate-vuote`: una latitudine `null` diventa 0, supera
 // │ il controllo di riga 369 e cade sul geofence. Comportamento reale scoperto
 // │ dal primo scatto, registrato perché resti identico dopo il riordino.
@@ -21,7 +25,38 @@
 // ┌─ NON COPRE 7 uscite ──────────────────────────────────────────────────────
 // │ 427, 447, 585, 649 (guasto Supabase), 682 (guasto Stripe), 518 e 641 nelle
 // │ vie non provocabili senza rompere o sporcare qualcosa. Un solo database,
-// │ nessuna rete: non si rompe niente per una prova (§66).
+// │ nessuna rete: non si rompe niente per una prova (§66). *Sono le stesse
+// │ sette di sempre: l'aggancio dei prezzi non ne ha né aggiunte né tolte.*
+// │ ⚠️ Uno di questi rami è però passato sotto un test vero: il guasto di
+// │ lettura del guard degli orari, che `tests/checkout-timing.test.mjs`
+// │ provoca davvero puntando il client a una porta chiusa. Fuori da questa
+// │ rete, non dentro.
+// └───────────────────────────────────────────────────────────────────────────
+//
+// ┌─ COME SI LEGGE UN CONFRONTO (criterio deciso da Andrea il 01/08/2026) ────
+// │ `snapshot-prima.json` **resta com'è e non si rigenera mai**: vale perché è
+// │ stata scattata prima ed è rimasta ferma. Rigenerarla la farebbe coincidere
+// │ sempre, e smetterebbe di dimostrare qualcosa (lezione `af`).
+// │
+// │ Conseguenza da sapere PRIMA di allarmarsi: quella base ha **20 casi**,
+// │ mentre il catalogo ne ha 23. Il confronto quindi **non potrà mai più dire
+// │ "nessuna differenza"**, e non è una regressione.
+// │
+// │ ⚠️ Il criterio di successo è questo, e non "zero differenze":
+// │
+// │   1. le TRE righe di "presenza" dei casi `guard-*` sono **attese e
+// │      permanenti** — compaiono per forza, perché quei casi non esistevano
+// │      quando la base è stata scattata;
+// │   2. **ogni altra differenza va spiegata prima di essere accettata**: non
+// │      si archivia come "sarà l'orario", la si attribuisce a una causa;
+// │   3. il confronto si legge **insieme all'avviso sullo stato del servizio**
+// │      stampato in testa. A semaforo diverso, i casi `dipendeDalMomento`
+// │      cambiano legittimamente — per esempio `riga-473`, che a locale chiuso
+// │      dà 409 sull'ASAP e a locale aperto cade sull'ordine minimo Delivery.
+// │
+// │ *Il modo di sbagliare che questo blocco esiste per impedire è dare per
+// │ scontata una differenza perché "tanto qualcosa cambia sempre". Tre righe
+// │ sono previste; la quarta è una domanda.*
 // └───────────────────────────────────────────────────────────────────────────
 //
 // ⚠️ 495, 498 e 501 condividono lo STESSO messaggio e lo stesso status: uno
@@ -29,9 +64,11 @@
 //
 // ⚠️ RICHIEDE IL SERVER ACCESO (`next dev`), perché interroga la route vera —
 // è tutto il punto. L'indirizzo si cambia con KM_BASE_URL.
-// ⚠️ IL CASO 690 CREA UN ORDINE `pending` e una sessione Stripe a ogni scatto.
-// È voluto: sono ordini di prova, e vanno nel conto dei residui (punto 11
-// dell'handoff), che prima del go-live si rileggono dal database.
+// ⚠️ IL CASO 690 CREA UN ORDINE `pending` e una sessione Stripe a ogni scatto,
+// ed è l'unico. È voluto: sono ordini di prova, e vanno nel conto dei residui
+// (punto 11 dell'handoff), che prima del go-live si rileggono dal database. I
+// tre casi `guard-*` non creano nulla, perché il confronto dei prezzi sta
+// prima di ogni scrittura, riga cliente compresa.
 import { writeFileSync, readFileSync } from "node:fs";
 import { execSync } from "node:child_process";
 import { CASI } from "./route-snapshot-cases.mjs";

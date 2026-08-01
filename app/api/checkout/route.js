@@ -10,10 +10,34 @@ import {
 } from "../../../lib/checkout-validation";
 import { verifyOrderTiming } from "../../../lib/checkout-timing";
 // ⚠️ READ_ERROR va importato, mai ricreato: è un Symbol, e due `Symbol()`
-// distinti non sono mai uguali. Confrontarlo con una copia locale renderebbe
-// il test di riga sempre falso e degraderebbe ogni guasto di lettura in
-// "articolo non disponibile" (400) invece del 500 che §46b impone.
+// distinti non sono mai uguali, quindi una copia locale renderebbe il confronto
+// **sempre falso**. La conseguenza è stata verificata eseguendola (§46 v46,
+// punto 2) e non è quella che verrebbe da immaginare — né la stessa nei due
+// punti che confrontano la sentinella:
+//  - QUI, nei resolver, il ramo successivo è `if (!resolved)`. Un Symbol è
+//    **veritiero**, quindi quel ramo NON scatta: la sentinella estranea
+//    prosegue **come se fosse una riga valida**, il prezzo diventa `NaN`, e
+//    `NaN` attraversa il totale scavalcando in silenzio **l'ordine minimo e il
+//    controllo dei 18 anni** (ogni confronto con `NaN` è falso). L'ordine si
+//    schianta solo all'inserimento, contro il `not null` su `subtotal` e
+//    `total` — dopo che la riga cliente è già stata scritta.
+//  - Nel guard degli orari (`lib/checkout-timing.js`) il ramo è `if (!timing.ok)`:
+//    un Symbol non ha `.ok`, quindi il ramo scatta e solleva un'eccezione non
+//    gestita, cioè un 500 generico di Next al posto del nostro messaggio.
+// ⚠️ Corollario: la sentinella deve restare **veritiera**. Chi la
+// "semplificasse" in `null`, `false` o "" farebbe crollare la distinzione fra
+// guasto nostro e riga rifiutata senza toccare una riga dei confronti.
+// *Fino alla v46 questo commento diceva che il guasto sarebbe degradato in
+// "articolo non disponibile" con 400: era falso, e nel modo peggiore — dava per
+// pulita una conseguenza che invece corrompe gli importi.*
 import { READ_ERROR, resolveProduct, resolveCombo } from "../../../lib/checkout-resolve";
+// §46 (v44/v45): il confronto fra prezzo mostrato e prezzo reale vive in un
+// modulo puro, raggiungibile da un test senza passare da Next. Si importano
+// anche le costanti degli esiti, così che le stringhe del verdetto non vengano
+// riscritte a mano qui: il modulo decide, la route traduce in risposta HTTP
+// (§46 v46, "Forma dell'estrazione", punto 1 — nessun modulo confeziona la
+// risposta, nessuna route ripete la logica).
+import { OK, CHANGED, checkAllLines } from "../../../lib/price-guard";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
@@ -28,6 +52,18 @@ const MARKETING_TEXT_VERSION = "v1";
 // il debug: cambia solo il testo restituito al client, non la tracciabilità.
 const SYSTEM_ERROR_MESSAGE =
   "Qualcosa è andato storto durante l'ordine. Riprova tra poco; se hai già pagato, non ti verrà addebitato nulla.";
+
+// §46 v44 punto 4 — il listino si è mosso mentre il cliente guardava. Testo
+// definitivo in §46b, elenco dei messaggi. I testi stanno qui e non nel modulo
+// per la stessa ragione di `SYSTEM_ERROR_MESSAGE` (§46 v46, punto 3): il modulo
+// dice cosa è successo, la route possiede la parola rivolta al cliente.
+const PRICE_CHANGED_MESSAGE = "Abbiamo aggiornato il listino, controlla il tuo carrello";
+
+// §46 v44 punto 6, testo fissato dalla v47. Non accusa il cliente: a questo
+// messaggio ci si arriva solo se il sito si è rotto o se la richiesta è stata
+// costruita a mano, quindi è un problema nostro e indica l'unica cosa che chi
+// legge può fare.
+const PRICE_MALFORMED_MESSAGE = "Si è verificato un problema. Ricarica la pagina e riprova.";
 
 function round2(value) {
   return Math.round(value * 100) / 100;
@@ -133,6 +169,10 @@ export async function POST(request) {
   let subtotal = 0;
   let hasBeer = false;
   const resolvedItems = [];
+  // §46 v44 punto 1: i prezzi unitari MOSTRATI, nell'ordine delle righe. Vive
+  // accanto a `resolvedItems` perché i due elenchi si riempiono nella stessa
+  // iterazione e restino paralleli **per costruzione**, non per disciplina.
+  const shownUnitPrices = [];
 
   for (const item of items) {
     const quantity = Number.isInteger(item?.quantity) && item.quantity > 0 ? item.quantity : 1;
@@ -177,6 +217,13 @@ export async function POST(request) {
     const lineTotal = round2(resolved.unitPrice * quantity);
     subtotal += lineTotal;
 
+    // §46 v44 punto 1: il prezzo mostrato viaggia **dentro la riga**, accanto a
+    // `ref` e `quantity`, e si raccoglie solo per le righe risolte con successo
+    // — è precisamente la garanzia che §46 v45 punto 4 chiede a chi chiama. Un
+    // campo assente entra qui come `undefined` e il modulo lo dichiara
+    // malformato: mai un confronto saltato (punto 6).
+    shownUnitPrices.push(item?.unitPriceShown);
+
     resolvedItems.push({
       product_id: resolved.productId,
       product_name_snapshot: resolved.name,
@@ -187,6 +234,42 @@ export async function POST(request) {
       is_combo: ref.kind === "combo",
       configuration: resolved.configuration,
     });
+  }
+
+  // §46 v44: confronto fra il prezzo MOSTRATO al cliente e quello REALE appena
+  // ricalcolato. Sta qui — subito dopo il ciclo — per due ragioni: il prezzo
+  // reale di ogni riga esiste già, e si è ancora prima di **qualunque**
+  // scrittura, compresa la riga cliente (punto 7 e §65: un tentativo fermato
+  // non deve lasciare residui da ripulire).
+  //
+  // ⚠️ Il prezzo ricevuto serve SOLO al confronto (punto 2). Non entra in
+  // `subtotal`, che nasce da `resolved.unitPrice`, cioè dai dati vivi. Non è
+  // una regola da ricordare: `price-guard` non restituisce importi, quindi a
+  // valle non esiste nulla del browser da addebitare per sbaglio.
+  //
+  // I due elenchi hanno la stessa lunghezza per costruzione e `items` non può
+  // essere vuoto (rifiutato da `validateCheckoutRequest`): i due controlli di
+  // lunghezza del modulo non possono scattare da questo chiamante, e restano
+  // suoi perché valgono per chi lo riuserà altrove (§46 v45 punto 5).
+  const priceVerdict = checkAllLines(
+    shownUnitPrices,
+    resolvedItems.map((line) => line.unit_price_snapshot)
+  );
+
+  // §46 v44 punti 4 e 5 / §46b: richiesta ben formata ma non accettabile nello
+  // stato attuale del listino, in **entrambe** le direzioni — anche un prezzo
+  // sceso ferma il checkout. Il carrello non viene svuotato (§9, §46b).
+  if (priceVerdict === CHANGED) {
+    return NextResponse.json({ error: PRICE_CHANGED_MESSAGE }, { status: 409 });
+  }
+
+  // §46 v44 punto 6 (testo dalla v47): il prezzo mostrato non è arrivato o non
+  // è utilizzabile. Qui finisce **qualunque** esito diverso da `ok`, non solo
+  // `malformato`: gli esiti sono tre e un quarto non esiste (§46 v45 punto 1),
+  // ma fra bloccare per un verdetto che non conosciamo e lasciar passare, si
+  // sbaglia dalla parte che non addebita.
+  if (priceVerdict !== OK) {
+    return NextResponse.json({ error: PRICE_MALFORMED_MESSAGE }, { status: 400 });
   }
 
   subtotal = round2(subtotal);
