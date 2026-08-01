@@ -4,17 +4,11 @@ import { supabaseAdmin } from "../../../lib/supabase-admin";
 import { getActiveStore } from "../../../lib/get-active-store";
 import { getStoreGeofencePolygon } from "../../../lib/get-store-geofence";
 import { isPointInPolygon } from "../../../lib/geo";
-import { getScheduledSlots } from "../../../lib/scheduled-slots";
-import {
-  todayRomeDate,
-  computeExceptionEffects,
-  classifyScheduledSlot,
-  scheduledRejectionMessage,
-} from "../../../lib/schedule-exceptions";
 import {
   validateCheckoutRequest,
   validateResolvedOrder,
 } from "../../../lib/checkout-validation";
+import { verifyOrderTiming } from "../../../lib/checkout-timing";
 // ⚠️ READ_ERROR va importato, mai ricreato: è un Symbol, e due `Symbol()`
 // distinti non sono mai uguali. Confrontarlo con una copia locale renderebbe
 // il test di riga sempre falso e degraderebbe ogni guasto di lettura in
@@ -116,73 +110,22 @@ export async function POST(request) {
   // server-side con le stesse funzioni pure di /api/service-status (unica fonte
   // di verità) e rifiutiamo l'ordine se il timing richiesto non è disponibile.
   // Vale per entrambe le modalità: Delivery (ASAP/programmata) e Ritiro (§12b).
-  {
-    const { data: windows, error: windowsError } = await supabaseAdmin
-      .from("store_order_windows")
-      .select("day_of_week, opens_at, closes_at, is_defined")
-      .eq("store_id", store.id);
-
-    if (windowsError) {
-      console.error("[POST /api/checkout] Errore lettura store_order_windows:", windowsError);
-      return NextResponse.json(
-        { error: SYSTEM_ERROR_MESSAGE },
-        { status: 500 }
-      );
-    }
-
-    // Stessa finestra di service-status (oggi..+31gg) così la "prossima
-    // apertura" del messaggio ASAP è coerente.
-    const now = new Date();
-    const fromDate = todayRomeDate(now);
-    const toDate = todayRomeDate(new Date(now.getTime() + 31 * 86400000));
-    const { data: exceptionRows, error: exceptionsError } = await supabaseAdmin
-      .from("store_schedule_exceptions")
-      .select("date, closure_type")
-      .eq("store_id", store.id)
-      .gte("date", fromDate)
-      .lte("date", toDate);
-
-    if (exceptionsError) {
-      console.error("[POST /api/checkout] Errore lettura store_schedule_exceptions:", exceptionsError);
-      return NextResponse.json(
-        { error: SYSTEM_ERROR_MESSAGE },
-        { status: 500 }
-      );
-    }
-
-    const exceptions = exceptionRows ?? [];
-
-    if (!isDelivery) {
-      // §12b/§46b: il Ritiro è sempre programmato (mai ASAP). Lo slot deve
-      // cadere in una finestra base reale non chiusa da eccezione, e nel
-      // futuro — con chiusura INCLUSA (un ritiro all'orario di chiusura è
-      // valido, §12b). Stesse stringhe §46b della Delivery programmata.
-      const verdict = classifyScheduledSlot(scheduledDeliveryAt, now, windows, exceptions, true);
-      if (verdict !== "ok") {
-        return NextResponse.json({ error: scheduledRejectionMessage(verdict) }, { status: 409 });
-      }
-    } else if (delivery?.timingType === "scheduled") {
-      // §46b/§68: lo slot programmato deve cadere in una finestra base reale non
-      // chiusa da eccezione, e nel futuro (chiusura esclusa, come §12).
-      const verdict = classifyScheduledSlot(scheduledDeliveryAt, now, windows, exceptions);
-      if (verdict !== "ok") {
-        return NextResponse.json({ error: scheduledRejectionMessage(verdict) }, { status: 409 });
-      }
-    } else {
-      // §46b: ASAP disponibile solo se il turno corrente è aperto (verde) e non
-      // chiuso da un'eccezione — esattamente asapAvailable di §68.4.
-      const status = getScheduledSlots(windows, now, exceptions);
-      const effects = computeExceptionEffects(status, now, windows, exceptions);
-      if (!effects.asapAvailable) {
-        return NextResponse.json(
-          {
-            error:
-              "Non possiamo più accettare ordini immediati in questo momento. Scegli un orario tra quelli disponibili.",
-          },
-          { status: 409 }
-        );
-      }
-    }
+  //
+  // Le due letture e i tre rami stanno in `lib/checkout-timing.js`; qui resta
+  // la traduzione in risposta HTTP. Il 500 lo confeziona la route perché il
+  // testo di §v19 è suo e serve ad altre cinque uscite (§46b, "un guasto di
+  // lettura non è un rifiuto").
+  const timing = await verifyOrderTiming({
+    storeId: store.id,
+    isDelivery,
+    timingType: delivery?.timingType,
+    scheduledDeliveryAt,
+  });
+  if (timing === READ_ERROR) {
+    return NextResponse.json({ error: SYSTEM_ERROR_MESSAGE }, { status: 500 });
+  }
+  if (!timing.ok) {
+    return NextResponse.json(timing.body, { status: timing.status });
   }
 
   // §46, non negoziabile: ogni prezzo viene ricalcolato qui, ignorando
