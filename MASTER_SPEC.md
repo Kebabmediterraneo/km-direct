@@ -1,10 +1,30 @@
 # KM DIRECT — MASTER SPECIFICATION
 
-**Versione 46** — sostituisce la v45.
+**Versione 47** — sostituisce la v46.
 
 Documento di riferimento definitivo per lo sviluppo. Le decisioni qui
 contenute sono approvate: non vanno reinterpretate senza un motivo concreto
 (vedi §73). Ogni file di codice del progetto deve rispettare queste regole.
+
+**Novità della v47** (vincolanti):
+
+1. §46 punto 6 e §46b — **deciso il testo che mancava**: se il prezzo mostrato
+   non arriva nella richiesta, il `400` risponde `Si è verificato un problema.
+   Ricarica la pagina e riprova.` (decisione di Andrea, 01/08/2026). Fino alla
+   v46 quel punto prescriveva il rifiuto **senza fissare alcun testo**, e
+   nemmeno l'elenco dei messaggi di §46b lo conteneva: sarebbe stato inventato
+   dentro il commit, contro la regola che le decisioni vanno prima in spec.
+2. §46b — **corretta una nota di stato rimasta indietro.** Il lavoro sul tempo
+   di preparazione e sulla griglia dei quarti d'ora diceva "si chiude insieme
+   al lavoro 1 di §46"; quel lavoro **è chiuso dal 01/08/2026** e il controllo
+   non è stato costruito. Si chiude ora **con l'aggancio del confronto dei
+   prezzi**, che è l'ultima riapertura prevista di quel file. *Seconda
+   occorrenza in due giorni della lezione `aj`: le note di stato non
+   invecchiano in silenzio.*
+
+*La v47 non tocca il codice né cambia una regola: fissa un testo che mancava e
+allinea una promessa che il calendario aveva superato. Il confronto dei prezzi
+resta **non agganciato** e la condizione di apertura §46 resta aperta.*
 
 **Novità della v46** (vincolanti):
 
@@ -2310,10 +2330,19 @@ sbagliarsi in silenzio.
 5. **Vale in entrambe le direzioni.** Anche un prezzo **sceso** ferma il
    checkout: il totale che il cliente sta per pagare sarebbe comunque diverso
    da quello che ha visto, e la sorpresa gradita resta una sorpresa.
-6. **Se il prezzo mostrato non arriva, la richiesta è malformata**: `400`, mai
-   un confronto saltato. Una richiesta costruita a mano che omette il campo
-   non deve poter aggirare il controllo — è lo stesso principio di §46b, un
-   blocco che si può omettere è vero solo per i clienti onesti.
+6. **Se il prezzo mostrato non arriva, la richiesta è malformata**: `400` con
+   il testo `Si è verificato un problema. Ricarica la pagina e riprova.`
+   (deciso da Andrea il 01/08/2026), mai un confronto saltato. Una richiesta
+   costruita a mano che omette il campo non deve poter aggirare il controllo —
+   è lo stesso principio di §46b, un blocco che si può omettere è vero solo per
+   i clienti onesti.
+   *Perché quel testo*: il caso non è raggiungibile da un cliente che usa il
+   sito normalmente — ci arriva solo se qualcosa nel sito si è rotto, o se la
+   richiesta è stata costruita a mano. Chi lo vedesse ha davanti **un problema
+   nostro**, non un suo errore: il messaggio non lo accusa e gli indica l'unica
+   cosa che può fare. ⚠️ *Fino alla v46 questo punto prescriveva il `400` senza
+   fissare alcun testo, e nemmeno l'elenco di §46b lo conteneva: il messaggio
+   sarebbe stato inventato dentro il commit.*
 7. **Quando scatta**: **prima** che venga creato l'ordine `pending` e prima di
    qualunque chiamata a Stripe. Un tentativo fermato non lascia righe da
    ripulire (§65).
@@ -2601,6 +2630,10 @@ non prescritte):
   chiusi. Scegli un altro orario tra quelli proposti.`
 - Prezzo cambiato mentre il cliente ordinava: `Abbiamo aggiornato il
   listino, controlla il tuo carrello` — testo e regole in §46 (v44).
+- Prezzo mostrato assente o inutilizzabile nella richiesta: `Si è verificato
+  un problema. Ricarica la pagina e riprova.` — §46 punto 6 (v47). *È un `400`
+  di forma, non un rifiuto del cliente: ci si arriva solo se il sito si è rotto
+  o se la richiesta è costruita a mano.*
 
 **Stato di implementazione (v40, verificato)**
 
@@ -2673,10 +2706,14 @@ limite, e deve aggiungere il controllo esplicito nello stesso lavoro.
    **Non è una condizione di apertura** (decisione dell'utente del
    30/07/2026): il cliente onesto non può raggiungerlo, perché il sito offre
    solo gli slot calcolati, e il danno è un orario irrealistico, non un ordine
-   a locale chiuso né un prezzo sbagliato. **Si chiude insieme al lavoro 1 di
-   §46** — l'estrazione della logica della route in `lib/` — perché vive nello
-   stesso punto e vale la stessa regola: non si rimaneggia il percorso del
-   pagamento insieme ad altro.
+   a locale chiuso né un prezzo sbagliato. ⚠️ **Fino alla v46 questo punto
+   diceva "si chiude insieme al lavoro 1 di §46".** Quel lavoro — l'estrazione
+   della logica della route in `lib/` — **è chiuso dal 01/08/2026** e questo
+   controllo non è stato costruito: la frase è rimasta indietro. **Si chiude
+   con l'aggancio del confronto dei prezzi**, che è la prossima e ultima
+   riapertura prevista di quel file, per la ragione di sempre: non si
+   rimaneggia il percorso del pagamento insieme ad altro, quindi quando si apre
+   si apre per tutto ciò che è registrato.
 
 2. **Le finestre orarie si costruiscono in due punti**: uno alimenta il guard,
    l'altro genera gli slot **offerti** al cliente. Confrontati il 30/07/2026,
