@@ -1,0 +1,446 @@
+{
+  "scattata-il": "2026-08-01T02:47:40.155Z",
+  "git-head": "48dd2dd",
+  "base-url": "http://localhost:3000",
+  "slot": {
+    "delivery": {
+      "day": "today",
+      "time": "12:30"
+    },
+    "pickup": {
+      "day": "today",
+      "time": "12:15"
+    }
+  },
+  "stato-servizio": {
+    "phase": "red",
+    "label": "Siamo chiusi",
+    "message": "Apriamo alle 12:00",
+    "firstSlotLabel": "12:30",
+    "firstSlotDay": "today",
+    "slots": {
+      "today": [
+        "12:30",
+        "12:45",
+        "13:00",
+        "13:15",
+        "13:30",
+        "13:45",
+        "14:00",
+        "14:15",
+        "19:00",
+        "19:15",
+        "19:30",
+        "19:45",
+        "20:00",
+        "20:15",
+        "20:30",
+        "20:45",
+        "21:00",
+        "21:15",
+        "21:30",
+        "21:45",
+        "22:00",
+        "22:15",
+        "22:30",
+        "22:45"
+      ],
+      "tomorrow": [
+        "12:00",
+        "12:15",
+        "12:30",
+        "12:45",
+        "13:00",
+        "13:15",
+        "13:30",
+        "13:45",
+        "14:00",
+        "14:15",
+        "19:00",
+        "19:15",
+        "19:30",
+        "19:45",
+        "20:00",
+        "20:15",
+        "20:30",
+        "20:45",
+        "21:00",
+        "21:15",
+        "21:30",
+        "21:45",
+        "22:00",
+        "22:15"
+      ]
+    },
+    "asapAvailable": false,
+    "checkoutBlocked": false,
+    "blockMessage": null,
+    "pickup": {
+      "slots": {
+        "today": [
+          "12:15",
+          "12:30",
+          "12:45",
+          "13:00",
+          "13:15",
+          "13:30",
+          "13:45",
+          "14:00",
+          "14:15",
+          "14:30",
+          "19:00",
+          "19:15",
+          "19:30",
+          "19:45",
+          "20:00",
+          "20:15",
+          "20:30",
+          "20:45",
+          "21:00",
+          "21:15",
+          "21:30",
+          "21:45",
+          "22:00",
+          "22:15",
+          "22:30",
+          "22:45",
+          "23:00"
+        ],
+        "tomorrow": [
+          "12:00",
+          "12:15",
+          "12:30",
+          "12:45",
+          "13:00",
+          "13:15",
+          "13:30",
+          "13:45",
+          "14:00",
+          "14:15",
+          "14:30",
+          "19:00",
+          "19:15",
+          "19:30",
+          "19:45",
+          "20:00",
+          "20:15",
+          "20:30",
+          "20:45",
+          "21:00",
+          "21:15",
+          "21:30",
+          "21:45",
+          "22:00",
+          "22:15",
+          "22:30"
+        ]
+      },
+      "firstSlotDay": "today",
+      "firstSlotLabel": "12:15",
+      "checkoutBlocked": false,
+      "blockMessage": null
+    }
+  },
+  "casi": {
+    "riga-345": {
+      "descrizione": "carrello vuoto",
+      "dipendeDalMomento": false,
+      "creaOrdine": false,
+      "attesa": {
+        "status": 400,
+        "error": "Il carrello è vuoto."
+      },
+      "status": 400,
+      "corpo": {
+        "error": "Il carrello è vuoto."
+      },
+      "erroreDiRete": null,
+      "coincide": true
+    },
+    "riga-348": {
+      "descrizione": "modalità fuori dai due valori ammessi",
+      "dipendeDalMomento": false,
+      "creaOrdine": false,
+      "attesa": {
+        "status": 400,
+        "error": "Si è verificato un problema con la modalità scelta. Riprova."
+      },
+      "status": 400,
+      "corpo": {
+        "error": "Si è verificato un problema con la modalità scelta. Riprova."
+      },
+      "erroreDiRete": null,
+      "coincide": true
+    },
+    "riga-355": {
+      "descrizione": "telefono vuoto",
+      "dipendeDalMomento": false,
+      "creaOrdine": false,
+      "attesa": {
+        "status": 400,
+        "error": "Controlla di aver compilato nome, cognome e telefono."
+      },
+      "status": 400,
+      "corpo": {
+        "error": "Controlla di aver compilato nome, cognome e telefono."
+      },
+      "erroreDiRete": null,
+      "coincide": true
+    },
+    "riga-358": {
+      "descrizione": "privacy non accettata",
+      "dipendeDalMomento": false,
+      "creaOrdine": false,
+      "attesa": {
+        "status": 400,
+        "error": "Per procedere, accetta l'informativa privacy."
+      },
+      "status": 400,
+      "corpo": {
+        "error": "Per procedere, accetta l'informativa privacy."
+      },
+      "erroreDiRete": null,
+      "coincide": true
+    },
+    "riga-363": {
+      "descrizione": "Delivery senza numero civico",
+      "dipendeDalMomento": false,
+      "creaOrdine": false,
+      "attesa": {
+        "status": 400,
+        "error": "Manca qualche dato dell'indirizzo. Controlla e riprova."
+      },
+      "status": 400,
+      "corpo": {
+        "error": "Manca qualche dato dell'indirizzo. Controlla e riprova."
+      },
+      "erroreDiRete": null,
+      "coincide": true
+    },
+    "riga-369": {
+      "descrizione": "Delivery con latitudine che Number() non sa convertire",
+      "dipendeDalMomento": false,
+      "creaOrdine": false,
+      "attesa": {
+        "status": 400,
+        "error": "Non siamo riusciti a individuare l'indirizzo. Riprova a inserirlo."
+      },
+      "status": 400,
+      "corpo": {
+        "error": "Non siamo riusciti a individuare l'indirizzo. Riprova a inserirlo."
+      },
+      "erroreDiRete": null,
+      "coincide": true
+    },
+    "riga-380": {
+      "descrizione": "Delivery programmata con orario di forma non valida (24:00)",
+      "dipendeDalMomento": false,
+      "creaOrdine": false,
+      "attesa": {
+        "status": 400,
+        "error": "Orario di consegna programmata non valido."
+      },
+      "status": 400,
+      "corpo": {
+        "error": "Orario di consegna programmata non valido."
+      },
+      "erroreDiRete": null,
+      "coincide": true
+    },
+    "riga-389": {
+      "descrizione": "Ritiro con orario di forma non valida (9:00 senza zero)",
+      "dipendeDalMomento": false,
+      "creaOrdine": false,
+      "attesa": {
+        "status": 400,
+        "error": "Orario di ritiro non valido."
+      },
+      "status": 400,
+      "corpo": {
+        "error": "Orario di ritiro non valido."
+      },
+      "erroreDiRete": null,
+      "coincide": true
+    },
+    "riga-406": {
+      "descrizione": "Delivery con coordinate fuori dal perimetro (Milano)",
+      "dipendeDalMomento": false,
+      "creaOrdine": false,
+      "attesa": {
+        "status": 400,
+        "error": "Questo indirizzo è fuori dalla nostra zona di consegna."
+      },
+      "status": 400,
+      "corpo": {
+        "error": "Questo indirizzo è fuori dalla nostra zona di consegna."
+      },
+      "erroreDiRete": null,
+      "coincide": true
+    },
+    "riga-406-coordinate-vuote": {
+      "descrizione": "Delivery con latitudine null — supera il controllo di riga 369 e cade sul geofence",
+      "dipendeDalMomento": false,
+      "creaOrdine": false,
+      "attesa": {
+        "status": 400,
+        "error": "Questo indirizzo è fuori dalla nostra zona di consegna."
+      },
+      "status": 400,
+      "corpo": {
+        "error": "Questo indirizzo è fuori dalla nostra zona di consegna."
+      },
+      "erroreDiRete": null,
+      "coincide": true
+    },
+    "riga-473": {
+      "descrizione": "Delivery ASAP — 409 solo a locale chiuso, 200 se aperto",
+      "dipendeDalMomento": true,
+      "creaOrdine": false,
+      "attesa": {
+        "status": 409,
+        "error": "Non possiamo più accettare ordini immediati in questo momento. Scegli un orario tra quelli disponibili."
+      },
+      "status": 409,
+      "corpo": {
+        "error": "Non possiamo più accettare ordini immediati in questo momento. Scegli un orario tra quelli disponibili."
+      },
+      "erroreDiRete": null,
+      "coincide": true
+    },
+    "riga-495": {
+      "descrizione": "ref con kind sconosciuto",
+      "dipendeDalMomento": false,
+      "creaOrdine": false,
+      "attesa": {
+        "status": 400,
+        "error": "Articolo non valido."
+      },
+      "status": 400,
+      "corpo": {
+        "error": "Articolo non valido."
+      },
+      "erroreDiRete": null,
+      "coincide": true
+    },
+    "riga-498": {
+      "descrizione": "ref prodotto senza id",
+      "dipendeDalMomento": false,
+      "creaOrdine": false,
+      "attesa": {
+        "status": 400,
+        "error": "Articolo non valido."
+      },
+      "status": 400,
+      "corpo": {
+        "error": "Articolo non valido."
+      },
+      "erroreDiRete": null,
+      "coincide": true
+    },
+    "riga-501": {
+      "descrizione": "ref combo senza rollProductId",
+      "dipendeDalMomento": false,
+      "creaOrdine": false,
+      "attesa": {
+        "status": 400,
+        "error": "Articolo non valido."
+      },
+      "status": 400,
+      "corpo": {
+        "error": "Articolo non valido."
+      },
+      "erroreDiRete": null,
+      "coincide": true
+    },
+    "riga-522": {
+      "descrizione": "proteina che non esiste per quel prodotto",
+      "dipendeDalMomento": false,
+      "creaOrdine": false,
+      "attesa": {
+        "status": 400,
+        "error": "Un articolo del carrello non è più disponibile."
+      },
+      "status": 400,
+      "corpo": {
+        "error": "Un articolo del carrello non è più disponibile."
+      },
+      "erroreDiRete": null,
+      "coincide": true
+    },
+    "riga-549": {
+      "descrizione": "Delivery sotto l'ordine minimo (una salsa da 1 €)",
+      "dipendeDalMomento": false,
+      "creaOrdine": false,
+      "attesa": {
+        "status": 400,
+        "error": "Ordine minimo 15€ di prodotti per la Delivery."
+      },
+      "status": 400,
+      "corpo": {
+        "error": "Ordine minimo 15€ di prodotti per la Delivery."
+      },
+      "erroreDiRete": null,
+      "coincide": true
+    },
+    "riga-556": {
+      "descrizione": "birra senza conferma dei 18 anni (in Ritiro: la Delivery cadrebbe prima sull'ordine minimo)",
+      "dipendeDalMomento": false,
+      "creaOrdine": false,
+      "attesa": {
+        "status": 400,
+        "error": "Per ordinare alcolici devi confermare di avere almeno 18 anni."
+      },
+      "status": 400,
+      "corpo": {
+        "error": "Per ordinare alcolici devi confermare di avere almeno 18 anni."
+      },
+      "erroreDiRete": null,
+      "coincide": true
+    },
+    "riga-690": {
+      "descrizione": "Ritiro valido fino in fondo — ⚠️ crea un ordine pending e una sessione Stripe",
+      "dipendeDalMomento": false,
+      "creaOrdine": true,
+      "attesa": {
+        "status": 200,
+        "urlPresente": true
+      },
+      "status": 200,
+      "corpo": {
+        "url": "https://checkout.stripe.com/c/pay/cs_test_a1kThrIpDvVhONK83S8pFVS5Zr1K8abEUiRFSvVJQrQBkziaCZmemtOfW9#fidnandhYHdWcXxpYCc%2FJ2FgY2RwaXEnKSdicGRmZGhqaWBTZHdsZGtxJz8nZmprcXdqaScpJ2R1bE5gfCc%2FJ3VuWnFgdnFaMDRRd2pCX003NjdVSV93QH1TUUhRS2czZkNdXVFpMGhDMmBoNV9mb3ZcYUdIX0toSm13VXdQPVMyakRRN1A2NjIzQFc8YW5PTElzMkl0ZFFubWdHTk9WTVE1NX03ZjByRGp0JyknY3dqaFZgd3Ngdyc%2FcXdwYCknZ2RmbmJ3anBrYUZqaWp3Jz8nJmNjY2NjYycpJ2lkfGpwcVF8dWAnPyd2bGtiaWBabHFgaCcpJ2BrZGdpYFVpZGZgbWppYWB3dic%2FcXdwYHgl"
+      },
+      "erroreDiRete": null,
+      "coincide": true
+    },
+    "riga-93-closed": {
+      "descrizione": "Ritiro domani alle 05:00, fuori da ogni finestra → verdetto 'closed'",
+      "dipendeDalMomento": true,
+      "creaOrdine": false,
+      "attesa": {
+        "status": 409,
+        "error": "In quell'orario siamo chiusi. Scegli un altro orario tra quelli proposti."
+      },
+      "status": 409,
+      "corpo": {
+        "error": "In quell'orario siamo chiusi. Scegli un altro orario tra quelli proposti."
+      },
+      "erroreDiRete": null,
+      "coincide": true
+    },
+    "riga-93-past": {
+      "descrizione": "Ritiro con orario nel passato (oggi alle 00:00) → verdetto 'past'",
+      "dipendeDalMomento": true,
+      "creaOrdine": false,
+      "attesa": {
+        "status": 409,
+        "error": "L'orario che hai scelto non è più disponibile. Scegline un altro tra quelli proposti."
+      },
+      "status": 409,
+      "corpo": {
+        "error": "L'orario che hai scelto non è più disponibile. Scegline un altro tra quelli proposti."
+      },
+      "erroreDiRete": null,
+      "coincide": true
+    }
+  }
+}
