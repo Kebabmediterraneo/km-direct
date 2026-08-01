@@ -2444,7 +2444,26 @@ function CheckoutScreen({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          items: items.map((item) => ({ ref: item.ref, quantity: item.quantity })),
+          // §46 v44 punto 1: insieme alla composizione viaggia il prezzo unitario
+          // MOSTRATO, che il server confronta col proprio ricalcolo dai dati vivi
+          // e da cui dipende il `409` (§46 v50). Senza questo campo la richiesta è
+          // malformata e viene rifiutata con un `400`.
+          //
+          // ⚠️ È `item.price` della RIGA DI CARRELLO — un numero prodotto da
+          // `lib/menu-pricing.js`, cioè lo stesso identico modulo con cui il
+          // server ricalcola — e mai `product.price` del catalogo, che è la
+          // stringa già formattata per lo schermo (`"8,00 €"`): il guard rifiuta
+          // le stringhe, quindi quella darebbe un `malformato` a ogni ordine.
+          //
+          // ⚠️ È **unitario**, non il totale di riga: la moltiplicazione per la
+          // quantità la fa il server, come già fa per il proprio prezzo. Qui
+          // `item.price` è lo stesso valore che il carrello disegna moltiplicato
+          // per `item.quantity`, e va mandato senza moltiplicarlo.
+          items: items.map((item) => ({
+            ref: item.ref,
+            quantity: item.quantity,
+            unitPriceShown: item.price,
+          })),
           fulfillment: fulfillmentMode,
           delivery: isDelivery
             ? {
