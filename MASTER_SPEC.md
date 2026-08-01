@@ -1,10 +1,27 @@
 # KM DIRECT — MASTER SPECIFICATION
 
-**Versione 49** — sostituisce la v48.
+**Versione 50** — sostituisce la v49.
 
 Documento di riferimento definitivo per lo sviluppo. Le decisioni qui
 contenute sono approvate: non vanno reinterpretate senza un motivo concreto
 (vedi §73). Ogni file di codice del progetto deve rispettare queste regole.
+
+**Novità della v50** (vincolanti):
+
+1. §46 punto 7 — **corretto il conteggio delle uscite, in due modi.**
+   *Aggiornamento*: dopo l'aggancio del confronto prezzi (`05c6bc9`) le
+   risposte HTTP possibili sono **27** e non 25, i `return` scritti nella route
+   sono **17** e non 15. *Correzione di aritmetica*: la spiegazione diceva
+   "dieci uscite accorpate", ma dieci è la **riduzione netta** — le uscite
+   assorbite sono **quattordici** in quattro punti di delega — e contava tre
+   rifiuti di slot dove il censimento ne conta due, perché una sola uscita
+   sceglie fra due messaggi. ⚠️ *Il numero pubblicato era giusto, la
+   spiegazione portava a un numero sbagliato: chi avesse ricontrollato avrebbe
+   ottenuto 21 e concluso che c'era una regressione.*
+
+*La v50 non tocca il codice e non prende decisioni nuove: allinea un conteggio
+al codice di oggi e corregge un'aritmetica che non chiudeva. Il lato sito non è
+ancora fatto e la condizione di apertura §46 resta aperta.*
 
 **Novità della v49** (vincolanti):
 
@@ -2604,15 +2621,41 @@ accettato dell'estrazione, e va saputo da chi conta le uscite — vedi il punto 
 
 **7. Come contare le uscite senza sbagliare.**
 
-Le risposte HTTP possibili sono **25** e non sono cambiate. I
-`return NextResponse.json` **scritti nella route** sono **15**, perché dieci
-uscite sono state accorpate in quattro punti di delega (le otto validazioni di
-forma in uno, i due guasti di lettura degli orari in uno, i due rifiuti slot più
-l'ASAP in uno, minimo Delivery più i 18 anni in uno).
+Due misure diverse, che vanno sempre dichiarate **insieme**: un numero da solo
+fa sospettare una regressione dove non c'è.
 
-*Chi rifacesse il conteggio con la sonda di prima otterrebbe 15 dove il
-documento dice 25, senza che nulla sia rotto.* Le due misure vanno dichiarate
-insieme, o il numero da solo fa sospettare una regressione.
+| | dopo il riordino (v46) | dopo l'aggancio del confronto prezzi (v50) |
+|---|---|---|
+| risposte HTTP possibili | 25 | **27** (+1 sul `400`, +1 sul `409`) |
+| `return NextResponse.json` scritti nella route | 15 | **17** |
+
+Lo scarto fra le due misure è **dieci**, e resta dieci: le due uscite nuove
+sono scritte nella route senza delega, quindi crescono entrambi i conteggi.
+
+**Da dove viene lo scarto.** Le uscite **accorpate** sono **quattordici**,
+raccolte in **quattro** punti di delega: le otto validazioni di forma in uno, i
+due guasti di lettura degli orari in uno, **i tre rami `409` del guard degli
+orari in uno** — i due rifiuti di slot, che valgono **una sola** uscita del
+censimento perché scelgono fra due messaggi con un ternario, più l'ASAP: **due
+uscite** — e minimo Delivery più i 18 anni in uno. Quattordici assorbite meno i
+quattro punti che restano scritti = **dieci** in meno da scrivere. La verifica:
+**27 − 14 + 4 = 17**.
+
+⚠️ *Fino alla v49 questo punto diceva "**dieci** uscite accorpate", confondendo
+la riduzione netta con il numero di uscite assorbite, e contava "i due rifiuti
+slot più l'ASAP" come **tre** dove il censimento ne conta **due** — perché il
+rifiuto slot è **una sola uscita che sceglie fra due messaggi** con un ternario.
+Con "dieci" il conto darebbe 21, non 17: la spiegazione portava al numero
+sbagliato mentre il numero pubblicato era giusto. La prima stesura della v50
+azzeccava il numero ma sbagliava il raggruppamento, scrivendo che l'ASAP era
+"scritto separatamente": **falso**, e falsificabile con un `grep` — nella route
+esiste **un solo** `status: 409` letterale, quello del confronto prezzi, mentre
+tutti e tre i rami del guard degli orari passano dall'unico punto di delega. Chi
+avesse cercato il `409` dell'ASAP nella route non l'avrebbe trovato e avrebbe
+concluso che mancava.* È la stessa doppia convenzione che il censimento tiene
+separata dicendo: contando le **uscite** si ottiene 27, contando gli **esiti che
+il cliente vede** si ottiene di più, perché una sola uscita può produrre due
+messaggi.
 
 **8. Oltre questo punto serve prima una decisione.**
 
