@@ -6,17 +6,20 @@ import { getStoreGeofencePolygon } from "../../../lib/get-store-geofence";
 import { isPointInPolygon } from "../../../lib/geo";
 import { validateRemovals } from "../../../lib/menu-removals";
 import { productLinePrice, comboLinePrice } from "../../../lib/menu-pricing";
-import { computeScheduledDeliveryAt, getScheduledSlots } from "../../../lib/scheduled-slots";
+import { getScheduledSlots } from "../../../lib/scheduled-slots";
 import {
   todayRomeDate,
   computeExceptionEffects,
   classifyScheduledSlot,
 } from "../../../lib/schedule-exceptions";
+import {
+  validateCheckoutRequest,
+  validateResolvedOrder,
+} from "../../../lib/checkout-validation";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 const DELIVERY_FEE = 2.5;
-const DELIVERY_MINIMUM_ORDER = 15;
 const GIVEMEFIVE_THRESHOLD = 25;
 const GIVEMEFIVE_DISCOUNT = 5;
 const GIVEMEFIVE_CODE = "GIVEMEFIVE";
@@ -333,65 +336,28 @@ export async function POST(request) {
     items,
     fulfillment,
     delivery,
-    pickup,
     customer,
-    privacyAccepted,
     marketingOptIn,
     ageConfirmed,
     giveMeFiveRequested,
   } = body ?? {};
 
-  if (!Array.isArray(items) || items.length === 0) {
-    return NextResponse.json({ error: "Il carrello è vuoto." }, { status: 400 });
-  }
-  if (fulfillment !== "delivery" && fulfillment !== "pickup") {
-    return NextResponse.json({ error: "Si è verificato un problema con la modalità scelta. Riprova." }, { status: 400 });
-  }
-  if (
-    !customer?.firstName?.trim() ||
-    !customer?.lastName?.trim() ||
-    !customer?.phone?.trim()
-  ) {
-    return NextResponse.json({ error: "Controlla di aver compilato nome, cognome e telefono." }, { status: 400 });
-  }
-  if (!privacyAccepted) {
-    return NextResponse.json({ error: "Per procedere, accetta l'informativa privacy." }, { status: 400 });
+  // §46b/§41-45: validazioni di forma — carrello, modalità, contatti, privacy,
+  // indirizzo, coordinate, e l'orario concordato calcolato qui da giorno+ora e
+  // mai preso pronto dal client (§12/§12b/§46). Stesse condizioni, stesso
+  // ordine e stessi messaggi di prima: sono state spostate in
+  // `lib/checkout-validation.js` perché un test possa raggiungerle davvero
+  // (§46, lavoro 1: questo file non è importabile fuori da Next), non per
+  // cambiarle. Qui resta soltanto la risposta HTTP.
+  const validation = validateCheckoutRequest(body);
+  if (!validation.ok) {
+    return NextResponse.json(validation.body, { status: validation.status });
   }
 
-  const isDelivery = fulfillment === "delivery";
-  if (isDelivery && (!delivery?.address?.trim() || !delivery?.houseNumber?.trim())) {
-    return NextResponse.json({ error: "Manca qualche dato dell'indirizzo. Controlla e riprova." }, { status: 400 });
-  }
-
-  const deliveryLatitude = isDelivery ? Number(delivery?.latitude) : null;
-  const deliveryLongitude = isDelivery ? Number(delivery?.longitude) : null;
-  if (isDelivery && (!Number.isFinite(deliveryLatitude) || !Number.isFinite(deliveryLongitude))) {
-    return NextResponse.json({ error: "Non siamo riusciti a individuare l'indirizzo. Riprova a inserirlo." }, { status: 400 });
-  }
-
-  // §12/§12b: il timestamp reale dell'orario concordato va calcolato qui —
-  // mai fidarsi di un timestamp pronto arrivato dal client (§46) — da
-  // scheduledDay/scheduledTime. Vale per la Delivery programmata e per il
-  // Ritiro (§12b: il Ritiro sceglie sempre giorno e orario, mai ASAP).
-  let scheduledDeliveryAt = null;
-  if (isDelivery && delivery?.timingType === "scheduled") {
-    scheduledDeliveryAt = computeScheduledDeliveryAt(delivery?.scheduledDay, delivery?.scheduledTime);
-    if (!scheduledDeliveryAt) {
-      return NextResponse.json(
-        { error: "Orario di consegna programmata non valido." },
-        { status: 400 }
-      );
-    }
-  }
-  if (!isDelivery) {
-    scheduledDeliveryAt = computeScheduledDeliveryAt(pickup?.scheduledDay, pickup?.scheduledTime);
-    if (!scheduledDeliveryAt) {
-      return NextResponse.json(
-        { error: "Orario di ritiro non valido." },
-        { status: 400 }
-      );
-    }
-  }
+  // I quattro valori derivati arrivano dal modulo e non si ricalcolano qui:
+  // una seconda derivazione è esattamente la doppia implementazione che §46b
+  // vieta, nel punto in cui deciderebbe zona, orario e indirizzo salvato.
+  const { isDelivery, deliveryLatitude, deliveryLongitude, scheduledDeliveryAt } = validation;
 
   const { store, errorResponse } = await getActiveStore();
   if (errorResponse) return errorResponse;
@@ -544,19 +510,13 @@ export async function POST(request) {
 
   subtotal = round2(subtotal);
 
-  // §9: ordine minimo 15€ di prodotti, solo Delivery (la fee non concorre).
-  if (isDelivery && subtotal < DELIVERY_MINIMUM_ORDER) {
-    return NextResponse.json(
-      { error: `Ordine minimo ${DELIVERY_MINIMUM_ORDER}€ di prodotti per la Delivery.` },
-      { status: 400 }
-    );
-  }
-
-  if (hasBeer && !ageConfirmed) {
-    return NextResponse.json(
-      { error: "Per ordinare alcolici devi confermare di avere almeno 18 anni." },
-      { status: 400 }
-    );
+  // §9/§33: ordine minimo Delivery (la fee non concorre) e conferma dei 18
+  // anni se il carrello contiene birre. Si possono giudicare solo qui, sul
+  // subtotale appena ricalcolato e su `hasBeer`, che nasce dalla categoria
+  // letta dal database e mai da ciò che dichiara il client.
+  const orderCheck = validateResolvedOrder({ isDelivery, subtotal, hasBeer, ageConfirmed });
+  if (!orderCheck.ok) {
+    return NextResponse.json(orderCheck.body, { status: orderCheck.status });
   }
 
   const phone = customer.phone.trim();
