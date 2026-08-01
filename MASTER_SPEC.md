@@ -1,10 +1,27 @@
 # KM DIRECT — MASTER SPECIFICATION
 
-**Versione 47** — sostituisce la v46.
+**Versione 48** — sostituisce la v47.
 
 Documento di riferimento definitivo per lo sviluppo. Le decisioni qui
 contenute sono approvate: non vanno reinterpretate senza un motivo concreto
 (vedi §73). Ogni file di codice del progetto deve rispettare queste regole.
+
+**Novità della v48** (vincolanti):
+
+1. §46 punto 8 — ⚠️ **al `409` il sito deve rileggere il listino**, non
+   limitarsi a cambiare schermata. I prezzi del carrello sono congelati da
+   quando la riga è stata creata: senza rilettura il cliente tornerebbe al
+   carrello vedendo **gli stessi numeri** che hanno causato il rifiuto, e il
+   messaggio "controlla il tuo carrello" diventerebbe un **vicolo cieco**.
+   *La regola v44 diceva "con prezzi aggiornati" dando per scontato un
+   aggiornamento che il sito non fa: emerso leggendo il codice, non provandolo.*
+2. §46 punto 8 — **nessuna evidenziazione della differenza di prezzo**
+   (decisione di Andrea, 01/08/2026): si mostrano i prezzi nuovi, senza
+   indicare quale è cambiato né di quanto.
+
+*La v48 non tocca il codice: precisa cosa deve fare il lato sito prima che
+venga costruito. Il confronto è agganciato al server dal 01/08 (`05c6bc9`), il
+lato sito non è ancora fatto, e la condizione di apertura §46 resta aperta.*
 
 **Novità della v47** (vincolanti):
 
@@ -2350,6 +2367,25 @@ sbagliarsi in silenzio.
    torna al carrello con prezzi e totale aggiornati, e l'avviso compare **una
    volta sola** — se conferma e nel frattempo nulla è cambiato ancora, prosegue
    senza ulteriori interruzioni.
+
+   ⚠️ **"Aggiornati" richiede una rilettura del listino, e non è automatico**
+   (precisazione v48). I prezzi disegnati nel carrello sono **congelati** nel
+   momento in cui la riga è stata creata, a partire dal menu letto una volta
+   sola all'apertura della pagina: cambiare schermata mostrerebbe **gli stessi
+   identici numeri** che hanno appena causato il rifiuto. Senza rilettura il
+   messaggio diventa un **vicolo cieco** — il cliente guarda, non vede nulla di
+   diverso, ripreme e viene rifiutato di nuovo. **Al `409` il sito rilegge il
+   menu e ricalcola i prezzi delle righe** con il modulo unico (v37), poi
+   riporta al carrello.
+
+   **Nessuna evidenziazione della differenza** (decisione di Andrea,
+   01/08/2026): si mostrano i prezzi nuovi e il totale nuovo, senza indicare
+   accanto alla riga quale prezzo è cambiato né di quanto. *Il caso è raro, il
+   messaggio invita già a controllare, e ricordare il prezzo precedente per
+   mostrarlo aggiungerebbe uno stato in più a un percorso che non ne ha
+   bisogno.* Se un domani i carrelli si allungassero al punto che una
+   differenza passa inosservata, la decisione va rifatta — non aggirata
+   aggiungendo l'evidenziazione di passaggio.
 
 **Ambito: solo i prezzi delle righe di carrello (decisione di Andrea,
 31/07/2026)**
