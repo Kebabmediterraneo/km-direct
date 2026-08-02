@@ -1,10 +1,45 @@
 # KM DIRECT — MASTER SPECIFICATION
 
-**Versione 50** — sostituisce la v49.
+**Versione 51** — sostituisce la v50.
 
 Documento di riferimento definitivo per lo sviluppo. Le decisioni qui
 contenute sono approvate: non vanno reinterpretate senza un motivo concreto
 (vedi §73). Ogni file di codice del progetto deve rispettare queste regole.
+
+**Novità della v51** (vincolanti):
+
+1. §46 punto 9 — **l'articolo non più ordinabile riceve lo stesso trattamento
+   del prezzo cambiato**: rilettura del menu, ritorno al carrello. ⚠️ È il caso
+   **più probabile**, non il `409`: il ciclo che risolve gli articoli gira prima
+   del confronto prezzi, quindi un `409` è possibile solo se tutte le righe si
+   sono risolte un istante prima. Senza questa estensione il vicolo cieco
+   restava in piedi proprio dove capita davvero.
+2. §46 punto 9 — **la riga non ordinabile viene tolta, e l'avviso già esistente
+   dice quale e perché** (decisione di Andrea, 01/08/2026). Si riusa l'avviso
+   del rientro, non se ne scrive uno nuovo. ⚠️ **Questa regola SOSTITUISCE
+   quella della v49 e vale su entrambi i rami**, `400` e `409`: la prescrizione
+   della v49 — la riga resta, segnata e bloccante — **non è costruibile su
+   nessuno dei due**, perché il modulo di confronto non dice quale riga ha
+   fallito e la rilettura non distingue due righe dello stesso prodotto. *Il
+   principio resta giusto e torna applicabile quando il server dirà quale riga:
+   una regola sola, non due da armonizzare.*
+3. §46 punto 9 — **due decisioni registrate come RIMANDATE, non cancellate**:
+   la riga bloccata che non conta nel totale e che non mostra prezzo. Oggi non
+   hanno oggetto perché la riga bloccata non si costruisce; *una decisione che
+   sparisce torna come domanda aperta al primo che riprende il lavoro.*
+4. §46b — ⚠️ **la geofence non superata risponde `400`, non `409`**: l'elenco
+   dei codici lo classificava male dalla v14. Finora innocuo, non più da quando
+   il sito ragiona sugli status. Allineato il documento al codice.
+5. §46 e §46b — **corrette due note di stato invecchiate**: il corpo di §46
+   diceva che il confronto "non esiste ancora" (esiste lato server dal 01/08),
+   e il lavoro sul tempo di preparazione **aveva una scadenza ancorata a un
+   altro lavoro per la seconda volta**. ⚠️ *Il difetto non era la frase, era la
+   forma: una scadenza ancorata a un evento futuro scade da sola quando
+   l'evento accade senza di lei.* Ora è un lavoro registrato senza ancoraggio.
+
+*La v51 non tocca il codice. Chiude il perimetro del lato sito prima che venga
+costruito, registra ciò che resta fuori, e allinea quattro frasi che il
+calendario aveva superato. La condizione di apertura §46 resta aperta.*
 
 **Novità della v50** (vincolanti):
 
@@ -2359,8 +2394,13 @@ chiusura più volte durante il lavoro, quindi va detto senza ambiguità:
 
 **Il requisito resta quello scritto sopra**: al checkout il server deve
 confrontare il prezzo mostrato al cliente con quello reale e **fermarsi con un
-avviso comprensibile**. Non esiste ancora. Va tolto da questo elenco solo
-quando quel confronto sarà implementato e verificato, non prima.
+avviso comprensibile**. ⚠️ **Il confronto lato server esiste dal 01/08/2026**
+(`05c6bc9`): la route riceve il prezzo mostrato, lo confronta al centesimo e si
+ferma con `409`. *Fino alla v50 questo punto diceva "non esiste ancora", e chi
+lo leggeva concludeva che non esistesse una riga di codice.* **Manca il lato
+sito** — la gestione del rifiuto — quindi la condizione di apertura **resta
+aperta** e va tolta da questo elenco solo quando anche quello sarà costruito e
+verificato dal vivo, non prima.
 
 **Come si chiude: il confronto prezzo mostrato / prezzo reale (v44,
 vincolante)**
@@ -2427,33 +2467,84 @@ sbagliarsi in silenzio.
    differenza passa inosservata, la decisione va rifatta — non aggirata
    aggiungendo l'evidenziazione di passaggio.
 
-   ⚠️ **Se una riga non è più ordinabile, NON si toglie dal carrello**
-   (decisione di Andrea, 01/08/2026, vincolante). La rilettura del menu può
-   scoprire che un articolo è **sparito**, è diventato **esaurito**, o che una
-   sua opzione non esiste più. In quel caso la riga **resta dov'è**, segnata
-   come non disponibile, e **il pagamento è bloccato** finché il cliente non la
-   toglie o la modifica.
-
-   *Perché non si toglie*: è la stessa scelta già fatta per l'indirizzo fuori
-   zona (§36-40 v41) — non si cancella, si mostra e si blocca — e per la stessa
-   ragione. Questa sezione stabilisce che se qualcosa non regge più lo si dice
-   in chiaro **al rientro e non alla pressione di "Paga ora"**; il `409` accade
-   precisamente alla pressione di "Paga ora", quindi togliere una riga in quel
-   momento sarebbe il rifiuto secco che la regola vieta. **Il cliente decide
-   cosa fare del proprio carrello, sempre.**
-
-   ⚠️ **Conseguenza sull'avviso delle rimozioni**: l'avviso che spiega le righe
-   tolte è oggi nascosto mentre il checkout è aperto, perché nasceva per il
-   solo rientro. Con questa decisione al `409` non ci sono righe tolte da
-   spiegare — ma la riga bloccata **deve essere visibile e comprensibile**
-   dentro il carrello, non silenziosa.
-
    ⚠️ **Se la rilettura del menu fallisce** (rete assente, database che non
    risponde), il cliente non deve restare col messaggio del listino e i prezzi
    vecchi, che è il vicolo cieco descritto sopra. Si mostra: `Non riusciamo ad
    aggiornare il menu. Ricarica la pagina.` (decisione di Andrea, 01/08/2026).
    *È un guasto nostro e il messaggio lo dice senza accusare il cliente, come
    il `400` di §46 punto 6.*
+
+**9. Stesso trattamento per l'articolo non più ordinabile (v51, vincolante)**
+
+Il rifiuto per **articolo non più ordinabile** — `400`, testo `Un articolo del
+carrello non è più disponibile.` — riceve lo **stesso trattamento** del `409`
+sui prezzi: rilettura del menu, ricalcolo, ritorno al carrello. *Senza,
+resterebbe il vicolo cieco proprio sul caso più probabile.*
+
+⚠️ **Perché è il caso più probabile e non il `409`**: il ciclo che risolve gli
+articoli gira **prima** del confronto dei prezzi, quindi un `409` è possibile
+**solo se tutte le righe si sono risolte con successo** un istante prima.
+Segnare un articolo esaurito è invece l'unica operazione che §67 permette sul
+menu **durante il servizio**, ed è quella che la persona che ritocca un prezzo
+può fare nello stesso giro.
+
+**La riga non ordinabile viene tolta, e l'avviso già esistente dice quale e
+perché** (decisione di Andrea, 01/08/2026). Si riusa l'avviso che il carrello
+mostra già al rientro dopo una chiusura del browser — titolo *"Abbiamo
+aggiornato il tuo carrello"* e una voce per riga, *"«nome»: «ragione»."* — e
+**non se ne scrive uno nuovo**: due testi che dicono la stessa cosa
+divergerebbero, ed è la seconda implementazione che §46b vieta.
+
+⚠️ **Questa regola SOSTITUISCE quella che la v49 aveva scritto, e vale su
+entrambi i rami — `400` e `409`.** La v49 prescriveva che la riga **restasse**
+nel carrello, segnata e bloccante, perché *"il cliente decide cosa fare del
+proprio carrello"* e perché §36-40 vieta il rifiuto secco alla pressione di
+"Paga ora". **Il principio resta giusto; la prescrizione non è costruibile**, e
+non solo sul `400`: gli stessi due ostacoli valgono identici sul `409`.
+
+*Gli ostacoli, verificati sul codice*: il modulo di confronto **si ferma alla
+prima riga che non va e deliberatamente non dice quale**, quindi il `409` è un
+verdetto sul carrello intero e il sito non riceve — né riceverà — l'indice della
+riga; e lo strumento che rilegge il menu restituisce **l'id del prodotto**, non
+l'identificatore della riga, quindi con due righe dello stesso prodotto e
+proteine diverse non le distingue. **Segnare "questa riga" è oggi impossibile su
+entrambi i rami**: si può solo togliere e raccontare.
+
+⚠️ *Non c'è quindi una regola per il `400` e una per il `409`: c'è **una regola
+sola**. Chi rilegge non deve cercare due comportamenti né armonizzarli a naso —
+la v49 è superata, non affiancata.*
+
+L'attenuante che rende la scelta accettabile: **non è il rifiuto secco che
+§36-40 vieta.** Quella sezione prescrive che gli articoli non più disponibili si
+tolgano **dicendo quale e perché in chiaro**, ed è esattamente ciò che l'avviso
+fa. La differenza fra la regola della v49 e questa non è "spiegato contro
+silenzioso", è **"il cliente sceglie" contro "il sistema toglie e racconta"**.
+
+**La regola della v49 torna applicabile quando il server dirà quale riga e
+perché** (lavoro registrato più sotto): solo allora il sito potrà segnare la
+riga giusta invece di toglierla. È la ragione per cui quel lavoro esiste, e va
+fatto insieme al rilascio dell'indice della riga dal modulo di confronto — **uno
+senza l'altro non basta**, perché i due rami hanno ciascuno il proprio
+ostacolo.
+
+**Decisioni RIMANDATE, non cancellate (v51)**
+
+Due decisioni prese il 01/08/2026 **restano prese ma oggi non hanno oggetto**,
+perché presupponevano la riga bloccata che non si costruisce. *Sono registrate
+qui e non cancellate: una decisione che sparisce torna come domanda aperta al
+primo che riprende il lavoro.*
+
+- **Una riga bloccata non conta nel totale.** Il totale è quello che il cliente
+  pagherebbe davvero; contare una riga non ordinabile permetterebbe di superare
+  l'ordine minimo grazie a qualcosa che non si può comprare. ⚠️ *Quando si
+  costruirà, tocca **tre** calcoli indipendenti del totale e i quindici usi che
+  ne discendono — ordine minimo, soglia sconto, upsell, righe mostrate — e vale
+  anche su **cosa parte** verso il server, non solo su cosa si somma a schermo.*
+- **Una riga bloccata non mostra prezzo**, ma la ragione per cui non è
+  ordinabile. *Nota: il precedente del menu va nella direzione opposta — lì il
+  prezzo resta ed è l'azione a sparire (pulsante grigio "Esaurito"). Quando si
+  costruirà, si prenda da lì il **trattamento grafico del blocco**, non la
+  regola sul prezzo.*
 
 **Ambito: solo i prezzi delle righe di carrello (decisione di Andrea,
 31/07/2026)**
@@ -2740,8 +2831,17 @@ non prescritte):
 - Formato di ogni risposta di errore: JSON `{ "error": "<messaggio>" }`.
 - **400** — richiesta malformata, dati mancanti o invalidi.
 - **409** — richiesta ben formata ma non accettabile nello stato attuale
-  del servizio: fuori orario, turno chiuso, slot non più disponibile,
-  geofence non superata. È il codice del punto 3 qui sopra.
+  del servizio: fuori orario, turno chiuso, slot non più disponibile, **prezzo
+  cambiato mentre il cliente ordinava** (§46 v44). È il codice del punto 3 qui
+  sopra.
+  ⚠️ **La geofence non superata risponde `400`, non `409` (correzione v51).**
+  Questo elenco la classificava fra i `409` fin dalla v14 mentre il codice ha
+  sempre risposto `400`. Finora non aveva conseguenze pratiche — il client
+  mostrava comunque il testo — ma **da quando il sito ragiona sugli status ne
+  ha**, e il documento non deve dire il falso su un codice che qualcuno userà
+  per decidere cosa fare. *Non si allinea il codice al documento: si allinea il
+  documento al codice, perché è il codice a essere in produzione da settimane e
+  a essere fotografato dal caso `riga-406`.*
 - **500** — errore interno.
 - Il client deve mostrare al cliente il contenuto di `error` per qualsiasi
   risposta non-ok, in modo visibile nell'interfaccia e non solo in
@@ -2840,14 +2940,19 @@ limite, e deve aggiungere il controllo esplicito nello stesso lavoro.
    **Non è una condizione di apertura** (decisione dell'utente del
    30/07/2026): il cliente onesto non può raggiungerlo, perché il sito offre
    solo gli slot calcolati, e il danno è un orario irrealistico, non un ordine
-   a locale chiuso né un prezzo sbagliato. ⚠️ **Fino alla v46 questo punto
-   diceva "si chiude insieme al lavoro 1 di §46".** Quel lavoro — l'estrazione
-   della logica della route in `lib/` — **è chiuso dal 01/08/2026** e questo
-   controllo non è stato costruito: la frase è rimasta indietro. **Si chiude
-   con l'aggancio del confronto dei prezzi**, che è la prossima e ultima
-   riapertura prevista di quel file, per la ragione di sempre: non si
-   rimaneggia il percorso del pagamento insieme ad altro, quindi quando si apre
-   si apre per tutto ciò che è registrato.
+   a locale chiuso né un prezzo sbagliato.
+
+   ⚠️ **Questo lavoro non ha una scadenza ancorata a un altro lavoro, e non
+   deve averne (v51).** Fino alla v46 diceva "si chiude insieme al lavoro 1 di
+   §46"; la v47 corresse in "si chiude con l'aggancio del confronto dei
+   prezzi". **Entrambi quei lavori sono stati completati senza portarsi dietro
+   questo controllo**, e la frase è invecchiata due volte in due giorni. *Il
+   difetto non era la frase, era la forma: una scadenza ancorata a un evento
+   futuro scade da sola quando l'evento accade senza di lei.* Resta un lavoro
+   registrato con la sua ragione, e si chiude quando lo si fa — vale comunque
+   la regola di sempre: non si rimaneggia il percorso del pagamento insieme ad
+   altro, quindi quando quel file si apre, si apre per tutto ciò che è
+   registrato.
 
 2. **Le finestre orarie si costruiscono in due punti**: uno alimenta il guard,
    l'altro genera gli slot **offerti** al cliente. Confrontati il 30/07/2026,
