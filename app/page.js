@@ -104,6 +104,13 @@ const GIVEMEFIVE_DISCOUNT = 5;
 const ITEM_UNAVAILABLE_MESSAGE = "Un articolo del carrello non è più disponibile.";
 const PRICE_CHANGED_MESSAGE = "Abbiamo aggiornato il listino, controlla il tuo carrello";
 
+// §46 punto 8 (v49) — la rilettura del listino non è riuscita.
+// ⚠️ Questo testo NON è la copia di niente e **non entra nel test di
+// allineamento**: §46b lo registra esplicitamente come messaggio che *nasce nel
+// sito*, perché è il sito a non essere riuscito a rileggere il menu. Il server
+// non lo pronuncia mai, quindi non c'è nessuna seconda copia da tenere allineata.
+const MENU_REFRESH_FAILED_MESSAGE = "Non riusciamo ad aggiornare il menu. Ricarica la pagina.";
+
 // §36-40 (v36): il carrello si conserva nella memoria della SINGOLA SCHEDA
 // (sessionStorage): dura la visita, sopravvive all'andata e ritorno dal
 // pagamento perché è la stessa scheda, sparisce chiudendo la scheda. La chiave
@@ -2579,9 +2586,11 @@ function CheckoutScreen({
           await onMenuRejection(response.status === 409 ? data.error : null);
           // Nessun `setIsSubmitting(false)`: questa schermata sta per essere
           // smontata dal passaggio al carrello. Se invece la rilettura
-          // fallisse, l'eccezione risale al `catch` qui sotto, che sblocca il
-          // pulsante e mostra il messaggio — è il punto in cui il passo 3
-          // innesterà il testo deciso da §46 punto 8.
+          // fallisse, l'eccezione risale al `catch` qui sotto già tradotta nel
+          // testo di §46 punto 8 (`Non riusciamo ad aggiornare il menu…`), che
+          // la mostra sotto il pulsante e lo rimette premibile: il cliente
+          // resta qui, con una via d'uscita, invece che davanti a prezzi
+          // vecchi che il server continuerebbe a rifiutare.
           return;
         }
 
@@ -3385,10 +3394,29 @@ export default function Home() {
   // Se qui si riscrivesse il calcolo, il confronto tornerebbe a fallire per una
   // ragione nostra invece che per un listino che si è mosso.
   async function refreshMenuAndReturnToCart(listinoMessage) {
-    // Un guasto qui non viene inghiottito: risale a chi ha chiamato, che oggi
-    // lo mostra col messaggio tecnico. Il testo deciso da §46 punto 8 per la
-    // rilettura fallita è il passo 3 e sostituirà solo quel messaggio.
-    const fresh = await fetchMenuData();
+    // §46 punto 8 (v49): se la rilettura non riesce, il cliente non deve
+    // restare col messaggio del listino e i prezzi vecchi — è esattamente il
+    // vicolo cieco che il ritorno al carrello esiste per chiudere. L'eccezione
+    // viene tradotta nel testo deciso e risale a chi ha chiamato, il cui
+    // `catch` la mostra sotto il pulsante e lo rimette premibile. Il dettaglio
+    // tecnico resta nel log, come fa la route col guasto di sistema: al cliente
+    // la parola, a noi la causa.
+    //
+    // ⚠️ COPRE SOLO LA RILETTURA CHE SOLLEVA — rete assente, database che non
+    // risponde. Un guasto **parziale** di `fetchMenuData` non solleva affatto:
+    // otto delle nove query non controllano il proprio errore, diventano liste
+    // vuote, e `restoreCart` legge quel vuoto come "una scelta non è più
+    // disponibile", togliendo righe **sane**. Quel caso non passa da qui e
+    // questo `catch` non lo protegge — è il lavoro registrato in spec sulla
+    // protezione dal guasto parziale. Chi legge non deve credere che sia
+    // coperto perché vede un `try`.
+    let fresh;
+    try {
+      fresh = await fetchMenuData();
+    } catch (err) {
+      console.error("Rilettura del menu fallita dopo un rifiuto:", err);
+      throw new Error(MENU_REFRESH_FAILED_MESSAGE);
+    }
     setMenuData(fresh);
 
     // Il carrello vivo torna alla forma conservata e da lì si ricostruisce: è
