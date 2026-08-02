@@ -72,6 +72,38 @@ const DELIVERY_MINIMUM_ORDER = 15;
 const GIVEMEFIVE_THRESHOLD = 25;
 const GIVEMEFIVE_DISCOUNT = 5;
 
+// §46 punti 8 e 9 (v51) — I DUE SOLI RIFIUTI CHE RIGUARDANO IL MENU.
+//
+// Su questi due, e su nessun altro, il sito rilegge il listino e riporta al
+// carrello. Sono uno per status, e **lo status da solo non basta a
+// riconoscerli**: sono entrambi minoranza dentro il proprio codice.
+//
+//  - status 400 → QUATTORDICI testi distinti, e solo uno è questo. Gli altri
+//    tredici (privacy da spuntare, ordine minimo, 18 anni, indirizzo
+//    incompleto…) vanno mostrati dentro il checkout, dove il cliente può
+//    rimediare: rileggere il menu su quelli lo butterebbe fuori dal checkout
+//    per una casella da spuntare.
+//  - status 409 → QUATTRO testi distinti, e solo uno è questo. Gli altri tre
+//    sono i rifiuti del guard degli orari (`lib/checkout-timing.js`: slot di
+//    ritiro, slot di consegna programmata, ASAP non più possibile). Quelli
+//    devono restare nel checkout perché è lì che vive il selettore dell'orario
+//    (§41-45 v18: il cliente sceglie un nuovo slot **senza tornare indietro**,
+//    "una sola pagina"). Portarli al carrello significherebbe mostrargli
+//    "scegline un altro" in una schermata che non ha nulla da scegliere.
+//
+// ⚠️ Il riconoscimento è sul TESTO perché oggi non esiste altro modo: la
+// risposta porta solo `{ error }` e uno status condiviso. È il motivo per cui
+// "il server dica quale riga e perché" è un lavoro registrato in spec.
+//
+// ⚠️ Sono SECONDE COPIE di stringhe che vivono in `app/api/checkout/route.js`.
+// Non sono importate: quel file è il percorso di pagamento, che non si riapre
+// per spostare una costante (§46 v46) e che oggi non potremmo riscattare con la
+// fotografia. Le copie sono tenute allineate da
+// `tests/checkout-messages.test.mjs`, che fallisce se divergono — un controllo
+// che può fallire, non un commento che spera.
+const ITEM_UNAVAILABLE_MESSAGE = "Un articolo del carrello non è più disponibile.";
+const PRICE_CHANGED_MESSAGE = "Abbiamo aggiornato il listino, controlla il tuo carrello";
+
 // §36-40 (v36): il carrello si conserva nella memoria della SINGOLA SCHEDA
 // (sessionStorage): dura la visita, sopravvive all'andata e ritorno dal
 // pagamento perché è la stessa scheda, sparisce chiudendo la scheda. La chiave
@@ -431,6 +463,32 @@ async function fetchMenuData() {
     comboDrinkOptions,
     comboPricingByRoll,
     comboBaseStandard,
+  };
+}
+
+// §36-40 / §46 punto 9: il catalogo nella forma che `restoreCart` si aspetta —
+// una mappa piatta id → prodotto, più i tre elenchi del combo che in `menuData`
+// hanno già il nome giusto.
+//
+// Era scritto in linea dentro l'effetto del rientro. Da quando serve anche alla
+// rilettura dopo un rifiuto (§46 punto 9) i punti che ne hanno bisogno sono
+// due, e due copie di una mappa divergono: la prima volta che qualcuno
+// aggiungesse una categoria a `categoryProducts` la ricostruzione del rientro e
+// quella del rifiuto vedrebbero cataloghi diversi.
+//
+// ⚠️ Gli articoli esauriti restano DENTRO la mappa, di proposito: `restoreCart`
+// deve poterli vedere per toglierli con il motivo giusto ("non è più
+// disponibile") invece che col motivo sbagliato ("non è più nel menu").
+function buildRestoreCatalog(menuData) {
+  const productsById = {};
+  for (const list of Object.values(menuData.categoryProducts)) {
+    for (const p of list) productsById[p.id] = p;
+  }
+  return {
+    productsById,
+    comboPricingByRoll: menuData.comboPricingByRoll,
+    comboSideOptions: menuData.comboSideOptions,
+    comboDrinkOptions: menuData.comboDrinkOptions,
   };
 }
 
@@ -2367,6 +2425,7 @@ function CheckoutScreen({
   onCustomerFieldChange,
   onBack,
   onChangeAddress,
+  onMenuRejection,
 }) {
   const isDelivery = fulfillmentMode === "delivery";
   const hasBeer = items.some((item) =>
@@ -2493,6 +2552,39 @@ function CheckoutScreen({
 
       const data = await response.json();
       if (!response.ok) {
+        // §46 punti 8 e 9 (v51): due soli rifiuti riguardano il MENU — il `409`
+        // sui prezzi cambiati e il `400` sull'articolo non più ordinabile. Su
+        // quelli il sito rilegge il listino e riporta al carrello, perché
+        // restare qui col messaggio sarebbe un vicolo cieco: i prezzi disegnati
+        // sono congelati dall'apertura della pagina, quindi il cliente
+        // rileggerebbe gli stessi numeri che l'hanno appena fatto respingere.
+        //
+        // ⚠️ Si guardano status **e testo**, su entrambi i rami. Nessuno dei
+        // due status identifica da solo il proprio caso: 400 vale per
+        // quattordici messaggi e 409 per quattro (i tre del guard degli orari
+        // più questo). Sul 409 la simmetria non è un vezzo — senza il confronto
+        // sul testo, uno slot scaduto porterebbe il cliente al carrello, cioè
+        // nell'unica schermata in cui non può scegliere un altro orario.
+        // Tutto ciò che non è questi due va al `throw` qui sotto e resta nel
+        // checkout, esattamente come prima di questo lavoro.
+        const riguardaIlMenu =
+          (response.status === 409 && data.error === PRICE_CHANGED_MESSAGE) ||
+          (response.status === 400 && data.error === ITEM_UNAVAILABLE_MESSAGE);
+
+        if (riguardaIlMenu) {
+          // Al `409` il messaggio del listino viaggia fino al carrello (§46
+          // punto 8, "l'avviso compare una volta sola"). Al `400` no: là parla
+          // l'avviso delle righe tolte, che dice quale articolo e perché,
+          // mentre il testo del server non dice quale (§46 punto 9).
+          await onMenuRejection(response.status === 409 ? data.error : null);
+          // Nessun `setIsSubmitting(false)`: questa schermata sta per essere
+          // smontata dal passaggio al carrello. Se invece la rilettura
+          // fallisse, l'eccezione risale al `catch` qui sotto, che sblocca il
+          // pulsante e mostra il messaggio — è il punto in cui il passo 3
+          // innesterà il testo deciso da §46 punto 8.
+          return;
+        }
+
         throw new Error(data.error || "Non siamo riusciti a completare l'ordine. Riprova tra poco.");
       }
       window.location.href = data.url;
@@ -2931,6 +3023,14 @@ export default function Home() {
   // finché la ricostruzione non è stata TENTATA, il salvataggio non parte, così
   // il carrello vuoto del mount non cancella quello conservato prima di leggerlo.
   const [removedFromCart, setRemovedFromCart] = useState([]);
+  // §46 punto 8: al `409` il messaggio del listino deve arrivare fino al
+  // carrello, dove il cliente vede i prezzi nuovi ("l'avviso compare una volta
+  // sola"). Non può vivere in `CheckoutScreen`, che viene smontato proprio nel
+  // passaggio al carrello e si porterebbe via il messaggio insieme a sé.
+  // ⚠️ Al `400` resta null di proposito: là l'avviso delle righe tolte dice
+  // QUALE articolo e PERCHÉ, mentre il testo del server ("un articolo…") non
+  // dice quale e non aggiungerebbe nulla (§46 punto 9).
+  const [cartNotice, setCartNotice] = useState(null);
   const hydratedRef = useRef(false);
   // §36-40 (v42): guardia del CHECKOUT, separata da quella del carrello e con
   // una condizione di prontezza sua. Quella del carrello attende `menuData`,
@@ -2995,10 +3095,8 @@ export default function Home() {
 
   // §36-40 (v36): RICOSTRUZIONE. Parte quando il menu fresco è pronto e UNA
   // VOLTA SOLA (guardia hydratedRef). Se non c'è nulla di conservato il
-  // comportamento è identico a oggi. Il catalogo che restoreCart si aspetta si
-  // ottiene qui con un adattatore inline: una mappa piatta id→prodotto ricavata
-  // da categoryProducts (esauriti inclusi: restoreCart deve poterli vedere per
-  // toglierli col motivo); gli altri tre campi combaciano già con menuData.
+  // comportamento è identico a oggi. Il catalogo che restoreCart si aspetta lo
+  // prepara `buildRestoreCatalog`, condiviso con la rilettura di §46 punto 9.
   useEffect(() => {
     if (!menuData || hydratedRef.current) return;
     hydratedRef.current = true;
@@ -3006,17 +3104,7 @@ export default function Home() {
     const saved = readSavedCart();
     if (!saved) return; // niente conservato → come oggi
 
-    const productsById = {};
-    for (const list of Object.values(menuData.categoryProducts)) {
-      for (const p of list) productsById[p.id] = p;
-    }
-
-    const { items, removed } = restoreCart(saved, {
-      productsById,
-      comboPricingByRoll: menuData.comboPricingByRoll,
-      comboSideOptions: menuData.comboSideOptions,
-      comboDrinkOptions: menuData.comboDrinkOptions,
-    });
+    const { items, removed } = restoreCart(saved, buildRestoreCatalog(menuData));
 
     if (items.length > 0) setCartItems(items);
     if (removed.length > 0) setRemovedFromCart(removed);
@@ -3277,6 +3365,51 @@ export default function Home() {
     setCartItems((prev) => prev.filter((item) => item.key !== key));
   }
 
+  // §46 punti 8 e 9 (v51): RILETTURA DOPO UN RIFIUTO CHE RIGUARDA IL MENU.
+  // Rilegge il listino, ricostruisce il carrello sui dati freschi e riporta il
+  // cliente al carrello. Vale identica sui due rami — `409` prezzi cambiati e
+  // `400` articolo non più ordinabile — perché la spec ne fa **una regola
+  // sola**: la riga non ordinabile si toglie e l'avviso già esistente dice
+  // quale e perché.
+  //
+  // ⚠️ Perché vive qui e non in `CheckoutScreen`, dove la richiesta parte: non
+  // è comodità, è la regola dei consensi. Qui stanno il carrello, il catalogo e
+  // l'adattatore; portare `handlePay` quassù trascinerebbe con sé i tre
+  // consensi, che §36-40 (v39) vuole nello stato locale del checkout **proprio
+  // perché si azzerino a ogni apertura**. La richiesta resta là, il rimedio
+  // arriva da qui come funzione.
+  //
+  // ⚠️ Il ricalcolo passa dallo STESSO `restoreCart` del rientro, non da un
+  // secondo giro di formule: i prezzi delle righe rinascono da `menu-pricing`,
+  // cioè dallo stesso modulo con cui il server ha appena ricalcolato (§46 v37).
+  // Se qui si riscrivesse il calcolo, il confronto tornerebbe a fallire per una
+  // ragione nostra invece che per un listino che si è mosso.
+  async function refreshMenuAndReturnToCart(listinoMessage) {
+    // Un guasto qui non viene inghiottito: risale a chi ha chiamato, che oggi
+    // lo mostra col messaggio tecnico. Il testo deciso da §46 punto 8 per la
+    // rilettura fallita è il passo 3 e sostituirà solo quel messaggio.
+    const fresh = await fetchMenuData();
+    setMenuData(fresh);
+
+    // Il carrello vivo torna alla forma conservata e da lì si ricostruisce: è
+    // lo stesso giro del rientro, e `prepareCart` scarta ciò che non ha un
+    // `ref` valido esattamente come quando si salva.
+    const { items, removed } = restoreCart(prepareCart(cartItems), buildRestoreCatalog(fresh));
+
+    // ⚠️ Entrambe le assegnazioni sono INCONDIZIONATE, a differenza dell'effetto
+    // del rientro che le protegge con `length > 0`. Là la guardia è innocua —
+    // al montaggio non c'è nulla da sovrascrivere — qui sarebbe un difetto:
+    // con `items` vuoto il cliente resterebbe davanti alle righe che l'avviso
+    // sopra dichiara tolte, e con `removed` vuoto resterebbe a schermo un
+    // avviso vecchio, che sembrerebbe la spiegazione di questo rifiuto.
+    setCartItems(items);
+    setRemovedFromCart(removed);
+    setCartNotice(listinoMessage ?? null);
+
+    setCheckoutOpen(false);
+    setCartOpen(true);
+  }
+
   // §36-40 (v36): aggiornatori dei campi scritti dal cliente nel checkout —
   // stessa forma di prima, ora in Home perché lo stato vive qui.
   function updateDeliveryField(field, value) {
@@ -3394,11 +3527,35 @@ export default function Home() {
         )}
       </header>
 
-      {/* §36-40 (v36): avviso di ciò che è stato tolto al RIENTRO — non alla
-          pressione di "Paga ora". Compare solo sul menu (mai in checkout), è
-          chiudibile, elenca gli articoli col nome di oggi e il motivo. Per un
-          articolo sparito dal menu (senza nome, §36-40) usa una formula
-          generica. */}
+      {/* §46 punto 8: il messaggio del listino, portato fin qui dal rifiuto che
+          ha fatto rileggere il menu. Compare accanto ai prezzi nuovi — che è
+          l'unico posto in cui "controlla il tuo carrello" significa qualcosa —
+          e sparisce quando il cliente riparte verso il pagamento.
+          ⚠️ Nessuna evidenziazione di quale prezzo sia cambiato né di quanto
+          (decisione di Andrea, 01/08/2026): si mostrano i numeri nuovi e basta. */}
+      {cartNotice && !checkoutOpen && (
+        <div
+          style={{
+            background: "var(--surface-white)",
+            border: "1px solid var(--warning-yellow)",
+            borderRadius: 12,
+            padding: 14,
+            marginBottom: 16,
+            fontSize: 14,
+            fontWeight: 700,
+            color: "var(--navy)",
+          }}
+        >
+          {cartNotice}
+        </div>
+      )}
+
+      {/* §36-40 (v36): avviso di ciò che è stato tolto — al RIENTRO, e dalla
+          v51 anche dopo un rifiuto che riguarda il menu (§46 punto 9), dove è
+          l'avviso che dice QUALE riga è stata tolta e PERCHÉ. Compare solo sul
+          menu e nel carrello (mai in checkout), è chiudibile, elenca gli
+          articoli col nome di oggi e il motivo. Per un articolo sparito dal
+          menu (senza nome, §36-40) usa una formula generica. */}
       {removedFromCart.length > 0 && !checkoutOpen && (
         <div
           style={{
@@ -3480,6 +3637,7 @@ export default function Home() {
             setCheckoutOpen(false);
             setCartOpen(false);
           }}
+          onMenuRejection={refreshMenuAndReturnToCart}
         />
       ) : cartOpen ? (
         <CartScreen
@@ -3493,6 +3651,11 @@ export default function Home() {
           onQuickAdd={quickAddToCart}
           onClose={() => setCartOpen(false)}
           onGoToCheckout={() => {
+            // §46 punto 8: "l'avviso compare una volta sola". Il cliente ha
+            // visto i prezzi nuovi e sta ripartendo verso il pagamento: se
+            // nulla è cambiato ancora, prosegue senza ritrovarsi davanti il
+            // messaggio di prima. Un nuovo rifiuto lo riscriverà.
+            setCartNotice(null);
             setCartOpen(false);
             setCheckoutOpen(true);
           }}
