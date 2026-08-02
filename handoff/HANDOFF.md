@@ -12,27 +12,27 @@ Web app per ordini **delivery e ritiro** di **FAME Srl / KM Kebab Mediterraneo**
 (Bologna, store `san-mamolo`). Stack **Next.js 14 + Supabase + Stripe (sandbox)**.
 Repo: **github.com/Kebabmediterraneo/km-direct** (branch `main`, push via SSH).
 La fonte di verità di tutte le decisioni è **`MASTER_SPEC.md`** — versione attuale
-**v50** (leggila sempre dall'intestazione, riga 3).
+**v52** (leggila sempre dall'intestazione, riga 3).
 
 ---
 
 ## 2) Stato git
 
 - Branch **`main`**, working tree **pulita**, allineata a `origin/main`.
-- HEAD: **`fe4bcc2`**.
+- HEAD: **`be7324b`**.
 - Ultimi commit (dal più recente):
 
 ```
+be7324b spec: v52 — condizione di apertura sui prezzi chiusa e verificata dal vivo, e corretta la frase sui consensi che si azzerano tornando al carrello §46
+dade165 checkout: la rilettura del menu fallita mostra il testo deciso invece dell'errore tecnico §46
+4304910 checkout: il sito riconosce i due rifiuti che riguardano il menu da status e testo, rilegge il listino e riporta al carrello §46
+3f9403f spec: v51 — stesso trattamento per l'articolo non ordinabile con la riga tolta e spiegata, decisioni sulla riga bloccata rimandate, geofence 400 e scadenze senza ancoraggio §46 §46b
+9705d4a checkout: il sito manda il prezzo unitario mostrato per ogni riga, dallo stesso calcolo del server §46
+b5a6f7f handoff: aggiorna a v50 — aggancio del confronto prezzi registrato, criterio nuovo della fotografia, conteggi spostati in spec e lezioni su descrizioni del codice e conteggi eseguiti
 fe4bcc2 spec: v50 — conteggio delle uscite aggiornato a 27 e 17, e aritmetica dello scarto corretta con il raggruppamento vero dei rami 409 §46
 98d8f0a spec: v49 — la riga non piu' ordinabile resta nel carrello e blocca il pagamento, e testo per la rilettura del menu fallita §46 §46b
 d5876e7 spec: v48 — al 409 il sito rilegge il listino prima di riportare al carrello, e nessuna evidenziazione della differenza di prezzo §46
 05c6bc9 checkout: confronto fra prezzo mostrato e reale agganciato prima di ogni scrittura, e casi della fotografia estesi ai tre esiti del guard §46 §46b
-c08b30b spec: v47 — fissato il testo del 400 per prezzo mostrato assente e corretta la promessa scaduta sul tempo di preparazione §46 §46b
-9ebc503 handoff: aggiorna a v46 — tappa 2 chiusa con la mappa della route per fasi, quattro ordini di prova contati dai log, e lezioni su sonde che tacciono e impronte che non proteggono il senso
-71d0c88 spec: v46 — forma dell'estrazione della route, sentinella importata e mai ricreata con il danno reale nei due punti, rinunce motivate e confine oltre cui serve una decisione §46 §46b
-4feb96d checkout-timing: guard degli orari estratto con i tre rami intatti, guasto di lettura come READ_ERROR tradotto dalla route e primo test su un ramo di guasto reale §46b
-a0114a7 checkout-resolve: resolver degli articoli estratti in un modulo che possiede supabaseAdmin, READ_ERROR condiviso per identita' e asimmetria store preservata §46 §46b
-2ff7225 checkout: la scelta del messaggio di rifiuto slot passa al modulo dei calendari, 409 confezionato dalla route e comportamento invariato §46b
 ```
 
 *Nota ricorrente, non un errore*: l'HEAD scritto qui è sempre quello
@@ -440,6 +440,29 @@ az. **I conteggi si eseguono, non si `grep`ano.** Stesso giorno: `grep -c 'id: '
    catalogo (`CASI.length`) e **leggendo** le righe trovate una per una.
    *Un conteggio testuale su codice conta stringhe, non cose: se il numero
    finisce in un documento, va preso da un'esecuzione o da una lettura.*
+ba. ⚠️ **Una condizione scritta sulla forma attesa invece che su quella vera:
+   la stessa lezione, per la terza volta in due giorni.** Il 02/08 il ramo del
+   sito riconosceva il rifiuto per articolo dal **testo** (giusto: i `400`
+   distinti sono quattordici) e quello per prezzo dal **solo status** (sbagliato:
+   i `409` sono quattro). Il caso concreto: uno slot scaduto sarebbe finito nel
+   carrello, **dove il selettore dell'orario non esiste**, contro §41-45 v18.
+   *È emerso contando le uscite `409` nel codice, non rileggendo il
+   ragionamento — e la parte istruttiva è che era già stato evitato sull'altro
+   lato dello stesso `if`.*
+bb. ⚠️ **Un guard di test che non poteva fallire nel modo che dichiarava.** Il
+   controllo doveva verificare che un testo nella route fosse **codice e non un
+   commento**; usava `includes` sull'intero file, quindi commentando la riga la
+   sottostringa restava trovabile e il test continuava a passare. *Scoperto
+   **mutando il file in memoria** per vedere se scattava, non rileggendolo.*
+   È la lezione `w` in forma nuova: **ogni guard nuovo va provato a fallire**,
+   e la prova va fatta sul caso che il guard dichiara di coprire, non su uno
+   più facile.
+bc. **Un `includes` su un documento non conta le occorrenze che vanno a capo.**
+   Un conteggio del testo di un messaggio nella spec dava **1** invece di **3**,
+   perché il documento manda a capo dentro i backtick. *Le tre lezioni `ba`,
+   `bb` e `bc` sono la stessa cosa in tre forme, e sono tornate tutte nello
+   stesso giro: **quello che si può eseguire non si rilegge — si esegue, e poi
+   si guarda se il controllo poteva davvero fallire**.*
 
 ---
 
@@ -484,6 +507,17 @@ az. **I conteggi si eseguono, non si `grep`ano.** Stesso giorno: `grep -c 'id: '
   10b. **Verificata dal vivo da Andrea su sei prove, tutte superate.** Chiude
   la condizione di apertura §36-40. ⚠️ Due strade restano **non provate dal
   vivo** per scelta: vedi punto 10b.
+- **Confronto fra prezzo mostrato e prezzo addebitato** (§46) — *01-02/08/2026*,
+  punti 11b-11f. Server e sito: il prezzo mostrato viaggia con la richiesta, il
+  server confronta al centesimo e si ferma prima di qualunque scrittura, il sito
+  rilegge il listino e riporta al carrello. **Verificato dal vivo da Andrea su
+  due rami** — prezzo cambiato e articolo esaurito, entrambi a carrello pieno.
+  Chiude la condizione di apertura §46. ⚠️ **Il ramo dello slot scaduto è
+  verificato solo leggendo**: vedi §11f.e.
+- **Route di pagamento riordinata** (§46, v46) — *01/08/2026*, punto 11d: da
+  **691 a 332 righe**, con il comportamento verificato identico su 20 casi dopo
+  ognuno dei quattro passi. *Non è una funzione per il cliente: è ciò che rende
+  verificabile tutto il resto.*
 
 ---
 
@@ -985,16 +1019,24 @@ l'errore delle lezioni `s` e `z`, commesso già quattro volte su questo stesso
 elenco. Vanno **riletti dal database**, mai ricalcolati per somma — il numero
 di `POST` visto nel log è un indizio, non un conteggio.
 
-- **`orders`: 19 righe, tutte di prova** (26-30/07/2026), più **29 righe** in
-  `order_items`, di cui **4 con rimozioni**. Quattro ordini con pagamento
-  `succeeded` in sandbox — `KM-0001`, `KM-0008`, `KM-0015`, `KM-0019` — gli
-  altri quindici `pending`. Da `KM-0009` in poi sono tutte verifiche dal vivo
-  del ciclo dei prezzi e della persistenza (punti 9 e 10).
-- **`customers`: 38 righe, tutte di prova.** Sono **dati personali**, per quanto
-  inventati. Diciannove hanno un ordine collegato, **diciannove no**: sono
+- **`orders`: 30 righe, tutte di prova** (26/07 → 01/08/2026), più **52 righe**
+  in `order_items`. Quattro ordini con pagamento `succeeded` in sandbox —
+  `KM-0001`, `KM-0008`, `KM-0015`, `KM-0019` — gli altri **26** `pending`.
+  *Gli undici dopo `KM-0019` sono le verifiche del 31/07-01/08: quattro scatti
+  della fotografia durante il riordino, gli altri della sessione precedente.
+  L'ultimo è `KM-0030`, 01/08.*
+- **`customers`: 40 righe, tutte di prova.** Sono **dati personali**, per quanto
+  inventati. Ventuno hanno un ordine collegato, **diciannove no**: sono
   passaggi di checkout interrotti, perché il cliente viene scritto **prima**
   dell'ordine. Nessuna ha email o consenso marketing. Anche la riga intestata
   "Andrea Pastore" è una prova, non una persona.
+
+⚠️ **La verifica dal vivo di §46 del 02/08 non ha aggiunto nulla** — né ordini
+né righe cliente — e lo confermano due fonti indipendenti: il log del server
+(solo un `400` e un `409`, nessun `200`) e il database (l'ordine più recente
+resta `KM-0030` del 01/08). *È la prima verifica dal vivo che non lascia
+residui, ed è la conferma pratica di §46 punto 7: entrambi i rifiuti cadono
+prima di qualunque scrittura, riga cliente compresa.*
 - **`order_status_history`: 23 righe** — venti su `KM-0001`, tre su `KM-0015`.
   Segue gli ordini per cancellazione a catena, ma va **nominata**: una tabella
   che non compare in un elenco non viene riletta. *Sono prove dell'utente sui
@@ -1002,13 +1044,15 @@ di `POST` visto nel log è un indizio, non un conteggio.
 - **`promo_redemptions`: 1 riga** — `GIVEMEFIVE` su `KM-0001`. §14 dà **un solo
   utilizzo per cliente**: finché esiste, quel telefono non può più usare il
   codice.
-- **`staff_action_log`: 66 righe, di cui 43 di test** su quattro identificatori
+- **`staff_action_log`: 70 righe, di cui 43 di test** su quattro identificatori
   — `staff:test-spice` (15), `staff:test-fase1` (12), `staff:test-fase2a` (9),
-  `staff:test-merge` (7). Le altre **23**
+  `staff:test-merge` (7). Le altre **27**
   (`staff:bologna@kebabmediterraneo.com`) sono azioni vere sul menu vero:
   **restano**, sono l'audit trail imposto da §66 e sono **l'unica eccezione**
-  all'azzeramento. *Erano 21: le due in più sono la messa e rimessa in
-  disponibilità di un articolo durante la verifica dell'avviso (punto 10).*
+  all'azzeramento. *Le quattro più recenti sono la verifica di §46 del 02/08:
+  prezzo di un articolo 8→9 e poi 9→8, disponibilità tolta e rimessa. Il menu è
+  tornato allo stato di partenza, e il valore precedente non va ricordato a
+  memoria — §66 lo registra in ogni riga.*
 - **Vuote al 29/07/2026**, da ricontrollare comunque: `analytics_events`,
   `coupons`, `staff_settings`, `store_schedule_exceptions`.
 
@@ -1095,7 +1139,7 @@ Dentro ogni `item` arrivano oggi **due soli campi**: `quantity` e `ref`.
 Nessun prezzo. Il campo nuovo dovrà entrare in **due** posti: la
 destrutturazione del corpo e il ciclo.
 
-**f. Come si eseguono i test** — **dodici** suite (erano nove), tutte in
+**f. Come si eseguono i test** — **tredici** suite, tutte in
 `tests/` e con estensione **`.mjs`** (non `.js`), perché vanno eseguite da Node
 fuori da Next. In `package.json` **non esiste uno script `test`**: si lanciano
 uno per uno con `node tests/<nome>.test.mjs`, oppure tutti con
@@ -1222,7 +1266,8 @@ righe** (−52%) in cinque commit, tutti fra le 05:34 e le 06:45 del 01/08/2026:
 20 casi. Le decisioni di forma che ne sono uscite stanno in **spec §46, blocco
 "Forma dell'estrazione"** (v46) — non qui: qui c'è lo stato.
 
-Suite: **9 → 12**, asserzioni **345 → 449**.
+Suite: **9 → 12**, asserzioni **345 → 449**. *Numeri di allora: dopo la tappa 4
+sono **13** e **461** (§11f).*
 
 **b. La mappa della route, per fasi** — *scritta per fasi e non per numeri di
 riga, perché i numeri invecchiano da soli: quelli di §11b.e sono diventati
@@ -1368,12 +1413,98 @@ non sarebbe esercitata da nulla.
 cadevano sul guard), il secondo **un ordine**, da `riga-690`. *Contati dai log,
 non a memoria.*
 
-⚠️ **h. Il sito e il server sono FUORI PASSO, ed è temporaneo.** `app/page.js`
-non manda ancora `unitPriceShown`: un ordine composto dal browser riceverebbe
-il `400` "Si è verificato un problema". È committato ma **non distribuito**, e
-si chiude con la tappa 4. *Fino ad allora non si prova un ordine dal browser.*
+✅ **h. Il disallineamento è chiuso** (`9705d4a`, 01/08 23:38). *Fino a quel
+commit il sito non mandava `unitPriceShown` e un ordine dal browser riceveva un
+`400`; questa sezione lo dichiarava e la frase è stata vera per poche ore.*
+Dal `9705d4a` sito e server sono in passo, e dal 02/08 l'ordine dal browser è
+stato composto e verificato dal vivo (§11f).
+
+## 11f) Il lato sito e la chiusura di §46 — tappa 4 (01-02/08/2026)
+
+**a. I tre commit di codice**
+
+| commit | quando | cosa |
+|---|---|---|
+| `9705d4a` | 01/08 23:38 | il sito manda `items[].unitPriceShown`, dallo **stesso calcolo del server** |
+| `4304910` | 02/08 10:38 | riconosce i due rifiuti che riguardano il menu, rilegge il listino, riporta al carrello |
+| `dade165` | 02/08 10:50 | il testo deciso quando la rilettura fallisce |
+
+Dimensioni dopo: `app/page.js` **3827 righe**, `route.js` **415** (non toccata).
+**13 suite, 461 asserzioni** — contate eseguendo, non con `grep` (lezione `az`).
+
+**b. ⚠️ Il rifiuto si riconosce dal TESTO, non dallo status.** È il punto più
+insidioso dell'intera tappa. I testi distinti che il cliente può ricevere sono
+**quattordici** con `400` e **quattro** con `409`; **due soli** riguardano il
+menu. Riconoscerli dal solo codice numerico significherebbe buttare fuori dal
+checkout un cliente a cui manca la spunta della privacy, o uno a cui è scaduto
+lo slot — e quest'ultimo si ritroverebbe nel carrello, **dove il selettore
+dell'orario non c'è**, contro §41-45 v18.
+
+*Il difetto è stato scritto e poi trovato prima del commit: la prima stesura
+agganciava il `400` al testo e il `409` al solo status. È emerso **contando le
+uscite `409` nel codice**, non rileggendo il ragionamento.* Oggi la condizione è
+simmetrica e `tests/checkout-messages.test.mjs` tiene allineate le due copie dei
+testi fra sito e route, con guard verificati capaci di fallire.
+
+**c. Cosa fa il sito al rifiuto** — rilegge il menu con `fetchMenuData`,
+ricalcola le righe con `restoreCart` e lo **stesso** adattatore del rientro
+(estratto in `buildRestoreCatalog`, perché due copie divergerebbero), posa
+righe, avviso e messaggio, **poi** cambia schermata. L'ordine conta: le
+assegnazioni stanno tutte prima del passaggio al carrello.
+
+Le assegnazioni sono **incondizionate**, al contrario di quelle del rientro:
+così il carrello si svuota davvero se tutte le righe cadono, e l'avviso si
+azzera davvero invece di lasciare a schermo quello vecchio — che sembrerebbe la
+spiegazione di questo rifiuto.
+
+**d. Chi mostra cosa** — al `409` compare sopra il carrello il messaggio del
+listino; al `400` **no**, e di proposito: là parla l'avviso delle righe tolte,
+che dice **quale** articolo e **perché**, mentre il testo del server non lo dice.
+
+⚠️ **La gestione è rimasta in `CheckoutScreen` con una funzione passata
+dall'alto**, non spostata in `Home`. La ragione non è comodità: i tre consensi
+vivono nello stato locale del checkout **apposta perché si azzerino** (§36-40
+v39), e portare su la richiesta li avrebbe trascinati con sé.
+
+**e. ✅ Verificato dal vivo da Andrea il 02/08/2026**, su due rami:
+prezzo cambiato dal pannello a carrello pieno, e articolo messo esaurito nella
+stessa situazione. Entrambi si comportano come deciso.
+
+⚠️ **Un ramo NON è stato provato dal vivo: lo slot scaduto.** È verificato solo
+leggendo il percorso, più il controllo automatico che impedisce di riconoscere
+il rifiuto dal solo status. *Non appartiene a §46 e si comporta come prima di
+questo lavoro — ma è il **primo punto da riprovare** se qualcuno tocca quel
+ramo. Non era impossibile da provare: bastava aspettare che uno slot scadesse.*
+
+**f. La prova non ha lasciato residui**, per la prima volta (dettaglio al punto
+11). Il menu è tornato allo stato di partenza.
+
+**g. Cosa resta registrato e non fatto** — sta in **spec §46**, non qui: il
+server che dica **quale riga** e perché (una frase sola copre dodici cause) e
+il rilascio dell'indice dal modulo di confronto, che vanno insieme perché i due
+rami hanno ciascuno il proprio ostacolo; la protezione dal **guasto parziale**
+di `fetchMenuData`, dove sette query su nove falliscono in silenzio; le due
+cause che la rilettura non vede (filtro store, extra carne nel combo); e le due
+decisioni **rimandate** sulla riga bloccata.
 
 ## 12) To-do / prossimi passi (in ordine)
+
+### FATTA — §46, il confronto fra prezzo mostrato e prezzo addebitato
+
+**Chiusa il 02/08/2026**, verificata dal vivo. È la **seconda** condizione di
+apertura che si chiude, dopo Persistenza (§36-40) il 30/07. Il racconto sta ai
+punti **11b** (il modulo), **11c** (la fotografia), **11d** (il riordino della
+route), **11e** (l'aggancio al server) e **11f** (il lato sito).
+
+Cinque tappe, tutte chiuse: il modulo che decide · la rete di sicurezza · il
+riordino della route da 691 a 332 righe · l'aggancio al server · il lato sito.
+⚠️ **Resta aperta la tappa 3b**, che non era parte della condizione: tempo di
+preparazione, griglia dei quarti d'ora, e unificazione delle due costruzioni
+delle finestre orarie. *Vive nel percorso di pagamento, e vale la regola di
+sempre: non si riapre quel file per una cosa sola.*
+
+⚠️ **Ciò che questo lavoro NON ha chiuso** è elencato in §11f.g e vive in spec
+§46, non qui.
 
 ### FATTA — Persistenza dei dati del checkout (§36-40, §41-45)
 
@@ -1414,49 +1545,31 @@ volta, ed è il motivo per cui questo lavoro è stato fatto prima del resto.
 *I blocchi "Novità" delle versioni passate non sono stati toccati: sono il
 diario delle decisioni di allora, non affermazioni sull'oggi.*
 
-### PROSSIMO — §46, deciso da Andrea il 31/07/2026
+### PROSSIMO — a scelta fra i due qui sotto
 
-**Il confronto fra prezzo mostrato e prezzo addebitato al checkout.** Scelto da
-Andrea fra i due lavori rimasti, con la Fase 3 subito dopo.
+Con §46 chiusa restano **cinque** condizioni di apertura (elenco più sotto).
+⚠️ **Almeno due richiedono ancora di scrivere codice**: le analytics di §65 —
+una dozzina di eventi da tracciare, più la pagina dei carrelli abbandonati — e
+il **collegamento** all'informativa privacy nel checkout, che va scritto anche
+se il documento si procura altrove. Le altre tre — Stripe live, dominio,
+pulizia dei dati di prova — sono da procurare o configurare, e possono
+camminare in parallelo.
 
-Restano **sei** condizioni di apertura (elenco più sotto): **§46 è l'unica che
-richieda di scrivere codice**; le altre cinque sono cose da procurare o
-configurare, e possono camminare in parallelo. *Fino alla v42 questa riga
-diceva "le prime due sono lavoro di codice", in contraddizione con la frase
-successiva: era sbagliata.*
+*§46 era però l'unica che richiedesse di **costruire una funzione nuova**, ed è
+questa la differenza che contava. ⚠️ Fino alla v50 questa riga diceva "§46 è
+l'unica che richieda di scrivere codice": era imprecisa, ed è la seconda volta
+che questo punto viene scritto male — fino alla v42 diceva "le prime due sono
+lavoro di codice", in contraddizione con la frase successiva.*
 
-**Il lavoro è in cinque tappe. Le prime tre sono fatte, la terza a metà.**
+**I due lavori fra cui scegliere:**
 
-1. ✅ **Il modulo che decide** — `lib/price-guard.js`, costruito e verificato
-   il 31/07/2026 (§11b). Non agganciato a nulla.
-1b. ✅ **La rete di sicurezza** — la fotografia del comportamento della route
-   (§11c). `tests/snapshot-prima.json` è la base di confronto, e **non si
-   rigenera**.
-2. ✅ **Il riordino della route** — fatto il 01/08/2026 in cinque commit
-   (§11d): da **691 a 332 righe**, fotografia riscattata quattro volte con zero
-   differenze. Le regole di forma che ne sono uscite sono in **spec §46 v46**.
-   ⚠️ *L'estrazione si è fermata alla logica; la sequenza delle scritture resta
-   nella route e non si spezza senza prima decidere dove passa il confine
-   dell'incoerenza (§11d.f).*
-3a. ✅ **L'aggancio al server** — fatto il 01/08/2026, commit `05c6bc9`
-   (§11e): il campo `items[].unitPriceShown`, il confronto prima di qualunque
-   scrittura, le due uscite nuove, e tre casi nuovi nella fotografia che per la
-   prima volta provano il `409`.
-3b. ⬜ **Gli altri due lavori registrati nello stesso file** — riverifica del
-   tempo di preparazione e della **griglia dei quarti d'ora** (§46b v40, che
-   dalla v47 si chiude **qui**), e unificazione delle **due costruzioni delle
-   finestre orarie**. *Vivono nel percorso di pagamento e vale la regola di
-   sempre: non si riapre quel file per una cosa sola.*
-4. ⬜ **Il lato sito e la prova dal vivo** — **completamente specificato in spec
-   §46 punto 8 (v48 e v49)**, e più intricato di quanto sembrasse: il sito manda
-   `unitPriceShown`; al `409` **rilegge il listino** e ricalcola i prezzi (senza
-   rilettura il messaggio è un vicolo cieco, perché i prezzi del carrello sono
-   congelati); **nessuna evidenziazione** della differenza; una riga non più
-   ordinabile **resta nel carrello** bloccando il pagamento invece di sparire; e
-   un messaggio se la rilettura fallisce. Poi Andrea prova: carrello pieno,
-   prezzo cambiato da un'altra finestra, e deve comparire l'avviso.
-   ⚠️ **Fino ad allora sito e server sono fuori passo** (§11e.h): un ordine dal
-   browser riceverebbe il `400`. Non provare dal browser prima.
+- ⬜ **Tappa 3b di §46** — riverifica del tempo di preparazione e della
+  **griglia dei quarti d'ora** (§46b, lavoro registrato), e unificazione delle
+  **due costruzioni delle finestre orarie**. *Non era parte della condizione di
+  apertura, ma vive nel percorso di pagamento: vale la regola di sempre, non si
+  riapre quel file per una cosa sola.* ⚠️ **Da fare senza ancorarlo a una
+  scadenza futura**: quella frase è già invecchiata due volte (spec §46b, v51).
+- ⬜ **Fase 3 — creazione di articoli semplici** (blocco più sotto).
 
 ⚠️ **L'aggiornamento dei documenti è parte della tappa, non un lavoro a parte**
 (regola di Andrea, 01/08/2026): una tappa non è chiusa finché spec e handoff non
@@ -1569,21 +1682,29 @@ carrello**, non sulla riga.
   **vuoto ovunque** e non c'è modo di caricare una foto dal pannello. Lavoro
   autonomo, da fare per tutti gli articoli insieme.
 
-### Condizioni di apertura — **sei aperte, una chiusa**
+### Condizioni di apertura — **cinque aperte, due chiuse**
 
 - ✅ **Persistenza** (§36-40): **CHIUSA il 30/07/2026.** Carrello (punto 10) e
   dati del checkout (punto 10b), entrambi verificati dal vivo. *È la prima
   condizione di apertura che si chiude.*
-- **Confronto prezzo mostrato vs prezzo addebitato** al checkout (§46). ⚠️ Non
-  è stata chiusa dal ciclo dei prezzi: quello ha unificato il **calcolo**, non
-  ha creato il **confronto**. Chi tiene la pagina aperta durante un cambio di
-  prezzo vede il vecchio e pagherebbe il nuovo.
-- **Informativa privacy**: serve il documento, poi link nel checkout (§41-45).
+- ✅ **Confronto prezzo mostrato vs prezzo addebitato** al checkout (§46):
+  **CHIUSA il 02/08/2026**, verificata dal vivo (§11f). *È la **seconda** che si
+  chiude.* Cinque tappe: il modulo, la rete di sicurezza, il riordino della
+  route, l'aggancio al server, il lato sito.
+- **Informativa privacy**: serve il documento, poi il **link nel checkout**
+  (§41-45). ⚠️ *Il documento si procura, il collegamento **si scrive**: questa
+  voce non è di sola configurazione.*
 - **Stripe live** (oggi sandbox).
 - **Dominio** `ordina.kebabmediterraneo.it`.
-- **Analytics** (§65).
+- **Analytics** (§65). ⚠️ *È **lavoro di codice**, non configurazione: una
+  dozzina di eventi da tracciare più la pagina dei carrelli abbandonati nel
+  pannello staff.*
 - **Pulizia dei residui di test** (punto 11) — da **rileggere** dal database,
   mai ricopiare da qui.
+
+⚠️ **Restano cinque condizioni aperte, e due di esse richiedono di scrivere
+codice** — analytics e il collegamento all'informativa. *§46 era però l'unica
+che richiedesse di **costruire una funzione nuova**.*
 
 *Non è una condizione di apertura*: **WhatsApp**, che la spec colloca in
 **fase 1.1** (§71) e che §52-56 dichiara esplicitamente fuori dalla specifica
@@ -1602,14 +1723,18 @@ spec; tolto in v40.
   rimozioni** (§18). Nessun codice deve mai ricavare i dati di un articolo da
   quelli di un altro. *Al 29/07/2026 tutte e 7 le coppie hanno set di allergeni
   identici, di fatto e non per vincolo.*
-- ⚠️ **Prezzo mostrato vs prezzo addebitato** (§46): chi tiene la pagina già
-  aperta durante un cambio prezzo vede il vecchio e paga il nuovo. **Il ciclo
-  dei prezzi NON ha chiuso questa condizione di apertura**: ha unificato il
-  calcolo, quindi sito e server non possono più contare in modo diverso, ma il
-  menu resta letto **una volta sola** e il confronto fra prezzo mostrato e
-  prezzo reale non esiste ancora. Non dichiararla risolta (lezione `ae`). Lo
-  stesso meccanismo vale per gli allergeni, ma lì **non c'è alcun controllo al
-  checkout**: è la ragione della regola "fuori orario di servizio".
+- ✅ **Prezzo mostrato vs prezzo addebitato** (§46): **chiuso il 02/08/2026**
+  (§11f). Chi tiene la pagina aperta durante un cambio prezzo continua a vedere
+  il vecchio — il menu resta letto **una volta sola** — ma al pagamento **non
+  viene più addebitato il nuovo in silenzio**: il server confronta e si ferma,
+  il sito rilegge il listino e riporta al carrello. *Fino alla v50 questo punto
+  diceva che il confronto "non esiste ancora", contraddicendo §11e dello stesso
+  documento.*
+  ⚠️ **Lo stesso meccanismo vale per gli allergeni, e lì resta scoperto**: non
+  c'è alcun controllo al checkout, ed è la ragione della regola "gli allergeni
+  si modificano fuori dall'orario di servizio". *Decisione di Andrea del 31/07:
+  restano fuori dal confronto **finché quella regola regge** — se cade, la
+  decisione va rifatta prima, non dopo (spec §46).*
 - **Ordini in sospeso destinati a moltiplicarsi** (§65): ogni arrivo alla pagina
   di pagamento crea un `pending`. Con la persistenza del carrello tornare
   indietro diventerà normale, e ogni giro lascerà un `pending` orfano di un
