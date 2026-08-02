@@ -1,10 +1,39 @@
 # KM DIRECT — MASTER SPECIFICATION
 
-**Versione 51** — sostituisce la v50.
+**Versione 52** — sostituisce la v51.
 
 Documento di riferimento definitivo per lo sviluppo. Le decisioni qui
 contenute sono approvate: non vanno reinterpretate senza un motivo concreto
 (vedi §73). Ogni file di codice del progetto deve rispettare queste regole.
+
+**Novità della v52** (vincolanti):
+
+1. §46 — ✅ **la condizione di apertura sui prezzi è CHIUSA** (02/08/2026).
+   Server e sito sono entrambi in piedi, e Andrea ha verificato dal vivo due
+   rami: prezzo cambiato dal pannello a carrello pieno, e articolo messo
+   esaurito nella stessa situazione. *La prova non ha lasciato residui — né
+   ordini né righe cliente — perché entrambi i rifiuti cadono prima di
+   qualunque scrittura: conferma pratica del punto 7.*
+   ⚠️ **Un ramo resta verificato solo da lettura**: lo slot scaduto, che
+   risponde `409` con un testo diverso. Non appartiene a §46 e si comporta come
+   prima di questo lavoro, ma è il primo punto da riprovare se qualcuno lo
+   tocca.
+2. §46 punto 8 — **corretta una frase falsa**: diceva che chi conferma
+   *"prosegue senza ulteriori interruzioni"*. Tornando al carrello il checkout
+   si chiude e **i tre consensi si azzerano**, quindi il cliente deve
+   rispuntare la privacy (e i 18 anni con le birre) prima di ripagare. ⚠️ *Non
+   è un difetto: è la regola dei consensi di §36-40 v39 — sono **atti**, non
+   dati — che funziona come deve. Era la frase di §46 a non conoscerla.*
+
+*Con la v52 le condizioni di apertura aperte scendono **da sei a cinque**. È la
+**seconda** che si chiude: la prima fu la persistenza dei dati del checkout, il
+30/07/2026. ⚠️ Delle cinque rimaste, **almeno due richiedono ancora di scrivere
+codice** — le analytics di §65 (una dozzina di eventi da tracciare, più la
+pagina dei carrelli abbandonati) e il collegamento all'informativa privacy nel
+checkout, che va scritto anche se il documento si procura altrove. Le altre —
+Stripe live, dominio, pulizia dei dati di prova — sono configurazione.
+**§46 era però l'unica che richiedesse di costruire una funzione nuova**, ed è
+questa la differenza che contava.*
 
 **Novità della v51** (vincolanti):
 
@@ -2309,12 +2338,12 @@ di pagamento e richiede un ciclo di verifica dedicato, non un intervento
 incastrato dentro un altro lavoro. *Regola operativa nel frattempo*: i
 prezzi si modificano preferibilmente **fuori dall'orario di servizio**.
 
-*Requisito obbligatorio prima del go-live*: al checkout il server deve
-**confrontare il prezzo mostrato al cliente con quello reale** e, se
-differiscono, **fermarsi con un avviso comprensibile** invece di addebitare
-in silenzio un importo diverso da quello visto. Questa voce va trattata
-come le altre condizioni di apertura (informativa privacy, Stripe live,
-dominio). *Dalla v30 non figura più fra queste il "travaso dati test →
+✅ *Requisito obbligatorio prima del go-live — **soddisfatto il 02/08/2026***:
+al checkout il server **confronta il prezzo mostrato al cliente con quello
+reale** e, se differiscono, **si ferma con un avviso comprensibile** invece di
+addebitare in silenzio un importo diverso da quello visto. Il dettaglio della
+chiusura è più sotto, nel blocco "La condizione di apertura è CHIUSA".
+*Dalla v30 non figura più fra le condizioni di apertura il "travaso dati test →
 produzione": esiste un solo database, vedi §66.*
 
 **Un solo calcolo del prezzo di riga (v37, vincolante)**
@@ -2377,30 +2406,35 @@ dimostra che le regole coincidono sui dati di oggi, non l'instradamento.
 server, in due commit separati — così la persistenza del carrello (§36-40) si
 sblocca già dal primo, senza attendere che si tocchi il percorso di pagamento.
 
-⚠️ **La condizione di apertura resta aperta (v38)**
+✅ **La condizione di apertura è CHIUSA (v52, 02/08/2026)**
 
-Il lavoro sull'unificazione del calcolo è concluso nel codice — modulo unico,
-sito, server — e **non ha chiuso questa sezione**. È stato scambiato per una
-chiusura più volte durante il lavoro, quindi va detto senza ambiguità:
+Il lavoro sull'unificazione del calcolo aveva concluso solo metà del problema, e
+va ricordato perché la distinzione resta utile:
 
-- ciò che è stato chiuso sono le divergenze **di regola**: sito e server non
-  possono più contare in modo diverso, perché non contano più due volte;
-- ciò che resta aperto sono le divergenze **di dato**: il menu è letto dal
-  browser **una volta sola** al caricamento della pagina, quindi chi tiene il
-  sito aperto mentre un prezzo cambia continua a vedere il vecchio, e al
-  pagamento gli verrebbe addebitato il nuovo. Lo stesso modulo, alimentato da
-  due fotografie diverse dello stesso database, dà due risultati diversi — ed è
-  corretto che li dia.
+- le divergenze **di regola** erano già chiuse: sito e server non possono
+  contare in modo diverso, perché non contano più due volte;
+- restavano aperte le divergenze **di dato**: il menu è letto dal browser **una
+  volta sola** al caricamento, quindi chi teneva il sito aperto mentre un prezzo
+  cambiava continuava a vedere il vecchio, e al pagamento gli sarebbe stato
+  addebitato il nuovo. Lo stesso modulo, alimentato da due fotografie diverse
+  dello stesso database, dà due risultati diversi — ed è corretto che li dia.
 
-**Il requisito resta quello scritto sopra**: al checkout il server deve
-confrontare il prezzo mostrato al cliente con quello reale e **fermarsi con un
-avviso comprensibile**. ⚠️ **Il confronto lato server esiste dal 01/08/2026**
-(`05c6bc9`): la route riceve il prezzo mostrato, lo confronta al centesimo e si
-ferma con `409`. *Fino alla v50 questo punto diceva "non esiste ancora", e chi
-lo leggeva concludeva che non esistesse una riga di codice.* **Manca il lato
-sito** — la gestione del rifiuto — quindi la condizione di apertura **resta
-aperta** e va tolta da questo elenco solo quando anche quello sarà costruito e
-verificato dal vivo, non prima.
+**Quel divario è ora coperto**: il server confronta il prezzo mostrato con
+quello reale e si ferma (`05c6bc9`, 01/08); il sito manda il prezzo mostrato
+(`9705d4a`), riconosce il rifiuto, rilegge il listino e riporta al carrello
+(`4304910`, `dade165`, 02/08).
+
+**Verificato dal vivo il 02/08/2026** da Andrea, su due rami: prezzo cambiato
+dal pannello mentre il carrello era pieno, e articolo messo esaurito nella
+stessa situazione. Entrambi si comportano come deciso. *La prova non ha lasciato
+alcun residuo — né ordini né righe cliente — perché entrambi i rifiuti cadono
+prima di qualunque scrittura: è la conferma pratica del punto 7.*
+
+⚠️ **Un ramo non è stato provato dal vivo**: lo **slot scaduto**, che risponde
+`409` con un testo diverso. È verificato solo leggendo il codice, più un test
+automatico che impedisce di riconoscere il rifiuto dal solo status. *Non
+appartiene a §46 — si comporta oggi come si comportava prima di questo lavoro —
+ma è il primo punto da riprovare se qualcuno tocca quel ramo.*
 
 **Come si chiude: il confronto prezzo mostrato / prezzo reale (v44,
 vincolante)**
@@ -2445,8 +2479,19 @@ sbagliarsi in silenzio.
    ripulire (§65).
 8. **Cosa vede il cliente**: il carrello **non viene svuotato** (§9, §46b),
    torna al carrello con prezzi e totale aggiornati, e l'avviso compare **una
-   volta sola** — se conferma e nel frattempo nulla è cambiato ancora, prosegue
-   senza ulteriori interruzioni.
+   volta sola** — se conferma e nel frattempo nulla è cambiato ancora, il
+   pagamento non viene più fermato.
+
+   ⚠️ **"Non fermato" non vuol dire "senza passaggi" (correzione v52).** Fino
+   alla v51 questo punto diceva *"prosegue senza ulteriori interruzioni"*, ed
+   **era falso**: tornare al carrello chiude il checkout, e i tre consensi
+   vivono nel suo stato locale **apposta perché si azzerino** (§36-40 v39: sono
+   **atti**, non dati). Rientrando, il cliente deve **rispuntare la privacy** —
+   e i 18 anni se il carrello contiene birre — prima di poter ripagare; il
+   consenso di marketing si azzera anch'esso ma non blocca, perché è
+   facoltativo. *Vale su entrambi i rami, `409` e `400`, perché entrambi passano
+   dal carrello.* **Non è un difetto da correggere: è la regola dei consensi che
+   funziona come deve**, ed è la frase di §46 che andava allineata al codice.
 
    ⚠️ **"Aggiornati" richiede una rilettura del listino, e non è automatico**
    (precisazione v48). I prezzi disegnati nel carrello sono **congelati** nel
