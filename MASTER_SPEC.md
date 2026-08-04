@@ -1,10 +1,44 @@
 # KM DIRECT — MASTER SPECIFICATION
 
-**Versione 53** — sostituisce la v52.
+**Versione 54** — sostituisce la v53.
 
 Documento di riferimento definitivo per lo sviluppo. Le decisioni qui
 contenute sono approvate: non vanno reinterpretate senza un motivo concreto
 (vedi §73). Ogni file di codice del progetto deve rispettare queste regole.
+
+**Novità della v54** (vincolanti, dal giro di verifica sull'infrastruttura e sul
+database del 04/08/2026):
+
+1. §66 — ✅ **il piano Supabase Pro è attivo e i backup esistono.** La condizione
+   nata dal giro privacy è **chiusa**: le copie sono ripristinabili e coprono i
+   sette giorni dichiarati al punto 11.7 dell'informativa, che da falso diventa
+   vero senza toccare il documento.
+2. §66 — **la regione del database è verificata**: Irlanda, `eu-west-1`. I punti
+   9 e 12 dell'informativa dicono il vero. *Non era mai stato controllato da
+   nessuno: la regione non compariva né in spec né nell'handoff.*
+3. §66 — **lo stato delle RLS non è più ignoto.** Protezione attiva su tutte e
+   23 le tabelle, dieci in lettura pubblica e tredici chiuse, nessuna regola di
+   scrittura da nessuna parte. Elenco e conseguenze nel blocco nuovo.
+4. §69 — **la pulizia diventa due strumenti separati, non uno.** Rovescia la
+   formulazione della v53, che ne prevedeva uno solo riusato due volte.
+5. §69 — **gli ordini `failed` seguono la regola dei `pending`**: mai pagati,
+   massimo trenta giorni. E **si stacca invece di cancellare** dove la struttura
+   lo consente, per non erodere l'audit trail di §66.
+6. §65 — **gli eventi statistici non potranno essere scritti dal browser** (le
+   RLS lo impediscono) e **il tipo di evento è già un elenco chiuso nel
+   database**, che nessuno ha ancora letto.
+7. §63-64 — **le regole dello slug sono decise**, e diventano regole invece di
+   osservazioni: non esisteva alcun codice che ne generasse uno.
+
+*Con la v54 le condizioni di apertura aperte scendono a **quattro** nell'elenco
+storico — Stripe live, dominio, analytics §65, pulizia dei residui — più **una**
+delle due nate dal giro privacy, la procedura mensile di §69. **Cinque in
+tutto.** Il piano Supabase Pro è chiuso. Delle cinque, una sola richiede di
+scrivere codice: le analytics di §65.*
+
+⚠️ *Il conteggio va riletto ogni volta che l'elenco cambia, e va dichiarato con
+entrambe le misure — elenco storico e voci nuove — perché è già rimasto indietro
+due volte e le due misure divergono da sole.*
 
 **Novità della v53** (vincolanti, dal giro privacy e GDPR del 02-03/08/2026):
 
@@ -3608,7 +3642,8 @@ diretto sul DB):
   rimuove, va tolto a mano quando il mese finisce — e conviene non usarlo sul
   prodotto **KM Special**, per non leggere "KM Special · Special del mese";
 - `sort_order`: numero intero;
-- `slug`: **non editabile** (identificatore, `unique(store_id, slug)`);
+- `slug`: **non editabile** (identificatore, `unique(store_id, slug)`). Regole di
+  **generazione** alla creazione: v54, blocco qui sotto;
 - `id`: mai modificabile (§25, identità immutabile).
 
 **Conferma esplicita sul cambio di prezzo**: la modifica di `base_price`
@@ -3684,6 +3719,31 @@ apertura possibile. Lo staff può comunque segnare di nuovo esaurito un
 prodotto durante la giornata in qualsiasi momento — questo reset avviene
 solo una volta, la mattina.
 
+### Fase 3 — generazione dello `slug` (decisioni di Andrea del 04/08/2026, vincolanti)
+
+**Perché serviva una decisione.** `products.slug` è **obbligatorio e senza generazione automatica**: verificato il 04/08/2026 sul database — nessun valore predefinito, nessuna colonna calcolata, nessun trigger di inserimento. Se il pannello non lo produce, la creazione di un articolo **fallisce**. Non è un dettaglio di forma, è un blocco della Fase 3.
+
+⚠️ **Non c'era nulla da riusare.** Una ricognizione di sola lettura sul repository (04/08/2026) ha accertato che **non esiste alcun codice che costruisca uno slug a partire da un nome**: né una funzione, né una trasformazione in SQL, né una dipendenza esterna. L'unico precedente è la migrazione delle salse del 28/07, dove i sette slug sono una **mappatura letterale scritta a mano**, con nome e slug come due elenchi indipendenti accostati per id. *Il file contiene l'esito di sette scelte, non la regola.*
+
+⚠️ **La convenzione descritta finora era un'osservazione, non una regola.** Le sette salse esercitano tre comportamenti — minuscolo, spazio → trattino, apostrofo → trattino — e **non ne esercitano altri tre**: accenti, `&`, numeri. Nessun nome delle sette li contiene. Con la v54 tutti e sei diventano **decisi**, non osservati (distinzione della lezione `ay`).
+
+**Le regole, vincolanti:**
+
+1. tutto **minuscolo**;
+2. **accenti tolti** (`è` → `e`);
+3. **spazi** → trattino;
+4. **apostrofi** → trattino;
+5. **`&` eliminata**;
+6. **numeri e unità invariati**.
+
+**Lo slug si genera dal nome, in automatico.** Nessun campo da compilare nel form: Andrea scrive il nome e basta. Un campo in più è un campo in cui sbagliare, su un valore che non arriva mai al cliente.
+
+**In collisione il pannello si ferma.** Se lo slug calcolato esiste già per quello store, il salvataggio viene rifiutato con un messaggio che dice di **cambiare il nome**. ⚠️ **Non si aggiunge un numero in coda in automatico**: due articoli con lo stesso nome sono quasi sempre un doppione creato per errore, e un sistema che lo aggiusta in silenzio lo lascia nel menu senza che nessuno se ne accorga. *Il rifiuto deve arrivare dal nostro controllo con un messaggio comprensibile, non dall'errore di vincolo del database.*
+
+**La regola vive in un modulo unico** sotto `lib/`, non dentro l'interfaccia, come `menu-badges` e `menu-spice`. Oggi **nessun percorso del codice crea prodotti** — tutti gli accessi a `products` sono letture o modifiche — quindi la Fase 3 sarà il primo, e sarà il momento in cui la convenzione passa da ciò che si osserva a ciò che il sistema impone. Sparsa nell'interfaccia, il secondo punto che un giorno creerà articoli ne avrebbe una copia diversa.
+
+⚠️ **La tendina delle categorie non si compila a mano.** `products.category` è un **tipo chiuso nel database**: ricopiarne i valori nel form creerebbe una seconda copia di un elenco che esiste già, e due copie divergono. L'elenco va **letto**, escludendo `menu_combo`. *Prima di scrivere il form va letto davvero: il numero di categorie va verificato, non ripreso dai documenti.*
+
 ## 65. Analytics dal giorno 1
 
 Tracciare almeno: visita, indirizzo inserito, servibile/non servibile,
@@ -3749,6 +3809,16 @@ Le statistiche sono ora **dichiarate nell'informativa** (punto 3.4, legittimo in
 **Vincolo di durata**, conseguenza di §11.2 dell'informativa: le statistiche sugli ordini non completati possono guardare **al massimo 30 giorni**, perché oltre quel termine i dati non esistono più.
 
 **Se le statistiche non arrivassero prima dell'apertura**, il punto 3.4 dell'informativa va tolto e il punto 11.2 perde uno dei motivi di conservazione: i due si muovono insieme.
+
+### Vincoli dalla struttura del database (v54, verificati il 04/08/2026)
+
+Tre fatti letti dal database, non dedotti, che vincolano il lavoro **prima** che cominci:
+
+1. ⚠️ **Gli eventi non possono essere scritti dal browser.** La tabella `analytics_events` ha la protezione RLS attiva e **nessuna regola di scrittura**, come tutte le tabelle che non sono menu (§66). La chiave pubblica non può inserirvi nulla. Gli eventi dovranno quindi passare da una rotta sul server, che è anche la forma coerente con §66 — nessuna scrittura dal client — ma va saputo prima di progettare, non a metà del lavoro.
+2. ⚠️ **Il tipo di evento è già un elenco chiuso nel database**, fissato quando la tabella è stata creata. §65 elenca "una dozzina di eventi da tracciare" come se fossero da decidere: le due liste vanno **confrontate** prima di scrivere codice. Se divergono, va deciso apertamente quale comanda — cambiare un tipo chiuso richiede una migrazione eseguita da Andrea (metodo `h`), non una riga di codice. *Nessuno ha ancora letto quell'elenco.*
+3. **La tabella porta anche `session_id` obbligatorio e un `payload` libero.** Non è un foglio bianco: una forma esiste già e va letta prima di inventarne un'altra.
+
+**Rapporto con la pulizia (§69):** gli eventi puntano agli ordini **senza cancellazione a catena**, quindi un evento collegato impedirebbe di rimuovere il suo ordine. La decisione presa il 04/08/2026 è che nella pulizia mensile l'evento **resti perdendo il riferimento**: il dato statistico non ha bisogno di sapere quale ordine, ha bisogno di esistere. *Oggi la tabella è vuota, quindi il problema è futuro — ma nasce il giorno stesso in cui le statistiche entrano in funzione, e la prima pulizia mensile successiva si bloccherebbe senza questa regola.*
 
 ---
 
@@ -3863,7 +3933,23 @@ Conseguenze:
 
 ### Infrastruttura — decisioni del 03/08/2026 (v53)
 
-**Piano Supabase Pro prima del go-live.** Oggi il progetto è su piano Free, che **non include alcun backup**. L'informativa al punto 11.7 dichiara copie di sicurezza giornaliere conservate 7 giorni: è vero solo con il piano Pro. Finché non c'è, un errore in una cancellazione o un guasto significa perdere tutto senza ritorno. Va attivato **prima** dei primi ordini veri.
+**Piano Supabase Pro — ✅ ATTIVATO il 04/08/2026 (aggiornamento v54).** Fino a quel giorno il progetto era su piano Free, che **non include alcun backup**: l'informativa al punto 11.7 dichiarava copie giornaliere conservate 7 giorni, e la frase era **falsa**. Con il piano Pro è vera, senza toccare il documento.
+
+Verificato dalla dashboard, non dedotto: organizzazione **Kebab Mediterraneo** in piano Pro, progetto **KM Delivery**, **Spend Cap acceso**. Nella pagina dei backup risultano **copie ripristinabili dal 28/07 al 04/08/2026**, quindi la protezione copre già una settimana all'indietro — le copie venivano prese anche prima, ma senza il piano non erano né visibili né ripristinabili.
+
+⚠️ **Due limiti dichiarati, non aggirati:**
+* nell'elenco **mancano il 1° e il 2 agosto**. Il motivo non è accertabile da qui. La promessa dell'informativa parla di copie **giornaliere**: se i buchi si ripetessero, quella frase andrebbe ammorbidita alla versione successiva del documento. **Da riguardare dopo una settimana di esercizio;**
+* **i file caricati tramite lo Storage non sono compresi nel backup.** Oggi non costa nulla — `image_url` è vuoto su tutti i 62 articoli e non esiste modo di caricare foto — ma il giorno in cui la gestione delle immagini esisterà (§63-64, lavoro post-go-live), quelle foto **non saranno protette**. Va ripreso in quel lavoro, non ricordato a memoria.
+
+**Un backup giornaliero non è un annulla: è lo stato di ieri.** Una cancellazione sbagliata si recupera perdendo la giornata. È il motivo per cui gli script di §69 restano obbligati ai pre-check e post-check in transazione: la rete serve a non perdere tutto, non a permettersi di sbagliare.
+
+**Taglia di calcolo — Micro dal 04/08/2026.** L'aggiornamento a Pro non cambia da solo la taglia: il progetto era rimasto su Nano ed è stato portato a Micro, coperto dal credito incluso nel piano. ⚠️ **Il ridimensionamento comporta un riavvio del database**, cioè un intervallo in cui il sito non risponde. Il 04/08 non è costato nulla perché non c'erano clienti; **dopo l'apertura va fatto fuori dall'orario di servizio**, come le modifiche agli allergeni (§67).
+
+⚠️ **La percentuale di memoria non è un riscontro del cambio di taglia.** Passando da Nano a Micro è scesa dal 53% al 48%, non alla metà: Postgres dimensiona le proprie aree di lavoro in proporzione alla memoria disponibile, quindi la percentuale resta simile. Il riscontro valido è la **taglia dichiarata** nel riquadro del database.
+
+**Regione del database: Irlanda, `eu-west-1` — verificata il 04/08/2026.** I punti 9 e 12 dell'informativa la dichiarano, e dicono il vero. *Va registrato che fino a quel giorno **nessuno l'aveva controllata**: la parola "regione" non compariva né in spec né nell'handoff, e l'affermazione era finita in un documento pubblicato senza fonte. È la lezione `ay` applicata a un caso nuovo — là era la spec che descriveva il codice, qui è l'informativa che descrive l'infrastruttura, e vale la stessa regola: una descrizione ha una fonte esterna e va confrontata con quella prima di essere pubblicata.*
+
+⚠️ **Regola che ne discende, vincolante:** ogni affermazione dell'informativa che descrive **come è fatto il sistema** — regione, hosting, backup, cookie, strumenti di analisi — va verificata alla fonte e la verifica va **datata in questo documento**. Le restanti affermazioni di quel tipo non sono ancora state passate in rassegna una per una.
 
 **Account staff unico e condiviso.** Non esistono account nominali e non è previsto introdurli: il locale è piccolo. Conseguenze registrate:
 * `staff_action_log` identifica l'**account**, non la persona: resta utile per sapere cosa è successo e quando, non chi;
@@ -3871,6 +3957,42 @@ Conseguenze:
 * una credenziale condivisa non si revoca per singola persona: quando qualcuno lascia il locale, **si cambia la password a tutti**, quel giorno.
 
 **Chiave API di Google da restringere al dominio** nella console Google Cloud, contestualmente all'attivazione del dominio vero. Oggi è una variabile `NEXT_PUBLIC_` visibile nel sorgente e senza restrizioni: chiunque la copi consuma il credito.
+
+---
+
+### Il referto di audit sul database — 04/08/2026 (v54)
+
+Eseguito da Andrea nell'editor SQL della dashboard con query di sola lettura sul catalogo di Postgres, perché **le RLS non sono verificabili né dal repository né dalle API**: PostgREST espone il solo schema `public`. Chiude la voce "stato delle RLS ignoto" e sblocca §69.
+
+**Protezione RLS: attiva su tutte e 23 le tabelle.** Nessuna eccezione. Il conteggio conferma anche, da fonte indipendente, che le tabelle sono esattamente le 23 dello schema autorevole.
+
+* **Dieci in lettura pubblica**, con una regola `SELECT` per `anon` e `authenticated` senza condizioni: `products`, `allergens`, `product_allergens`, `product_addons`, `product_removals`, `product_accompaniments`, `product_choice_options`, `combo_pricing`, `combo_drink_options`, `combo_side_options`. Sono tutte e sole le tabelle del **menu**, cioè ciò che il sito mostra a chiunque.
+* **Tredici senza alcuna regola**, quindi **chiuse**: `customers`, `orders`, `order_items`, `order_status_history`, `promo_redemptions`, `staff_action_log`, `staff_settings`, `analytics_events`, `coupons`, `stores`, `store_geofences`, `store_order_windows`, `store_schedule_exceptions`. Tutti i dati personali stanno qui.
+* **Nessuna regola di scrittura esiste, da nessuna parte.** Tutte e dieci sono di sola lettura: la chiave pubblica non può scrivere niente.
+
+⚠️ **Ciò che questo referto NON dimostra, e va verificato a parte.** La chiave `service_role` **scavalca interamente le RLS**: tutta la protezione descritta qui regge sulla condizione che quella chiave non finisca mai nel browser. È una domanda sul **codice**, non sul database, e non è ancora stata posta. Il modo in cui si rompe è banale — una variabile d'ambiente rinominata con il prefisso `NEXT_PUBLIC_`, che in Next.js significa "spediscila al client".
+
+**Collegamenti fra tabelle e cancellazioni a catena** (fonte di §69):
+
+* **seguono l'ordine e spariscono con lui**: `order_items` e `order_status_history`;
+* **bloccano la cancellazione dell'ordine**: `analytics_events`, `promo_redemptions`, `staff_action_log`. È il comportamento voluto — un collegamento non previsto deve fare rumore (metodo `p`) — ma va saputo scrivendo gli script;
+* **la riga cliente è protetta dal database**: `orders` punta a `customers` senza cancellazione a catena, quindi finché esiste un ordine quel cliente non si può cancellare. La prima regola di §69 è imposta dalla struttura, non dalla disciplina;
+* ⚠️ **`stores` è la riga più pericolosa del database**: quasi tutto vi punta **con** cancellazione a catena. Cancellarla porterebbe via menu, perimetro, orari e impostazioni in un colpo solo.
+
+**Trigger: sei, tutti dello stesso tipo**, che aggiornano `updated_at` su `customers`, `orders`, `products`, `store_geofences`, `store_schedule_exceptions`, `stores`. ⚠️ **Nessun trigger impedisce di modificare un ordine già scritto**: l'immutabilità dello storico dichiarata da §66 è garantita dal **codice**, non dal database.
+
+**Fatti verificati che confermano affermazioni finora non controllate:**
+
+* `orders.order_token` ha come valore predefinito `encode(gen_random_bytes(16), 'hex')`: i 16 byte casuali generati dal database sono **verificati**, non più solo dichiarati;
+* `orders.privacy_accepted_at` è **obbligatoria e senza valore predefinito**: nessun ordine può essere scritto senza il consenso privacy, e lo impone il database. *Sulla tabella `customers` la stessa colonna è invece facoltativa: asimmetria mai decisa apertamente, registrata e non sanata;*
+* lo stato `failed` **esiste fra i valori ammessi ma non è mai stato usato**: conferma alla lettera la frase di §69 sul fatto che un pagamento fallito non produce alcun evento;
+* **nessuna riga di `staff_action_log` punta a un ordine.** Il conflitto temuto fra l'eccezione di §66 e la pulizia del go-live **non esiste**: le azioni conservate sono tutte sul menu.
+
+**Conteggi al 04/08/2026**, letti interrogando le tabelle: `orders` 30 (26 non pagati, 4 in sandbox), `customers` 40, `promo_redemptions` 1, `analytics_events` 0, `staff_action_log` 70 di cui 43 di prova. *Sono identici a quelli del 30/07: la verifica dal vivo del 02/08 non ha lasciato residui, come §46 punto 7 prevedeva. Il conteggio aggiornato vive nell'`HANDOFF.md`, non qui.*
+
+**Due residui minori registrati e non sanati:** `orders.idempotency_key` esiste ma non è descritta in alcun documento e non si sa se il codice la usi; il vincolo di `product_choice_options` porta ancora il nome della tabella precedente (`product_protein_options_…`), senza alcun effetto.
+
+⚠️ **Limite dello strumento, da ricordare:** l'editor SQL della dashboard restituisce **al massimo 100 righe**. Un referto che finisce a 100 righe esatte non va mai considerato completo — il primo giro sulle colonne si era interrotto lì, e sembrava una risposta.
 
 ---
 
@@ -4465,14 +4587,28 @@ Non esisteva nulla in spec. Ora esiste.
 
 **Ordini completati e pagati:** conservati per gli obblighi amministrativi, contabili e fiscali. Le durate esatte le fissa il commercialista.
 
-**Ordini `pending` e righe cliente senza ordine pagato: massimo 30 giorni.** La rimozione è una **procedura manuale a cadenza almeno mensile**, non un processo automatico. L'informativa la descrive così: è una promessa organizzativa e vale quanto la disciplina con cui viene eseguita. Fissare il giorno del mese.
+**Ordini mai pagati e righe cliente senza ordine pagato: massimo 30 giorni.** La rimozione è una **procedura manuale a cadenza almeno mensile**, non un processo automatico. L'informativa la descrive così: è una promessa organizzativa e vale quanto la disciplina con cui viene eseguita. Fissare il giorno del mese.
 
-**Strumento:** uno script SQL di sola pulizia, con pre-check e post-check, da eseguire nell'editor della dashboard. Due vincoli da rispettare nella sua scrittura:
+**Quali ordini sono "mai pagati" (decisione di Andrea del 04/08/2026):** `pending` **e** `failed`. La v53 nominava i soli `pending`, perché `failed` non è mai stato usato da nessun ordine; ma la regola è la stessa e scriverla oggi costa una riga, mentre scoprirla quando quello stato inizierà a popolarsi — per esempio agganciando i webhook di Stripe — costa una decisione presa di fretta. **Mai toccati**, in nessun caso: `succeeded`, `refunded`, `partially_refunded`.
 
-* la riga cliente è **condivisa**: un `pending` seguito da un ordine pagato dalla stessa persona è il caso normale. Non cancellare mai una riga cliente che abbia almeno un ordine pagato;
-* **non esiste** un evento "pagamento fallito": un `pending` semplicemente resta. Il conteggio dei 30 giorni parte dalla **creazione**, non da un fallimento.
+**Strumento: DUE script separati, non uno (decisione di Andrea del 04/08/2026).** Rovescia la formulazione della v53, che ne prevedeva uno solo riusato due volte. Le due pulizie non sono la stessa operazione: quella del go-live cancella **tutto** una volta sola e non deve mai più essere eseguita, quella mensile cancella **una parte** in base all'età e deve girare per anni. Un file unico avrebbe per forza un interruttore, e un interruttore su uno strumento che cancella è il modo in cui si esegue la cosa sbagliata.
 
-**Riuso:** è lo stesso strumento della pulizia dei residui di prova prevista per il go-live. Va scritto una volta sola e serve entrambe le volte. Non è scrivibile prima che il primo referto di audit abbia restituito foreign key e comportamenti `ON DELETE`.
+⚠️ **Il pericolo dello script del go-live non è il giorno in cui si esegue: è che resti nel repository dopo.** Deve portare in cima una **data scritta a mano a ogni esecuzione** e fermarsi se esiste anche un solo ordine più recente. Se la guardia scatta, il file non è sbagliato: sono i dati a non essere quelli attesi, e non si aggira (metodo `k`).
+
+**Vincoli comuni alla scrittura di entrambi**, dal referto di audit del 04/08/2026:
+
+* la riga cliente è **condivisa**: un ordine mai pagato seguito da un ordine pagato dalla stessa persona è il caso normale. Non cancellare mai una riga cliente che abbia almeno un ordine collegato;
+* **non esiste** un evento "pagamento fallito" che qualcuno scriva: un ordine non pagato semplicemente resta. Il conteggio dei 30 giorni parte dalla **creazione**;
+* **pre-check e post-check bloccanti dentro la stessa transazione** (metodo `n`), con messaggi in italiano. I post-check verificano anche ciò che **non** doveva cambiare — il numero di ordini pagati, la presenza del menu, del perimetro e del log staff — perché un controllo che guarda solo ciò che è sparito non si accorge di ciò che è sparito in più;
+* i conteggi si **rileggono dal database** prima e dopo, mai ricopiati da un documento (lezioni `s` e `z`).
+
+**Staccare invece di cancellare, dove la struttura lo consente (decisione di Andrea del 04/08/2026).** Nella pulizia mensile, le righe di `staff_action_log` e di `analytics_events` che citano un ordine rimosso **perdono il riferimento e restano**: entrambe le colonne sono facoltative, quindi è possibile. Cancellarle eroderebbe l'audit trail che §66 dichiara intoccabile e i dati statistici di §65, per un collegamento che dopo la rimozione dell'ordine non serve più a nessuno. *Nello script del go-live vale la regola opposta per il log: là quelle righe sono di prova e vanno via, tranne le azioni vere sul menu (§66).*
+
+**Dove staccare non si può: i codici promo.** In `promo_redemptions` il riferimento all'ordine è **obbligatorio**, quindi la riga si cancella. **Conseguenza voluta e accettata da Andrea il 04/08/2026:** chi aveva applicato un codice a un ordine **mai pagato** potrà riusarlo dopo trenta giorni. Non è una falla in §14: chi ha davvero usato lo sconto ha un ordine pagato, e quell'ordine non viene mai cancellato, quindi il suo riscatto resta e il codice resta bruciato. Si libera solo per chi dello sconto non ha mai goduto.
+
+**Ordine delle cancellazioni**, imposto dai collegamenti verificati il 04/08/2026 e non modificabile a piacere: prima ciò che punta agli ordini senza cancellazione a catena — eventi statistici, riscatti promo, righe di log — poi gli ordini, che si portano dietro da soli righe d'ordine e storico di stato, e infine le righe cliente rimaste senza ordini. *Cambiare l'ordine produce un errore di vincolo, non un danno silenzioso: è la stessa scelta del `drop table` senza `cascade` del metodo `p`.*
+
+**Precondizione, ora soddisfatta:** non era scrivibile prima che il referto di audit restituisse foreign key e comportamenti `ON DELETE`. Il referto è del **04/08/2026** ed è registrato in §66.
 
 ---
 
