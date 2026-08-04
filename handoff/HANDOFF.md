@@ -19,10 +19,11 @@ La fonte di verità di tutte le decisioni è **`MASTER_SPEC.md`** — versione a
 ## 2) Stato git
 
 - Branch **`main`**, working tree **pulita**, allineata a `origin/main`.
-- HEAD: **`be7324b`**.
+- HEAD: **`c69642e`** — pubblicazione dell'informativa privacy (03/08/2026).
 - Ultimi commit (dal più recente):
 
 ```
+c69642e privacy: informativa pubblicata su /privacy, collegata dalla casella del checkout e dal fondo delle pagine cliente §41-45
 be7324b spec: v52 — condizione di apertura sui prezzi chiusa e verificata dal vivo, e corretta la frase sui consensi che si azzerano tornando al carrello §46
 dade165 checkout: la rilettura del menu fallita mostra il testo deciso invece dell'errore tecnico §46
 4304910 checkout: il sito riconosce i due rifiuti che riguardano il menu da status e testo, rilegge il listino e riporta al carrello §46
@@ -1682,7 +1683,7 @@ carrello**, non sulla riga.
   **vuoto ovunque** e non c'è modo di caricare una foto dal pannello. Lavoro
   autonomo, da fare per tutti gli articoli insieme.
 
-### Condizioni di apertura — **cinque aperte, due chiuse**
+### Condizioni di apertura — **tre chiuse, sei aperte**
 
 - ✅ **Persistenza** (§36-40): **CHIUSA il 30/07/2026.** Carrello (punto 10) e
   dati del checkout (punto 10b), entrambi verificati dal vivo. *È la prima
@@ -1691,20 +1692,45 @@ carrello**, non sulla riga.
   **CHIUSA il 02/08/2026**, verificata dal vivo (§11f). *È la **seconda** che si
   chiude.* Cinque tappe: il modulo, la rete di sicurezza, il riordino della
   route, l'aggancio al server, il lato sito.
-- **Informativa privacy**: serve il documento, poi il **link nel checkout**
-  (§41-45). ⚠️ *Il documento si procura, il collegamento **si scrive**: questa
-  voce non è di sola configurazione.*
+- ✅ **Informativa privacy** (§41-45): **CHIUSA il 03/08/2026**, commit
+  `c69642e` (punto 14). Documento in versione **1.2**, pubblicato come pagina
+  statica su `/privacy` e collegato da **tre punti**: le parole "informativa
+  privacy" nella casella del checkout, il fondo della home, il fondo della
+  pagina di conferma. *È la **terza** che si chiude.*
+  ⚠️ **Un pezzo è verificato solo per lettura**: l'apertura in scheda nuova è
+  accertata negli attributi del DOM servito, non osservata dal vivo — l'ambiente
+  di prova non onora `target="_blank"`. **Da riprovare da telefono** (punto 17).
+  ⚠️ Resta inoltre da salvare in database la stringa `informativa-v1.2`, che si
+  fa quando si riapre il file del checkout (punto 16): **non è una condizione di
+  apertura**, è un lavoro registrato.
 - **Stripe live** (oggi sandbox).
-- **Dominio** `ordina.kebabmediterraneo.it`.
+- **Dominio** `ordina.kebabmediterraneo.it`. ⚠️ *Contestualmente va **ristretta
+  al dominio la chiave API di Google**, oggi senza restrizioni.*
 - **Analytics** (§65). ⚠️ *È **lavoro di codice**, non configurazione: una
   dozzina di eventi da tracciare più la pagina dei carrelli abbandonati nel
-  pannello staff.*
+  pannello staff.* Ora con i vincoli dichiarati nell'informativa e il limite dei
+  **30 giorni** (§65, §69).
 - **Pulizia dei residui di test** (punto 11) — da **rileggere** dal database,
   mai ricopiare da qui.
 
-⚠️ **Restano cinque condizioni aperte, e due di esse richiedono di scrivere
-codice** — analytics e il collegamento all'informativa. *§46 era però l'unica
-che richiedesse di **costruire una funzione nuova**.*
+⚠️ **Restano sei voci aperte in tutto**: le **quattro** dell'elenco storico —
+Stripe live, dominio, analytics, pulizia dei residui — più le **due** aggiunte
+qui sotto dal giro privacy. *Delle sei, una sola richiede di scrivere codice: le
+analytics di §65. §46 era però l'unica che richiedesse di **costruire una
+funzione nuova**.*
+
+⚠️ *Questa intestazione e questo conteggio vanno riletti ogni volta che
+l'elenco cambia: è la seconda volta che restano indietro rispetto alle voci.*
+
+**Le due voci nuove**, fuori dall'elenco storico ma prima dell'apertura, nate
+dal giro privacy (punto 14):
+
+- **Piano Supabase Pro**, da attivare **prima dei primi ordini veri**: oggi il
+  piano è Free e **non include alcun backup**. Senza, il punto 11.7
+  dell'informativa è falso e non esiste ritorno da un errore di cancellazione o
+  da un guasto.
+- **Procedura mensile di pulizia** degli ordini `pending` oltre i 30 giorni
+  (§69), con lo stesso script SQL della pulizia dei residui.
 
 *Non è una condizione di apertura*: **WhatsApp**, che la spec colloca in
 **fase 1.1** (§71) e che §52-56 dichiara esplicitamente fuori dalla specifica
@@ -1786,3 +1812,84 @@ spec; tolto in v40.
 - **Esiste un `MEMORY.md` fuori dal repo**, nella cartella di memoria di Claude
   Code. Non è versionato e Andrea non lo vede. La verità sta in `MASTER_SPEC.md`:
   se i due divergono, vince la spec.
+
+---
+
+## 14) Il giro privacy (02-03/08/2026)
+
+Sessione **fuori dal codice** per la quasi totalità: due audit di sola lettura, la stesura dell'informativa e un solo intervento sul repository alla fine.
+
+### 14a) I due audit
+
+**Primo blocco** — Supabase, struttura dei dati personali, persistenza, cancellazione. **Secondo blocco** — consensi, pagina di stato, cookie e memoria del browser, logging. Entrambi con regola obbligatoria sulle fonti (`file:righe`, comando eseguito, `deduzione`, `non verificabile`) e con divieto esplicito di usare spec, handoff o commenti come prova.
+
+Due lezioni di metodo da conservare:
+
+* le **policy RLS non sono verificabili** né dal repository né dalle normali API: PostgREST espone solo `public`. Vanno lette con query eseguite a mano nella dashboard. Non dedurle mai dal codice;
+* una domanda che chiede *"confermi che X?"* invita a rispondere di sì. Chiedere il valore, non la conferma.
+
+### 14b) Cosa è risultato
+
+**Buono e chiuso:** nessun cookie sulle pagine cliente (verificato dal vivo in finestra pulita); nessun analytics o error tracking; la pagina di stato non invia al browser alcun dato personale, perché la `select` prende quattro colonne; nessun `console.log` nel codice applicativo, tutti i 45 punti sono `console.error`.
+
+**Da sanare, registrato in spec:** la prova del consenso marketing viene azzerata a ogni riordino; manca la costante di versione del testo privacy; tre `console.error` del checkout stampano oggetti errore interi; `km_direct_checkout` non viene mai cancellato; Google Maps caricato su ogni pagina prima dell'interattività.
+
+**Scoperta con conseguenza fuori dal codice:** il progetto Supabase è su **piano Free, che non include backup**. Nessuna copia di sicurezza esiste oggi.
+
+### 14c) L'unico intervento sul codice
+
+Pubblicazione dell'informativa. **Quattro file toccati**, nessun altro:
+
+| file | intervento |
+|---|---|
+| `app/privacy/page.js` | nuovo, 848 righe — la pagina, statica (`○ prerendered`) |
+| `app/privacy-footer.js` | nuovo, 33 righe — collegamento condiviso in fondo |
+| `app/page.js` | +37 / −1 — collegamento nella casella, footer prima della barra sticky |
+| `app/conferma/page.js` | +5 / −0 — footer prima di `</main>` |
+
+`app/layout.js`, `app/api/checkout/route.js` e tutto ciò che riguarda il salvataggio dei consensi sono **intatti**.
+
+Verifiche: testo servito identico al sorgente carattere per carattere (21285 su entrambi i lati, 18 h2 · 13 h3 · 98 voci); clic sul collegamento **non** cambia lo stato della casella, con prova di controllo che dimostra che il rilevatore scattava; dati del modulo intatti dopo la navigazione; footer presente su home e conferma, assente dal pannello staff; pagamento ancora bloccato senza spunta; rifiuto lato server `400`, prima di qualunque scrittura; 13 suite, 461 asserzioni, zero fallimenti.
+
+⚠️ **Due limiti dichiarati dall'ambiente di prova, da chiudere con un dito su un telefono vero:** l'apertura in scheda nuova è stata verificata negli attributi ma non nell'effetto; i clic per coordinate non atterravano, quindi le prove usano eventi dispatchati.
+
+Committato il 03/08/2026 come `c69642e`.
+
+---
+
+## 15) Condizioni di apertura — aggiornamento
+
+Delle cinque aperte in `HANDOFF_2.md` §12:
+
+* **Informativa privacy — CHIUSA il 03/08/2026** (commit `c69642e`). Terza condizione a chiudersi. Resta la stringa `informativa-v1.2` da salvare in database, che si fa quando si riapre il file del checkout: è un lavoro registrato, non una condizione.
+* **Statistiche (§65) — aperta**, ora con i vincoli dell'informativa (vedi aggiornamento spec).
+* **Stripe live, dominio, pulizia dei residui — aperte**, invariate. Col dominio va ristretta la chiave API di Google.
+
+**Nuove, nate da questo giro:**
+
+* **piano Supabase Pro** da attivare prima dei primi ordini veri: senza, il punto 11.7 dell'informativa è falso e non esiste alcun ritorno da un errore;
+* **procedura mensile di pulizia** degli ordini `pending` oltre i 30 giorni, con lo script SQL condiviso con la pulizia dei residui;
+* **chiave API Google da restringere** al dominio, contestualmente al dominio vero.
+
+Fuori elenco ma prima dell'apertura resta la **Fase 3** (creazione di articoli dal pannello), con la decisione ancora da prendere su generazione dello `slug` e collisioni.
+
+---
+
+## 16) Il prossimo passaggio su `app/api/checkout/route.js`
+
+Vale la regola: **non si riapre quel file per una cosa sola.** Quando si riapre, ci vanno insieme:
+
+1. costante `PRIVACY_TEXT_VERSION` = `informativa-v1.2`, salvata accanto alla data;
+2. `upsert` che non azzera la prova del consenso marketing precedente;
+3. i tre `console.error` (308, 364, 372) ridotti ai soli campi necessari;
+4. gli eventi delle statistiche che ricadono su quel percorso;
+5. la **tappa 3b di §46**, se l'incrocio con il punto 4 si conferma — da verificare prima di scegliere l'ordine.
+
+Analogamente su `app/page.js`: cancellazione di `km_direct_checkout` a ordine concluso, eventi statistici lato cliente, ed eventuale spostamento del caricamento di Google Maps — che però comporta la **v1.3 dell'informativa** nello stesso passaggio.
+
+---
+
+## 17) Verifiche ancora da fare a mano
+
+* le due prove dal telefono sul collegamento nella casella (scheda nuova, dati del modulo intatti);
+* le query di sola lettura preparate nel primo blocco di audit — RLS, foreign key, `ON DELETE`, trigger — da eseguire nell'editor SQL della dashboard e riportare a Code per l'interpretazione. **Finché non sono state eseguite, lo stato delle RLS è ignoto.**

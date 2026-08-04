@@ -1,10 +1,50 @@
 # KM DIRECT — MASTER SPECIFICATION
 
-**Versione 52** — sostituisce la v51.
+**Versione 53** — sostituisce la v52.
 
 Documento di riferimento definitivo per lo sviluppo. Le decisioni qui
 contenute sono approvate: non vanno reinterpretate senza un motivo concreto
 (vedi §73). Ogni file di codice del progetto deve rispettare queste regole.
+
+**Novità della v53** (vincolanti, dal giro privacy e GDPR del 02-03/08/2026):
+
+1. §41-45 — ✅ **la condizione di apertura sull'informativa privacy è CHIUSA**
+   (03/08/2026). Il documento esiste in versione **1.2**, è pubblicato come
+   pagina statica su `/privacy` ed è collegato da tre punti: la casella del
+   checkout, il fondo della home, il fondo della pagina di conferma.
+   ⚠️ **Un pezzo resta verificato solo per lettura**: l'apertura in scheda nuova
+   è stata accertata negli attributi del DOM servito (`target="_blank"`,
+   `rel="noopener noreferrer"`), non osservata dal vivo, perché l'ambiente di
+   prova non onora `target`. Da riprovare da telefono. *Stesso trattamento
+   riservato allo slot scaduto nella v52.*
+2. §41-45 — **la prova del consenso marketing oggi viene cancellata** a ogni
+   riordino: correzione decisa, non ancora fatta.
+3. §41-45 — **nessuna versione dell'informativa viene registrata in database**.
+   Non è un'incoerenza: il punto 2 del documento promette per la privacy la sola
+   data e ora, e riserva la versione al marketing. Ma il punto 18 prevede
+   versioni successive, e alla v1.3 non si saprebbe chi ha accettato quale.
+   Lavoro registrato, non ostacolo.
+4. §65 — le statistiche sono **dichiarate nell'informativa**: i vincoli sul
+   trattamento non sono più solo scelte di progetto, sono impegni verso il
+   cliente. Aggiunto il limite dei **30 giorni**.
+5. **§69 nuova — conservazione e cancellazione dei dati.** Non esisteva nulla:
+   ora sì, e la procedura è **manuale a cadenza mensile**, non automatica.
+6. §66 — **piano Supabase Pro prima del go-live**: oggi il piano Free non
+   include alcun backup. E **account staff unico e condiviso**, con le sue
+   conseguenze. Più i rilievi dell'audit non ancora sanati e l'elenco di ciò che
+   è stato **accertato e non va riaperto**.
+
+*Con la v53 le condizioni di apertura aperte scendono **da cinque a quattro**.
+È la **terza** che si chiude, dopo la persistenza (30/07) e §46 (02/08). Delle
+quattro rimaste **una sola richiede di scrivere codice** — le analytics di §65;
+Stripe live, dominio e pulizia dei dati di prova sono configurazione o dati.
+⚠️ Il giro privacy ha però aggiunto **due voci nuove** che vanno fatte prima
+dell'apertura e non sono codice applicativo: l'attivazione del **piano Supabase
+Pro** (§66) e la **procedura mensile di pulizia** (§69).*
+
+*I conteggi scritti nei blocchi Novità delle versioni precedenti restano come
+sono: quei blocchi sono diario, e fotografano il momento in cui furono scritti.
+Il conteggio valido è sempre quello della versione più recente.*
 
 **Novità della v52** (vincolanti):
 
@@ -918,9 +958,10 @@ della stessa revisione ma non alterano decisioni: non sono elencate qui.
   pannello Menu consente solo di cambiare disponibile/esaurito, quindi ogni
   modifica ai testi/prezzi del menu richiede intervento diretto sui dati. È la
   soluzione strutturale per operare sul menu in sicurezza.
-- **Link informativa privacy** (§41-45): il testo "Dichiaro di aver letto
-  l'informativa privacy" dovrà rendere "informativa privacy" un link al
-  documento, quando l'informativa sarà pronta.
+- ✅ **Link informativa privacy** (§41-45): **FATTO il 03/08/2026** (v53). Le
+  parole "informativa privacy" nel testo della casella sono un collegamento alla
+  pagina `/privacy`, in scheda nuova e senza modificare lo stato della casella.
+  *Voce risolta, lasciata qui per continuità di lettura.*
 - **Recuperabilità della pagina di stato** (§47-51): oggi la pagina è
   raggiungibile solo tramite il link ricevuto dopo il pagamento; se il
   cliente lo perde non può ritrovarla. Il promemoria "tieni aperta la pagina"
@@ -2245,8 +2286,9 @@ obbligatori, §12b) → dati delivery (se serve) → dati cliente → privacy �
 riepilogo → CTA pagamento. Dati cliente obbligatori: nome, cognome,
 telefono (email facoltativa). Dati delivery separati in campi distinti:
 indirizzo, civico, citofono, piano/interno, edificio/scala, note rider,
-coordinate — mai un unico campo disordinato. Privacy: checkbox obbligatoria.
-Marketing: checkbox facoltativa, non preselezionata, salvando sì/no +
+coordinate — mai un unico campo disordinato. Privacy: checkbox obbligatoria,
+con le parole "informativa privacy" rese collegamento alla pagina `/privacy`
+(v53). Marketing: checkbox facoltativa, non preselezionata, salvando sì/no +
 timestamp + versione testo.
 
 **Selettore orario modificabile nel checkout (aggiunto in v18, vincolante)**:
@@ -2310,6 +2352,32 @@ browser"): la route server-side che crea l'ordine deve ri-verificare essa
 stessa che le coordinate dell'indirizzo usato ricadano nella geofence,
 non limitarsi a fidarsi del fatto che il client abbia già mostrato
 "Perfetto, arriviamo fin qui" in una fase precedente.
+
+### Informativa privacy — pubblicazione, collegamenti, versionamento (v53)
+
+**Il documento esiste ed è pubblicato.** Versione **1.2 del 3 agosto 2026**, servita alla rotta statica `/privacy` (`app/privacy/page.js`).
+
+**Collegamenti:**
+* nella casella privacy del checkout, le sole parole "informativa privacy" sono un collegamento a `/privacy`, aperto in scheda nuova (`target="_blank"`, `rel="noopener noreferrer"`), con propagazione bloccata perché il clic **non deve** cambiare lo stato della casella;
+* collegamento discreto "Informativa privacy" in fondo a home e pagina di conferma (`app/privacy-footer.js`). **Non** nel pannello staff.
+
+**Cosa registra il codice oggi:** `customers.privacy_accepted_at` e `orders.privacy_accepted_at` (data e ora, su cliente **e** ordine). **Non** registra la versione del testo.
+
+**Da fare quando si riaprirà `app/api/checkout/route.js`:** introdurre una costante `PRIVACY_TEXT_VERSION`, sul modello di `MARKETING_TEXT_VERSION` (riga 48), con valore **`informativa-v1.2`**, e salvarla accanto alla data.
+
+**Regola di versionamento, vincolante:** l'informativa descrive il sistema. Ogni modifica al codice che cambia ciò che il documento afferma comporta una nuova versione del documento **nello stesso passaggio**, e il numero di versione salvato in database cambia di conseguenza. Il primo caso già noto è lo spostamento del caricamento di Google Maps (vedi sotto): comporta la riscrittura del punto 5 e il passaggio a v1.3.
+
+**La casella marketing resta com'è** ("novità, offerte e comunicazioni", nessun canale nominato). I canali — e-mail, SMS, WhatsApp — sono elencati nel punto 3.5 dell'informativa, che la casella collega. Se un domani cambiano i canali, si aggiorna il punto 3.5 e la versione.
+
+---
+
+### Prova del consenso marketing — correzione decisa, non ancora fatta (v53)
+
+**Difetto accertato** (`app/api/checkout/route.js` 289-303, `onConflict: "phone"`): a ogni riordino l'`upsert` sovrascrive la riga cliente. Chi ha consentito una volta e riordina senza spuntare produce `marketing_opt_in = false`, `marketing_opt_in_at = null`, `marketing_text_version = null`. **La prova del consenso precedente viene cancellata**, e non esiste storico né funzione di revoca.
+
+**Decisione:** la prova va conservata. L'art. 7 GDPR impone di poter dimostrare il consenso prestato; l'informativa al punto 11.4 lo dichiara. Correzione minima accettabile: l'`upsert` non azzera `marketing_opt_in_at` e `marketing_text_version` quando il nuovo valore è `false` — il consenso corrente resta l'ultimo, ma resta traccia di quello precedente e della sua data.
+
+---
 
 ## 46. Pagamento
 
@@ -3670,6 +3738,20 @@ contenuto del carrello. Se in futuro FAME Srl volesse valutare azioni di
 ricontatto, servirà prima una validazione legale esplicita e una revisione
 di questa regola.
 
+### Vincoli dall'informativa privacy (v53)
+
+Le statistiche sono ora **dichiarate nell'informativa** (punto 3.4, legittimo interesse). Da questo discendono tre vincoli che il codice dovrà rispettare, e che sono ora impegni verso il cliente e non solo scelte di progetto:
+
+1. l'analisi avviene **solo dentro i sistemi del progetto**: nessuna piattaforma di analisi o pubblicità di terze parti;
+2. la pagina dei carrelli abbandonati e ogni vista statistica sono **prive di nome, cognome, telefono ed e-mail**;
+3. nessun uso per ricontattare i clienti, in nessuna forma.
+
+**Vincolo di durata**, conseguenza di §11.2 dell'informativa: le statistiche sugli ordini non completati possono guardare **al massimo 30 giorni**, perché oltre quel termine i dati non esistono più.
+
+**Se le statistiche non arrivassero prima dell'apertura**, il punto 3.4 dell'informativa va tolto e il punto 11.2 perde uno dei motivi di conservazione: i due si muovono insieme.
+
+---
+
 ## 66. Sicurezza
 
 URL ordine con token non prevedibile, admin autenticato, snapshot ordine
@@ -3768,6 +3850,36 @@ Conseguenze:
   rete di protezione: non esiste un posto dove provare prima. È la ragione
   per cui §67 impone di modificare allergeni e flag fuori dall'orario di
   servizio, e §63-64 impone la conferma sul cambio di prezzo.
+
+### Rilievi dell'audit del 02-03/08/2026, non ancora sanati (v53)
+
+* **Tre `console.error` in `app/api/checkout/route.js`** (righe 308, 364, 372) stampano oggetti errore Supabase interi su un percorso che tratta telefono ed e-mail. Poiché `customers.phone` è `unique`, il campo `details` di un errore di vincolo può contenere il numero. Da ridurre ai soli campi necessari, come già fatto per l'errore Stripe (401-405). *Rischio dedotto, non osservato.*
+* **`km_direct_checkout`** (`sessionStorage`) contiene nome, cognome, telefono, e-mail, indirizzo, coordinate e note, e **non viene mai cancellato dal codice**, nemmeno a ordine concluso. La pagina di conferma cancella il carrello: va cancellato anche questo, accanto.
+* **Google Maps + Places è caricato in `app/layout.js` con `beforeInteractive`**, quindi su ogni pagina e prima di ogni interazione — `/privacy`, `/conferma` e pannello staff compresi. Verificato dal vivo che **non installa cookie né identificatori**: non serve un banner cookie. Spostarlo al momento in cui il cliente tocca il campo indirizzo resta buona pratica; comporta la v1.3 dell'informativa.
+* **Nessuna `Referrer-Policy`** configurata (`next.config.mjs` vuoto) su un sito che mette il token dell'ordine in query string. Rischio basso — i browser moderni non inviano l'URL completo a terze parti — ma è una garanzia del browser, non del sito.
+* **Nessun rate limiting** sulla rotta pubblica del token. Rischio basso: 128 bit di entropia.
+
+---
+
+### Infrastruttura — decisioni del 03/08/2026 (v53)
+
+**Piano Supabase Pro prima del go-live.** Oggi il progetto è su piano Free, che **non include alcun backup**. L'informativa al punto 11.7 dichiara copie di sicurezza giornaliere conservate 7 giorni: è vero solo con il piano Pro. Finché non c'è, un errore in una cancellazione o un guasto significa perdere tutto senza ritorno. Va attivato **prima** dei primi ordini veri.
+
+**Account staff unico e condiviso.** Non esistono account nominali e non è previsto introdurli: il locale è piccolo. Conseguenze registrate:
+* `staff_action_log` identifica l'**account**, non la persona: resta utile per sapere cosa è successo e quando, non chi;
+* cade la necessità di un'informativa separata per i dipendenti e la questione dell'art. 4 dello Statuto dei Lavoratori;
+* una credenziale condivisa non si revoca per singola persona: quando qualcuno lascia il locale, **si cambia la password a tutti**, quel giorno.
+
+**Chiave API di Google da restringere al dominio** nella console Google Cloud, contestualmente all'attivazione del dominio vero. Oggi è una variabile `NEXT_PUBLIC_` visibile nel sorgente e senza restrizioni: chiunque la copi consuma il credito.
+
+---
+
+### Accertato dall'audit e chiuso — non riaprire (v53)
+
+* **La pagina di stato non espone dati personali.** La rotta `app/api/orders/[token]/route.js` seleziona in query quattro sole colonne (`pickup_code, payment_status, status, fulfillment`): la protezione è nella query, non nella resa grafica. Il token è generato dal database con 16 byte casuali, non è derivabile dall'id dell'ordine, non scade, è di sola lettura. Chi riceve il link inoltrato vede uno stato, non un ordine.
+* **Nessun cookie sulle pagine cliente**, né del progetto né di terze parti. Verificato dal vivo in finestra pulita.
+* **Nessuno strumento di analytics, error tracking o session recording** nel progetto.
+* **Glovo non invia alcun collegamento di tracking al cliente.** I riferimenti in spec sono desideri di fase futura: non vanno mai nell'informativa finché non esistono.
 
 ## 67. Allergeni
 
@@ -4346,6 +4458,23 @@ Nessun cliente riceve automaticamente comunicazioni: la comunicazione
 resta un'azione umana esplicita. La scelta protegge dai casi in cui un
 cliente riceverebbe un annullamento algoritmico senza contesto, mentre
 in realtà la situazione è recuperabile con un semplice contatto.
+
+## 69. Conservazione e cancellazione dei dati (aggiunta in v53, vincolante)
+
+Non esisteva nulla in spec. Ora esiste.
+
+**Ordini completati e pagati:** conservati per gli obblighi amministrativi, contabili e fiscali. Le durate esatte le fissa il commercialista.
+
+**Ordini `pending` e righe cliente senza ordine pagato: massimo 30 giorni.** La rimozione è una **procedura manuale a cadenza almeno mensile**, non un processo automatico. L'informativa la descrive così: è una promessa organizzativa e vale quanto la disciplina con cui viene eseguita. Fissare il giorno del mese.
+
+**Strumento:** uno script SQL di sola pulizia, con pre-check e post-check, da eseguire nell'editor della dashboard. Due vincoli da rispettare nella sua scrittura:
+
+* la riga cliente è **condivisa**: un `pending` seguito da un ordine pagato dalla stessa persona è il caso normale. Non cancellare mai una riga cliente che abbia almeno un ordine pagato;
+* **non esiste** un evento "pagamento fallito": un `pending` semplicemente resta. Il conteggio dei 30 giorni parte dalla **creazione**, non da un fallimento.
+
+**Riuso:** è lo stesso strumento della pulizia dei residui di prova prevista per il go-live. Va scritto una volta sola e serve entrambe le volte. Non è scrivibile prima che il primo referto di audit abbia restituito foreign key e comportamenti `ON DELETE`.
+
+---
 
 ## 70. Esplicitamente NON nell'MVP
 
