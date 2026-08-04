@@ -11,6 +11,7 @@ import {
 import { productLinePrice, comboLinePrice } from "../lib/menu-pricing";
 import { prepareCart, restoreCart } from "../lib/cart-persistence";
 import { prepareCheckout, restoreCheckout } from "../lib/checkout-persistence";
+import PrivacyFooter from "./privacy-footer";
 
 const CATEGORIES = [
   "ROLL",
@@ -2854,7 +2855,37 @@ function CheckoutScreen({
               checked={privacyAccepted}
               onChange={() => setPrivacyAccepted((prev) => !prev)}
             />
-            Dichiaro di aver letto l'informativa privacy.
+            {/* Il testo della casella non cambia: cambia solo il fatto che
+                "informativa privacy" ora porta al documento.
+
+                ⚠️ Si apre in una NUOVA SCHEDA: restando nella stessa il cliente
+                perderebbe i dati già scritti nel modulo.
+
+                ⚠️ `stopPropagation` non è ornamentale. Il testo vive dentro un
+                `<label>`, e un clic sul label spunta la casella: senza questo,
+                aprire l'informativa cambierebbe anche lo stato del consenso —
+                cioè un atto che §36-40 vuole sempre esplicito. La specifica
+                HTML già esclude dall'attivazione del label i discendenti
+                interattivi come `<a href>`, ma la difesa è dichiarata qui
+                invece di essere affidata a quel dettaglio. */}
+            <span>
+              Dichiaro di aver letto l&apos;
+              <a
+                href="/privacy"
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => e.stopPropagation()}
+                style={{
+                  color: "var(--brand-orange)",
+                  textDecoration: "underline",
+                  fontWeight: 600,
+                  padding: "4px 0",
+                }}
+              >
+                informativa privacy
+              </a>
+              .
+            </span>
           </label>
 
           <label style={checkboxLabelStyle}>
@@ -3776,6 +3807,11 @@ export default function Home() {
           )}
         </>
       )}
+
+      {/* Collegamento discreto all'informativa, sotto tutto il contenuto. La
+          barra sticky è `position: fixed` e non lo copre: `<main>` riserva già
+          90px di padding in basso quando è visibile. */}
+      <PrivacyFooter />
 
       {showStickyBar && (
         <div

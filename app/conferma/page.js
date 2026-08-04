@@ -2,6 +2,7 @@
 
 import { Suspense, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import PrivacyFooter from "../privacy-footer";
 
 // §47-51: pagina di stato persistente — 15-30s va bene, stesso principio
 // del polling già usato nel pannello staff.
@@ -214,6 +215,10 @@ function ConfirmationScreen() {
           </p>
         </div>
       )}
+
+      {/* Collegamento discreto all'informativa, sotto tutto il contenuto e in
+          ogni stato della pagina — anche quando l'ordine non viene trovato. */}
+      <PrivacyFooter />
     </main>
   );
 }
