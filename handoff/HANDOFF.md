@@ -464,6 +464,32 @@ bc. **Un `includes` su un documento non conta le occorrenze che vanno a capo.**
    `bb` e `bc` sono la stessa cosa in tre forme, e sono tornate tutte nello
    stesso giro: **quello che si può eseguire non si rilegge — si esegue, e poi
    si guarda se il controllo poteva davvero fallire**.*
+bd. ⚠️ **Righe e byte non sono un'impronta.** Il 04/08/2026 due versioni
+   dell'handoff da copiare avevano **le stesse identiche righe (1894) e gli
+   stessi byte (114184)**: la correzione era `v52`→`v53`, che non cambia la
+   lunghezza. Un guard che confronta solo quelle due misure — la forma di
+   quasi tutti gli script usati finora — **sarebbe passato su entrambi i file
+   dicendo OK**, e avrebbe potuto ricopiare quello sbagliato senza che nulla
+   facesse rumore. *È la lezione `ai` un passo più in là: là il pericolo era
+   identificare il file dal nome, qui è credere che due misure di dimensione
+   siano un'identità. **Solo lo `sha256` distingue**; righe e byte sono un
+   indizio, e su una modifica di un carattere non distinguono nulla.*
+be. **Quando cambia la versione della spec, nell'handoff i punti da
+   correggere sono due, non uno.** La riga 15, che dichiara quale versione
+   della spec è quella corrente, e l'HEAD del §2. Il 04/08/2026 la v53 è stata
+   committata con la riga 15 ferma alla **v52**: il controllo era stato fatto
+   sull'HEAD e non sul puntatore. *Il documento è stato salvato dalla propria
+   parentesi — "leggila sempre dall'intestazione, riga 3" — che dice al lettore
+   di non fidarsi di quella riga; ma una nota di stato falsa resta falsa, ed è
+   la lezione `aj`. La verifica dopo una copia va fatta su **entrambi**.*
+bf. **Un numero fornito a voce finisce nei documenti.** Nello stesso giorno la
+   dimensione di `app/privacy/page.js` è stata riportata come **848 righe** in
+   un riepilogo di fine lavoro, stimata invece che misurata; da lì è entrata
+   nella tabella dei file di questo handoff ed è stata committata. Le righe
+   vere sono **995**, e le dice il `numstat` del commit `c69642e`. *Chi scrive
+   il documento si fida del numero che riceve: chi lo fornisce deve averlo
+   **eseguito**, non ricordato — è la lezione `az`, presa dal lato di chi passa
+   il dato invece che di chi lo scrive.*
 
 ---
 
@@ -1842,8 +1868,8 @@ Pubblicazione dell'informativa. **Quattro file toccati**, nessun altro:
 
 | file | intervento |
 |---|---|
-| `app/privacy/page.js` | nuovo, 848 righe — la pagina, statica (`○ prerendered`) |
-| `app/privacy-footer.js` | nuovo, 33 righe — collegamento condiviso in fondo |
+| `app/privacy/page.js` | nuovo, 995 righe — la pagina, statica (`○ prerendered`) |
+| `app/privacy-footer.js` | nuovo, 34 righe — collegamento condiviso in fondo |
 | `app/page.js` | +37 / −1 — collegamento nella casella, footer prima della barra sticky |
 | `app/conferma/page.js` | +5 / −0 — footer prima di `</main>` |
 
