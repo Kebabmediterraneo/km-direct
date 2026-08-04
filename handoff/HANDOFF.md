@@ -12,28 +12,28 @@ Web app per ordini **delivery e ritiro** di **FAME Srl / KM Kebab Mediterraneo**
 (Bologna, store `san-mamolo`). Stack **Next.js 14 + Supabase + Stripe (sandbox)**.
 Repo: **github.com/Kebabmediterraneo/km-direct** (branch `main`, push via SSH).
 La fonte di verità di tutte le decisioni è **`MASTER_SPEC.md`** — versione attuale
-**v53** (leggila sempre dall'intestazione, riga 3).
+**v54** (leggila sempre dall'intestazione, riga 3).
 
 ---
 
 ## 2) Stato git
 
 - Branch **`main`**, working tree **pulita**, allineata a `origin/main`.
-- HEAD: **`c69642e`** — pubblicazione dell'informativa privacy (03/08/2026).
+- HEAD: **`abdaec2`** — spec v54, dal giro di verifica su infrastruttura e
+  database (04/08/2026).
 - Ultimi commit (dal più recente):
 
 ```
+abdaec2 spec: v54 — piano Pro attivo e backup verificati, regione Irlanda e stato RLS accertati, pulizia in due strumenti e ordini failed, regole dello slug decise §63-64 §65 §66 §69
+b328eb3 handoff: corretti i numeri dei file del giro privacy e aggiunte tre lezioni su verifiche che non distinguono
+9e0c557 docs: handoff — puntatore di versione della spec allineato alla v53
+08e50df docs: spec v53 e handoff — informativa privacy chiusa, conservazione dei dati in §69, rilievi dell'audit e decisioni di infrastruttura §41-45 §65 §66 §69
 c69642e privacy: informativa pubblicata su /privacy, collegata dalla casella del checkout e dal fondo delle pagine cliente §41-45
 be7324b spec: v52 — condizione di apertura sui prezzi chiusa e verificata dal vivo, e corretta la frase sui consensi che si azzerano tornando al carrello §46
 dade165 checkout: la rilettura del menu fallita mostra il testo deciso invece dell'errore tecnico §46
 4304910 checkout: il sito riconosce i due rifiuti che riguardano il menu da status e testo, rilegge il listino e riporta al carrello §46
 3f9403f spec: v51 — stesso trattamento per l'articolo non ordinabile con la riga tolta e spiegata, decisioni sulla riga bloccata rimandate, geofence 400 e scadenze senza ancoraggio §46 §46b
 9705d4a checkout: il sito manda il prezzo unitario mostrato per ogni riga, dallo stesso calcolo del server §46
-b5a6f7f handoff: aggiorna a v50 — aggancio del confronto prezzi registrato, criterio nuovo della fotografia, conteggi spostati in spec e lezioni su descrizioni del codice e conteggi eseguiti
-fe4bcc2 spec: v50 — conteggio delle uscite aggiornato a 27 e 17, e aritmetica dello scarto corretta con il raggruppamento vero dei rami 409 §46
-98d8f0a spec: v49 — la riga non piu' ordinabile resta nel carrello e blocca il pagamento, e testo per la rilettura del menu fallita §46 §46b
-d5876e7 spec: v48 — al 409 il sito rilegge il listino prima di riportare al carrello, e nessuna evidenziazione della differenza di prezzo §46
-05c6bc9 checkout: confronto fra prezzo mostrato e reale agganciato prima di ogni scrittura, e casi della fotografia estesi ai tre esiti del guard §46 §46b
 ```
 
 *Nota ricorrente, non un errore*: l'HEAD scritto qui è sempre quello
@@ -1037,14 +1037,20 @@ prima del go-live vanno riletti così, non ricopiati da qui (lezioni `s` e `z`).
 `customers` 27→38, `order_status_history` 12→23. Ogni verifica dal vivo che
 arriva alla pagina di pagamento ne aggiunge.*
 
-⚠️ **GIÀ SUPERATI DALLE PROVE DEL PASSO 3 (punto 10b).** Il log del server
-mostra **quattro `POST /api/checkout`** andati a buon fine durante le sei
-prove, quindi almeno **quattro ordini in più** e le righe collegate in
-`order_items`, `customers` e `order_status_history`. **I totali qui sotto non
-sono stati aggiornati di proposito**: aggiornarli a mente è precisamente
-l'errore delle lezioni `s` e `z`, commesso già quattro volte su questo stesso
-elenco. Vanno **riletti dal database**, mai ricalcolati per somma — il numero
-di `POST` visto nel log è un indizio, non un conteggio.
+✅ **I totali qui sotto sono ESATTI, e l'avviso che c'era qui era falso.** Fino
+al 04/08/2026 questo punto dichiarava i numeri "già superati dalle prove del
+passo 3", deducendolo dai quattro `POST /api/checkout` visti nel log del
+server. La rilettura diretta del database del **04/08/2026** dà gli stessi
+numeri del 30/07 sera: `orders` 30, `customers` 40, `promo_redemptions` 1,
+`analytics_events` 0, `staff_action_log` 70. *Il log del server era un indizio,
+e come tale è stato letto male: quei quattro `POST` erano già compresi nei
+conteggi del 30/07. L'avviso è stato scritto per prudenza e ha finito per
+essere l'unica affermazione sbagliata del blocco.*
+
+⚠️ **Restano invecchiabili**: ogni verifica dal vivo che arriva alla pagina di
+pagamento ne aggiunge. Prima del go-live vanno **riletti dal database**, mai
+ricopiati da qui (lezioni `s` e `z`) — lo strumento è la fotografia di sola
+lettura prevista da §69.
 
 - **`orders`: 30 righe, tutte di prova** (26/07 → 01/08/2026), più **52 righe**
   in `order_items`. Quattro ordini con pagamento `succeeded` in sandbox —
@@ -1574,13 +1580,21 @@ diario delle decisioni di allora, non affermazioni sull'oggi.*
 
 ### PROSSIMO — a scelta fra i due qui sotto
 
-Con §46 chiusa restano **cinque** condizioni di apertura (elenco più sotto).
-⚠️ **Almeno due richiedono ancora di scrivere codice**: le analytics di §65 —
-una dozzina di eventi da tracciare, più la pagina dei carrelli abbandonati — e
-il **collegamento** all'informativa privacy nel checkout, che va scritto anche
-se il documento si procura altrove. Le altre tre — Stripe live, dominio,
-pulizia dei dati di prova — sono da procurare o configurare, e possono
-camminare in parallelo.
+Restano **cinque** condizioni di apertura (elenco più sotto): quattro dell'elenco
+storico — Stripe live, dominio, analytics §65, pulizia dei residui — più la
+procedura mensile di §69. ⚠️ **Una sola richiede di scrivere codice**: le
+analytics di §65, cioè una dozzina di eventi da tracciare più la pagina dei
+carrelli abbandonati. Le altre sono da procurare, configurare o eseguire, e
+possono camminare in parallelo.
+
+⚠️ **Questo blocco è stato trovato falso il 04/08/2026 e riscritto.** Diceva
+"cinque condizioni" quando erano sei, e dava per **ancora da scrivere** il
+collegamento all'informativa privacy nel checkout — che era stato committato il
+03/08 con `c69642e`, cioè il lavoro appena concluso quando quella frase è stata
+riletta. *È la lezione `aj` per la terza volta: una nota di stato lasciata
+indietro non invecchia in silenzio, mente con l'autorità del documento. Chi
+avesse letto solo questo blocco sarebbe ripartito a costruire una cosa già
+costruita.*
 
 *§46 era però l'unica che richiedesse di **costruire una funzione nuova**, ed è
 questa la differenza che contava. ⚠️ Fino alla v50 questa riga diceva "§46 è
@@ -1629,14 +1643,24 @@ Prodotti (fritti, sides, dolci, drink) **e salse**, che ora sono la stessa cosa.
 Dichiarazione allergeni obbligatoria alla creazione: o gli allergeni, o la
 casella "nessuno dei 14".
 
-⚠️ **La tendina delle categorie va compilata a mano** con le **8** categorie
-reali, escludendo `menu_combo` (§63-64). *La regola v30 che escludeva anche
-`salse` è decaduta con l'unificazione: ora è la categoria giusta.*
+⚠️ **La tendina delle categorie NON si compila a mano.** `products.category` è
+un **tipo chiuso nel database**: ricopiarne i valori nel form creerebbe una
+seconda copia di un elenco che esiste già, e due copie divergono. L'elenco va
+**letto**, escludendo `menu_combo` (§63-64 v54). *Fino al 04/08/2026 questo
+blocco diceva l'opposto — "va compilata a mano con le 8 categorie reali" — ed è
+stato corretto perché era un'istruzione rovesciata, non una nota invecchiata.
+Anche il numero 8 va verificato leggendo, non ripreso da qui.* *La regola v30
+che escludeva anche `salse` è decaduta con l'unificazione: ora è la categoria
+giusta.*
 
-Da decidere prima di partire: come si genera lo `slug` di un articolo nuovo
-(obbligatorio e unico per store) e cosa succede se collide con uno esistente. La
-convenzione osservata sui 62 articoli è: minuscolo, accenti tolti, spazi e
-apostrofi → trattino, "&" eliminato, numeri e unità invariati.
+✅ **Le decisioni su `slug` e collisioni sono PRESE il 04/08/2026** e stanno in
+**spec §63-64 v54**: lo slug si genera dal nome con sei regole dichiarate, in
+collisione il pannello si ferma invece di aggiungere un numero, e la regola vive
+in un modulo unico sotto `lib/`. ⚠️ *La convenzione "osservata sui 62 articoli"
+che stava scritta qui era per metà non verificata: le sette salse esercitano
+minuscolo, spazi e apostrofi, ma **accenti, "&" e numeri non erano esercitati da
+nulla**, e nessun codice del repository ha mai generato uno slug (ricognizione
+del 04/08). Con la v54 tutte e sei sono decise, non osservate.*
 
 ### Da valutare — campo codice sconto generico
 
@@ -1709,7 +1733,7 @@ carrello**, non sulla riga.
   **vuoto ovunque** e non c'è modo di caricare una foto dal pannello. Lavoro
   autonomo, da fare per tutti gli articoli insieme.
 
-### Condizioni di apertura — **tre chiuse, sei aperte**
+### Condizioni di apertura — **quattro chiuse, cinque aperte**
 
 - ✅ **Persistenza** (§36-40): **CHIUSA il 30/07/2026.** Carrello (punto 10) e
   dati del checkout (punto 10b), entrambi verificati dal vivo. *È la prima
@@ -1739,24 +1763,26 @@ carrello**, non sulla riga.
 - **Pulizia dei residui di test** (punto 11) — da **rileggere** dal database,
   mai ricopiare da qui.
 
-⚠️ **Restano sei voci aperte in tutto**: le **quattro** dell'elenco storico —
-Stripe live, dominio, analytics, pulizia dei residui — più le **due** aggiunte
-qui sotto dal giro privacy. *Delle sei, una sola richiede di scrivere codice: le
-analytics di §65. §46 era però l'unica che richiedesse di **costruire una
-funzione nuova**.*
+⚠️ **Restano cinque voci aperte in tutto**: le **quattro** dell'elenco storico —
+Stripe live, dominio, analytics, pulizia dei residui — più la **procedura
+mensile** di §69. La sesta, il piano Supabase Pro, è chiusa il 04/08/2026.
+*Delle cinque, una sola richiede di scrivere codice: le analytics di §65. §46 era
+però l'unica che richiedesse di **costruire una funzione nuova**.*
 
 ⚠️ *Questa intestazione e questo conteggio vanno riletti ogni volta che
 l'elenco cambia: è la seconda volta che restano indietro rispetto alle voci.*
 
-**Le due voci nuove**, fuori dall'elenco storico ma prima dell'apertura, nate
-dal giro privacy (punto 14):
+**Le due voci nate dal giro privacy** (punto 14), fuori dall'elenco storico ma
+prima dell'apertura — la prima ora chiusa:
 
-- **Piano Supabase Pro**, da attivare **prima dei primi ordini veri**: oggi il
-  piano è Free e **non include alcun backup**. Senza, il punto 11.7
-  dell'informativa è falso e non esiste ritorno da un errore di cancellazione o
-  da un guasto.
-- **Procedura mensile di pulizia** degli ordini `pending` oltre i 30 giorni
-  (§69), con lo stesso script SQL della pulizia dei residui.
+- ✅ **Piano Supabase Pro**: **CHIUSA il 04/08/2026** (punto 18). Il piano è
+  attivo, lo Spend Cap è acceso e i backup sono ripristinabili dal 28/07. Il
+  punto 11.7 dell'informativa, che era falso, è ora vero senza toccare il
+  documento. *È la **quarta** condizione che si chiude.*
+- **Procedura mensile di pulizia** degli ordini mai pagati oltre i 30 giorni
+  (§69). ⚠️ **Non è più bloccata**: il referto di audit del 04/08 ha restituito
+  foreign key e comportamenti `ON DELETE`, che erano la precondizione. Lo script
+  lo scrive Code.
 
 *Non è una condizione di apertura*: **WhatsApp**, che la spec colloca in
 **fase 1.1** (§71) e che §52-56 dichiara esplicitamente fuori dalla specifica
@@ -1860,7 +1886,7 @@ Due lezioni di metodo da conservare:
 
 **Da sanare, registrato in spec:** la prova del consenso marketing viene azzerata a ogni riordino; manca la costante di versione del testo privacy; tre `console.error` del checkout stampano oggetti errore interi; `km_direct_checkout` non viene mai cancellato; Google Maps caricato su ogni pagina prima dell'interattività.
 
-**Scoperta con conseguenza fuori dal codice:** il progetto Supabase è su **piano Free, che non include backup**. Nessuna copia di sicurezza esiste oggi.
+**Scoperta con conseguenza fuori dal codice:** il progetto Supabase era su **piano Free, che non include backup**. ✅ **Sanata il 04/08/2026**: piano Pro attivo, copie ripristinabili (punto 18).
 
 ### 14c) L'unico intervento sul codice
 
@@ -1893,11 +1919,11 @@ Delle cinque aperte in `HANDOFF_2.md` §12:
 
 **Nuove, nate da questo giro:**
 
-* **piano Supabase Pro** da attivare prima dei primi ordini veri: senza, il punto 11.7 dell'informativa è falso e non esiste alcun ritorno da un errore;
-* **procedura mensile di pulizia** degli ordini `pending` oltre i 30 giorni, con lo script SQL condiviso con la pulizia dei residui;
+* **piano Supabase Pro — ✅ CHIUSA il 04/08/2026** (punto 18). Quarta condizione a chiudersi;
+* **procedura mensile di pulizia** degli ordini mai pagati oltre i 30 giorni — **aperta, ma non più bloccata**: la precondizione di §69 era il referto su foreign key e `ON DELETE`, arrivato il 04/08. Lo script lo scrive Code, in **due file separati** dalla pulizia del go-live (decisione del 04/08, spec §69 v54);
 * **chiave API Google da restringere** al dominio, contestualmente al dominio vero.
 
-Fuori elenco ma prima dell'apertura resta la **Fase 3** (creazione di articoli dal pannello), con la decisione ancora da prendere su generazione dello `slug` e collisioni.
+Fuori elenco ma prima dell'apertura resta la **Fase 3** (creazione di articoli dal pannello). ⚠️ **Le decisioni su `slug` e collisioni sono state prese il 04/08/2026** e stanno in spec §63-64 v54: non è più un lavoro con decisioni aperte.
 
 ---
 
@@ -1918,4 +1944,51 @@ Analogamente su `app/page.js`: cancellazione di `km_direct_checkout` a ordine co
 ## 17) Verifiche ancora da fare a mano
 
 * le due prove dal telefono sul collegamento nella casella (scheda nuova, dati del modulo intatti);
-* le query di sola lettura preparate nel primo blocco di audit — RLS, foreign key, `ON DELETE`, trigger — da eseguire nell'editor SQL della dashboard e riportare a Code per l'interpretazione. **Finché non sono state eseguite, lo stato delle RLS è ignoto.**
+* ✅ **FATTO il 04/08/2026** — le query di sola lettura su RLS, foreign key, `ON DELETE`, colonne e trigger, eseguite da Andrea nell'editor SQL. Lo stato delle RLS **non è più ignoto**: il referto sta in spec §66 v54 e i conteggi al punto 18;
+* **da riguardare dopo una settimana di esercizio**: la pagina dei backup Supabase, dove mancano il 1° e il 2 agosto. Se i buchi si ripetono, la frase dell'informativa sulle copie "giornaliere" va ammorbidita (punto 18);
+* **da chiedere a Code**: se la chiave `service_role` sia mai esposta al browser. Tutta la protezione RLS regge su quella condizione, e nessuno l'ha ancora verificata (punto 18).
+
+---
+
+## 18) Il giro su infrastruttura e database (04/08/2026)
+
+Sessione **senza una riga di codice applicativo**: acquisti e configurazione nella dashboard, cinque query di sola lettura eseguite da Andrea, una ricognizione di Code sul repository, e l'aggiornamento dei due documenti. Le decisioni stanno in **spec §63-64, §65, §66 e §69 v54**; qui c'è lo stato.
+
+### 18a) Cosa è stato fatto, e da chi
+
+Tutto quanto segue è **di Andrea**, nella dashboard: attivazione del piano **Pro** sull'organizzazione *Kebab Mediterraneo*, passaggio della taglia di calcolo da **Nano a Micro**, e l'esecuzione delle query. Code è intervenuto una volta sola, per la ricognizione sugli slug, e una seconda per la copia della spec.
+
+### 18b) I fatti verificati, con la fonte
+
+| fatto | fonte |
+|---|---|
+| piano **Pro** attivo, Spend Cap acceso, 25 $/mese | pagina Billing |
+| **backup ripristinabili dal 28/07 al 04/08**, ⚠️ mancano 01 e 02/08 | pagina Database Backups |
+| regione **West EU (Ireland), `eu-west-1`** | riquadro Primary Database |
+| taglia **`t3a.micro`** dopo l'aggiornamento | riquadro Primary Database |
+| **RLS attiva su tutte e 23 le tabelle**, 10 in lettura pubblica e 13 chiuse, **nessuna regola di scrittura** | query sul catalogo |
+| collegamenti, cancellazioni a catena e **sei trigger** `updated_at` | query sul catalogo |
+| `orders.order_token` generato dal database con **16 byte casuali** | valore predefinito della colonna |
+| `orders.privacy_accepted_at` **obbligatoria**: nessun ordine senza consenso | definizione della colonna |
+| **nessuno slug è mai stato generato da codice** | ricognizione di Code |
+
+**Conteggi al 04/08/2026**, letti dal database: `orders` **30** (26 mai pagati, 4 `succeeded` in sandbox), `customers` **40**, `promo_redemptions` **1**, `analytics_events` **0**, `staff_action_log` **70** di cui **43** di prova. *Identici a quelli del 30/07 sera: la verifica dal vivo del 02/08 non ha lasciato residui.*
+
+### 18c) Le sette decisioni prese
+
+Pulizia in **due strumenti separati** invece di uno (rovescia §69 v53) · ordini **`failed` trattati come i `pending`** · nella pulizia mensile log staff ed eventi statistici **perdono il riferimento, non la riga** · i **codici promo tornano utilizzabili** solo a chi non ha mai pagato · lo **slug si genera dal nome** con sei regole dichiarate · in **collisione il pannello si ferma** invece di aggiungere un numero · la regola vive in un **modulo unico**.
+
+### 18d) Cosa questo giro NON ha chiuso
+
+* ⚠️ **La chiave `service_role` scavalca ogni RLS**, e nessuno ha verificato che non finisca nel browser. È una domanda sul codice, ed è la prima da fare a Code.
+* **`analytics_events` ha già un elenco chiuso di tipi di evento** nel database, mai letto da nessuno. Va confrontato con la dozzina di §65 **prima** di scrivere codice.
+* **Gli script di pulizia non esistono ancora.** Le regole ci sono, il codice no.
+* **Le altre affermazioni dell'informativa sull'infrastruttura** — hosting, cookie, strumenti di analisi — non sono state passate in rassegna una per una, come è stato fatto per la regione.
+
+### 18e) Due lezioni di metodo
+
+**bg. ⚠️ Una frase di un fornitore non è un dato da cui calcolare.** La pagina dei backup dice che le copie si prendono "intorno alla mezzanotte della regione del progetto". Gli orari erano le 07:36 UTC, che in Irlanda non è mezzanotte: da lì è nata l'ipotesi che il database fosse negli Stati Uniti, con l'informativa che avrebbe dichiarato il falso in due punti. **Il campo Region diceva Irlanda.** La frase era approssimativa. *È la famiglia delle lezioni `ap` e `av` in forma nuova: là la sonda era costruita sulla forma attesa di un file, qui il calcolo era costruito sulla frase di un'interfaccia. Il rimedio è lo stesso — si legge il campo, non si deduce dall'orario — e il costo è stato due messaggi, perché l'ipotesi era stata dichiarata come ipotesi e non come fatto.*
+
+**bh. ⚠️ Un referto che finisce a 100 righe esatte non è un referto completo.** L'editor SQL della dashboard tronca a 100. Il primo giro sulle colonne si è fermato a `orders` colonna 32 e **sembrava una risposta**: mancavano tredici tabelle intere, fra cui proprio quella che serviva. È la lezione `aq` spostata sullo strumento — là una variabile vuota faceva corrispondere tutto, qui un limite silenzioso fa sembrare finito ciò che è a metà. *Rimedio: contare le righe attese prima di leggere il contenuto, e diffidare del numero tondo.*
+
+**Una terza, dal lato di chi scrive i comandi**: l'elenco delle righe **rimosse** attese nel comando di copia della v54 era sbagliato — dichiarava due zone quando erano quattro, dimenticando che la riga 3 va sostituita e che un `+1` netto si ottiene sostituendo una riga con due. Code l'ha segnalato senza fermarsi, correttamente. *È la lezione `ak`: ciò che un comando dichiara come atteso si ricava dal diff, non a memoria — e chi scriveva aveva il diff davanti.*
