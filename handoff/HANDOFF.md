@@ -12,34 +12,38 @@ Web app per ordini **delivery e ritiro** di **FAME Srl / KM Kebab Mediterraneo**
 (Bologna, store `san-mamolo`). Stack **Next.js 14 + Supabase + Stripe (sandbox)**.
 Repo: **github.com/Kebabmediterraneo/km-direct** (branch `main`, push via SSH).
 La fonte di verità di tutte le decisioni è **`MASTER_SPEC.md`** — versione attuale
-**v55** (leggila sempre dall'intestazione, riga 3).
+**v56** (leggila sempre dall'intestazione, riga 3).
 
 ---
 
 ## 2) Stato git
 
 - Branch **`main`**, working tree **pulita**, allineata a `origin/main`.
-- HEAD: **`f54c29d`** — i tre script di pulizia dati (04/08/2026).
+- HEAD: **`1f74e8f`** — la spec v56 (05/08/2026).
 - Ultimi commit (dal più recente):
 
 ```
+1f74e8f spec: v56 — corretta la destinazione dei motivi di problema e annullamento, annullamento in sequenza da problema, due decisioni di §65 chiuse, tolta la contraddizione sulla tendina categorie, giorno della pulizia mensile e conteggi riletti §62b §63-64 §65 §66 §69
+f5e9e8b handoff: giro sugli script di pulizia dati del 04/08 e stato dopo la v55
+1686c93 spec: v55 — i tre script di pulizia esistono, staccare invece di cancellare anche al go-live, sequenza di apertura fissata e chiave service_role verificata §65 §66 §69
 f54c29d sql: script di pulizia dati — azzeramento pre-go-live con freno sull'ultima prova, pulizia mensile degli ordini mai pagati, e referto dei conteggi di sola lettura §66 §69
 67e15a5 handoff: giro su infrastruttura e database del 04/08 — piano Pro chiuso, referto RLS e collegamenti, e corrette quattro affermazioni rimaste indietro fra cui la tendina delle categorie rovesciata
 abdaec2 spec: v54 — piano Pro attivo e backup verificati, regione Irlanda e stato RLS accertati, pulizia in due strumenti e ordini failed, regole dello slug decise §63-64 §65 §66 §69
 b328eb3 handoff: corretti i numeri dei file del giro privacy e aggiunte tre lezioni su verifiche che non distinguono
-9e0c557 docs: handoff — puntatore di versione della spec allineato alla v53
-08e50df docs: spec v53 e handoff — informativa privacy chiusa, conservazione dei dati in §69, rilievi dell'audit e decisioni di infrastruttura §41-45 §65 §66 §69
-c69642e privacy: informativa pubblicata su /privacy, collegata dalla casella del checkout e dal fondo delle pagine cliente §41-45
-be7324b spec: v52 — condizione di apertura sui prezzi chiusa e verificata dal vivo, e corretta la frase sui consensi che si azzerano tornando al carrello §46
-dade165 checkout: la rilettura del menu fallita mostra il testo deciso invece dell'errore tecnico §46
-4304910 checkout: il sito riconosce i due rifiuti che riguardano il menu da status e testo, rilegge il listino e riporta al carrello §46
-3f9403f spec: v51 — stesso trattamento per l'articolo non ordinabile con la riga tolta e spiegata, decisioni sulla riga bloccata rimandate, geofence 400 e scadenze senza ancoraggio §46 §46b
 ```
 
 *Nota ricorrente, non un errore*: l'HEAD scritto qui è sempre quello
 **precedente** al commit che aggiorna questo documento — l'handoff fotografa
 per forza l'istante prima di sé stesso. Va confrontato con `git log`, non
 corretto.
+
+⚠️ **Correzione della formulazione (05/08/2026)**: la frase qui sopra descrive
+una distanza di **uno**, ma la distanza normale è di **due**, perché fra lo
+stato fotografato e il commit di questo documento passa quasi sempre anche la
+spec — la regola "prima la spec, poi l'handoff" la mette in mezzo per
+costruzione. *Rilevato da Code il 05/08 confrontando `git log` con questo
+blocco: l'HEAD dichiarato era giusto, era la spiegazione a non coprire il caso
+normale della coppia spec+handoff.*
 
 ---
 
@@ -75,6 +79,15 @@ migration in **`sql/`** (9 file):
 20260728_sauces_merge_into_products.sql   ← unificazione (eseguita)
 20260729_drop_sauces_tables.sql           ← dismissione (eseguita)
 ```
+
+⚠️ **Nella stessa cartella stanno anche i tre script di pulizia dati** (commit
+`f54c29d`, 04/08/2026), che **non sono migrazioni** e non vanno confusi con
+esse: `conteggi_dati_sola_lettura.sql`,
+`ESEGUIRE_UNA_VOLTA_SOLA_prima_del_golive_CANCELLA_TUTTI_GLI_ORDINI.sql` e
+`pulizia_mensile_ordini_mai_pagati.sql` (punto 19). *Fino al 05/08/2026 questo
+elenco diceva "le migration in `sql/` (9 file)" senza nominarli: chi leggesse
+solo questo punto avrebbe una fotografia incompleta della cartella. I file veri
+sono dodici.*
 
 **Solo nel database** (non su git): tutti i dati del menu — prodotti, nomi,
 descrizioni, prezzi, badge, allergeni, flag dietetici, piccantezza, date di
@@ -490,6 +503,53 @@ bf. **Un numero fornito a voce finisce nei documenti.** Nello stesso giorno la
    il documento si fida del numero che riceve: chi lo fornisce deve averlo
    **eseguito**, non ricordato — è la lezione `az`, presa dal lato di chi passa
    il dato invece che di chi lo scrive.*
+
+**Lezioni aggiunte il 05/08/2026 (ricognizione su §62b e spec v56)**
+
+bk. ⚠️ **Una descrizione del codice creduta, e usata come fondamenta di un
+   ragionamento intero.** §62b dichiarava dalla sua stesura che il motivo del
+   problema e quello dell'annullamento sono "registrati in
+   `order_status_history`". È **falso**: quella tabella non ha una colonna che
+   possa ospitare un testo di motivo. Sopra quella frase era stata costruita una
+   raccomandazione articolata — copiare il motivo nel `payload` degli eventi
+   statistici perché la pulizia mensile l'avrebbe altrimenti perso — che era
+   **coerente, motivata e interamente sbagliata**, e che si è sciolta appena la
+   ricognizione ha detto dove il motivo finisce davvero. *È la lezione `ay` dal
+   lato di chi legge: là si diceva che una descrizione del codice va confrontata
+   con il codice **prima di essere pubblicata**; qui si aggiunge che va
+   confrontata anche **prima di essere usata come premessa**. Il costo è stato
+   nullo solo perché la ricognizione è stata chiesta prima di scrivere in spec;
+   fatta dopo, sarebbe stata una decisione da disfare.*
+bl. ⚠️ **Due misure dello stesso oggetto, incompatibili, scritte lo stesso
+   giorno in due documenti.** Il 04/08 i conteggi dichiaravano `orders` 30 con
+   l'ultimo ordine al 01/08, mentre la prova del freno di §69 citava un
+   `max(created_at)` del **04/08 alle 13:07**. Non potevano essere vere
+   entrambe, ed erano a poche righe di distanza in file che vengono committati
+   insieme. Nessuno le ha messe a confronto perché **ciascuna era stata scritta
+   nel proprio contesto e verificata lì**. *Rimedio: quando la stessa grandezza
+   compare in due punti — un conteggio e un massimo, un totale e un elenco — il
+   confronto fra i due è esso stesso una verifica, e costa una lettura. È la
+   forma documentale della lezione `z`: non basta rileggere, bisogna sapere
+   dove.*
+bm. **Un conteggio delle righe di un diff che non vede le righe vuote.**
+   Preparando gli attesi della v56, `grep -c '^+[^+]'` ha dato **107** righe
+   aggiunte invece di **125**: il filtro escludeva le righe aggiunte **vuote**,
+   che nel diff sono un `+` solo. Il numero sbagliato era diretto al comando di
+   copia, dove avrebbe fatto scattare il guard su un file perfettamente
+   integro — cioè avrebbe insegnato a diffidare del controllo (lezione `bi`).
+   *Scoperto perché il netto non tornava con la differenza fra le righe dei due
+   file: 4704 → 4813 sono +109, e +107/−16 ne dà +91. **La contro-misura non è
+   una sonda migliore, è tenere due strade che devono coincidere.***
+bn. **Il browser non sovrascrive da solo i file scaricati** (nota rimasta in
+   coda dal 04/08/2026). Quel giorno in `~/Downloads` è rimasta una sola copia
+   dell'handoff, e da lì era stato dedotto che il browser avesse sovrascritto la
+   precedente: l'aveva invece **cancellata Andrea a mano**. La deduzione portava
+   alla conclusione giusta per il motivo sbagliato, ed è il tipo di falsa
+   sicurezza che rilassa un controllo. *Confermato il 05/08: il file della v56 è
+   stato salvato come `MASTER_SPEC_2.md` accanto al vecchio `MASTER_SPEC.md`,
+   esattamente la trappola della lezione `ai`. **La regola resta: si cerca per
+   impronta, sempre**, e il comando di copia deve dichiarare gli attesi del
+   sorgente e ordinare di fermarsi.*
 
 ---
 
@@ -1047,29 +1107,90 @@ e come tale è stato letto male: quei quattro `POST` erano già compresi nei
 conteggi del 30/07. L'avviso è stato scritto per prudenza e ha finito per
 essere l'unica affermazione sbagliata del blocco.*
 
+⚠️⚠️ **E quei numeri sono a loro volta invecchiati nel giro di poche ore, senza
+che nessuno se ne accorgesse.** Il referto di sola lettura eseguito da Andrea il
+**05/08/2026** — prima esecuzione in assoluto dello strumento di §69 — dà i
+numeri qui sotto, che sono i **soli validi oggi**. La differenza è **un ordine
+di prova completo creato il 04/08/2026 alle 13:07:01.471525+00**, confermato da
+Andrea come proprio: carrello, riga cliente, codice promo applicato, pagamento
+riuscito e cinque righe di storico di stato, cioè un giro intero dal sito fino
+alla lavorazione dal pannello.
+
+*Perché è istruttivo, al di là del dato*: la giornata del 04/08 è stata
+dichiarata "senza una riga di codice applicativo", i conteggi riscritti come
+invariati, **e nello stesso giorno la prova del freno di §69 citava un
+`max(created_at)` del 04/08 che li smentiva**. Due affermazioni incompatibili
+scritte a poche ore di distanza, una in spec e una qui, e nessuna delle due
+rileggeva l'altra. Il conflitto è stato notato leggendo i due documenti
+insieme, non lavorando su di essi.
+
+**Conteggi al 05/08/2026** (referto §69, tutte le tabelle):
+
+| tabella | 30/07 e 04/08 | **05/08 (valido)** |
+|---|---|---|
+| `orders` | 30 | **31** |
+| `order_items` | 52 | **57** |
+| `order_status_history` | 23 | **28** |
+| `customers` | 40 | **41** |
+| `promo_redemptions` | 1 | **2** |
+| `staff_action_log` | 70 | **70** (invariato) |
+| `analytics_events` | 0 | **0** |
+
+*Che `staff_action_log` sia rimasto a 70 mentre lo storico di stato cresceva di
+cinque righe non è una stranezza: è **coerente con il codice**, che scrive nel
+registro azioni solo su "segnala problema" e "annulla ordine", mai sulle
+transizioni normali (punto 20). Due misure che si confermano a vicenda valgono
+più di una sola.*
+
+Ripartizioni al 05/08: ordini **mai pagati** (`pending` + `failed`) **26**,
+ordini **pagati o rimborsati** **5** — mai toccati da §69. Clienti **senza alcun
+ordine collegato 19**, clienti con almeno un ordine pagato **5**. ⚠️ **Ordini
+mai pagati più vecchi di 30 giorni: ZERO**, e clienti nelle stesse condizioni:
+**zero**. La pulizia mensile, eseguita oggi, non cancellerebbe nulla — il dato
+più vecchio è del 26/07.
+
+Registro azioni staff, per identificatore: **27** su
+`staff:bologna@kebabmediterraneo.com` (l'identificatore reale) e **43** di prova
+su quattro di fantasia — `staff:test-fase1` 12, `staff:test-spice` 15,
+`staff:test-fase2a` 9, `staff:test-merge` 7. *È il dato che serve al parametro
+compilato a mano dello script del go-live (§69, punto 19d): **non va copiato da
+qui il giorno dell'apertura**, va riletto dal referto di quel giorno.*
+
+⚠️ **Da quel momento in poi vale un'avvertenza nuova**: le azioni fatte dal
+pannello con il login vero non sono più distinguibili dalle prove, perché
+portano l'identificatore reale. Chi volesse fare altre prove sul pannello lo
+sappia prima, non dopo.
+
 ⚠️ **Restano invecchiabili**: ogni verifica dal vivo che arriva alla pagina di
 pagamento ne aggiunge. Prima del go-live vanno **riletti dal database**, mai
 ricopiati da qui (lezioni `s` e `z`) — lo strumento è la fotografia di sola
-lettura prevista da §69.
+lettura prevista da §69, ora **provata sul campo**.
+
+*La fotografia analitica qui sotto è quella del **30/07 sera** ed è conservata
+perché descrive la composizione dei residui, non i totali. I totali validi sono
+quelli della tabella sopra.*
 
 - **`orders`: 30 righe, tutte di prova** (26/07 → 01/08/2026), più **52 righe**
   in `order_items`. Quattro ordini con pagamento `succeeded` in sandbox —
   `KM-0001`, `KM-0008`, `KM-0015`, `KM-0019` — gli altri **26** `pending`.
   *Gli undici dopo `KM-0019` sono le verifiche del 31/07-01/08: quattro scatti
   della fotografia durante il riordino, gli altri della sessione precedente.
-  L'ultimo è `KM-0030`, 01/08.*
+  L'ultimo è `KM-0030`, 01/08.* ⚠️ **Superato**: al 05/08 l'ultimo è l'ordine
+  del 04/08 descritto sopra, e gli ordini pagati sono cinque.
 - **`customers`: 40 righe, tutte di prova.** Sono **dati personali**, per quanto
   inventati. Ventuno hanno un ordine collegato, **diciannove no**: sono
   passaggi di checkout interrotti, perché il cliente viene scritto **prima**
   dell'ordine. Nessuna ha email o consenso marketing. Anche la riga intestata
-  "Andrea Pastore" è una prova, non una persona.
+  "Andrea Pastore" è una prova, non una persona. ⚠️ **Superato**: al 05/08 sono
+  41, di cui 19 senza alcun ordine.
 
 ⚠️ **La verifica dal vivo di §46 del 02/08 non ha aggiunto nulla** — né ordini
 né righe cliente — e lo confermano due fonti indipendenti: il log del server
 (solo un `400` e un `409`, nessun `200`) e il database (l'ordine più recente
-resta `KM-0030` del 01/08). *È la prima verifica dal vivo che non lascia
+era allora `KM-0030` del 01/08). *È la prima verifica dal vivo che non lascia
 residui, ed è la conferma pratica di §46 punto 7: entrambi i rifiuti cadono
-prima di qualunque scrittura, riga cliente compresa.*
+prima di qualunque scrittura, riga cliente compresa. Questa frase resta vera
+per il 02/08: l'ordine in più è del 04/08 e non c'entra con quella prova.*
 - **`order_status_history`: 23 righe** — venti su `KM-0001`, tre su `KM-0015`.
   Segue gli ordini per cancellazione a catena, ma va **nominata**: una tabella
   che non compare in un elenco non viene riletta. *Sono prove dell'utente sui
@@ -1621,7 +1742,13 @@ lo stato va ricostruito a memoria invece che raccontato mentre è fresco — è 
 lì che sono usciti gli errori sui numeri del 01/08.*
 
 *Non si rimaneggia il percorso del pagamento insieme ad altro: se si apre, si
-apre per tutti e quattro i lavori registrati.*
+apre per **tutti** i lavori registrati al punto 16.* ⚠️ **Fino al 05/08/2026
+questa riga diceva "tutti e quattro"**, mentre il punto 16 ne elenca **cinque**
+(la quinta condizionata) **più la ri-verifica della chiave `service_role`**, che
+in quell'elenco mancava del tutto. Il conto tornava solo escludendo la voce
+condizionale, cosa che nessuna delle due frasi diceva. *Un numero scritto in un
+posto e un elenco scritto in un altro divergono sempre: qui il numero è stato
+tolto e resta il rimando all'elenco, che è l'unica fonte.*
 
 ⚠️ **Perché prima della Fase 3**, motivo registrato: §46 è l'unica delle sei
 condizioni che dipenda da noi e non da terzi, ed è il punto in cui si incassa
@@ -1652,6 +1779,14 @@ stato corretto perché era un'istruzione rovesciata, non una nota invecchiata.
 Anche il numero 8 va verificato leggendo, non ripreso da qui.* *La regola v30
 che escludeva anche `salse` è decaduta con l'unificazione: ora è la categoria
 giusta.*
+
+✅ **Dal 05/08/2026 anche la spec è allineata (v56).** Fino alla v55 §63-64
+conteneva **entrambe** le istruzioni, opposte, a centottanta righe di distanza:
+quella vecchia in alto e quella corretta della v54 in basso. Chi avesse letto la
+sezione dall'alto avrebbe incontrato per prima la sbagliata. *La correzione del
+04/08 era stata portata qui e non nella fonte di verità: è la lezione `aj`
+arrivata dentro la spec, ed è stata trovata da Code confrontando le due
+occorrenze, non rileggendo il ragionamento.*
 
 ✅ **Le decisioni su `slug` e collisioni sono PRESE il 04/08/2026** e stanno in
 **spec §63-64 v54**: lo slug si genera dal nome con sei regole dichiarate, in
@@ -1781,10 +1916,14 @@ prima dell'apertura — la prima ora chiusa:
   documento. *È la **quarta** condizione che si chiude.*
 - **Procedura mensile di pulizia** degli ordini mai pagati oltre i 30 giorni
   (§69). ⚠️ **Lo strumento esiste**: `sql/pulizia_mensile_ordini_mai_pagati.sql`,
-  committato il 04/08 con `f54c29d` e mai eseguito. Restano da fare due cose,
-  entrambe di Andrea: **fissare il giorno del mese** ed **eseguirlo la prima
-  volta**. Finché non c'è una cadenza, il punto 11.2 dell'informativa è una
-  promessa senza procedura.
+  committato il 04/08 con `f54c29d` e mai eseguito. ✅ **La cadenza è fissata il
+  05/08/2026: il primo di ogni mese, prima di aprire il locale** (spec §69 v56).
+  **Resta la sola prima esecuzione**, di Andrea. Finché non c'è, il punto 11.2
+  dell'informativa è una promessa senza precedente.
+  *Al 05/08 quello strumento non avrebbe nulla da cancellare — zero ordini e
+  zero clienti oltre i trenta giorni — il che rende questo il momento più sicuro
+  possibile per provarlo, con il limite dichiarato che dimostrerebbe che parte,
+  non che cancella le cose giuste. Andrea ha deciso il 05/08 di non farlo ora.*
 
 *Non è una condizione di apertura*: **WhatsApp**, che la spec colloca in
 **fase 1.1** (§71) e che §52-56 dichiara esplicitamente fuori dalla specifica
@@ -1822,8 +1961,13 @@ spec; tolto in v40.
   dei carrelli abbandonati.
 - **Anche le righe cliente si moltiplicano** (§65, v36): `customers` viene
   scritta **prima** dell'ordine e resta anche se il checkout non arriva in
-  fondo. Al 30/07/2026 sono 38, di cui 19 senza alcun ordine (punto 11). Non è
-  un errore, ma vale il divieto d'uso a fini di ricontatto.
+  fondo. Al 05/08/2026 sono **41**, di cui **19** senza alcun ordine (punto 11).
+  Non è un errore, ma vale il divieto d'uso a fini di ricontatto.
+  ⚠️ *Fino al 05/08 questa riga diceva **38**, citando come fonte il punto 11 —
+  che nello stesso documento ne dichiarava 40. Era il numero della mattina del
+  30/07, rimasto indietro quando il punto 11 fu riletto la sera. Una nota che
+  cita come fonte il blocco che la smentisce è la lezione `aj` nella sua forma
+  più economica da evitare: bastava aprire il punto a cui rimandava.*
 - ⚠️ **Il limite dei 2 giorni regge per costruzione, non per controllo**
   (§46b v40). Nessuna riga rifiuta un orario oltre domani: il limite tiene solo
   perché il sito manda un'etichetta (`oggi`/`domani`) e mai una data, e il
@@ -1913,7 +2057,7 @@ Committato il 03/08/2026 come `c69642e`.
 
 ## 15) Condizioni di apertura — aggiornamento
 
-Delle cinque aperte in `HANDOFF_2.md` §12:
+Delle cinque condizioni che risultavano aperte prima del giro privacy (elenco storico del punto 12): ⚠️ *fino al 05/08/2026 questa riga rimandava a un `HANDOFF_2.md` che **non esiste**, né nella cartella né fra i file tracciati da git — riferimento morto a un documento precedente, tolto.*
 
 * **Informativa privacy — CHIUSA il 03/08/2026** (commit `c69642e`). Terza condizione a chiudersi. Resta la stringa `informativa-v1.2` da salvare in database, che si fa quando si riapre il file del checkout: è un lavoro registrato, non una condizione.
 * **Statistiche (§65) — aperta**, ora con i vincoli dell'informativa (vedi aggiornamento spec).
@@ -1922,7 +2066,7 @@ Delle cinque aperte in `HANDOFF_2.md` §12:
 **Nuove, nate da questo giro:**
 
 * **piano Supabase Pro — ✅ CHIUSA il 04/08/2026** (punto 18). Quarta condizione a chiudersi;
-* **procedura mensile di pulizia** degli ordini mai pagati oltre i 30 giorni — **lo strumento c'è** (`sql/pulizia_mensile_ordini_mai_pagati.sql`, `f54c29d`), manca la **cadenza** e la prima esecuzione. Sono due file separati da quello del go-live, per decisione del 04/08 (spec §69);
+* **procedura mensile di pulizia** degli ordini mai pagati oltre i 30 giorni — **lo strumento c'è** (`sql/pulizia_mensile_ordini_mai_pagati.sql`, `f54c29d`), ✅ **la cadenza è fissata il 05/08/2026** (il primo del mese, prima di aprire — spec §69 v56), **manca la prima esecuzione**. Sono due file separati da quello del go-live, per decisione del 04/08 (spec §69);
 * **chiave API Google da restringere** al dominio, contestualmente al dominio vero.
 
 Fuori elenco ma prima dell'apertura resta la **Fase 3** (creazione di articoli dal pannello). ⚠️ **Le decisioni su `slug` e collisioni sono state prese il 04/08/2026** e stanno in spec §63-64 v54: non è più un lavoro con decisioni aperte.
@@ -1937,7 +2081,8 @@ Vale la regola: **non si riapre quel file per una cosa sola.** Quando si riapre,
 2. `upsert` che non azzera la prova del consenso marketing precedente;
 3. i tre `console.error` (308, 364, 372) ridotti ai soli campi necessari;
 4. gli eventi delle statistiche che ricadono su quel percorso;
-5. la **tappa 3b di §46**, se l'incrocio con il punto 4 si conferma — da verificare prima di scegliere l'ordine.
+5. la **tappa 3b di §46**, se l'incrocio con il punto 4 si conferma — da verificare prima di scegliere l'ordine;
+6. ⚠️ **la ri-verifica della chiave `service_role`** (spec §66 v55, punto 17): riaprire questo file significa toccare il confine fra server e browser, ed è uno dei due momenti in cui quella verifica va rifatta. *Fino al 05/08/2026 questa voce non era in elenco, benché spec e punto 17 la legassero esattamente a questa riapertura: chi avesse seguito solo questo elenco l'avrebbe saltata.*
 
 Analogamente su `app/page.js`: cancellazione di `km_direct_checkout` a ordine concluso, eventi statistici lato cliente, ed eventuale spostamento del caricamento di Google Maps — che però comporta la **v1.3 dell'informativa** nello stesso passaggio.
 
@@ -1950,7 +2095,7 @@ Analogamente su `app/page.js`: cancellazione di `km_direct_checkout` a ordine co
 * **da riguardare dopo una settimana di esercizio**: la pagina dei backup Supabase, dove mancano il 1° e il 2 agosto. Se i buchi si ripetono, la frase dell'informativa sulle copie "giornaliere" va ammorbidita (punto 18);
 * ✅ **FATTO il 04/08/2026** — la verifica sulla chiave `service_role`: non finisce nel browser, accertato per quattro vie (spec §66 v55, punto 19). ⚠️ **Vale per il codice di oggi**: va rifatta quando si riapre `route.js` del checkout e quando si costruisce la Fase 3;
 * ✅ **FATTA il 04/08/2026** — la prova sui microsecondi del freno: zero ordini oltre il valore nuovo, uno oltre quello vecchio (punto 19);
-* **da fare da Andrea, senza codice**: fissare il **giorno del mese** della pulizia mensile, ed eseguirla la prima volta.
+* **da fare da Andrea, senza codice**: ✅ il **giorno del mese** è fissato il 05/08/2026 — il primo, prima di aprire (spec §69 v56); **resta la prima esecuzione**. ✅ **FATTO il 05/08/2026** — il referto dei conteggi di sola lettura è stato eseguito per la prima volta: lo strumento funziona e ha già smentito due numeri dei documenti (punto 11).
 
 ---
 
@@ -2033,9 +2178,98 @@ Due strumenti separati · `failed` come `pending` · staccare invece di cancella
 * **La cadenza mensile non esiste ancora.** Lo strumento c'è, il giorno del mese no.
 * **Nessuno dei tre file è stato eseguito**, e quello del go-live per sua natura si prova una volta sola.
 
-### 19e) Note di metodo rimaste in coda, da inserire alla prossima passata
+### 19e) Note di metodo rimaste in coda — ✅ inserite il 05/08/2026
 
-Non sono state scritte in questa versione e non vanno perse:
+Erano due, e **non sono più in coda**: la prima è diventata la lezione `bn`
+(il browser non sovrascrive da solo i file scaricati, e la trappola si è
+riarmata puntualmente con la v56), la seconda era la lezione `ak` vista dal
+lato di chi scrive i comandi ed è ora citata al punto 18e, dove il caso è
+raccontato per esteso. *Nulla è andato perso, ed è la ragione per cui questo
+blocco è stato scritto invece di fidarsi della memoria.*
 
-* **il browser non sovrascrive da solo i file scaricati.** Il 04/08 in `~/Downloads` è rimasta una sola copia dell'handoff, e da lì era stato dedotto che il browser avesse sovrascritto: in realtà **l'aveva cancellata Andrea a mano**. La deduzione portava alla conclusione giusta per il motivo sbagliato, ed è il tipo di falsa sicurezza che rilassa un controllo. *La regola resta: si cerca per impronta, sempre.*
-* **chi scrive un comando ricava gli attesi dal diff, non a memoria.** L'elenco delle righe rimosse dichiarato nel comando di copia della v54 era sbagliato — due zone invece di quattro — e chi lo aveva scritto il diff ce l'aveva davanti. È la lezione `ak` dal lato di chi comanda.
+---
+
+## 20) La ricognizione su §62b e la spec v56 (05/08/2026)
+
+Giornata **senza una riga di codice applicativo**: una ricognizione di sola
+lettura di Code sul repository, il primo referto dei conteggi eseguito da
+Andrea, quattro decisioni, e la spec portata alla **v56** (commit `1f74e8f`).
+
+### 20a) Il difetto trovato, che era in spec e non nel codice
+
+⚠️ **§62b affermava una cosa falsa sul codice, e ci era stato costruito sopra
+un ragionamento.** Vedi la lezione `bk` per il metodo; qui i fatti, letti da
+Code sul codice eseguibile e confermati da Andrea sul database vivo:
+
+| motivo | dove finisce davvero |
+|---|---|
+| annullamento | `orders.cancellation_reason` (colonna dedicata) **e** `staff_action_log.detail`, chiave `reason`, `action: "annulla_ordine"` |
+| problema | **solo** `staff_action_log.detail`, chiave `reason`, `action: "segnala_problema"` |
+
+In `order_status_history` non finisce **nessuno dei due**, e non c'è una colonna
+che potrebbe ospitarli.
+
+Due fatti collaterali emersi dalla stessa lettura:
+
+* ⚠️ **`orders.cancellation_reason` è scritta e mai riletta.** `git grep` ne
+  trova **due sole occorrenze in tutto il repository** — la scrittura e la
+  definizione dello schema — e la `select` che alimenta il pannello non la
+  chiede. Il motivo che lo staff scrive **oggi non è visibile da nessuna parte**;
+* **l'annullamento non è raggiungibile direttamente**: il codice ammette
+  `annullato` solo a partire da `problema`, mentre la spec descriveva due
+  azioni indipendenti.
+
+### 20b) Le quattro decisioni di Andrea
+
+1. **Il motivo si conserva, non si mostra.** Nessuna vista del pannello lo
+   mostrerà, e §65 si intende soddisfatta dalla conservazione. *Scritto in spec
+   con la clausola che impedisce a qualcuno, fra un anno, di costruire la pagina
+   leggendo §65 e trovandola "mancante".*
+2. **Il passaggio obbligato da `problema` resta**: si corregge la spec, non il
+   codice.
+3. **Pulizia mensile il primo di ogni mese, prima di aprire il locale.** Il
+   primo perché esiste in tutti i mesi.
+4. **La pulizia mensile non si prova ora**, benché oggi non avrebbe nulla da
+   cancellare.
+
+### 20c) Le due decisioni di §65 — chiuse
+
+* ✅ **i tempi fra le fasi** si ricavano da `order_status_history`, colonna
+  **`changed_at`**, nome letto dal database vivo. Prima era una convinzione;
+* ✅ **il motivo dell'annullamento non va nel `payload`**: esiste già in due
+  posti permanenti e la statistica lo legge da `staff_action_log` filtrando
+  `action`. **L'istruzione della v54 di "decidere come si chiama quella voce"
+  decade**, perché poggiava sull'errore di §62b.
+
+⚠️ **Le statistiche non hanno più decisioni bloccanti**: è lavoro da fare, non
+da decidere.
+
+### 20d) Ciò che questo giro ha verificato con quattro sonde
+
+La domanda "esiste già codice che scrive in `analytics_events`?" ha risposta
+**no**, ed è un no dimostrato: quattro sonde indipendenti — la parola, tutti i
+punti in cui il codice nomina una tabella (84 occorrenze, di cui 9 non
+letterali risolte una per una), le vie che scavalcano il client, e gli undici
+nomi degli eventi — ognuna con la propria controprova su un dato che c'è di
+sicuro. *È il modo in cui un risultato vuoto smette di essere ambiguo (lezioni
+`ap`, `aq`, `av`).*
+
+### 20e) Cosa questo giro NON ha chiuso
+
+* **la prima esecuzione della pulizia mensile**, decisa e rimandata;
+* **l'accesso al DNS del dominio `kebabmediterraneo.it`**: il dominio è di
+  proprietà, ma nessuno del progetto ha accesso al pannello. `ordina.` è un
+  **sottodominio**, non si acquista e non costa nulla: serve solo chi ha le
+  chiavi. ⚠️ *Va preso l'accesso, non chiesto il favore: la sequenza di apertura
+  (§66) mette il dominio al primo posto proprio perché il webhook di Stripe
+  deve puntare all'indirizzo definitivo, e dipendere da terzi in quel momento
+  significa sito fermo. In quello stesso pannello vivono anche i record della
+  posta elettronica del locale: chi ci mette le mani aggiunge una riga e non
+  tocca il resto;*
+* **dove è ospitato il sito**, che la spec dichiara essere Vercel senza che
+  nessuno l'abbia verificato alla fonte — è una delle affermazioni
+  dell'informativa sull'infrastruttura ancora non passate in rassegna (punto
+  18d). Va accertata prima del passo 2 della sequenza di apertura;
+* **l'asimmetria della risoluzione**, che non scrive nel registro azioni
+  mentre segnalazione e annullamento sì. Registrata in spec §62b v56 come
+  limite noto, fuori dai lavori pre-go-live.
