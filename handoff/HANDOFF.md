@@ -12,18 +12,19 @@ Web app per ordini **delivery e ritiro** di **FAME Srl / KM Kebab Mediterraneo**
 (Bologna, store `san-mamolo`). Stack **Next.js 14 + Supabase + Stripe (sandbox)**.
 Repo: **github.com/Kebabmediterraneo/km-direct** (branch `main`, push via SSH).
 La fonte di verità di tutte le decisioni è **`MASTER_SPEC.md`** — versione attuale
-**v54** (leggila sempre dall'intestazione, riga 3).
+**v55** (leggila sempre dall'intestazione, riga 3).
 
 ---
 
 ## 2) Stato git
 
 - Branch **`main`**, working tree **pulita**, allineata a `origin/main`.
-- HEAD: **`abdaec2`** — spec v54, dal giro di verifica su infrastruttura e
-  database (04/08/2026).
+- HEAD: **`f54c29d`** — i tre script di pulizia dati (04/08/2026).
 - Ultimi commit (dal più recente):
 
 ```
+f54c29d sql: script di pulizia dati — azzeramento pre-go-live con freno sull'ultima prova, pulizia mensile degli ordini mai pagati, e referto dei conteggi di sola lettura §66 §69
+67e15a5 handoff: giro su infrastruttura e database del 04/08 — piano Pro chiuso, referto RLS e collegamenti, e corrette quattro affermazioni rimaste indietro fra cui la tendina delle categorie rovesciata
 abdaec2 spec: v54 — piano Pro attivo e backup verificati, regione Irlanda e stato RLS accertati, pulizia in due strumenti e ordini failed, regole dello slug decise §63-64 §65 §66 §69
 b328eb3 handoff: corretti i numeri dei file del giro privacy e aggiunte tre lezioni su verifiche che non distinguono
 9e0c557 docs: handoff — puntatore di versione della spec allineato alla v53
@@ -33,7 +34,6 @@ be7324b spec: v52 — condizione di apertura sui prezzi chiusa e verificata dal 
 dade165 checkout: la rilettura del menu fallita mostra il testo deciso invece dell'errore tecnico §46
 4304910 checkout: il sito riconosce i due rifiuti che riguardano il menu da status e testo, rilegge il listino e riporta al carrello §46
 3f9403f spec: v51 — stesso trattamento per l'articolo non ordinabile con la riga tolta e spiegata, decisioni sulla riga bloccata rimandate, geofence 400 e scadenze senza ancoraggio §46 §46b
-9705d4a checkout: il sito manda il prezzo unitario mostrato per ogni riga, dallo stesso calcolo del server §46
 ```
 
 *Nota ricorrente, non un errore*: l'HEAD scritto qui è sempre quello
@@ -1780,9 +1780,11 @@ prima dell'apertura — la prima ora chiusa:
   punto 11.7 dell'informativa, che era falso, è ora vero senza toccare il
   documento. *È la **quarta** condizione che si chiude.*
 - **Procedura mensile di pulizia** degli ordini mai pagati oltre i 30 giorni
-  (§69). ⚠️ **Non è più bloccata**: il referto di audit del 04/08 ha restituito
-  foreign key e comportamenti `ON DELETE`, che erano la precondizione. Lo script
-  lo scrive Code.
+  (§69). ⚠️ **Lo strumento esiste**: `sql/pulizia_mensile_ordini_mai_pagati.sql`,
+  committato il 04/08 con `f54c29d` e mai eseguito. Restano da fare due cose,
+  entrambe di Andrea: **fissare il giorno del mese** ed **eseguirlo la prima
+  volta**. Finché non c'è una cadenza, il punto 11.2 dell'informativa è una
+  promessa senza procedura.
 
 *Non è una condizione di apertura*: **WhatsApp**, che la spec colloca in
 **fase 1.1** (§71) e che §52-56 dichiara esplicitamente fuori dalla specifica
@@ -1920,7 +1922,7 @@ Delle cinque aperte in `HANDOFF_2.md` §12:
 **Nuove, nate da questo giro:**
 
 * **piano Supabase Pro — ✅ CHIUSA il 04/08/2026** (punto 18). Quarta condizione a chiudersi;
-* **procedura mensile di pulizia** degli ordini mai pagati oltre i 30 giorni — **aperta, ma non più bloccata**: la precondizione di §69 era il referto su foreign key e `ON DELETE`, arrivato il 04/08. Lo script lo scrive Code, in **due file separati** dalla pulizia del go-live (decisione del 04/08, spec §69 v54);
+* **procedura mensile di pulizia** degli ordini mai pagati oltre i 30 giorni — **lo strumento c'è** (`sql/pulizia_mensile_ordini_mai_pagati.sql`, `f54c29d`), manca la **cadenza** e la prima esecuzione. Sono due file separati da quello del go-live, per decisione del 04/08 (spec §69);
 * **chiave API Google da restringere** al dominio, contestualmente al dominio vero.
 
 Fuori elenco ma prima dell'apertura resta la **Fase 3** (creazione di articoli dal pannello). ⚠️ **Le decisioni su `slug` e collisioni sono state prese il 04/08/2026** e stanno in spec §63-64 v54: non è più un lavoro con decisioni aperte.
@@ -1946,7 +1948,9 @@ Analogamente su `app/page.js`: cancellazione di `km_direct_checkout` a ordine co
 * le due prove dal telefono sul collegamento nella casella (scheda nuova, dati del modulo intatti);
 * ✅ **FATTO il 04/08/2026** — le query di sola lettura su RLS, foreign key, `ON DELETE`, colonne e trigger, eseguite da Andrea nell'editor SQL. Lo stato delle RLS **non è più ignoto**: il referto sta in spec §66 v54 e i conteggi al punto 18;
 * **da riguardare dopo una settimana di esercizio**: la pagina dei backup Supabase, dove mancano il 1° e il 2 agosto. Se i buchi si ripetono, la frase dell'informativa sulle copie "giornaliere" va ammorbidita (punto 18);
-* **da chiedere a Code**: se la chiave `service_role` sia mai esposta al browser. Tutta la protezione RLS regge su quella condizione, e nessuno l'ha ancora verificata (punto 18).
+* ✅ **FATTO il 04/08/2026** — la verifica sulla chiave `service_role`: non finisce nel browser, accertato per quattro vie (spec §66 v55, punto 19). ⚠️ **Vale per il codice di oggi**: va rifatta quando si riapre `route.js` del checkout e quando si costruisce la Fase 3;
+* ✅ **FATTA il 04/08/2026** — la prova sui microsecondi del freno: zero ordini oltre il valore nuovo, uno oltre quello vecchio (punto 19);
+* **da fare da Andrea, senza codice**: fissare il **giorno del mese** della pulizia mensile, ed eseguirla la prima volta.
 
 ---
 
@@ -1992,3 +1996,46 @@ Pulizia in **due strumenti separati** invece di uno (rovescia §69 v53) · ordin
 **bh. ⚠️ Un referto che finisce a 100 righe esatte non è un referto completo.** L'editor SQL della dashboard tronca a 100. Il primo giro sulle colonne si è fermato a `orders` colonna 32 e **sembrava una risposta**: mancavano tredici tabelle intere, fra cui proprio quella che serviva. È la lezione `aq` spostata sullo strumento — là una variabile vuota faceva corrispondere tutto, qui un limite silenzioso fa sembrare finito ciò che è a metà. *Rimedio: contare le righe attese prima di leggere il contenuto, e diffidare del numero tondo.*
 
 **Una terza, dal lato di chi scrive i comandi**: l'elenco delle righe **rimosse** attese nel comando di copia della v54 era sbagliato — dichiarava due zone quando erano quattro, dimenticando che la riga 3 va sostituita e che un `+1` netto si ottiene sostituendo una riga con due. Code l'ha segnalato senza fermarsi, correttamente. *È la lezione `ak`: ciò che un comando dichiara come atteso si ricava dal diff, non a memoria — e chi scriveva aveva il diff davanti.*
+
+---
+
+## 19) Gli script di pulizia dati (04/08/2026, seconda metà)
+
+Seguito diretto del punto 18: con il referto sui collegamenti in mano, §69 si è sbloccata e i tre strumenti sono stati scritti. Commit **`f54c29d`**. **Nessuno dei tre è mai stato eseguito.**
+
+### 19a) I tre file
+
+| file | cosa fa | quando si esegue |
+|---|---|---|
+| `sql/conteggi_dati_sola_lettura.sql` | conta e basta | prima e dopo ogni pulizia |
+| `sql/ESEGUIRE_UNA_VOLTA_SOLA_prima_del_golive_CANCELLA_TUTTI_GLI_ORDINI.sql` | azzera ordini, clienti, riscatti, eventi | una volta sola, al go-live |
+| `sql/pulizia_mensile_ordini_mai_pagati.sql` | rimuove i mai pagati oltre 30 giorni | ogni mese, per sempre |
+
+Il nome in maiuscolo è voluto: nell'elenco della cartella, fra nove migrazioni datate e minuscole, quel file si stacca da solo. **Il pericolo non è che qualcuno esegua quello sbagliato di proposito: è che li confonda.**
+
+⚠️ **Lo script del go-live si cancella dal deposito subito dopo l'uso** — passo 5 della sequenza di apertura (spec §66 v55). Non è una buona intenzione: è che il momento della cancellazione coincide con quello in cui si è stanchi e contenti, a sito appena aperto.
+
+### 19b) Le sette decisioni e i chiarimenti della v55
+
+Due strumenti separati · `failed` come `pending` · staccare invece di cancellare, **anche al go-live** per le sole righe da conservare · codici promo riutilizzabili solo da chi non ha mai pagato · **le due frasi contraddittorie di §69 v54 sulle righe cliente sono state unificate** nella più stretta · i trenta giorni di una riga cliente si contano da `customers.created_at` · **fino al go-live dichiarato da Andrea ogni ordine è una prova** (regola generale, spec §66).
+
+### 19c) Due errori trovati leggendo i file, non il referto che li descriveva
+
+**bi. ⚠️ Un freno che scatta a torto insegna ad aggirarlo.** Il referto dei conteggi stampava la data dell'ultimo ordine **troncata ai secondi**, ma `created_at` ha precisione al microsecondo: copiata nel freno, l'ordine più recente risultava successivo a sé stesso e l'arresto sarebbe scattato al primo tentativo. Chi si fosse trovato davanti a quell'arresto avrebbe visto una data identica al referto, e l'unica mossa che sblocca era proprio quella vietata in maiuscolo — spostare la data in avanti. *Corretto con i microsecondi e **verificato**: su `max(created_at) = 2026-08-04 13:07:01.471525+00`, zero ordini oltre il valore nuovo e uno oltre quello vecchio. Lo zero conta perché la stessa sonda cambia risposta col formato vecchio.*
+
+**bj. ⚠️ Un'istruzione che manda a leggere un dato inesistente produce la scorciatoia peggiore.** Il file del go-live diceva di prendere la data del freno "dal referto dei conteggi", ma quel referto **non la produceva**: contava righe. Chi avesse obbedito non avrebbe trovato il valore, e la cosa più a portata di mano era l'ora corrente — cioè precisamente ciò che spegne il freno. *Aggiunta la misura, e il legame fra i due file ora è scritto in entrambe le direzioni.*
+
+**Una terza, sul metodo di chi legge:** entrambi questi difetti sono stati trovati **leggendo i file**, non i referti che li descrivevano. I referti erano corretti e dettagliati, ma descrivevano controlli, non li mostravano. *Un referto che descrive un file non è il file.*
+
+### 19d) Ciò che gli script NON risolvono, e va saputo
+
+* ⚠️ **La spec non definisce come si riconosce un'azione di prova nel registro staff.** `staff_identifier` è testo libero. Nel file del go-live il criterio è un **parametro compilato a mano**, letto dal referto e non ricordato, con due controlli che bloccano se resta vuoto o non corrisponde a nulla. *Registrato come limite noto e non sanato: quello script si esegue una volta e sparisce, e la pulizia mensile non tocca mai il registro per identificatore.*
+* **La cadenza mensile non esiste ancora.** Lo strumento c'è, il giorno del mese no.
+* **Nessuno dei tre file è stato eseguito**, e quello del go-live per sua natura si prova una volta sola.
+
+### 19e) Note di metodo rimaste in coda, da inserire alla prossima passata
+
+Non sono state scritte in questa versione e non vanno perse:
+
+* **il browser non sovrascrive da solo i file scaricati.** Il 04/08 in `~/Downloads` è rimasta una sola copia dell'handoff, e da lì era stato dedotto che il browser avesse sovrascritto: in realtà **l'aveva cancellata Andrea a mano**. La deduzione portava alla conclusione giusta per il motivo sbagliato, ed è il tipo di falsa sicurezza che rilassa un controllo. *La regola resta: si cerca per impronta, sempre.*
+* **chi scrive un comando ricava gli attesi dal diff, non a memoria.** L'elenco delle righe rimosse dichiarato nel comando di copia della v54 era sbagliato — due zone invece di quattro — e chi lo aveva scritto il diff ce l'aveva davanti. È la lezione `ak` dal lato di chi comanda.
