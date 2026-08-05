@@ -1,10 +1,35 @@
 # KM DIRECT — MASTER SPECIFICATION
 
-**Versione 54** — sostituisce la v53.
+**Versione 55** — sostituisce la v54.
 
 Documento di riferimento definitivo per lo sviluppo. Le decisioni qui
 contenute sono approvate: non vanno reinterpretate senza un motivo concreto
 (vedi §73). Ogni file di codice del progetto deve rispettare queste regole.
+
+**Novità della v55** (vincolanti, dalla scrittura degli script di pulizia del
+04/08/2026 — stessa giornata della v54, seconda metà):
+
+1. §69 — **i tre script di pulizia esistono**, con i loro nomi definitivi. Le
+   regole non sono più al futuro: c'è un percorso da aprire.
+2. §69 — **"staccare invece di cancellare" vale anche al go-live**, per le sole
+   righe da conservare. In v54 la regola nominava la sola pulizia mensile e il
+   caso del go-live restava scoperto.
+3. §69 — **unificate due frasi contraddittorie sulle righe cliente**, entrambe
+   scritte nella v54 nello stesso blocco.
+4. §69 — **lo script del go-live si cancella dal deposito subito dopo l'unica
+   esecuzione** (decisione di Andrea), e la cancellazione è un passo della
+   procedura di apertura, non una buona intenzione.
+5. §66 — **regola generale di Andrea**: fino al go-live dichiarato da lui, ogni
+   ordine nel database è una prova. È la premessa che rende sicuro lo script di
+   azzeramento, e smette di valere nell'istante in cui il sito apre.
+6. §66 — **la sequenza di apertura è fissata** e il suo ordine ha una ragione.
+7. §66 — ✅ **la chiave `service_role` non finisce nel browser**: verificato per
+   quattro vie il 04/08. La v54 la registrava come domanda mai posta.
+8. §65 — ✅ **l'elenco dei tipi di evento è stato letto** e coincide con §65.
+   Nessuna divergenza da arbitrare.
+
+*Il conteggio delle condizioni di apertura non cambia rispetto alla v54:
+**quattro chiuse, cinque aperte**, una sola delle quali richiede codice.*
 
 **Novità della v54** (vincolanti, dal giro di verifica sull'infrastruttura e sul
 database del 04/08/2026):
@@ -3742,7 +3767,9 @@ solo una volta, la mattina.
 
 **La regola vive in un modulo unico** sotto `lib/`, non dentro l'interfaccia, come `menu-badges` e `menu-spice`. Oggi **nessun percorso del codice crea prodotti** — tutti gli accessi a `products` sono letture o modifiche — quindi la Fase 3 sarà il primo, e sarà il momento in cui la convenzione passa da ciò che si osserva a ciò che il sistema impone. Sparsa nell'interfaccia, il secondo punto che un giorno creerà articoli ne avrebbe una copia diversa.
 
-⚠️ **La tendina delle categorie non si compila a mano.** `products.category` è un **tipo chiuso nel database**: ricopiarne i valori nel form creerebbe una seconda copia di un elenco che esiste già, e due copie divergono. L'elenco va **letto**, escludendo `menu_combo`. *Prima di scrivere il form va letto davvero: il numero di categorie va verificato, non ripreso dai documenti.*
+⚠️ **La tendina delle categorie non si compila a mano.** `products.category` è un **tipo chiuso nel database**: ricopiarne i valori nel form creerebbe una seconda copia di un elenco che esiste già, e due copie divergono. L'elenco va **letto**, escludendo `menu_combo`.
+
+✅ **Letto il 04/08/2026**: i valori ammessi sono **nove** — `roll`, `bowl`, `menu_combo`, `fritti`, `sides`, `salse`, `dolci`, `drink`, `birre` — quindi **otto** nella tendina, tolto `menu_combo`. Il numero otto che circolava nei documenti era giusto, ma era un'osservazione: ora è verificato. *Resta che l'elenco va letto dal database e non ricopiato: se un giorno se ne aggiungesse uno, una tendina compilata a mano non se ne accorgerebbe.*
 
 ## 65. Analytics dal giorno 1
 
@@ -3815,7 +3842,9 @@ Le statistiche sono ora **dichiarate nell'informativa** (punto 3.4, legittimo in
 Tre fatti letti dal database, non dedotti, che vincolano il lavoro **prima** che cominci:
 
 1. ⚠️ **Gli eventi non possono essere scritti dal browser.** La tabella `analytics_events` ha la protezione RLS attiva e **nessuna regola di scrittura**, come tutte le tabelle che non sono menu (§66). La chiave pubblica non può inserirvi nulla. Gli eventi dovranno quindi passare da una rotta sul server, che è anche la forma coerente con §66 — nessuna scrittura dal client — ma va saputo prima di progettare, non a metà del lavoro.
-2. ⚠️ **Il tipo di evento è già un elenco chiuso nel database**, fissato quando la tabella è stata creata. §65 elenca "una dozzina di eventi da tracciare" come se fossero da decidere: le due liste vanno **confrontate** prima di scrivere codice. Se divergono, va deciso apertamente quale comanda — cambiare un tipo chiuso richiede una migrazione eseguita da Andrea (metodo `h`), non una riga di codice. *Nessuno ha ancora letto quell'elenco.*
+2. ✅ **Il tipo di evento è un elenco chiuso nel database, ed è stato letto il 04/08/2026: coincide con §65, uno a uno.** Gli undici valori ammessi sono `visita`, `indirizzo_inserito`, `servibile`, `non_servibile`, `prodotto_aggiunto`, `soglia_15_raggiunta`, `soglia_25_raggiunta`, `givemefive_applicato`, `checkout_iniziato`, `pagamento_completato`, `ordine_annullato`. Chi ha creato la tabella ha seguito la spec alla lettera: **non c'è alcuna divergenza da arbitrare**, e la decisione temuta in v54 non serve.
+
+   ⚠️ **Due cose che l'elenco non copre e che vanno sapute prima di iniziare.** I **tempi fra le fasi dell'ordine** non sono un tipo di evento e non devono diventarlo: si ricavano da `order_status_history`, che registra già ogni cambio di stato con l'ora — chi cercasse un evento dedicato cercherebbe una cosa che non deve esistere. E il **motivo dell'annullamento** non è nel tipo: `ordine_annullato` dice solo che è successo, il motivo va nel `payload`, e **come si chiama quella voce va deciso prima di scrivere il primo evento**, perché se ognuno la nomina a modo suo quei dati non si sommano più.
 3. **La tabella porta anche `session_id` obbligatorio e un `payload` libero.** Non è un foglio bianco: una forma esiste già e va letta prima di inventarne un'altra.
 
 **Rapporto con la pulizia (§69):** gli eventi puntano agli ordini **senza cancellazione a catena**, quindi un evento collegato impedirebbe di rimuovere il suo ordine. La decisione presa il 04/08/2026 è che nella pulizia mensile l'evento **resti perdendo il riferimento**: il dato statistico non ha bisogno di sapere quale ordine, ha bisogno di esistere. *Oggi la tabella è vuota, quindi il problema è futuro — ma nasce il giorno stesso in cui le statistiche entrano in funzione, e la prima pulizia mensile successiva si bloccherebbe senza questa regola.*
@@ -3970,7 +3999,9 @@ Eseguito da Andrea nell'editor SQL della dashboard con query di sola lettura sul
 * **Tredici senza alcuna regola**, quindi **chiuse**: `customers`, `orders`, `order_items`, `order_status_history`, `promo_redemptions`, `staff_action_log`, `staff_settings`, `analytics_events`, `coupons`, `stores`, `store_geofences`, `store_order_windows`, `store_schedule_exceptions`. Tutti i dati personali stanno qui.
 * **Nessuna regola di scrittura esiste, da nessuna parte.** Tutte e dieci sono di sola lettura: la chiave pubblica non può scrivere niente.
 
-⚠️ **Ciò che questo referto NON dimostra, e va verificato a parte.** La chiave `service_role` **scavalca interamente le RLS**: tutta la protezione descritta qui regge sulla condizione che quella chiave non finisca mai nel browser. È una domanda sul **codice**, non sul database, e non è ancora stata posta. Il modo in cui si rompe è banale — una variabile d'ambiente rinominata con il prefisso `NEXT_PUBLIC_`, che in Next.js significa "spediscila al client".
+✅ **La condizione da cui dipende tutto è verificata (04/08/2026, v55).** La chiave `service_role` **scavalca interamente le RLS**: tutta la protezione descritta qui regge sul fatto che non finisca mai nel browser. **Non ci finisce**, accertato per quattro vie: la variabile che la contiene si chiama `SUPABASE_SECRET_KEY` e non porta il prefisso `NEXT_PUBLIC_` (che in Next.js significa "spediscila al client"); nessuno dei ventitré file che la usano dichiara `"use client"`; la chiusura transitiva dai sei componenti che girano nel browser raggiunge diciannove file e `lib/supabase-admin.js` **non è fra questi**; e la ricerca del **valore vero** della chiave dentro una build di produzione — sia nei file statici sia nell'HTML servito — la trova in zero file, mentre nello stesso giro trova la chiave pubblica, che è ciò che rende quello zero una risposta e non un'assenza di risposta.
+
+⚠️ **Vale per il codice di oggi, non per sempre.** I due modi in cui si romperebbe sono entrambi falsificabili in un comando: la chiusura transitiva dai componenti client, e la ricerca del valore nella build più l'HTML servito. **La verifica va rifatta quando si riapre `app/api/checkout/route.js` e quando si costruisce la Fase 3**: sono i due momenti in cui qualcuno tocca il confine fra server e browser.
 
 **Collegamenti fra tabelle e cancellazioni a catena** (fonte di §69):
 
@@ -3991,6 +4022,23 @@ Eseguito da Andrea nell'editor SQL della dashboard con query di sola lettura sul
 **Conteggi al 04/08/2026**, letti interrogando le tabelle: `orders` 30 (26 non pagati, 4 in sandbox), `customers` 40, `promo_redemptions` 1, `analytics_events` 0, `staff_action_log` 70 di cui 43 di prova. *Sono identici a quelli del 30/07: la verifica dal vivo del 02/08 non ha lasciato residui, come §46 punto 7 prevedeva. Il conteggio aggiornato vive nell'`HANDOFF.md`, non qui.*
 
 **Due residui minori registrati e non sanati:** `orders.idempotency_key` esiste ma non è descritta in alcun documento e non si sa se il codice la usi; il vincolo di `product_choice_options` porta ancora il nome della tabella precedente (`product_protein_options_…`), senza alcun effetto.
+
+### Regola generale sui dati fino all'apertura (decisione di Andrea, 04/08/2026)
+
+**Fino al go-live dichiarato da Andrea, ogni ordine presente nel database è una prova.** Non esiste alcun ordine reale e non ne esisterà finché lui non lo dichiara. È la premessa che rende sicuro lo script di azzeramento di §69, che infatti cancella senza distinguere. ⚠️ **Smette di valere nell'istante esatto dell'apertura**, e da quel momento la stessa operazione diventa distruttiva.
+
+### La sequenza di apertura (v55) — l'ordine ha una ragione
+
+1. **dominio**, e con esso la restrizione della chiave API di Google;
+2. **Stripe in modalità reale**, con il webhook puntato al dominio **definitivo**. ⚠️ Non è un interruttore: sandbox e reale sono due ambienti separati con chiavi e webhook diversi, e ci sono cose che in sandbox non esistono e quindi non si possono provare — che il conto incassi davvero, che l'antifrode non blocchi i primi pagamenti, e soprattutto che l'avviso di pagamento arrivi al sito. Se quel pezzo non funziona **i clienti pagano e in cucina non arriva niente**;
+3. **un ordine vero fatto da Andrea**, pagato con carta propria, che percorra tutta la catena fino alla comparsa in cucina, e poi rimborsato dalla dashboard. Costa le commissioni di un caffè ed è l'unica prova che vale;
+4. **pulizia dei dati** — dopo l'ordine vero, non prima, altrimenti resterebbe dentro un ordine pagato con denaro reale;
+5. **cancellazione dello script del go-live** dal deposito (§69);
+6. **apertura**.
+
+*Il dominio va per primo perché l'indirizzo del webhook deve puntare al sito definitivo: attivandolo su quello provvisorio andrebbe rifatto.*
+
+⚠️ **Da verificare prima del passo 2, e non ancora verificato:** come il codice sceglie le chiavi di Stripe. Se sono lette da variabili d'ambiente il passaggio è cambiare quei valori; se da qualche parte è scritto "sandbox" è un lavoro diverso.
 
 ⚠️ **Limite dello strumento, da ricordare:** l'editor SQL della dashboard restituisce **al massimo 100 righe**. Un referto che finisce a 100 righe esatte non va mai considerato completo — il primo giro sulle colonne si era interrotto lì, e sembrava una risposta.
 
@@ -4597,18 +4645,43 @@ Non esisteva nulla in spec. Ora esiste.
 
 **Vincoli comuni alla scrittura di entrambi**, dal referto di audit del 04/08/2026:
 
-* la riga cliente è **condivisa**: un ordine mai pagato seguito da un ordine pagato dalla stessa persona è il caso normale. Non cancellare mai una riga cliente che abbia almeno un ordine collegato;
+* **la regola sulle righe cliente, in una formulazione sola (v55).** La v54 ne conteneva due che non coincidevano — "senza ordine **pagato**" e "che abbia almeno **un ordine**" — e vanno lette così: **si cancella una riga cliente solo se, a cancellazione degli ordini avvenuta, non le resta collegato alcun ordine di alcun tipo**, ed è anch'essa più vecchia di trenta giorni. È la più stretta delle due, e l'effetto pratico coincide con l'altra, perché gli ordini mai pagati spariscono poche righe prima nella stessa transazione: chi aveva solo quelli resta senza ordini e viene rimosso, chi ha un ordine pagato conserva l'ordine e quindi la riga. *La riga cliente è condivisa: un ordine mai pagato seguito da un ordine pagato dalla stessa persona è il caso normale.*
+* **da quale data si contano i trenta giorni per una riga cliente**: da `customers.created_at`. Serve per chi non ha mai avuto un ordine — un checkout interrotto prima della scrittura — ed è l'unica data disponibile su quella riga;
 * **non esiste** un evento "pagamento fallito" che qualcuno scriva: un ordine non pagato semplicemente resta. Il conteggio dei 30 giorni parte dalla **creazione**;
 * **pre-check e post-check bloccanti dentro la stessa transazione** (metodo `n`), con messaggi in italiano. I post-check verificano anche ciò che **non** doveva cambiare — il numero di ordini pagati, la presenza del menu, del perimetro e del log staff — perché un controllo che guarda solo ciò che è sparito non si accorge di ciò che è sparito in più;
 * i conteggi si **rileggono dal database** prima e dopo, mai ricopiati da un documento (lezioni `s` e `z`).
 
-**Staccare invece di cancellare, dove la struttura lo consente (decisione di Andrea del 04/08/2026).** Nella pulizia mensile, le righe di `staff_action_log` e di `analytics_events` che citano un ordine rimosso **perdono il riferimento e restano**: entrambe le colonne sono facoltative, quindi è possibile. Cancellarle eroderebbe l'audit trail che §66 dichiara intoccabile e i dati statistici di §65, per un collegamento che dopo la rimozione dell'ordine non serve più a nessuno. *Nello script del go-live vale la regola opposta per il log: là quelle righe sono di prova e vanno via, tranne le azioni vere sul menu (§66).*
+**Staccare invece di cancellare, dove la struttura lo consente (decisione di Andrea del 04/08/2026, estesa in v55).** Nella pulizia mensile, le righe di `staff_action_log` e di `analytics_events` che citano un ordine rimosso **perdono il riferimento e restano**: entrambe le colonne sono facoltative, quindi è possibile. Cancellarle eroderebbe l'audit trail che §66 dichiara intoccabile e i dati statistici di §65, per un collegamento che dopo la rimozione dell'ordine non serve più a nessuno. **Al go-live la regola vale allo stesso modo, per le sole righe da conservare (chiarimento v55).** Là le righe di prova del registro vanno via e gli eventi statistici si cancellano interi, perché sono tutti di prova; ma una riga di registro **da conservare** che citasse un ordine metterebbe §66 contro sé stessa — cancellarla è vietato perché è audit trail, non cancellare l'ordine è vietato perché si azzera tutto. Si stacca il riferimento e la riga resta: è l'unica via che rispetta entrambe. *Al 04/08/2026 nessuna riga di registro punta a un ordine, quindi oggi non tocca nulla — ma la regola non deve dipendere da un conteggio fotografato in un documento.*
+
+⚠️ **Un limite noto, registrato e non sanato: la spec non definisce come si riconosce un'azione di prova.** §66 dice che restano le righe dell'identificatore reale e vanno via quelle di prova, ma `staff_action_log.staff_identifier` è **testo libero**, senza contrassegno né convenzione dichiarata. Nello script del go-live il criterio è quindi un **parametro compilato a mano**, letto dal referto dei conteggi e non ricordato — con due controlli che bloccano se resta vuoto o se non corrisponde ad alcuna riga reale. *Non serve sanarlo: quello script si esegue una volta e poi si cancella, e la pulizia mensile non tocca mai il registro per identificatore. Se un giorno servisse renderlo automatico, la strada pulita è smettere di usare identificatori di fantasia — ed è una decisione, non un dettaglio tecnico.*
 
 **Dove staccare non si può: i codici promo.** In `promo_redemptions` il riferimento all'ordine è **obbligatorio**, quindi la riga si cancella. **Conseguenza voluta e accettata da Andrea il 04/08/2026:** chi aveva applicato un codice a un ordine **mai pagato** potrà riusarlo dopo trenta giorni. Non è una falla in §14: chi ha davvero usato lo sconto ha un ordine pagato, e quell'ordine non viene mai cancellato, quindi il suo riscatto resta e il codice resta bruciato. Si libera solo per chi dello sconto non ha mai goduto.
 
 **Ordine delle cancellazioni**, imposto dai collegamenti verificati il 04/08/2026 e non modificabile a piacere: prima ciò che punta agli ordini senza cancellazione a catena — eventi statistici, riscatti promo, righe di log — poi gli ordini, che si portano dietro da soli righe d'ordine e storico di stato, e infine le righe cliente rimaste senza ordini. *Cambiare l'ordine produce un errore di vincolo, non un danno silenzioso: è la stessa scelta del `drop table` senza `cascade` del metodo `p`.*
 
-**Precondizione, ora soddisfatta:** non era scrivibile prima che il referto di audit restituisse foreign key e comportamenti `ON DELETE`. Il referto è del **04/08/2026** ed è registrato in §66.
+**Precondizione, soddisfatta:** non era scrivibile prima che il referto di audit restituisse foreign key e comportamenti `ON DELETE`. Il referto è del **04/08/2026** ed è registrato in §66.
+
+---
+
+### I tre file — scritti e committati il 04/08/2026 (v55)
+
+Non sono più un lavoro da fare: esistono, sono in `sql/`, e nessuno dei tre è mai stato eseguito.
+
+| file | cosa fa | quando |
+|---|---|---|
+| `sql/conteggi_dati_sola_lettura.sql` | conta e basta, non scrive nulla | **prima e dopo** ognuna delle due pulizie |
+| `sql/ESEGUIRE_UNA_VOLTA_SOLA_prima_del_golive_CANCELLA_TUTTI_GLI_ORDINI.sql` | azzera ordini, clienti, riscatti ed eventi | **una volta sola**, al go-live |
+| `sql/pulizia_mensile_ordini_mai_pagati.sql` | rimuove ordini mai pagati oltre i 30 giorni | **ogni mese**, per sempre |
+
+**I nomi sono la prima protezione**, quella che agisce prima che qualcuno apra il file: il maiuscolo è voluto, perché nell'elenco della cartella — fra nove migrazioni datate tutte minuscole — quel file si stacca a colpo d'occhio. I due strumenti si somigliano e stanno nella stessa cartella: il pericolo non è che qualcuno esegua quello sbagliato di proposito, è che li confonda. *Le date sono uscite dai nomi: il primo verrà cancellato e non ordina niente, gli altri due non sono di agosto ma di sempre.*
+
+⚠️ **Lo script del go-live si cancella dal deposito subito dopo l'unica esecuzione (decisione di Andrea, 04/08/2026).** È il **passo 5 della sequenza di apertura** di §66, non una buona intenzione da onorare "domani": il momento in cui si cancella è anche quello in cui si è stanchi e contenti, con il sito appena aperto. Un file che non c'è non si esegue per sbaglio, e la sua storia resta nei commit se un giorno servisse ripescarlo. *L'istruzione è scritta in tre punti dentro il file stesso, così viaggia con lo strumento invece di vivere solo qui.*
+
+**Il freno dello script del go-live.** Non è un filtro: quello script cancella **tutti** gli ordini, senza guardare alcuna data. La data in cima decide soltanto **se** partire. Ci va la data e ora dell'**ultima prova di sviluppo**, che il referto dei conteggi stampa in cima apposta — ⚠️ **mai l'ora corrente**, che è il valore che spegne il freno senza che nessuno se ne accorga, perché nulla può essere più recente di adesso. Se il freno scatta **non si sposta la data in avanti**: significa che in database c'è qualcosa che non ci si aspettava (metodo `k`).
+
+✅ **Prova eseguita il 04/08/2026.** Il valore stampato dal referto include i **microsecondi**, e serve: `orders.created_at` ha per predefinito `now()`, quindi troncare ai secondi produrrebbe un istante anteriore a quello vero e **il freno scatterebbe a torto** — insegnando ad aggirarlo, che è peggio di un freno assente. Verificato nella dashboard su `max(created_at) = 2026-08-04 13:07:01.471525+00`: con il formato corretto gli ordini successivi sono **zero**, con quello troncato sono **uno**. *Lo zero conta perché la stessa sonda, alimentata col formato vecchio, cambia risposta.*
+
+**Ogni tabella del database è coperta.** Le **sette** che gli script toccano più le **sedici** dichiarate intoccabili fanno esattamente le 23 dello schema: nessuna resta fuori: o è dichiarata come toccata, o è misurata come intatta dai post-check. *Le sedici non sono un elenco copiato a mano nei controlli: è la stessa lista, dichiarata una volta e percorsa in ciclo, così intestazione e verifica non possono divergere.* ⚠️ *`staff_action_log` è fra le sette ma non viene mai svuotato: le righe vere restano sempre, ed è l'eccezione di §66.*
 
 ---
 
