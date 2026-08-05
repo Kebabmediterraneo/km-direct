@@ -1,41 +1,51 @@
 # KM DIRECT — MASTER SPECIFICATION
 
-**Versione 56** — sostituisce la v55.
+**Versione 57** — sostituisce la v56.
 
 Documento di riferimento definitivo per lo sviluppo. Le decisioni qui
 contenute sono approvate: non vanno reinterpretate senza un motivo concreto
 (vedi §73). Ogni file di codice del progetto deve rispettare queste regole.
 
-**Novità della v56** (vincolanti, dalla ricognizione sul codice del 05/08/2026 e
-dalla rilettura dei conteggi eseguita da Andrea lo stesso giorno):
+⚠️ **CHE COSA È E CHE COSA NON È QUESTO DOCUMENTO** (v57). Questo documento e
+l'`HANDOFF.md` **coprono il progetto dal 24/07/2026 in poi**. Il repository
+nasce il 10/07/2026 e i primi **78 commit — quattordici giorni — non sono
+nominati da nessuno dei due**: in quei giorni sono nate cinque pagine su sei e
+diciotto rotte su venti. **Ciò che questi documenti non nominano può esistere lo
+stesso**, e va verificato sul codice, non qui. *Il silenzio di un documento non è
+la prova che una cosa non esista: il 05/08/2026 la pagina dei carrelli
+abbandonati è stata data per "da costruire" da entrambi i documenti mentre
+esisteva e funzionava dal 19/07.*
 
-1. §62b — ⚠️ **corretta un'affermazione falsa sul codice.** La sezione dichiarava
-   dalla sua stesura che il motivo del problema e quello dell'annullamento sono
-   *"registrati in `order_status_history`"*. **Non è vero e non lo è mai stato**:
-   quella tabella non ha alcuna colonna che possa ospitare un testo di motivo. I
-   due motivi vanno altrove, e ora la sezione dice dove.
-2. §62b — **l'annullamento passa obbligatoriamente da `problema`**, come il
-   codice già impone. La spec descriveva due azioni indipendenti. Decisione di
-   Andrea del 05/08/2026: **si corregge la spec, il codice resta com'è.**
-3. §62b — **`orders.cancellation_reason` si scrive e non si mostra** (decisione
-   di Andrea, 05/08/2026). Oggi nessun punto del pannello lo legge, ed è una
-   scelta, non una dimenticanza da sanare.
-4. §65 — ✅ **le due decisioni che bloccavano le statistiche sono chiuse.** Il
-   motivo dell'annullamento **non va nel `payload`**: esiste già in due posti
-   permanenti e la statistica lo legge da lì. L'istruzione della v54 — "come si
-   chiama quella voce va deciso prima di scrivere il primo evento" — **decade**,
-   perché poggiava sull'errore corretto al punto 1.
-5. §65 — ✅ **i tempi fra le fasi hanno una fondazione verificata**:
-   `order_status_history` porta la colonna **`changed_at`**, letta dal database
-   vivo il 05/08/2026. Fino a quel giorno era una convinzione.
-6. §63-64 — ⚠️ **tolta una contraddizione interna alla spec.** La sezione
-   conteneva due istruzioni **opposte** sulla tendina delle categorie, a
-   centottanta righe di distanza: una diceva di compilarla a mano e mai di
-   leggere il database, l'altra esattamente il contrario. Resta la seconda.
-7. §69 — **il giorno della pulizia mensile è fissato: il primo del mese, prima
-   di aprire il locale** (decisione di Andrea, 05/08/2026).
-8. §66, §69 — **i conteggi sono stati riletti** e registrano un ordine di prova
-   completo del 04/08/2026, fatto da Andrea e mai annotato da nessuno.
+⚠️ **Disciplina del blocco Novità, dalla v57**: sopravvive **solo il blocco della
+versione corrente**. I precedenti vivono in `git log`, che è fatto per quello.
+*Fino alla v56 se ne erano accumulati 43, milleottantacinque righe — un quarto
+del documento prima che cominciasse a parlare del progetto — e dentro c'erano
+istruzioni rovesciate che nessuno rileggeva.*
+
+**Novità della v57** (vincolanti, dalle decisioni del 05/08/2026 e dalla
+sfoltita dei documenti dello stesso giorno):
+
+1. §63-64 — ⚠️ **la tendina delle categorie cambia regola.** La v54 prescriveva
+   di **leggere** l'elenco dal database. **Non si può**: `product_category` è un
+   tipo del catalogo di Postgres, non una tabella, e il client del progetto non
+   ha modo di raggiungerlo senza aggiungere una funzione lato database. La
+   prescrizione era **irrealizzabile**, non solo scomoda.
+2. §63-64 — **Fase 3, tre decisioni chiuse** (Andrea, 05/08/2026): salvataggio
+   possibile solo a modulo completo; articolo che nasce **disponibile**, con il
+   rischio della scrittura interrotta **accettato**; tendina dall'elenco del
+   pannello con una prova che confronta le tre copie.
+3. §63-64, §67 — ⚠️ **registrato cosa vede il cliente su un articolo senza
+   allergeni: niente.** Il blocco sparisce del tutto, senza alcuna scritta. È il
+   fatto che dà la misura vera del rischio accettato al punto 2.
+4. §65 — ⚠️ **la pagina dei carrelli abbandonati ESISTE dal 19/07/2026 e
+   funziona.** Questo documento la dava da costruire. Non va costruita: va
+   conosciuta.
+5. §65 — **le altre statistiche si leggono con un referto mensile**, non con
+   schermate nuove (Andrea, 05/08/2026).
+6. §69 — **il referto si lancia prima della pulizia**, non dopo.
+7. §46 — portato nel corpo il fatto che **l'avviso delle rimozioni risulta
+   nascosto mentre il checkout è aperto**: se confermato, la regola del punto 9
+   non è realizzabile come scritta (passo 1 della sfoltita, commit `0411db5`).
 
 *Il conteggio delle condizioni di apertura non cambia: **quattro chiuse, cinque
 aperte**. La procedura mensile di §69 conserva la sola prima esecuzione.*
@@ -2581,25 +2591,18 @@ separato. L'introduzione di ruoli/permessi admin distinti dallo staff è
   secondo caso scegliendo "nessun allergene", che scrive
   `allergens_verified_at` senza creare righe allergene (§67 — sicurezza
   alimentare).
-  **Tendina delle categorie (v30, rovesciata in v32, ⚠️ rovesciata di nuovo e
-  in via definitiva in v56)**: la lista chiusa `product_category` ammette **9**
-  valori, che coincidono con le 9 categorie di §15. Dopo la migrazione delle
-  salse (§30) ne restano **8** usate da righe di `products`, e l'unico valore da
-  **non** offrire è `menu_combo`, che non è una categoria di articoli ma la
-  forma del menu combo (§23-26): un articolo semplice creato lì non avrebbe
-  senso e non comparirebbe da nessuna parte. **L'elenco si legge dal database, e
-  non si ricopia nel form**: la regola operativa completa sta nel blocco della
-  Fase 3 più sotto, che è l'unica fonte da seguire.
-  ⚠️ *Fino alla v55 qui c'era scritto l'esatto contrario — "va costruita a mano
-  e mai leggendo l'elenco dal database" — mentre centottanta righe più sotto,
-  **nella stessa sezione**, il blocco della v54 diceva il rovescio. La spec si
-  contraddiceva al proprio interno, e chi avesse letto §63-64 dall'alto avrebbe
-  incontrato per prima l'istruzione sbagliata. L'handoff era stato corretto il
-  04/08/2026, la spec no: è la lezione `aj` arrivata dentro la fonte di verità.*
-  *La v30 escludeva anche `salse`, per un motivo che la v32 ha eliminato alla
-  radice: allora una salsa creata dentro `products` sarebbe finita nella
-  tabella sbagliata e sarebbe stata invisibile; adesso quello è il posto
-  giusto, ed è l'unico.*
+  **Tendina delle categorie**: la lista chiusa `product_category` ammette **9**
+  valori, di cui l'unico da **non** offrire è `menu_combo`, che non è una
+  categoria di articoli ma la forma del menu combo (§23-26): un articolo
+  semplice creato lì non comparirebbe da nessuna parte. Le **salse** invece si
+  creano, dalla v32: prima sarebbero finite nella tabella sbagliata, ora
+  `products` è il posto giusto ed è l'unico.
+  ⚠️ **La regola operativa è una sola e sta nel blocco della Fase 3 più sotto**:
+  non si legge dal database e non si ricopia. *Fino alla v56 questa sezione
+  portava due istruzioni opposte a centottanta righe di distanza, più una terza
+  nel blocco Novità della v30 che nessuno rileggeva: tre posizioni per la stessa
+  tendina, e quella che il documento faceva incontrare per prima era sbagliata.
+  Con la v57 ne resta una.*
 
 *Dopo il go-live:*
 - editing dei **contenuti del combo** (contorni, proteine, supplementi):
@@ -2777,9 +2780,29 @@ solo una volta, la mattina.
 
 **La regola vive in un modulo unico** sotto `lib/`, non dentro l'interfaccia, come `menu-badges` e `menu-spice`. Oggi **nessun percorso del codice crea prodotti** — tutti gli accessi a `products` sono letture o modifiche — quindi la Fase 3 sarà il primo, e sarà il momento in cui la convenzione passa da ciò che si osserva a ciò che il sistema impone. Sparsa nell'interfaccia, il secondo punto che un giorno creerà articoli ne avrebbe una copia diversa.
 
-⚠️ **La tendina delle categorie non si compila a mano.** `products.category` è un **tipo chiuso nel database**: ricopiarne i valori nel form creerebbe una seconda copia di un elenco che esiste già, e due copie divergono. L'elenco va **letto**, escludendo `menu_combo`.
+⚠️ **La tendina delle categorie NON si legge dal database, e NON si compila a mano una quarta volta** (decisione di Andrea, 05/08/2026, sostituisce la v54).
 
-✅ **Letto il 04/08/2026**: i valori ammessi sono **nove** — `roll`, `bowl`, `menu_combo`, `fritti`, `sides`, `salse`, `dolci`, `drink`, `birre` — quindi **otto** nella tendina, tolto `menu_combo`. Il numero otto che circolava nei documenti era giusto, ma era un'osservazione: ora è verificato. *Resta che l'elenco va letto dal database e non ricopiato: se un giorno se ne aggiungesse uno, una tendina compilata a mano non se ne accorgerebbe.*
+*Perché non si legge dal database*: `product_category` è un **tipo del catalogo di Postgres**, non una tabella. Verificato il 05/08/2026 sul sorgente della libreria installata: il client offre `.from()` per tabelle e viste, `.rpc()` per funzioni, e nient'altro; non esiste alcuna funzione che restituisca quelle etichette, e crearla sarebbe una migrazione da eseguire a mano. **La prescrizione della v54 era irrealizzabile, non solo scomoda.** *Si sarebbe scoperto scrivendo il codice.*
+
+*Perché non si ricopia*: le copie **sono già tre**, tutte scritte a mano e nessuna che importi dalle altre — `PRODUCT_CATEGORY_LABEL` e `PRODUCT_CATEGORY_ORDER` nel pannello, più la mappa del sito cliente. Aggiungerne una quarta peggiorerebbe il problema che la v54 voleva risolvere.
+
+**La regola**: la tendina **usa l'elenco che il pannello già possiede**, escludendo `menu_combo`, e si aggiunge **una prova automatica che confronta le tre copie fra loro** e fallisce se divergono.
+
+⚠️ **Rischio residuo, dichiarato**: la prova **non** protegge dall'aggiunta di una categoria al database, perché il confronto col database non è costruibile. Protegge dal caso molto più probabile — qualcuno che la aggiunge in un posto e dimentica gli altri due. *Il giorno che servisse chiudere anche l'altro caso, la strada è una funzione lato database creata da migrazione, esattamente come nacque `set_updated_at()`.*
+
+✅ **Letto il 04/08/2026**: i valori ammessi sono **nove** — `roll`, `bowl`, `menu_combo`, `fritti`, `sides`, `salse`, `dolci`, `drink`, `birre` — quindi **otto** nella tendina, tolto `menu_combo`.
+
+### Fase 3 — le tre decisioni di creazione (Andrea, 05/08/2026, vincolanti)
+
+**1. Il salvataggio è possibile solo a modulo completo.** Il pulsante resta disattivato finché tutti i campi obbligatori non sono compilati, **allergeni compresi** — dichiarati oppure con "nessuno dei 14" spuntato, che è la casella che rende la regola applicabile anche a una lattina.
+
+**2. L'articolo nasce disponibile**, come qualunque altro. ⚠️ **Rischio accettato, con nome e data: Andrea, 05/08/2026.** Creare un articolo sono **due scritture separate** — prima la riga in `products`, poi le righe in `product_allergens` — e il client **non può raggrupparle in transazione** (§66). Se la seconda fallisce, resta in menu un articolo **senza allergeni dichiarati**, e nulla lo segnala. *La contromisura accettata è organizzativa e non tecnica: si creano articoli fuori dall'orario di servizio (§67) e si guarda il menu subito dopo. Alternativa scartata: farlo nascere esaurito, che riduce il danno ma non lo elimina, perché un articolo esaurito resta comunque in vetrina.*
+
+**3. La tendina** segue la regola qui sopra.
+
+⚠️ **Il fatto che dà la misura del rischio al punto 2**, verificato sul codice il 05/08/2026 e da conoscere prima di toccare la Fase 3: su un articolo **senza righe in `product_allergens`, il blocco allergeni della pagina cliente sparisce del tutto** — nessuna scritta, nessuno spazio vuoto, zero pixel. **Non esiste in tutto il file cliente un testo del tipo "nessun allergene" o "non disponibili".** E `allergens_verified_at`, che distinguerebbe *"verificato: non ne ha"* da *"nessuno ha mai dichiarato"*, **arriva al browser e viene scartata** prima di raggiungere la card: i due casi appaiono identici al cliente. *Poiché tutti gli articoli di oggi mostrano il blocco, un articolo che non lo mostra si legge come "non ne ha". Il sito non lo afferma, ma lo lascia capire.*
+
+*Nota di direzione opposta, verificata lo stesso giorno*: i badge **Vegano/Vegetariano** si comportano bene — richiedono un `true` scritto in tabella, quindi un articolo non compilato **non riceve** il badge, e mai quello sbagliato. Su questa materia l'omissione sbaglia per difetto, che è la direzione giusta.
 
 ## 65. Analytics dal giorno 1
 
@@ -2788,12 +2811,19 @@ prodotto aggiunto, soglia 15€ raggiunta, soglia 25€ raggiunta, GIVEMEFIVE
 applicato, checkout iniziato, pagamento completato, ordine annullato +
 motivo, tempi tra le fasi dell'ordine.
 
-**Pagina "Carrelli abbandonati" (decisione presa dopo l'MVP iniziale,
-vincolante)**: pagina dedicata nel pannello staff, volutamente **meno in
-evidenza** delle sezioni operative (Nuovi/Attivi/Storico/Menu) per non
-generare confusione con gli ordini reali da lavorare. Mostra gli ordini
-rimasti `payment_status='pending'` (checkout iniziato ma mai completato),
-con:
+✅ **Pagina "Carrelli abbandonati" — ESISTE, FUNZIONA, E NON VA COSTRUITA** (accertato sul codice il 05/08/2026). `app/staff/abbandonati/page.js` e la sua rotta `app/api/staff/abandoned-carts/route.js` sono nate insieme il **19/07/2026** e non sono mai più state toccate. ⚠️ **Fino alla v56 questo documento la dava da costruire**, e su quella premessa era stata stimata una parte importante del lavoro di §65: la stima era gonfia perché il lavoro era già in casa.
+
+Cosa fa, letto dal codice: collegamento discreto in fondo al pannello, presente in tutte le sezioni; tre filtri — oggi, 7 giorni, 30 giorni; aggregati calcolati lato server (quanti, valore totale, valore medio); contenuto di ogni carrello riga per riga. Prende i soli `payment_status = "pending"` — **non** i `failed` — ed esclude i carrelli più giovani di **30 minuti**, che sono probabilmente checkout ancora in corso.
+
+✅ **Rispetta §69 alla radice, non a schermo**: la sua query **non chiede** `customers` né alcun dato personale — non nome, non telefono, non e-mail, e nemmeno il codice ordine. Non è che non li mostri: non li ha. *È la forma giusta di quella promessa, ed è il modello per qualunque vista statistica futura.*
+
+⚠️ **Da conoscere, non da sanare**: nessun test automatico la nomina, e nessuno ha mai verificato che si disegni senza errori. Due colonne vengono chieste al database e mai usate.
+
+**Il resto delle statistiche si legge con un referto mensile, non con schermate nuove** (decisione di Andrea, 05/08/2026). Un file di sola lettura sul modello di `sql/conteggi_dati_sola_lettura.sql`, lanciato nell'editor SQL insieme alla procedura di §69. *Motivo: con i volumi di un locale singolo una schermata dedicata costa molto e si guarda una volta al mese. Se un giorno il volume la giustificasse, si costruirà **sopra dati già raccolti** — ed è questa la ragione per cui la raccolta non si rimanda: la lettura si aggiunge quando serve, i fatti non passati dal quaderno non si recuperano.*
+
+⚠️ **Il referto è cieco sui dati personali come lo è la pagina**: niente nome, cognome, telefono, e-mail. Il vincolo di §69 era scritto pensando a una schermata e vale identico per un file che resta nel deposito.
+
+Per storico, la specifica originale della pagina — oggi soddisfatta da ciò che esiste: pagina dedicata volutamente **meno in evidenza** delle sezioni operative (Nuovi/Attivi/Storico/Menu) per non generare confusione con gli ordini reali da lavorare, che mostra gli ordini rimasti `payment_status='pending'` con:
 - numeri aggregati: quanti carrelli abbandonati, in che periodo, valore
   medio e totale perso;
 - **contenuto dei carrelli**: quali prodotti erano dentro, per capire se
@@ -3655,7 +3685,9 @@ Non esisteva nulla in spec. Ora esiste.
 
 **Ordini mai pagati e righe cliente senza ordine pagato: massimo 30 giorni.** La rimozione è una **procedura manuale a cadenza almeno mensile**, non un processo automatico. L'informativa la descrive così: è una promessa organizzativa e vale quanto la disciplina con cui viene eseguita.
 
-✅ **Il giorno è fissato: il primo di ogni mese, prima di aprire il locale** (decisione di Andrea, 05/08/2026). Il primo perché **esiste in tutti i mesi** — un giorno che qualche mese non c'è è un giorno che prima o poi salta — e a saracinesca chiusa perché la procedura scrive sul database che serve i clienti. *La sequenza completa di ogni esecuzione è: referto dei conteggi, pulizia, referto dei conteggi di nuovo.* ⚠️ **Resta aperta la sola prima esecuzione**, che è ciò che tiene aperta questa condizione: finché non è stata fatta una volta, il punto 11.2 dell'informativa è una promessa senza precedente.
+✅ **Il giorno è fissato: il primo di ogni mese, prima di aprire il locale** (decisione di Andrea, 05/08/2026). Il primo perché **esiste in tutti i mesi** — un giorno che qualche mese non c'è è un giorno che prima o poi salta — e a saracinesca chiusa perché la procedura scrive sul database che serve i clienti. *La sequenza completa di ogni esecuzione è: referto dei conteggi, pulizia, referto dei conteggi di nuovo.*
+
+⚠️ **Il referto delle statistiche di §65 si lancia PRIMA della pulizia, non dopo.** Nel caso normale non cambia nulla — la pulizia tocca solo ciò che ha più di trenta giorni — ma l'ordine giusto costa zero a scriverlo ed evita di doverci ragionare ogni volta. *Ne esce un'abitudine sola invece di tre: il primo del mese, tre file in fila nella stessa schermata — statistiche, conteggi, pulizia. Una procedura mensile si ricorda; tre sparse si dimenticano, ed è esattamente il rischio che questa sezione dichiara su sé stessa.* ⚠️ **Resta aperta la sola prima esecuzione**, che è ciò che tiene aperta questa condizione: finché non è stata fatta una volta, il punto 11.2 dell'informativa è una promessa senza precedente.
 
 **Quali ordini sono "mai pagati" (decisione di Andrea del 04/08/2026):** `pending` **e** `failed`. La v53 nominava i soli `pending`, perché `failed` non è mai stato usato da nessun ordine; ma la regola è la stessa e scriverla oggi costa una riga, mentre scoprirla quando quello stato inizierà a popolarsi — per esempio agganciando i webhook di Stripe — costa una decisione presa di fretta. **Mai toccati**, in nessun caso: `succeeded`, `refunded`, `partially_refunded`.
 
