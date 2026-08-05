@@ -1,10 +1,44 @@
 # KM DIRECT — MASTER SPECIFICATION
 
-**Versione 55** — sostituisce la v54.
+**Versione 56** — sostituisce la v55.
 
 Documento di riferimento definitivo per lo sviluppo. Le decisioni qui
 contenute sono approvate: non vanno reinterpretate senza un motivo concreto
 (vedi §73). Ogni file di codice del progetto deve rispettare queste regole.
+
+**Novità della v56** (vincolanti, dalla ricognizione sul codice del 05/08/2026 e
+dalla rilettura dei conteggi eseguita da Andrea lo stesso giorno):
+
+1. §62b — ⚠️ **corretta un'affermazione falsa sul codice.** La sezione dichiarava
+   dalla sua stesura che il motivo del problema e quello dell'annullamento sono
+   *"registrati in `order_status_history`"*. **Non è vero e non lo è mai stato**:
+   quella tabella non ha alcuna colonna che possa ospitare un testo di motivo. I
+   due motivi vanno altrove, e ora la sezione dice dove.
+2. §62b — **l'annullamento passa obbligatoriamente da `problema`**, come il
+   codice già impone. La spec descriveva due azioni indipendenti. Decisione di
+   Andrea del 05/08/2026: **si corregge la spec, il codice resta com'è.**
+3. §62b — **`orders.cancellation_reason` si scrive e non si mostra** (decisione
+   di Andrea, 05/08/2026). Oggi nessun punto del pannello lo legge, ed è una
+   scelta, non una dimenticanza da sanare.
+4. §65 — ✅ **le due decisioni che bloccavano le statistiche sono chiuse.** Il
+   motivo dell'annullamento **non va nel `payload`**: esiste già in due posti
+   permanenti e la statistica lo legge da lì. L'istruzione della v54 — "come si
+   chiama quella voce va deciso prima di scrivere il primo evento" — **decade**,
+   perché poggiava sull'errore corretto al punto 1.
+5. §65 — ✅ **i tempi fra le fasi hanno una fondazione verificata**:
+   `order_status_history` porta la colonna **`changed_at`**, letta dal database
+   vivo il 05/08/2026. Fino a quel giorno era una convinzione.
+6. §63-64 — ⚠️ **tolta una contraddizione interna alla spec.** La sezione
+   conteneva due istruzioni **opposte** sulla tendina delle categorie, a
+   centottanta righe di distanza: una diceva di compilarla a mano e mai di
+   leggere il database, l'altra esattamente il contrario. Resta la seconda.
+7. §69 — **il giorno della pulizia mensile è fissato: il primo del mese, prima
+   di aprire il locale** (decisione di Andrea, 05/08/2026).
+8. §66, §69 — **i conteggi sono stati riletti** e registrano un ordine di prova
+   completo del 04/08/2026, fatto da Andrea e mai annotato da nessuno.
+
+*Il conteggio delle condizioni di apertura non cambia: **quattro chiuse, cinque
+aperte**. La procedura mensile di §69 conserva la sola prima esecuzione.*
 
 **Novità della v55** (vincolanti, dalla scrittura degli script di pulizia del
 04/08/2026 — stessa giornata della v54, seconda metà):
@@ -3487,16 +3521,23 @@ deve essere univoco lato Glovo (Glovo rifiuta identificativi duplicati).
 
 ## 62b. Gestione Problema/Annullamento ordini (aggiunta dopo l'MVP iniziale)
 
-Due azioni distinte, disponibili sugli ordini attivi dal pannello staff:
+Due azioni **in sequenza obbligata**, disponibili sugli ordini della sezione
+Attivi del pannello staff. ⚠️ **Fino alla v55 questa riga diceva "due azioni
+distinte"**, lasciando intendere che si potesse annullare un ordine
+direttamente: **non si può, e non è un difetto.** Il codice ammette `problema`
+solo da `nuovo`, `in_preparazione` e `pronto`, e ammette `annullato` **solo da
+`problema`. Decisione di Andrea del 05/08/2026: si corregge la spec, il codice
+resta com'è** — il passaggio intermedio è un fermo prima di un'azione che
+rimborsa e chiude, e vale il secondo motivo che costa scrivere.
 
 **Segnala problema**: segna l'ordine come `problema` con un motivo
-(testo libero), registrato in `order_status_history`. Non tocca il
+(testo libero, **obbligatorio**). Non tocca il
 pagamento. Da questo stato, lo staff può risolvere il problema tornando
 allo stato immediatamente precedente (stesso meccanismo di "torna
 indietro" già esistente) oppure procedere ad annullare l'ordine.
 
 **Annulla ordine**: segna l'ordine come `annullato` con un motivo (testo
-libero), registrato in `order_status_history`. Regola sul rimborso,
+libero, **obbligatorio**, distinto da quello del problema). Regola sul rimborso,
 basata su quanto l'ordine era già stato lavorato:
 
 - Se l'ordine **non ha mai raggiunto lo stato `in_preparazione`**
@@ -3514,6 +3555,54 @@ basata su quanto l'ordine era già stato lavorato:
 riga in `promo_redemptions` va eliminata in ogni caso (indipendentemente
 dallo stadio raggiunto) — il cliente deve poter riutilizzare il codice
 su un ordine futuro, dato che quello originale non si è concluso.
+
+### Dove finiscono i due motivi (correzione della v56, letta dal codice)
+
+⚠️ **Fino alla v55 questa sezione dichiarava, per entrambe le azioni, che il
+motivo è "registrato in `order_status_history`". È falso, e non lo è mai stato**:
+l'`insert` su quella tabella scrive `order_id`, `status_type`, `status_value` e
+`changed_by`, e la tabella **non ha alcuna colonna che possa ospitare un testo di
+motivo**. Un lettore che avesse costruito una statistica su quel presupposto
+avrebbe cercato un dato inesistente. *Come si falsifica l'errore corretto, se
+tornasse: `git grep -n "cancellation_reason"` deve restituire **due** righe in
+tutto il repository — la scrittura e la definizione dello schema — e nessuna
+dentro le rotte che scrivono `order_status_history`.*
+
+Le destinazioni vere, verificate sul codice il 05/08/2026 e sul database vivo
+lo stesso giorno:
+
+| motivo | dove finisce | nome |
+|---|---|---|
+| annullamento | riga dell'ordine | `orders.cancellation_reason` (colonna dedicata, `text`) |
+| annullamento | registro azioni staff | `staff_action_log.detail`, chiave `reason`, con `action: "annulla_ordine"` |
+| problema | registro azioni staff | `staff_action_log.detail`, chiave `reason`, con `action: "segnala_problema"` |
+
+Ne discendono tre fatti vincolanti:
+
+* la colonna `orders.cancellation_reason` è **esclusiva dell'annullamento**: il
+  motivo del problema non ha alcuna casella sulla riga dell'ordine, e vive nel
+  solo registro azioni;
+* le due righe di registro si distinguono **unicamente** per il valore di
+  `action`. Chi legge quei dati deve filtrare per `action`, mai per la sola
+  presenza della chiave `reason`;
+* il registro azioni **non si cancella mai** (§66, §69): entrambi i motivi sono
+  quindi conservati in modo permanente, anche quando l'ordine viene rimosso
+  dalla pulizia mensile e la riga perde il riferimento.
+
+**Il motivo si conserva, non si mostra (decisione di Andrea, 05/08/2026).**
+Oggi `orders.cancellation_reason` è **scritta e mai riletta**: nessun punto del
+pannello la richiede, nemmeno lo Storico. È una scelta, non una dimenticanza da
+sanare — il pannello resta leggero, e il dato c'è se un giorno servirà. ⚠️ **Se
+un giorno servirà, si va a leggerlo una volta; non si costruisce una pagina.**
+*Questa riga esiste perché senza di essa, fra un anno, qualcuno leggerebbe §65
+— che chiede fra le statistiche "ordine annullato + motivo" — e costruirebbe
+una vista che nessuno ha mai voluto.*
+
+⚠️ **Asimmetria registrata e non sanata:** la **risoluzione** di un problema
+scrive una riga in `order_status_history` ma **nessuna** riga nel registro
+azioni. Segnalazione e annullamento lasciano traccia di chi li ha fatti, la
+risoluzione no. *Registrato come limite noto: non incide su alcuna decisione
+presa, e sanarlo è lavoro sul pannello staff, fuori dai lavori pre-go-live.*
 
 ## 63-64. Menu e multi-store admin
 
@@ -3577,15 +3666,21 @@ separato. L'introduzione di ruoli/permessi admin distinti dallo staff è
   secondo caso scegliendo "nessun allergene", che scrive
   `allergens_verified_at` senza creare righe allergene (§67 — sicurezza
   alimentare).
-  **Tendina delle categorie da compilare a mano (v30, rovesciata in v32)**: la
-  lista chiusa `product_category` ammette **9** valori, che coincidono con le 9
-  categorie di §15. Dopo la migrazione delle salse (§30) ne restano **8** usate
-  da righe di `products`, e l'unico valore da **non** offrire è `menu_combo`,
-  che non è una categoria di articoli ma la forma del menu combo (§23-26): un
-  articolo semplice creato lì non avrebbe senso e non comparirebbe da nessuna
-  parte. La tendina va comunque costruita **a mano** sulle 8 categorie reali e
-  **mai leggendo l'elenco dal database**, perché la lista del database
-  descrive cosa è rappresentabile, non cosa è sensato creare.
+  **Tendina delle categorie (v30, rovesciata in v32, ⚠️ rovesciata di nuovo e
+  in via definitiva in v56)**: la lista chiusa `product_category` ammette **9**
+  valori, che coincidono con le 9 categorie di §15. Dopo la migrazione delle
+  salse (§30) ne restano **8** usate da righe di `products`, e l'unico valore da
+  **non** offrire è `menu_combo`, che non è una categoria di articoli ma la
+  forma del menu combo (§23-26): un articolo semplice creato lì non avrebbe
+  senso e non comparirebbe da nessuna parte. **L'elenco si legge dal database, e
+  non si ricopia nel form**: la regola operativa completa sta nel blocco della
+  Fase 3 più sotto, che è l'unica fonte da seguire.
+  ⚠️ *Fino alla v55 qui c'era scritto l'esatto contrario — "va costruita a mano
+  e mai leggendo l'elenco dal database" — mentre centottanta righe più sotto,
+  **nella stessa sezione**, il blocco della v54 diceva il rovescio. La spec si
+  contraddiceva al proprio interno, e chi avesse letto §63-64 dall'alto avrebbe
+  incontrato per prima l'istruzione sbagliata. L'handoff era stato corretto il
+  04/08/2026, la spec no: è la lezione `aj` arrivata dentro la fonte di verità.*
   *La v30 escludeva anche `salse`, per un motivo che la v32 ha eliminato alla
   radice: allora una salsa creata dentro `products` sarebbe finita nella
   tabella sbagliata e sarebbe stata invisibile; adesso quello è il posto
@@ -3844,7 +3939,13 @@ Tre fatti letti dal database, non dedotti, che vincolano il lavoro **prima** che
 1. ⚠️ **Gli eventi non possono essere scritti dal browser.** La tabella `analytics_events` ha la protezione RLS attiva e **nessuna regola di scrittura**, come tutte le tabelle che non sono menu (§66). La chiave pubblica non può inserirvi nulla. Gli eventi dovranno quindi passare da una rotta sul server, che è anche la forma coerente con §66 — nessuna scrittura dal client — ma va saputo prima di progettare, non a metà del lavoro.
 2. ✅ **Il tipo di evento è un elenco chiuso nel database, ed è stato letto il 04/08/2026: coincide con §65, uno a uno.** Gli undici valori ammessi sono `visita`, `indirizzo_inserito`, `servibile`, `non_servibile`, `prodotto_aggiunto`, `soglia_15_raggiunta`, `soglia_25_raggiunta`, `givemefive_applicato`, `checkout_iniziato`, `pagamento_completato`, `ordine_annullato`. Chi ha creato la tabella ha seguito la spec alla lettera: **non c'è alcuna divergenza da arbitrare**, e la decisione temuta in v54 non serve.
 
-   ⚠️ **Due cose che l'elenco non copre e che vanno sapute prima di iniziare.** I **tempi fra le fasi dell'ordine** non sono un tipo di evento e non devono diventarlo: si ricavano da `order_status_history`, che registra già ogni cambio di stato con l'ora — chi cercasse un evento dedicato cercherebbe una cosa che non deve esistere. E il **motivo dell'annullamento** non è nel tipo: `ordine_annullato` dice solo che è successo, il motivo va nel `payload`, e **come si chiama quella voce va deciso prima di scrivere il primo evento**, perché se ognuno la nomina a modo suo quei dati non si sommano più.
+   ⚠️ **Due cose che l'elenco non copre. Entrambe erano decisioni aperte fino alla v55: ora sono chiuse (v56).**
+
+   ✅ **I tempi fra le fasi dell'ordine non sono un tipo di evento e non devono diventarlo**: si ricavano da `order_status_history`, che registra ogni cambio di stato con l'ora nella colonna **`changed_at`** — nome letto dal database vivo il 05/08/2026. Chi cercasse un evento dedicato cercherebbe una cosa che non deve esistere. *Fino alla v55 la frase "registra già ogni cambio di stato con l'ora" era una convinzione mai controllata, ed era la fondazione di tutto il calcolo dei tempi: ora è un fatto con una fonte e una data.*
+
+   ✅ **Il motivo dell'annullamento NON va nel `payload`.** `ordine_annullato` dice che è successo, e basta: il motivo esiste già in due posti permanenti — `orders.cancellation_reason` e il registro azioni staff — e la statistica sui motivi **si legge da `staff_action_log`, filtrando `action = "annulla_ordine"`**, che non viene mai cancellato (§69). ⚠️ **Decade quindi l'istruzione della v54** — *"come si chiama quella voce va deciso prima di scrivere il primo evento"* — perché poggiava sull'affermazione falsa di §62b, corretta in v56: il motivo non è mai stato in `order_status_history`, e non c'è alcuna voce da nominare. *Copiarlo nel `payload` significherebbe avere la stessa frase in tre posti, ed è precisamente ciò che questo documento vieta altrove: due copie divergono.*
+
+   ⚠️ **Conseguenza della decisione di Andrea del 05/08/2026** (§62b): poiché nessuna vista del pannello mostra il motivo, la voce *"ordine annullato + motivo"* di questa sezione **si intende soddisfatta dalla conservazione, non da una schermata**. Non va costruita alcuna pagina che li elenchi.
 3. **La tabella porta anche `session_id` obbligatorio e un `payload` libero.** Non è un foglio bianco: una forma esiste già e va letta prima di inventarne un'altra.
 
 **Rapporto con la pulizia (§69):** gli eventi puntano agli ordini **senza cancellazione a catena**, quindi un evento collegato impedirebbe di rimuovere il suo ordine. La decisione presa il 04/08/2026 è che nella pulizia mensile l'evento **resti perdendo il riferimento**: il dato statistico non ha bisogno di sapere quale ordine, ha bisogno di esistere. *Oggi la tabella è vuota, quindi il problema è futuro — ma nasce il giorno stesso in cui le statistiche entrano in funzione, e la prima pulizia mensile successiva si bloccherebbe senza questa regola.*
@@ -4019,7 +4120,9 @@ Eseguito da Andrea nell'editor SQL della dashboard con query di sola lettura sul
 * lo stato `failed` **esiste fra i valori ammessi ma non è mai stato usato**: conferma alla lettera la frase di §69 sul fatto che un pagamento fallito non produce alcun evento;
 * **nessuna riga di `staff_action_log` punta a un ordine.** Il conflitto temuto fra l'eccezione di §66 e la pulizia del go-live **non esiste**: le azioni conservate sono tutte sul menu.
 
-**Conteggi al 04/08/2026**, letti interrogando le tabelle: `orders` 30 (26 non pagati, 4 in sandbox), `customers` 40, `promo_redemptions` 1, `analytics_events` 0, `staff_action_log` 70 di cui 43 di prova. *Sono identici a quelli del 30/07: la verifica dal vivo del 02/08 non ha lasciato residui, come §46 punto 7 prevedeva. Il conteggio aggiornato vive nell'`HANDOFF.md`, non qui.*
+**Conteggi al 05/08/2026**, letti eseguendo il referto di sola lettura di §69: `orders` **31** (26 mai pagati, **5** pagati o rimborsati), `customers` **41**, `promo_redemptions` **2**, `analytics_events` **0**, `staff_action_log` **70** di cui **43** di prova su quattro identificatori di fantasia e **27** sull'identificatore reale. *Il conteggio aggiornato vive nell'`HANDOFF.md`, non qui: questi numeri invecchiano a ogni verifica dal vivo e prima del go-live vanno riletti dal database, mai ricopiati (lezioni `s` e `z`).*
+
+⚠️ **Un ordine di prova completo del 04/08/2026 non era stato annotato da nessuno.** Fino alla v55 questo blocco dichiarava 30 ordini "identici a quelli del 30/07", e l'handoff dava per più recente `KM-0030` del 01/08. La rilettura del 05/08 mostra un ordine creato il **04/08 alle 13:07:01.471525+00** con carrello, riga cliente, codice promo applicato e pagamento riuscito, più cinque righe di storico di stato: un giro completo del percorso, dal sito fino alla lavorazione dal pannello. **Confermato da Andrea come proprio.** *Nessun danno — sono dati di prova che spariranno al go-live — ma il fatto istruttivo è un altro: la giornata del 04/08 è stata dichiarata "senza una riga di codice applicativo" e i conteggi sono stati riscritti come invariati, mentre nello stesso documento la prova del freno citava un `max(created_at)` che li smentiva. **Due affermazioni incompatibili scritte lo stesso giorno**, e nessuna delle due rileggeva l'altra. È la lezione `az` nella sua forma più semplice: un conteggio che finisce in un documento si esegue, e si riesegue quando un altro numero dello stesso documento lo contraddice.*
 
 **Due residui minori registrati e non sanati:** `orders.idempotency_key` esiste ma non è descritta in alcun documento e non si sa se il codice la usi; il vincolo di `product_choice_options` porta ancora il nome della tabella precedente (`product_protein_options_…`), senza alcun effetto.
 
@@ -4635,7 +4738,9 @@ Non esisteva nulla in spec. Ora esiste.
 
 **Ordini completati e pagati:** conservati per gli obblighi amministrativi, contabili e fiscali. Le durate esatte le fissa il commercialista.
 
-**Ordini mai pagati e righe cliente senza ordine pagato: massimo 30 giorni.** La rimozione è una **procedura manuale a cadenza almeno mensile**, non un processo automatico. L'informativa la descrive così: è una promessa organizzativa e vale quanto la disciplina con cui viene eseguita. Fissare il giorno del mese.
+**Ordini mai pagati e righe cliente senza ordine pagato: massimo 30 giorni.** La rimozione è una **procedura manuale a cadenza almeno mensile**, non un processo automatico. L'informativa la descrive così: è una promessa organizzativa e vale quanto la disciplina con cui viene eseguita.
+
+✅ **Il giorno è fissato: il primo di ogni mese, prima di aprire il locale** (decisione di Andrea, 05/08/2026). Il primo perché **esiste in tutti i mesi** — un giorno che qualche mese non c'è è un giorno che prima o poi salta — e a saracinesca chiusa perché la procedura scrive sul database che serve i clienti. *La sequenza completa di ogni esecuzione è: referto dei conteggi, pulizia, referto dei conteggi di nuovo.* ⚠️ **Resta aperta la sola prima esecuzione**, che è ciò che tiene aperta questa condizione: finché non è stata fatta una volta, il punto 11.2 dell'informativa è una promessa senza precedente.
 
 **Quali ordini sono "mai pagati" (decisione di Andrea del 04/08/2026):** `pending` **e** `failed`. La v53 nominava i soli `pending`, perché `failed` non è mai stato usato da nessun ordine; ma la regola è la stessa e scriverla oggi costa una riga, mentre scoprirla quando quello stato inizierà a popolarsi — per esempio agganciando i webhook di Stripe — costa una decisione presa di fretta. **Mai toccati**, in nessun caso: `succeeded`, `refunded`, `partially_refunded`.
 
@@ -4680,6 +4785,10 @@ Non sono più un lavoro da fare: esistono, sono in `sql/`, e nessuno dei tre è 
 **Il freno dello script del go-live.** Non è un filtro: quello script cancella **tutti** gli ordini, senza guardare alcuna data. La data in cima decide soltanto **se** partire. Ci va la data e ora dell'**ultima prova di sviluppo**, che il referto dei conteggi stampa in cima apposta — ⚠️ **mai l'ora corrente**, che è il valore che spegne il freno senza che nessuno se ne accorga, perché nulla può essere più recente di adesso. Se il freno scatta **non si sposta la data in avanti**: significa che in database c'è qualcosa che non ci si aspettava (metodo `k`).
 
 ✅ **Prova eseguita il 04/08/2026.** Il valore stampato dal referto include i **microsecondi**, e serve: `orders.created_at` ha per predefinito `now()`, quindi troncare ai secondi produrrebbe un istante anteriore a quello vero e **il freno scatterebbe a torto** — insegnando ad aggirarlo, che è peggio di un freno assente. Verificato nella dashboard su `max(created_at) = 2026-08-04 13:07:01.471525+00`: con il formato corretto gli ordini successivi sono **zero**, con quello troncato sono **uno**. *Lo zero conta perché la stessa sonda, alimentata col formato vecchio, cambia risposta.*
+
+✅ **Confermato da una fonte indipendente il 05/08/2026 (v56).** Il referto dei conteggi, eseguito da Andrea in una sessione diversa e a un giorno di distanza, stampa **esattamente lo stesso valore** al microsecondo. La prova non poggiava quindi su un numero ricordato o costruito: il dato esiste nel database ed è quello. ⚠️ *Il controllo era necessario perché altre affermazioni della stessa giornata erano invecchiate senza che nessuno se ne accorgesse (§66, conteggi): quando un documento si contraddice in un punto, le sue altre misure non sono automaticamente sospette — ma vanno riverificate una per una, non assolte in blocco.*
+
+**Stato del freno al 05/08/2026**: il valore committato nel file è anteriore all'ordine più recente, quindi **oggi il freno fermerebbe l'esecuzione**. È il comportamento voluto, ed è la direzione sicura.
 
 **Ogni tabella del database è coperta.** Le **sette** che gli script toccano più le **sedici** dichiarate intoccabili fanno esattamente le 23 dello schema: nessuna resta fuori: o è dichiarata come toccata, o è misurata come intatta dai post-check. *Le sedici non sono un elenco copiato a mano nei controlli: è la stessa lista, dichiarata una volta e percorsa in ciclo, così intestazione e verifica non possono divergere.* ⚠️ *`staff_action_log` è fra le sette ma non viene mai svuotato: le righe vere restano sempre, ed è l'eccezione di §66.*
 
