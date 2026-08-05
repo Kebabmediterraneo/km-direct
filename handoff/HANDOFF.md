@@ -12,24 +12,24 @@ Web app per ordini **delivery e ritiro** di **FAME Srl / KM Kebab Mediterraneo**
 (Bologna, store `san-mamolo`). Stack **Next.js 14 + Supabase + Stripe (sandbox)**.
 Repo: **github.com/Kebabmediterraneo/km-direct** (branch `main`, push via SSH).
 La fonte di verità di tutte le decisioni è **`MASTER_SPEC.md`** — versione attuale
-**v56** (leggila sempre dall'intestazione, riga 3).
+**v57** (leggila sempre dall'intestazione, riga 3).
 
 ---
 
 ## 2) Stato git
 
 - Branch **`main`**, working tree **pulita**, allineata a `origin/main`.
-- HEAD: **`1f74e8f`** — la spec v56 (05/08/2026).
+- HEAD: **`254ffad`** — la spec v57 (05/08/2026).
 - Ultimi commit (dal più recente):
 
 ```
-1f74e8f spec: v56 — corretta la destinazione dei motivi di problema e annullamento, annullamento in sequenza da problema, due decisioni di §65 chiuse, tolta la contraddizione sulla tendina categorie, giorno della pulizia mensile e conteggi riletti §62b §63-64 §65 §66 §69
+254ffad spec: v57 — tendina categorie con una regola sola perché leggerle dal database non è possibile, tre decisioni della Fase 3 con il rischio allergeni accettato, la pagina carrelli abbandonati esiste e non va costruita, referto mensile e perimetro dei documenti §63-64 §65 §69
+0411db5 spec: sfoltita passo 1 — via i 42 blocchi Novità dalla v14 alla v55, resta il solo blocco corrente; portate nel corpo le due voci che vivevano solo lì
+91f055f handoff: stato al 05/08 — conteggi riletti e ordine di prova del 04/08 registrato, puntatore alla v56 e HEAD allineati, quattro imprecisioni corrette, quattro lezioni nuove e la sezione 20
+1f74e8f spec: v56 — corretta la destinazione dei motivi di problema e annullamento, annullamento in sequenza da problema, due decisioni di §65 chiuse
 f5e9e8b handoff: giro sugli script di pulizia dati del 04/08 e stato dopo la v55
 1686c93 spec: v55 — i tre script di pulizia esistono, staccare invece di cancellare anche al go-live, sequenza di apertura fissata e chiave service_role verificata §65 §66 §69
 f54c29d sql: script di pulizia dati — azzeramento pre-go-live con freno sull'ultima prova, pulizia mensile degli ordini mai pagati, e referto dei conteggi di sola lettura §66 §69
-67e15a5 handoff: giro su infrastruttura e database del 04/08 — piano Pro chiuso, referto RLS e collegamenti, e corrette quattro affermazioni rimaste indietro fra cui la tendina delle categorie rovesciata
-abdaec2 spec: v54 — piano Pro attivo e backup verificati, regione Irlanda e stato RLS accertati, pulizia in due strumenti e ordini failed, regole dello slug decise §63-64 §65 §66 §69
-b328eb3 handoff: corretti i numeri dei file del giro privacy e aggiunte tre lezioni su verifiche che non distinguono
 ```
 
 *Nota ricorrente, non un errore*: l'HEAD scritto qui è sempre quello
@@ -608,523 +608,275 @@ bn. **Il browser non sovrascrive da solo i file scaricati** (nota rimasta in
 
 ---
 
-## 6) L'unificazione delle salse (28-29/07/2026)
-
-Fino al 27/07 le salse vivevano in una tabella a parte (`sauces`), con regole
-identiche agli altri articoli ma **codice separato**: ogni campo nuovo andava
-costruito due volte. La v29 aveva deciso di tenerle distinte, motivandolo con lo
-storico ordini; la ricognizione del 28/07 ha mostrato che **le righe d'ordine
-non referenziano affatto le salse** e che tutti gli ordini presenti erano di
-prova. La v32 ha quindi rovesciato quella decisione.
-
-**Stato finale**: le salse sono righe di `products` con `category = 'salse'`,
-con gli **stessi id di prima**; i loro allergeni sono in `product_allergens`; le
-tabelle `sauces` e `sauce_allergens` **non esistono più**. Nessun riferimento a
-quelle tabelle resta nel codice applicativo.
-
-Numeri: **62 prodotti** (55 + 7 salse), **76 righe** in `product_allergens`,
-**7** articoli con `category='salse'`, leggibili anche dalla chiave pubblica.
-
-**Il guadagno**: le salse hanno ricevuto il pulsante "Modifica" e la conferma
-sul cambio di prezzo **senza che sia stata scritta una riga di editor per
-loro** — la Fase 2B si è in gran parte dissolta. Ed è ricomparso il badge
-"Vegetariano" sulle salse, che il menu spegneva a forza per un commento vecchio.
-
----
-
-## 7) La piccantezza (29/07/2026) — Fase 2B chiusa
-
-Ultimo pezzo della Fase 2B, costruito in tre passi dopo la migrazione:
-
-1. **`lib/menu-spice.js`** — lista chiusa dei quattro livelli, e
-   `lib/menu-editor.js` che valida il livello e **ricava la dicitura dal
-   server**. Il client invia **solo `spice_level`**: non esiste un percorso che
-   possa far divergere livello e dicitura.
-2. **Rendering su tutte le card** (`app/page.js`): fino ad allora la piccantezza
-   si disegnava **solo** su Roll e Bowl. Estratto un componente condiviso usato
-   da entrambe le card, così non possono divergere.
-3. **Pannello**: la GET restituisce i due campi e il form offre la scelta del
-   livello, con le diciture importate dal modulo.
-
-**Verificato dal vivo da Andrea**: livello preselezionato corretto,
-**Ajvar piccante impostata a 1 e Acuka a 2 dal pannello**, comparse nel menu con
-icona e dicitura, valori confermati riaprendo il form e riletti dal database.
-
-**Articoli con piccantezza: 8.** Il Turco e Il Turco Bowl (1, "Leggermente
-piccante"); Il Libanese, Il Libanese Bowl, KM Special e KM Special Bowl (2,
-"Piccante"); **Ajvar piccante** (1) e **Acuka** (2) — le prime due che non sono
-Roll né Bowl, cioè la conferma sul campo che il passo 2 serviva.
-
-⚠️ **Le diciture sono testo di menu**: §19-20 prevale su §34-35. La v32 aveva
-fissato "Poco piccante" per il livello 1, in contrasto con §19-20 e con il dato
-già in database; corretto in v34. Cambiare una dicitura è una decisione sul
-menu, non un dettaglio tecnico.
-
-*Piccolo riordino rimandato*: nella tendina del pannello il livello 0 è
-etichettato "Non piccante" direttamente nel form, perché la lista chiusa per
-quel livello ha dicitura vuota. Non arriva mai al cliente ed è la formula usata
-da §34-35 stessa; da spostare nel modulo quando lo si toccherà di nuovo.
-
----
-
-## 8) Il carrello e le variazioni (29/07/2026)
-
-Tre lavori, tutti nati dalla ricognizione fatta prima di aprire la persistenza
-del carrello. **La persistenza vera e propria non è ancora iniziata**: quanto
-segue è il terreno preparato, più ciò che serve sapere per proseguire.
-
-**a. Chiave delle righe di carrello (commit `d7de8cb`)**
-
-Lo stesso articolo aggiunto dal menu e poi dal suggerimento nel carrello finiva
-in **due righe separate**: `incrementSimpleProduct` usava l'id come chiave,
-`quickAddToCart` il nome. Il prezzo addebitato era comunque corretto (il server
-ricalcola), ma il contatore sulla card non vedeva l'articolo e i suggerimenti
-continuavano a riproporlo. **Una riga cambiata**, e tre punti si sono allineati
-da sé perché usano tutti lo stesso identificatore. Verificato dal vivo.
-
-Contava anche per il seguito: al ritorno da un pagamento le due righe si
-sarebbero fuse da sole durante la ricostruzione, e il carrello sarebbe cambiato
-forma sotto gli occhi del cliente.
-
-**b. Validazione delle variazioni (commit `5ee101c`, §18 e §46b)**
-
-Le rimozioni erano **l'unica scelta di configurazione non verificata dal
-server**: arrivavano dal client e finivano dritte nelle istruzioni per la
-cucina, disegnate per giunta nel modo più vistoso possibile (§56, maiuscolo su
-etichette rosse). Proteina, accompagnamento, contorno e bibita erano invece
-controllati — ma solo perché **spostano il prezzo** e quindi vanno letti
-comunque: il controllo era un effetto collaterale del calcolo, e dove il calcolo
-non serviva non c'era.
-
-Costruito in due tempi, secondo il metodo `l`:
-
-- **`lib/menu-removals.js`** — funzione **pura**, nessun accesso al database:
-  riceve le etichette ammesse per quel prodotto e quelle arrivate dal client, e
-  restituisce l'esito. **25 asserzioni** in `tests/menu-removals.test.mjs`,
-  eseguibili con `node tests/menu-removals.test.mjs`.
-- **Aggancio in `app/api/checkout/route.js`**, nei due punti che non
-  controllavano nulla: prodotto singolo (`product_id = ref.id`) e combo
-  (`product_id = ref.rollProductId`, cioè il Roll scelto).
-
-Scelte registrate: confronto **esatto** senza normalizzazioni, come le altre
-opzioni; **rifiuto dell'intera riga**, non scarto silenzioso del pezzo non
-valido; **doppioni scartati**; elenco ammesso mancante trattato come vuoto,
-quindi rifiuto — mai accettare al buio.
-
-⚠️ **Un guasto di lettura non è un rifiuto.** `resolveProduct` aveva un solo
-canale per dire di no (`null` → 400). Ne è stato aggiunto un secondo, una
-sentinella distinta: se la lettura di `product_removals` fallisce si risponde
-**500**, mai "variazione non disponibile". Un cliente onesto non deve cambiare
-il suo ordine per un guasto nostro.
-
-**Verifiche**: 25/25 sui test; tre richieste HTTP costruite a mano tutte
-respinte con 400 — etichetta inventata, etichetta vera **ma di un altro
-prodotto** ("Senza feta" su Il Turco), stringa al posto dell'elenco — e database
-intatto dopo le prove. Andrea ha poi verificato dal vivo il **percorso normale**,
-completando un ordine in sandbox e controllando le variazioni sulla card del
-pannello. Resta scoperto da test automatico l'**instradamento** dentro la route
-(lezione `t`: `route.js` non è importabile fuori da Next).
-
-*Il caso della stringa al posto dell'elenco era il danno peggiore trovato: il
-pannello vi avrebbe fatto sopra un'operazione da lista e la card dell'ordine si
-sarebbe rotta. Non un'istruzione sbagliata in cucina, una schermata che non si
-disegna.*
-
-**c. Il "−" uniformato (commit `71d9d12`, §36-40)**
-
-Il "−" sulla card rimuoveva l'articolo a quantità 1; quello nel carrello si
-fermava a 1 e per togliere serviva "Rimuovi". Due pulsanti uguali, due
-comportamenti diversi, **mai decisi da nessuno**. Ora rimuovono entrambi;
-"Rimuovi" resta perché su quantità 5 il "−" chiederebbe cinque tocchi. La
-condizione di rimozione è scritta **sul valore risultante**, non sul segno del
-delta: il "+" non può togliere una riga per costruzione, non per disciplina.
-
-**d. Quello che serve sapere per la persistenza**
-
-Ricognizione del 29/07/2026, tuttora valida:
-
-- **Nessuna persistenza esiste oggi** lato cliente: nessun uso di
-  `localStorage`/`sessionStorage`/cookie in `app/page.js` né nelle route del
-  checkout. Gli unici usi nel repo sono l'allarme sonoro del pannello staff e i
-  cookie di sessione del login staff.
-- **Il carrello è una sola variabile di stato React** dentro `Home`
-  (`cartItems`), passata come prop ai figli. Nessun context, nessuno store.
-  Muore a ogni caricamento.
-- **La cosa giusta da salvare esiste già**: ogni riga porta un campo `ref`, che è
-  esattamente ciò che viaggia al server al pagamento — **identificativi e
-  configurazione, senza prezzi e senza nomi**. È già la forma che §36-40 chiede.
-- **Il menu viene caricato da zero al montaggio** della home, senza filtro di
-  disponibilità (gli esauriti servono a mostrare l'etichetta). Il campo è
-  `is_available` nel database, esposto come `isAvailable`. È il presupposto su
-  cui poggia la ricostruzione.
-- **Uscita e rientro**: si va a Stripe con una navigazione via dal sito, quindi
-  la pagina viene scaricata. `success_url` porta a `/conferma?order_token=…`,
-  `cancel_url` alla home. In entrambi i casi è un caricamento da zero.
-  *Verificato dal vivo da Andrea*: tornando indietro si perde tutto, carrello e
-  dati del checkout.
-- ⚠️ **Due ostacoli tecnici veri**, entrambi già registrati in spec:
-  1. **il calcolo del prezzo di riga vive dentro i componenti**
-     (`ProductConfigurator`, `ComboBuilder`) e non è richiamabile da fuori. Va
-     estratto **prima** della persistenza (§36-40 v36, punto 4);
-  2. **proteina, contorno, accompagnamento e rimozioni sono identificati per
-     label**, non per id (§25, residuo noto). Per il contorno del combo l'id
-     esiste già nel client (`sideId`) e semplicemente non viene messo nel `ref`.
-     Le rimozioni resteranno label finché non avranno un id proprio.
-
----
-
-## 9) Il ciclo dei prezzi (29-30/07/2026)
-
-Nato come **prerequisito della persistenza del carrello**: al rientro il
-carrello va ricostruito dal menu fresco e i prezzi vanno ricalcolati, perché
-§36-40 vieta di salvarli. Il calcolo però viveva **dentro i componenti** che
-disegnano le finestre di configurazione, non richiamabile da fuori. Estrarlo ha
-aperto una questione più grande, ed è diventato un ciclo di sei commit.
-
-**a. La ricognizione, e cosa ha trovato**
-
-Prezzo mostrato e prezzo addebitato nascevano da **due calcoli diversi**,
-scritti in posti diversi. Eseguendoli entrambi su **609 configurazioni reali**:
-**zero divergenze**. Nessun cliente ha mai pagato un importo diverso da quello
-visto. Ma coincidevano **perché il dato di oggi è benevolo** — un addon per
-prodotto tutti a 4 €, nessun supplemento negativo, tutte le righe combo attive,
-un solo store — non perché il codice lo impedisse. Cinque strade di divergenza,
-tutte inattive e tutte pronte a partire insieme il giorno in cui l'editor
-crescesse fino a toccare quei valori.
-
-**b. Le decisioni (v37 e v38)**
-
-- **un solo calcolo**, usato da sito e server: non due che devono coincidere,
-  uno che non può divergere;
-- il **prezzo dell'extra carne dal database**, non da una costante nel codice;
-- i **supplementi si applicano sempre**, qualunque segno: uno sconto è un
-  supplemento negativo e va applicato;
-- **si arrotonda una volta sola**, a fine riga;
-- **gli stessi filtri da entrambe le parti**: il menu non offre ciò che il
-  server rifiuterebbe;
-- l'**addon si identifica dalla proteina a cui si applica**, non dalla
-  posizione — e questo ha chiuso anche §22 lato server;
-- l'**extra carne non è ammessa nei combo**: i combo contengono solo Roll,
-  l'extra carne esiste solo sulle Bowl (decisione dell'utente).
-
-**c. Il modulo** — `lib/menu-pricing.js` (commit `8a32ef5`)
-
-Puro, senza database e senza React. Due funzioni, `productLinePrice` e
-`comboLinePrice`, nella forma `{ ok }` degli altri moduli.
-
-⚠️ **Aritmetica in centesimi interi**: ogni importo diventa un intero, la somma
-avviene fra interi, la divisione per 100 avviene **una volta sola alla fine**.
-Serve a non ereditare i decimali sporchi della virgola mobile.
-
-Comportamento sui valori mancanti, tutto deciso e coperto da test: **prezzo
-base assente → rifiuto** (mai zero, sarebbe un articolo regalato); supplemento
-assente → nessun supplemento (caso legittimo: due Roll non hanno scelta
-proteina); **qualunque valore presente ma non numerico → rifiuto**; extra carne
-applicata senza prezzo → rifiuto, invece di indovinare 4; **prezzo di riga
-negativo → rifiuto** (decisione dell'utente: uno sconto che supera il prezzo è
-un dato sbagliato, non un'offerta — zero invece è valido).
-
-**La rete**: `tests/menu-pricing-fixture.mjs`, **609 prezzi congelati**,
-calcolati con le formule di *prima* della modifica. Il test li ripassa dal
-modulo e pretende gli stessi identici numeri. Statica e versionata, **non
-interroga il database** (lezione `af`). Ha retto a ogni passo del ciclo:
-`differenze: 0` dopo ciascun aggancio.
-
-**d. Gli agganci** — sito (`7e91766`), server (`ef08e0b`), regola sul sito
-(`cbea453`), combo (`a5b434f`)
-
-Sul **sito**, tre punti: configuratore, builder del combo e prodotti semplici.
-Spariti `EXTRA_MEAT_PRICE` (la costante 4) e `parsePrice` (l'andirivieni
-stringa→numero per riottenere un prezzo). Il catalogo ora conserva
-`basePriceValue` numerico **accanto** alla stringa da mostrare: convertire
-quella stringa avrebbe rotto le card, che si aspettano `"4,50 €"`.
-
-Sul **server**, `resolveProduct` e `resolveCombo` chiamano lo stesso modulo.
-Spariti i `+=` e il `round2` sul prezzo unitario; `lineTotal`, `subtotal` e
-`total` invariati. Un rifiuto del modulo risponde **500**, non 400: gli input
-vengono tutti dal nostro database, quindi è un problema di integrità nostro e
-non qualcosa che il cliente possa correggere (regola v36 sul guasto di
-lettura).
-
-**Verifiche**: undici punti dal vivo sul sito; quattro ordini via HTTP con gli
-attesi **dichiarati prima** di leggerli (4,00 / 15,00 / 13,00 / 21,50 — tutti
-combacianti); il rifiuto dell'extra carne con Adana provato in modo
-attribuibile.
-
-**e. Cosa NON è chiuso**
-
-⚠️ **§46 resta una condizione di apertura.** L'unificazione ha chiuso le
-divergenze **di regola**, non quelle **di dato**: il menu è letto dal browser
-una volta sola, quindi chi tiene la pagina aperta mentre un prezzo cambia vede
-il vecchio e pagherebbe il nuovo. Manca il confronto fra prezzo mostrato e
-prezzo reale, con arresto e avviso. *Questa conclusione è stata sbagliata tre
-volte durante il ciclo (lezione `ae`): §46 v38 contiene ora la frase che chiude
-la questione.*
-
-Altri tre, registrati in §46 v38 e non fatti:
-
-1. **il calcolo dentro la route non è verificabile da un test** (`route.js` non
-   importabile fuori da Next): la strada è estrarre la logica in `lib/`
-   lasciando la route sottile sopra, come già fatto altrove. Rinviato
-   deliberatamente: non si rimaneggia il percorso di pagamento insieme
-   all'unificazione dei prezzi;
-2. **il sito non filtra per store** — nessuna sua lettura conosce uno
-   `store_id`. Il server filtra comunque al checkout, quindi il vincolo è
-   coperto; il sito diventerà consapevole degli store quando i locali saranno
-   due;
-3. **la nota Planted** (§23) confronta ancora una stringa scritta nel codice
-   (`app/page.js`, `protein.id === "planted"`): stesso tipo di problema curato
-   sull'extra carne, ma su un testo informativo, non su un prezzo.
-
-## 10) La persistenza del carrello (30/07/2026)
-
-Chiude **metà** della condizione di apertura §36-40: il carrello sopravvive,
-i dati del checkout non ancora.
-
-**a. Il modulo** — `lib/cart-persistence.js` (commit `2b9cca7`)
-
-Puro: niente browser, niente React, niente database; importa solo
-`lib/menu-pricing.js`. Due responsabilità: **preparare** ciò che si conserva
-(solo `ref` + quantità, più un numero di versione del formato — mai prezzi, mai
-nomi, mai totali) e **ricostruire** dal catalogo appena caricato, producendo le
-righe di carrello **e l'elenco di ciò che è stato tolto, con il motivo**. Il
-prezzo di ogni riga si ottiene chiamando `menu-pricing`: nessun secondo calcolo
-(§46 v37). **44 asserzioni**, incluso il round-trip.
-
-Regole della ricostruzione, tutte decise: articolo sparito o esaurito → tolto
-con motivo; **opzione scelta che non esiste più → la riga si toglie, non si
-aggiusta** (non si sostituisce mai una scelta del cliente con un'altra);
-versione del formato diversa → si scarta tutto e si riparte da vuoto; struttura
-illeggibile o manomessa → stessa cosa, **in silenzio** (non è un cambio di menu
-da raccontare al cliente); quantità non valida → riga scartata.
-
-*Nota sull'articolo sparito*: il nome non si conserva, quindi per un articolo
-che non è più nel menu l'avviso è generico. Va bene così — **oggi un articolo
-non può sparire**: il pannello permette di modificare e segnare esaurito, non
-di cancellare. Il caso realistico è l'esaurito, dove il nome fresco c'è.
-
-**b. L'integrazione** (commit `384c0bf`)
-
-Si conserva nella memoria della **singola scheda** (`sessionStorage`, chiave
-`km_direct_cart`): dura la visita, sopravvive all'andata e ritorno dal
-pagamento perché è la stessa scheda, sparisce chiudendola. Ogni accesso è
-protetto: senza quella memoria disponibile il sito funziona come prima, senza
-persistenza e senza errori.
-
-⚠️ **La guardia "idratato" è la parte fragile.** Al montaggio il carrello è
-vuoto: un salvataggio agganciato ai cambiamenti del carrello, senza guardia,
-**cancellerebbe quanto conservato un istante prima che la ricostruzione lo
-legga**. Sarebbe sembrato "la persistenza non funziona", senza alcun errore
-visibile. Il salvataggio non parte finché la ricostruzione non è stata tentata.
-
-Completano: l'**avviso** di ciò che è stato tolto, mostrato **al rientro** e mai
-alla pressione di "Paga ora" (§36-40); e lo **svuotamento** all'arrivo sulla
-pagina di conferma, saltato se il pagamento risulta fallito.
-
-**Verificato dal vivo**: andata e ritorno dal pagamento, ricarica della pagina
-col carrello pieno, chiusura della scheda (carrello vuoto, come deve),
-svuotamento dopo un pagamento completato, e l'avviso provato mettendo un
-articolo esaurito dal pannello.
-
-✅ **Il dubbio sulla cache di navigazione del browser è chiuso.** Tornando dal
-pagamento con la freccia del browser, **la modalità torna a Delivery**: se la
-pagina fosse stata restituita dalla cache con lo stato ancora vivo, sarebbe
-rimasta su Ritiro. Quindi la pagina si ricarica davvero, e il carrello che si
-ritrova pieno è merito della persistenza.
-
-**c. Il numero civico** (commit `2d06a73`)
-
-Segnalato dall'utente mentre provava il ripristino. Le due protezioni
-risultavano **già solide** (pagamento bloccato senza civico, campo non
-digitabile, server che rifiuta, zero ordini senza civico in database): mancava
-solo **la spiegazione**. Ora un avviso dice cosa manca e cosa fare, e la
-conferma "arriviamo fin qui" **non compare senza civico** — il perimetro si
-decide sul civico, non sulla via (§10 v39).
-
-**d. Il passo preparatorio ai dati del checkout** (commit `1f36370`)
-
-I dati del checkout erano **spaccati in due**: modalità, indirizzo e orari in
-`Home`; **contatti e dettagli di consegna nello stato locale della schermata**,
-che sparivano anche solo chiudendo il checkout. Quelli sono stati sollevati in
-`Home` — cambiamento a comportamento invariato, tranne il miglioramento voluto:
-ora sopravvivono a chiusura e riapertura.
-
-⚠️ **I tre consensi NON sono stati spostati, ed è deliberato** (§36-40 e §41-45
-v39): vivendo nello stato locale si azzerano a ogni apertura, e nessuna
-persistenza può ripristinarli nemmeno per errore. Nel codice c'è un commento
-che lo difende da futuri spostamenti "per simmetria".
-
-**e. Quello che manca** — i dati del checkout
-
-Le regole sono tutte in spec (§36-40 e §41-45, v36 e v39) e le decisioni prese:
-si salva ciò che il cliente ha **scritto o scelto**; l'indirizzo si conserva
-**con le sue coordinate** e la **zona si ricontrolla** al rientro (le coordinate
-non cambiano, cambia il perimetro); gli orari si conservano e si ricontrollano;
-l'**intenzione** dello sconto si conserva ma mai l'importo; i **consensi mai**.
-
-Da fare: un **secondo modulo** `lib/checkout-persistence.js` — non un
-allargamento di `cart-persistence`, perché il carrello si *ricostruisce* da un
-catalogo mentre il checkout si *riverifica*, e tenere i consensi fuori è più
-difficile da sbagliare in un modulo che non li conosce. Le funzioni riusabili
-per la riverifica esistono già: `isPointInPolygon` (`lib/geo.js`) col poligono
-da `/api/geofence`, e `classifyScheduledSelection` contro `/api/service-status`.
-
-## 10b) La persistenza dei dati del checkout (30/07/2026)
-
-**Chiude la condizione di apertura §36-40**, di cui il carrello (punto 10) era
-la prima metà. Tre commit, in tre passi deliberatamente separati.
-
-**Perché in tre passi.** I primi due non cambiano nulla di visibile: se
-sbagliano, sbagliano dove non si vede. Il terzo non è stato spezzato **apposta**
-— un giro intermedio che ripristinasse l'indirizzo *senza* il controllo di zona
-avrebbe prodotto un sito **più fragile di prima**, dove un indirizzo torna dalla
-memoria e arriva al pagamento senza che nessuno lo ricontrolli.
-
-1. **`36218f7` — la funzione pura per lo slot di Ritiro.** Non esisteva: per la
-   Delivery c'era `classifyScheduledSelection`, per il Ritiro la stessa cosa era
-   calcolata **in linea** dentro `app/page.js`. Estratta come
-   `classifyPickupSelection` accanto alla gemella, con 17 asserzioni. Nello
-   stesso commit è sparita anche la duplicazione di `firstAvailableSlot` su una
-   riga. *Risultato netto: in `app/page.js` non resta alcun calcolo in linea su
-   validità o preselezione degli slot di ritiro.*
-2. **`04343e7` — il cervello.** `lib/checkout-persistence.js`,
-   `prepareCheckout(state)` e `restoreCheckout(persisted) -> { fields, dropped }`,
-   **110 asserzioni**. Puro, zero dipendenze, non tocca la memoria del browser e
-   **non giudica niente**: non verifica la zona, non giudica gli slot.
-3. **`8561504` — l'integrazione**, più la modifica a `canPay` che la v41 rende
-   vincolante. Verificata dal vivo da Andrea.
-
-**I tre consensi sono impossibili da salvare, non solo vietati.** Il modulo non
-fa mai lo spread dello stato: copia una **lista chiusa di chiavi dichiarate**,
-quindi una chiave non dichiarata non attraversa il modulo nemmeno passandogli
-l'intera schermata. È verificato da due asserzioni, una delle quali gli passa
-uno stato pieno di roba estranea.
-
-**Il verdetto di zona è derivato, non scritto.** Non è uno stato che qualcuno
-aggiorna: è una funzione di *(coordinate, perimetro)*, quindi **non esiste un
-istante** in cui valga "fuori zona" mentre il perimetro è ancora nullo — in
-quel caso vale "non ancora verificato", che non è un rifiuto (§36-40 v42). La
-garanzia è nella **forma**, non in un controllo che qualcuno potrebbe
-dimenticare.
-
-⚠️ **Lo stato della zona ha tre valori, non due**: non ancora verificato /
-in zona / fuori zona. Chi un domani lo riducesse a un booleano
-riaprirebbe esattamente il difetto che la v42 esiste per impedire.
-
-**Le sei prove dal vivo di Andrea, tutte superate**: campi ripristinati; i tre
-consensi vuoti; pagamento bloccato prima di rispuntarli; **nessun avviso che
-compare e sparisce** nel primo istante del rientro; carrello svuotato dopo un
-pagamento vero, con i dati personali ancora presenti; ritiro con l'orario
-scelto. Log del server pulito, nessun errore.
-
-**Cosa NON è stato provato dal vivo, e perché (dichiarato, non nascosto)**
-
-- **Un indirizzo ripristinato che non è più in zona.** Richiederebbe di
-  **restringere il perimetro** in `store_geofences`, dato di configurazione
-  vivo sull'unico database. ⚠️ **Decisione di Andrea del 30/07/2026: il
-  perimetro non si tocca, nemmeno temporaneamente** — la finestra in cui il
-  caso potrebbe verificarsi è di pochi minuti e il perimetro cambia solo se lo
-  cambiamo noi.
-- **Un orario che scade mentre il cliente è via.** Richiederebbe di restare
+## 6-11f) Le giornate dal 28/07 al 02/08/2026 — ciò che sopravvive al racconto
+
+⚠️ **Questa sezione ha sostituito, il 05/08/2026, milleundici righe di diario.**
+Il racconto giorno per giorno vive in `git log` e nei messaggi di commit. Qui
+resta ciò che serve a chi lavora domani: **cosa è chiuso, i divieti, i limiti
+noti, ciò che è stato verificato solo leggendo.** *Nulla è andato perso: le
+sedici sezioni originali sono nel deposito, ultima versione integra al commit
+`254ffad`.*
+
+### Cosa è stato chiuso, in una riga per giornata
+
+| quando | cosa | esito |
+|---|---|---|
+| 28-29/07 | **unificazione salse** — le salse sono righe di `products` con `category='salse'`, **stessi id di prima**; `sauces` e `sauce_allergens` non esistono più | 62 prodotti, 76 righe in `product_allergens`, 7 salse |
+| 29/07 | **piccantezza** — Fase 2B chiusa; il client invia **solo `spice_level`**, la dicitura la ricava il server | 8 articoli con piccantezza, verificati dal vivo |
+| 29/07 | **carrello e variazioni** — chiave delle righe unificata, rimozioni validate dal server, il "−" uniformato | 25 asserzioni + prove HTTP |
+| 29-30/07 | **ciclo dei prezzi** — un solo modulo `lib/menu-pricing.js` per sito e server | 609 prezzi congelati, `differenze: 0` |
+| 30/07 | **persistenza carrello e checkout** — §36-40 **CHIUSA**, verificata dal vivo su sei prove | `cart-persistence` 44 asserzioni, `checkout-persistence` 110 |
+| 31/07-02/08 | **confronto prezzi §46 — CHIUSA**, in quattro tappe: modulo, fotografia della route, aggancio al server, lato sito | 13 suite, 461 asserzioni |
+
+✅ **La chiusura di §46 è stata verificata dal vivo da Andrea il 02/08/2026 su due
+rami**: prezzo cambiato dal pannello a carrello pieno, e articolo messo esaurito
+nella stessa situazione. Entrambi si comportano come deciso, e **la prova non ha
+lasciato residui** — per la prima volta.
+
+### I divieti — regole che sembrano dettagli e non lo sono
+
+⚠️ **Un guasto nostro non diventa mai un rifiuto al cliente.** Se la lettura di
+un dato fallisce si risponde **500**, mai un messaggio che dica al cliente che la
+sua scelta non è disponibile. *Vale per `product_removals` (§8) e per il modulo
+dei prezzi (§9): gli input vengono dal nostro database, quindi un problema lì è
+nostro e il cliente non può correggerlo cambiando il suo ordine.*
+
+⚠️ **Le diciture della piccantezza sono testo di menu**: §19-20 prevale su
+§34-35. Cambiarne una è una decisione sul menu, non un dettaglio tecnico. *La
+v32 aveva fissato "Poco piccante" per il livello 1 contro §19-20 e contro il dato
+già in database; corretto in v34.*
+
+⚠️ **Il modulo del confronto prezzi non restituisce mai un importo**, né mostrato
+né reale: solo un verdetto fra `OK`, `CHANGED` (409) e `MALFORMED` (400). È reso
+impossibile da violare **per costruzione**: a valle non c'è nulla da addebitare
+per sbaglio.
+
+⚠️ **Il confronto dei prezzi scatta prima di QUALUNQUE scrittura**, non solo
+prima dell'ordine `pending`: sta prima anche della riga cliente, che è comunque
+un residuo (§65).
+
+⚠️ **Lo stato della zona ha tre valori, non due**: *non ancora verificato / in
+zona / fuori zona*. Chi lo riducesse a un sì-o-no riaprirebbe il difetto che
+§36-40 v42 esiste per impedire — un indirizzo dichiarato fuori zona mentre il
+perimetro non è ancora arrivato. Il verdetto è **derivato** da coordinate e
+perimetro, non uno stato che qualcuno aggiorna.
+
+⚠️ **I tre consensi non si salvano, e sono impossibili da salvare per
+costruzione**: il modulo copia una lista chiusa di chiavi dichiarate e non fa
+mai lo spread dello stato, quindi una chiave non dichiarata non lo attraversa
+nemmeno passandogli l'intera schermata. Vivono nello stato locale del checkout
+**apposta perché si azzerino**, e nel codice c'è un commento che li difende da
+futuri spostamenti "per simmetria" (§36-40 e §41-45 v39).
+
+⚠️ **La gestione del rifiuto è rimasta in `CheckoutScreen`** con una funzione
+passata dall'alto, e non è comodità: portarla in `Home` avrebbe trascinato su i
+tre consensi.
+
+⚠️ **Il rifiuto del server si riconosce dal TESTO, non dallo status.** È il punto
+più insidioso di tutta §46: i testi distinti sono **quattordici** con `400` e
+**quattro** con `409`, e **due soli** riguardano il menu. Riconoscerli dal solo
+numero butterebbe fuori dal checkout un cliente a cui manca la spunta della
+privacy, o uno a cui è scaduto lo slot — e quest'ultimo finirebbe nel carrello,
+**dove il selettore dell'orario non c'è**. *Il difetto era stato scritto e fu
+trovato **contando le uscite `409` nel codice**, non rileggendo il ragionamento.
+`tests/checkout-messages.test.mjs` tiene allineate le due copie dei testi.*
+
+⚠️ **Nella ricostruzione del carrello, un'opzione che non esiste più fa togliere
+la riga, non aggiustarla**: non si sostituisce mai una scelta del cliente con
+un'altra. Struttura illeggibile o manomessa → si riparte da vuoto **in silenzio**,
+perché non è un cambio di menu da raccontare.
+
+⚠️ **La fotografia dei prezzi e quella della route non si rigenerano** (lezione
+`af`): una base rifatta dopo il cambiamento coincide sempre e non dimostra più
+nulla.
+
+⚠️ **La previsione va scritta PRIMA dello scatto**, caso per caso, e poi si
+confronta la realtà con la previsione — non con la fotografia vecchia.
+*Guardare le differenze e convincersi a posteriori che tornano è troppo facile.
+Al primo scatto la previsione diceva "3 differenze e nessun'altra" mentre un
+quarto caso era stato dichiarato condizionato allo stato del servizio senza
+scriverne l'esito: il meccanismo era previsto, **il numero no**. Un numero
+dichiarato è un impegno.*
+
+### I limiti noti — cose vere che vanno sapute, non sanate
+
+⚠️ **`lib/price-guard.js` è stato approvato sui suoi 31 test e sull'elenco dei
+punti di uscita, NON sulla lettura riga per riga.** Il file fu chiesto due volte
+e non arrivò mai. Se un giorno qualcosa non tornasse in quel modulo, il "va bene"
+non poggiava su una lettura diretta. *Le prove restano robuste — i 13 casi erano
+stati scritti prima — ma la distinzione va detta.*
+
+⚠️ **L'instradamento dentro `app/api/checkout/route.js` non è coperto da alcun
+test automatico**: quel file non è importabile fuori da Next (lezione `t`). È il
+motivo per cui esiste la fotografia della route, ed è anche il motivo per cui
+ogni passaggio su quel file costa un giro di verifiche a mano.
+
+⚠️ **Sette uscite su ventisette della route restano scoperte**: sono tutte quelle
+che richiedono di rompere o sporcare qualcosa — guasti Supabase, guasto Stripe, e
+due vie non provocabili. Dopo il riordino sono verificate **solo dalla lettura
+del codice**, ed è dichiarato nei commenti dei due file di prova.
+
+⚠️ **Un buco dentro la copertura**: tre uscite rispondono con lo **stesso identico
+messaggio** ("Articolo non valido."). Un riordino potrebbe scambiarle fra loro
+senza che la fotografia se ne accorga.
+
+⚠️ **"Zero differenze" non è più un esito possibile** nella fotografia della
+route, ed è voluto: tre casi nuovi non esistono nella base, quindi ogni confronto
+futuro mostrerà per sempre tre righe di presenza. **Le regole correnti stanno in
+testa a `tests/route-snapshot.mjs`**, dove chi lo esegue le trova senza aprire
+questo documento. *Tre righe sono previste; la quarta è una domanda.*
+
+⚠️ **La sequenza delle scritture del checkout è un filo, non un grumo** — cliente,
+sconto, totali, ordine, righe, Stripe: ogni passo produce il valore che serve al
+successivo. Spezzarlo non è riordino, è **decidere dove passa il confine di ciò
+che, fallendo a metà, lascia dati incoerenti** — e per metodo quella decisione va
+prima in spec (§46 punto 8).
+
+⚠️ **Il sito non filtra per store**: nessuna sua lettura conosce uno `store_id`.
+Il server filtra comunque al checkout, quindi il vincolo è coperto; il sito
+diventerà consapevole degli store quando i locali saranno due.
+
+⚠️ **La nota Planted (§23) confronta ancora una stringa scritta nel codice**
+(`protein.id === "planted"` in `app/page.js`): stesso tipo di problema curato
+sull'extra carne, ma su un testo informativo e non su un prezzo.
+
+⚠️ **`fetchMenuData` non è protetta dal guasto parziale**: sette query su nove
+possono fallire **in silenzio**. È il limite più pesante rimasto su quel
+percorso, perché un menu incompleto non si distingue da un menu vero.
+
+⚠️ **La rilettura del listino non vede due cause di divergenza**: il filtro per
+store e l'extra carne dentro il combo. *Registrate in spec §46, insieme al
+server che dica **quale** riga e perché — oggi una frase sola copre dodici
+cause — e al rilascio dell'indice dal modulo di confronto, che vanno fatti
+insieme perché i due rami hanno ciascuno il proprio ostacolo.*
+
+⚠️ **Due decisioni sulla riga bloccata restano rimandate** (§46). *Una di esse è
+quella su cui la spec v57 porta ora un avvertimento: l'avviso delle rimozioni
+risulta nascosto mentre il checkout è aperto, e se è ancora vero la regola
+scritta non è realizzabile.*
+
+**Oggi un articolo non può sparire dal menu**: il pannello permette di
+modificare e di segnare esaurito, non di cancellare. *Da qui discende che
+l'avviso generico per "articolo sparito" nella ricostruzione del carrello è
+accettabile: il caso realistico è l'esaurito, dove il nome fresco c'è.*
+⚠️ **La Fase 3 non cambia questo**: crea articoli, non li cancella.
+
+**Nella tendina del pannello il livello 0 di piccantezza è etichettato "Non
+piccante" dentro il form** invece che nel modulo, perché la lista chiusa per quel
+livello ha dicitura vuota. Non arriva mai al cliente; da spostare nel modulo
+quando lo si toccherà di nuovo.
+
+### Verificato solo leggendo, mai dal vivo
+
+Sono le cose di cui **non ci si può ancora fidare come di una prova**. Elenco
+completo, da rifare per prime se si tocca il ramo relativo:
+
+1. **Guard server-side sull'orario di Ritiro** (§46b): percorso seguito nel
+   codice, **nessuna richiesta costruita per farsi respingere**;
+2. **Il ramo dello slot scaduto** in §46: verificato leggendo, e non era
+   impossibile da provare — bastava aspettare;
+3. **Il rifiuto della Delivery programmata**: nessun caso della fotografia lo fa
+   scattare; il gemello del Ritiro è provato due volte;
+4. **`lib/price-guard.js`**: vedi il limite qui sopra;
+5. **L'apertura in scheda nuova** del collegamento privacy: accertata negli
+   attributi del DOM servito, **non nell'effetto**. Da riprovare da telefono
+   (punto 17), insieme alla prova che i dati del modulo restino intatti.
+
+**Due casi non provati dal vivo, con la ragione dichiarata:**
+
+- **un indirizzo ripristinato che non è più in zona** — richiederebbe di
+  restringere il perimetro in `store_geofences`, dato di configurazione vivo
+  sull'unico database. ⚠️ **Decisione di Andrea del 30/07/2026: il perimetro non
+  si tocca, nemmeno temporaneamente**;
+- **un orario che scade mentre il cliente è via** — richiederebbe di restare
   fermi finché uno slot passa.
 
-*Perché l'assenza di queste due prove pesa poco*: entrambe riguardano la
-direzione **innocua**. Il pericolo vero è l'opposto — un indirizzo **buono**
-giudicato fuori zona per un difetto nostro, che bloccherebbe un cliente onesto
-— e quella direzione **è coperta dalla prova 1**: se la riverifica avesse un
-errore (per esempio le coordinate passate nell'ordine sbagliato, facile in
-quella funzione), l'indirizzo buono verrebbe rifiutato e il pagamento
-resterebbe bloccato senza motivo. Restano inoltre coperte dai test del modulo.
+*Perché la loro assenza pesa poco*: entrambi riguardano la direzione **innocua**.
+Il pericolo vero è l'opposto — un indirizzo **buono** giudicato fuori zona per un
+difetto nostro, che bloccherebbe un cliente onesto — e quella direzione è coperta
+dalle prove fatte e dai test del modulo.
 
-**Un cambiamento di comportamento dichiarato**: prima, se il perimetro non era
-ancora arrivato quando il cliente sceglieva l'indirizzo, il verdetto **non
-compariva mai più** finché non ne sceglieva un altro. Ora compare appena il
-perimetro arriva. Discende dall'aver reso il verdetto derivato, ed è nella
-direzione che §36-40 v42 chiede.
+### Comportamenti registrati, da non scambiare per difetti
 
-**Dopo un ordine completato i dati del checkout restano**, e non è una
-dimenticanza: §36-40 (v36) lo dice esplicitamente — si svuotano gli
-**articoli**, i dati del checkout possono restare per il resto della visita,
-perché un secondo ordine dallo stesso indirizzo è normale. I **consensi** no,
-per la regola separata. *Questa domanda è stata posta come aperta due volte in
-un giorno: vedi lezione `am`.*
+- **Dopo un ordine completato i dati del checkout restano**, e non è una
+  dimenticanza: §36-40 lo dice esplicitamente — si svuotano gli **articoli**, i
+  dati possono restare per il resto della visita, perché un secondo ordine dallo
+  stesso indirizzo è normale. I consensi no, per la regola separata. *Questa
+  domanda è stata posta come aperta due volte in un giorno: lezione `am`.*
+- **Il verdetto di zona ora compare appena il perimetro arriva**, mentre prima
+  non compariva più finché il cliente non cambiava indirizzo. È voluto.
+- **La guardia "idratato" è la parte fragile della persistenza**: senza di essa
+  un salvataggio agganciato ai cambiamenti del carrello cancellerebbe quanto
+  conservato un istante prima che la ricostruzione lo legga — e sarebbe sembrato
+  "la persistenza non funziona", **senza alcun errore visibile**.
+- ✅ **Il dubbio sulla cache di navigazione del browser è chiuso**: tornando dal
+  pagamento con la freccia, la modalità torna a Delivery. Se la pagina venisse
+  dalla cache resterebbe su Ritiro. Quindi si ricarica davvero, e il carrello
+  pieno è merito della persistenza.
 
-## 11) Stato dei dati (30/07/2026)
+### Come si eseguono le prove
 
-**Allergeni**
+**Diciassette suite** in `tests/`, tutte con estensione **`.mjs`** e non `.js`,
+perché vanno eseguite da Node fuori da Next. In `package.json` **non esiste uno
+script `test`**: si lanciano una per una con `node tests/<nome>.test.mjs`, o
+tutte con
+`for t in tests/*.test.mjs; do echo "== $t"; node "$t" || echo "FALLITO: $t"; done`.
+⚠️ `tests/checkout-timing.test.mjs` **costa circa 7 secondi**: provoca un guasto
+di lettura reale puntando il client a una porta chiusa, e il client impiega quel
+tempo ad arrendersi. Non è un blocco.
 
-- **34 prodotti food su 34** hanno `allergens_verified_at`. Di questi, 29 dal
-  documento allergeni ufficiale, **5 confermati senza allergeni da Andrea**:
-  Patatine, Polpette di agnello, Dolmadakia, Tabulì, Lokum.
-- **7 salse su 7** verificate; 2 confermate senza allergeni: Ajvar e Ajvar
-  piccante. Le altre: Tzatziki 1, Acuka 1, Black KM 2, Yogurt 1, Salsa
-  all'aglio 1.
-- **21 bevande** (15 drink + 6 birre) **non verificate**, colonna a NULL: sono
-  fuori dal tracciamento (§67) e vanno compilate prima di poterle dichiarare
-  senza allergeni.
-- **Nota Tabulì**: è senza allergeni e **non è in contraddizione con §21**, che
-  cita il glutine del **bulgur** come accompagnamento della Bowl. Il tabulì di KM
-  è preparato senza bulgur.
-- ⚠️ **2 salse senza flag vegetariano**: **Tzatziki** e **Yogurt** hanno
-  `is_vegetarian` a NULL, quindi non mostrano alcun badge dietetico. Si
-  riconoscono subito: aprendo il form allergeni, il **selettore dietetico si
+⚠️ **Ogni scatto della fotografia della route crea ordini `pending` di prova**
+con le relative sessioni Stripe — quattro scatti nella sola tappa 2. Vanno nel
+conto della pulizia pre-apertura, **che si rilegge dal database e non si ricopia
+da qui**.
+
+---
+
+## 11) Stato dei dati (aggiornato al 05/08/2026)
+
+⚠️ **Questa NON è una sezione di diario e non va compressa insieme a quelle**:
+è lo stato vivo dei dati. Il 05/08/2026 è stata cancellata per errore durante la
+sfoltita e ripristinata prima del commit. *Conteneva già, dalla sua stesura, la
+frase che avrebbe dovuto impedirlo: "se questa sezione sparisse, non resterebbe
+traccia da nessuna parte". Chi taglia legge l'avvertimento solo se legge — ed è
+il motivo per cui l'estrazione di ciò che sopravvive non si delega a una sonda.*
+
+### Allergeni
+
+- **34 prodotti food su 34** hanno `allergens_verified_at`: 29 dal documento
+  ufficiale, **5 confermati senza allergeni da Andrea** (Patatine, Polpette di
+  agnello, Dolmadakia, Tabulì, Lokum).
+- **7 salse su 7** verificate; 2 senza allergeni (Ajvar, Ajvar piccante).
+- ⚠️ **21 bevande** (15 drink + 6 birre) **non verificate**, colonna a `NULL`:
+  sono fuori dal tracciamento (§67) e vanno compilate prima di poterle
+  dichiarare senza allergeni. **Voce aperta.**
+- ⚠️ **2 salse senza flag vegetariano — voce aperta**: **Tzatziki** e **Yogurt**
+  hanno `is_vegetarian` a `NULL`, quindi non mostrano alcun badge dietetico. Si
+  riconoscono aprendo il form allergeni, dove il **selettore dietetico si
   presenta vuoto**. Vanno dichiarate da Andrea, **mai dedotte**.
+- *Nota Tabulì*: è senza allergeni e **non** contraddice §21, che cita il glutine
+  del **bulgur** come accompagnamento della Bowl. Il tabulì di KM è senza bulgur.
 
-**Rimozioni** (rilevante per §18): **70 righe** su **14 prodotti** — i 7 Roll e
-le 7 Bowl, nessun altro articolo. Roll e Bowl hanno righe **proprie e
-indipendenti**. Le etichette distinte sono **23** e **tutte e 23 sono condivise
-da più prodotti**: per questo la validazione va fatta **per `product_id`** e mai
-su un elenco globale.
+### Rimozioni (rilevante per §18)
 
-**Residui di test da rimuovere prima del go-live**
+**70 righe** su **14 prodotti** — i 7 Roll e le 7 Bowl, nessun altro articolo,
+con righe **proprie e indipendenti**. Le etichette distinte sono **23** e **tutte
+e 23 sono condivise da più prodotti**: ⚠️ **per questo la validazione va fatta
+per `product_id` e mai su un elenco globale.**
 
-⚠️ **Questa è ora l'unica sede di questi numeri.** La v40 li ha tolti dalla
-spec, dove restano soltanto la **regola** su come si costruisce l'elenco e
-l'eccezione di `staff_action_log` (§66). Motivo: cambiano a ogni verifica dal
-vivo, quindi in spec sarebbero sbagliati quasi ogni giorno, e un documento
+### Residui di test da rimuovere prima del go-live
+
+⚠️ **Questa è l'unica sede di questi numeri.** La v40 li ha tolti dalla spec,
+dove restano solo la **regola** su come si costruisce l'elenco e l'eccezione di
+`staff_action_log` (§66): cambiano a ogni verifica dal vivo, e un documento
 abitualmente sbagliato in un punto insegna a non fidarsi anche negli altri.
-**Se questa sezione sparisse, non resterebbe traccia da nessuna parte.**
 
-Il database è uno solo, quindi questi dati staranno in mezzo a quelli veri dal
-primo giorno di apertura. **Decisione di Andrea del 29/07/2026: al go-live si
-azzera tutto**, senza tenere nulla "per storico".
+Il database è **uno solo**, quindi questi dati staranno in mezzo a quelli veri
+dal primo giorno. **Decisione di Andrea del 29/07/2026: al go-live si azzera
+tutto**, senza tenere nulla "per storico".
 
-⚠️ **Questo elenco era incompleto, non vecchio**: mancavano **tre tabelle
-intere**, `customers` compresa. I numeri qui sotto sono letti il **30/07/2026
-(sera) interrogando tutte e 23 le tabelle** e **invecchiano a ogni prova**:
-prima del go-live vanno riletti così, non ricopiati da qui (lezioni `s` e `z`).
-*In una sola giornata sono cambiati tutti: `orders` 8→19, `order_items` 12→29,
-`customers` 27→38, `order_status_history` 12→23. Ogni verifica dal vivo che
-arriva alla pagina di pagamento ne aggiunge.*
-
-✅ **I totali qui sotto sono ESATTI, e l'avviso che c'era qui era falso.** Fino
-al 04/08/2026 questo punto dichiarava i numeri "già superati dalle prove del
-passo 3", deducendolo dai quattro `POST /api/checkout` visti nel log del
-server. La rilettura diretta del database del **04/08/2026** dà gli stessi
-numeri del 30/07 sera: `orders` 30, `customers` 40, `promo_redemptions` 1,
-`analytics_events` 0, `staff_action_log` 70. *Il log del server era un indizio,
-e come tale è stato letto male: quei quattro `POST` erano già compresi nei
-conteggi del 30/07. L'avviso è stato scritto per prudenza e ha finito per
-essere l'unica affermazione sbagliata del blocco.*
-
-⚠️⚠️ **E quei numeri sono a loro volta invecchiati nel giro di poche ore, senza
-che nessuno se ne accorgesse.** Il referto di sola lettura eseguito da Andrea il
-**05/08/2026** — prima esecuzione in assoluto dello strumento di §69 — dà i
-numeri qui sotto, che sono i **soli validi oggi**. La differenza è **un ordine
-di prova completo creato il 04/08/2026 alle 13:07:01.471525+00**, confermato da
-Andrea come proprio: carrello, riga cliente, codice promo applicato, pagamento
-riuscito e cinque righe di storico di stato, cioè un giro intero dal sito fino
-alla lavorazione dal pannello.
-
-*Perché è istruttivo, al di là del dato*: la giornata del 04/08 è stata
-dichiarata "senza una riga di codice applicativo", i conteggi riscritti come
-invariati, **e nello stesso giorno la prova del freno di §69 citava un
-`max(created_at)` del 04/08 che li smentiva**. Due affermazioni incompatibili
-scritte a poche ore di distanza, una in spec e una qui, e nessuna delle due
-rileggeva l'altra. Il conflitto è stato notato leggendo i due documenti
-insieme, non lavorando su di essi.
-
-**Conteggi al 05/08/2026** (referto §69, tutte le tabelle):
+**Conteggi al 05/08/2026**, letti eseguendo il referto di §69 — prima esecuzione
+in assoluto dello strumento:
 
 | tabella | 30/07 e 04/08 | **05/08 (valido)** |
 |---|---|---|
@@ -1136,510 +888,46 @@ insieme, non lavorando su di essi.
 | `staff_action_log` | 70 | **70** (invariato) |
 | `analytics_events` | 0 | **0** |
 
-*Che `staff_action_log` sia rimasto a 70 mentre lo storico di stato cresceva di
-cinque righe non è una stranezza: è **coerente con il codice**, che scrive nel
-registro azioni solo su "segnala problema" e "annulla ordine", mai sulle
-transizioni normali (punto 20). Due misure che si confermano a vicenda valgono
-più di una sola.*
+La differenza è **un ordine di prova completo creato il 04/08/2026 alle
+`13:07:01.471525+00`**, confermato da Andrea come proprio: carrello, riga
+cliente, codice promo, pagamento riuscito e cinque righe di storico di stato —
+un giro intero dal sito fino alla lavorazione dal pannello. *Che
+`staff_action_log` sia rimasto a 70 mentre lo storico cresceva di cinque righe
+**conferma il codice**, che scrive nel registro azioni solo su "segnala
+problema" e "annulla ordine" (punto 20): due misure che si confermano a vicenda.*
 
-Ripartizioni al 05/08: ordini **mai pagati** (`pending` + `failed`) **26**,
-ordini **pagati o rimborsati** **5** — mai toccati da §69. Clienti **senza alcun
-ordine collegato 19**, clienti con almeno un ordine pagato **5**. ⚠️ **Ordini
-mai pagati più vecchi di 30 giorni: ZERO**, e clienti nelle stesse condizioni:
-**zero**. La pulizia mensile, eseguita oggi, non cancellerebbe nulla — il dato
-più vecchio è del 26/07.
+**Ripartizioni al 05/08**: ordini **mai pagati** (`pending` + `failed`) **26**;
+**pagati o rimborsati 5**, mai toccati da §69. Clienti **senza alcun ordine 19**;
+con almeno un ordine pagato **5**. ⚠️ **Ordini mai pagati più vecchi di 30
+giorni: ZERO**, e clienti nelle stesse condizioni: **zero** — la pulizia mensile,
+eseguita oggi, non cancellerebbe nulla: il dato più vecchio è del 26/07.
 
-Registro azioni staff, per identificatore: **27** su
-`staff:bologna@kebabmediterraneo.com` (l'identificatore reale) e **43** di prova
-su quattro di fantasia — `staff:test-fase1` 12, `staff:test-spice` 15,
-`staff:test-fase2a` 9, `staff:test-merge` 7. *È il dato che serve al parametro
-compilato a mano dello script del go-live (§69, punto 19d): **non va copiato da
-qui il giorno dell'apertura**, va riletto dal referto di quel giorno.*
+**Registro azioni staff, per identificatore**: **27** su
+`staff:bologna@kebabmediterraneo.com` (reale) e **43 di prova** su quattro di
+fantasia — `staff:test-spice` 15, `staff:test-fase1` 12, `staff:test-fase2a` 9,
+`staff:test-merge` 7. Le 27 vere **restano**: sono l'audit trail imposto da §66 e
+sono **l'unica eccezione** all'azzeramento del go-live. *È il dato che serve al
+parametro compilato a mano dello script del go-live (punto 19): **non va copiato
+da qui il giorno dell'apertura**, va riletto dal referto di quel giorno.*
 
-⚠️ **Da quel momento in poi vale un'avvertenza nuova**: le azioni fatte dal
-pannello con il login vero non sono più distinguibili dalle prove, perché
-portano l'identificatore reale. Chi volesse fare altre prove sul pannello lo
-sappia prima, non dopo.
+⚠️ **Avvertenza dal 05/08 in poi**: le azioni fatte dal pannello con il login
+vero **non sono più distinguibili dalle prove**, perché portano l'identificatore
+reale. Chi volesse fare altre prove sul pannello lo sappia prima, non dopo.
 
-⚠️ **Restano invecchiabili**: ogni verifica dal vivo che arriva alla pagina di
-pagamento ne aggiunge. Prima del go-live vanno **riletti dal database**, mai
-ricopiati da qui (lezioni `s` e `z`) — lo strumento è la fotografia di sola
-lettura prevista da §69, ora **provata sul campo**.
+⚠️ **Questi numeri invecchiano**: ogni verifica dal vivo che arriva alla pagina
+di pagamento ne aggiunge. Prima del go-live vanno **riletti dal database**, mai
+ricopiati da qui (lezioni `s` e `z`).
 
-*La fotografia analitica qui sotto è quella del **30/07 sera** ed è conservata
-perché descrive la composizione dei residui, non i totali. I totali validi sono
-quelli della tabella sopra.*
-
-- **`orders`: 30 righe, tutte di prova** (26/07 → 01/08/2026), più **52 righe**
-  in `order_items`. Quattro ordini con pagamento `succeeded` in sandbox —
-  `KM-0001`, `KM-0008`, `KM-0015`, `KM-0019` — gli altri **26** `pending`.
-  *Gli undici dopo `KM-0019` sono le verifiche del 31/07-01/08: quattro scatti
-  della fotografia durante il riordino, gli altri della sessione precedente.
-  L'ultimo è `KM-0030`, 01/08.* ⚠️ **Superato**: al 05/08 l'ultimo è l'ordine
-  del 04/08 descritto sopra, e gli ordini pagati sono cinque.
-- **`customers`: 40 righe, tutte di prova.** Sono **dati personali**, per quanto
-  inventati. Ventuno hanno un ordine collegato, **diciannove no**: sono
-  passaggi di checkout interrotti, perché il cliente viene scritto **prima**
-  dell'ordine. Nessuna ha email o consenso marketing. Anche la riga intestata
-  "Andrea Pastore" è una prova, non una persona. ⚠️ **Superato**: al 05/08 sono
-  41, di cui 19 senza alcun ordine.
-
-⚠️ **La verifica dal vivo di §46 del 02/08 non ha aggiunto nulla** — né ordini
-né righe cliente — e lo confermano due fonti indipendenti: il log del server
-(solo un `400` e un `409`, nessun `200`) e il database (l'ordine più recente
-era allora `KM-0030` del 01/08). *È la prima verifica dal vivo che non lascia
-residui, ed è la conferma pratica di §46 punto 7: entrambi i rifiuti cadono
-prima di qualunque scrittura, riga cliente compresa. Questa frase resta vera
-per il 02/08: l'ordine in più è del 04/08 e non c'entra con quella prova.*
-- **`order_status_history`: 23 righe** — venti su `KM-0001`, tre su `KM-0015`.
-  Segue gli ordini per cancellazione a catena, ma va **nominata**: una tabella
-  che non compare in un elenco non viene riletta. *Sono prove dell'utente sui
-  passaggi di stato dal pannello.*
-- **`promo_redemptions`: 1 riga** — `GIVEMEFIVE` su `KM-0001`. §14 dà **un solo
-  utilizzo per cliente**: finché esiste, quel telefono non può più usare il
-  codice.
-- **`staff_action_log`: 70 righe, di cui 43 di test** su quattro identificatori
-  — `staff:test-spice` (15), `staff:test-fase1` (12), `staff:test-fase2a` (9),
-  `staff:test-merge` (7). Le altre **27**
-  (`staff:bologna@kebabmediterraneo.com`) sono azioni vere sul menu vero:
-  **restano**, sono l'audit trail imposto da §66 e sono **l'unica eccezione**
-  all'azzeramento. *Le quattro più recenti sono la verifica di §46 del 02/08:
-  prezzo di un articolo 8→9 e poi 9→8, disponibilità tolta e rimessa. Il menu è
-  tornato allo stato di partenza, e il valore precedente non va ricordato a
-  memoria — §66 lo registra in ogni riga.*
-- **Vuote al 29/07/2026**, da ricontrollare comunque: `analytics_events`,
-  `coupons`, `staff_settings`, `store_schedule_exceptions`.
+**Composizione dei residui**, per sapere cosa si sta cancellando: gli ordini sono
+tutti di prova, dal 26/07; `customers` porta **dati personali per quanto
+inventati** e nessuna riga ha email o consenso marketing — anche quella
+intestata "Andrea Pastore" è una prova, non una persona; `promo_redemptions`
+tiene `GIVEMEFIVE`, e §14 dà **un solo utilizzo per cliente**, quindi finché
+quelle righe esistono quei telefoni non possono più usare il codice. **Vuote e da
+ricontrollare comunque**: `analytics_events`, `coupons`, `staff_settings`,
+`store_schedule_exceptions`.
 
 ---
-
-## 11b) Il confronto dei prezzi — §46, primo tempo (31/07/2026)
-
-**a. Cosa è stato costruito** — `lib/price-guard.js` (108 righe) e
-`tests/price-guard.test.mjs` (104), commit `0e3495a`.
-
-Modulo **puro**: niente database, niente React, niente import da `app/` o da
-Next. Importa solo `lib/menu-pricing.js`. Confronta i prezzi **mostrati** al
-cliente con quelli **reali** ricalcolati e restituisce uno di tre esiti —
-`OK`, `CHANGED` (→ 409), `MALFORMED` (→ 400) — esportati come costanti, così
-chi chiama non riscrive le stringhe a mano.
-
-⚠️ **Non restituisce mai un importo**, né mostrato né reale: solo un verdetto.
-Verificato scorrendo tutti i `return`. È il punto 2 della v44 reso impossibile
-da violare **per costruzione**, non per disciplina: a valle non c'è nulla da
-addebitare per sbaglio.
-
-La conversione in centesimi (`centsOf`) è stata inizialmente **duplicata** dal
-modulo dei prezzi e poi unificata nello stesso commit: ora è esportata da
-`lib/menu-pricing.js` e importata qui. Due arrotondamenti diversi avrebbero
-prodotto differenze inventate proprio sul confine fra ciò che il cliente vede e
-ciò che paga.
-
-**b. Come è stato verificato** — 31 asserzioni, tutte passate, su 13 casi
-**dichiarati prima** di vedere il codice: prezzo identico, salito, sceso,
-differenza di un centesimo, mostrato assente/null/stringa/NaN/negativo, più
-righe tutte uguali, più righe con una sola diversa, lunghezze diverse, e il
-caso `0.1 + 0.2` contro `0.30` che dimostra che il confronto avviene davvero in
-centesimi interi.
-
-Rieseguite **tutte e nove** le suite dopo la modifica a `menu-pricing`: tutte
-passate, inclusa la fotografia dei **609 prezzi congelati** con `differenze: 0`
-— la prova che aggiungere un nome all'export non ha spostato un centesimo.
-
-⚠️ **c. Su cosa poggia l'approvazione** — il modulo è stato approvato **sui
-test e sull'elenco dei suoi punti di uscita, non sulla lettura diretta del
-codice**: il file è stato chiesto due volte e non è mai arrivato nella
-conversazione, e si è deciso di procedere invece di insistere una terza. Chi
-rilegge deve saperlo: se un giorno qualcosa non tornasse in questo modulo, il
-"va bene" non era fondato su una lettura riga per riga. *Le prove restano
-robuste — i 13 casi erano stati scritti prima — ma la distinzione va detta e
-non nascosta.*
-
-**d. Cosa NON è stato fatto, ed è deliberato** — **nessun aggancio**.
-`lib/price-guard.js` non è importato da nessun file e
-`app/api/checkout/route.js` è rimasto identico. Il sito si comporta come prima
-e nessun cliente può accorgersi di nulla. È un lavoro **fermato al punto
-giusto**, non lasciato a metà: riprendere da qui è sicuro anche fra settimane.
-
-**e. La ricognizione della route, per non rifarla** — verificata il
-31/07/2026 su `app/api/checkout/route.js`, **691 righe**, un solo export
-(`POST`, riga 330):
-
-⚠️ **Questa ricognizione è SUPERATA dalla tappa 2 (§11d).** Descriveva la route
-com'era a 691 righe, prima dell'estrazione: **ogni numero di riga è cambiato**.
-La mappa valida è quella di §11d, scritta per fasi proprio perché i numeri
-invecchiano da soli. *Il testo resta qui come cronaca del punto di partenza,
-non come riferimento.*
-
-| riga (ALLORA) | cosa c'era |
-|---|---|
-| 332-342 | destrutturazione del corpo della richiesta — **nessun campo di prezzo** |
-| 344 | rifiuto se `items` non è un array o è vuoto |
-| 188, 288 | gli **unici due** punti che calcolavano un prezzo di riga (`menu-pricing`) |
-| 488-490 | `resolvedItems` e il ciclo `for (const item of items)` |
-| 490-543 | la regione del ricalcolo: forma del `ref`, lettura, 500 vs 400, totale di riga |
-| 545 | si chiudeva il `subtotal` |
-| 631 | `payment_status: "pending"` nel payload |
-| **638** | **l'ordine veniva scritto in database** |
-| 645 | insert delle righe `order_items` |
-| 656 | `stripe.checkout.sessions.create` |
-
-⚠️ **Il confronto deve cadere prima che l'ordine `pending` venga scritto**
-(§46 v44, punto 7): dopo quel punto un rifiuto lascerebbe comunque un ordine,
-cioè un residuo in più per ogni cliente respinto. Il posto naturale è **dentro
-o subito dopo il ciclo degli articoli**, dove il prezzo reale di ogni riga
-esiste già. *Righe attuali in §11d.*
-
-Dentro ogni `item` arrivano oggi **due soli campi**: `quantity` e `ref`.
-Nessun prezzo. Il campo nuovo dovrà entrare in **due** posti: la
-destrutturazione del corpo e il ciclo.
-
-**f. Come si eseguono i test** — **tredici** suite, tutte in
-`tests/` e con estensione **`.mjs`** (non `.js`), perché vanno eseguite da Node
-fuori da Next. In `package.json` **non esiste uno script `test`**: si lanciano
-uno per uno con `node tests/<nome>.test.mjs`, oppure tutti con
-`for t in tests/*.test.mjs; do echo "== $t"; node "$t" || echo "FALLITO: $t"; done`.
-⚠️ `tests/checkout-timing.test.mjs` **costa ~7 secondi** — provoca un guasto di
-lettura reale puntando il client a una porta chiusa, e il client Supabase
-impiega quel tempo ad arrendersi. Non è un blocco.
-
-## 11c) La fotografia del comportamento della route (01/08/2026)
-
-⚠️ **I numeri di riga di questa sezione sono SUPERATI**, come quelli di §11b.e:
-descrivono la route a 691 righe, prima del riordino della tappa 2 e prima
-dell'aggancio del confronto prezzi. *I **fatti** restano validi e importanti —
-le uscite scoperte, il buco dei tre messaggi identici, il caso delle coordinate
-vuote da lasciare identico — i **numeri di riga** no.* La mappa valida è §11d.b,
-scritta per fasi proprio perché i numeri invecchiano da soli.
-
-⚠️ **Anche il criterio di lettura è cambiato dopo l'aggancio**: "zero
-differenze" non è più un esito possibile. Le regole correnti vivono **in testa a
-`tests/route-snapshot.mjs`**, dove chi lo esegue le trova senza dover aprire
-questo documento — vedi §11e.
-
-**a. A cosa serve** — la route di pagamento va riordinata (tappa 2 di §46), e
-un riordino **non deve cambiare nulla**. Ma quel file non è raggiungibile dai
-test, che è il motivo stesso per cui lo si riordina: mancava un modo di
-dimostrare che dopo sia rimasto identico. La fotografia è quel modo — si scatta
-prima, si riordina, si riscatta, e le due devono coincidere.
-
-Commit `f1bf533`: `tests/route-snapshot-cases.mjs` (338 righe),
-`tests/route-snapshot.mjs` (301), `tests/snapshot-prima.json` (446).
-
-```
-node tests/route-snapshot.mjs --scatta <uscita.json>       # server acceso
-node tests/route-snapshot.mjs --confronta <prima> <dopo>   # esce ≠0 se differisce
-```
-
-**b. Le uscite della route, contate leggendo** — `app/api/checkout/route.js`,
-**691 righe**, **25 uscite** (`return NextResponse.json`, `new Response` non è
-mai usato):
-
-| status | quante | note |
-|---|---|---|
-| 400 | 15 | forma della richiesta o riga non accettabile |
-| 500 | 7 | `SYSTEM_ERROR_MESSAGE`, la scelta della v19 |
-| 409 | 2 | riga 93 (`scheduledRejection`) e 473 (ASAP non più possibile) |
-| 200 | 1 | riga 690 |
-
-⚠️ **Una sola uscita può produrre due messaggi**: la riga 93 sceglie con un
-ternario fra "orario non più disponibile" e "in quell'orario siamo chiusi".
-Contando le uscite si ottiene 25; contando gli **esiti che il cliente vede**,
-sono **17 messaggi distinti**.
-
-**c. Copertura reale: 18 uscite su 25, con 20 casi.** Le **sette scoperte**
-sono tutte quelle che richiedono di rompere o sporcare qualcosa: 427, 447, 585,
-649 (guasti Supabase), 682 (Stripe), e le vie non provocabili di 518 e 641.
-*Sono dichiarate nei commenti dei due file: dopo il riordino restano verificate
-solo dalla lettura del codice, e va detto invece di lasciar credere che la rete
-copra tutto.*
-
-⚠️ **Un buco dentro la copertura**: le uscite **495, 498 e 501** rispondono con
-lo **stesso identico messaggio** ("Articolo non valido."). Se il riordino le
-scambiasse fra loro, la fotografia tornerebbe identica senza accorgersene. Sono
-distinguibili solo dal payload inviato, non dall'esito (lezione `ad`).
-
-**d. Perché i casi usano slot programmati** — il controllo degli orari
-(righe 419-482) sta **prima** del ciclo sugli articoli: a locale chiuso e senza
-uno slot valido, nessuna uscita da 495 in poi è raggiungibile, e la fotografia
-sarebbe piena di risposte tutte uguali. Ma §12 prevede che a semaforo giallo o
-rosso il sito accetti comunque **preordini programmati**: usando uno slot
-programmato la fotografia è scattabile **a qualunque ora**. Il primo scatto è
-avvenuto a `phase: red` — locale chiuso, preordini aperti — e ha funzionato.
-
-⚠️ **Lo slot non è scritto fisso nei casi**: un "13:00" domani sarebbe già
-passato. Viene calcolato allo scatto da `/api/service-status` e registrato nella
-fotografia. E sono **due**, non uno: Ritiro e Delivery hanno tempi di
-preparazione diversi (§12b: 15 minuti; §12: 60), quindi il primo slot utile
-differisce — con uno solo, metà dei casi sarebbe caduta sul guard degli orari
-invece che dove previsto. Il caso della birra (556) è in **Ritiro**: in Delivery
-sarebbe caduto prima sull'ordine minimo, e quel 400 sarebbe stato scambiato per
-la prova che il controllo dei 18 anni funziona.
-
-**e. Cosa la rete ha già trovato, prima ancora di servire** — il caso costruito
-per l'uscita 369 non la raggiungeva. Era stato scritto mandando la latitudine
-come **stringa numerica**, ma la route non guarda il tipo: applica `Number()`,
-e `Number("44.4855346")` è finito, quindi passa. La richiesta proseguiva fino
-all'ordine minimo. *Un'uscita che si credeva coperta e non lo era: il buco
-peggiore, perché sembra colmato.* Corretto con un valore non convertibile.
-
-⚠️ **Comportamento non documentato, scoperto e NON corretto**: latitudine
-`null`, `""` o `[]` diventa **0** con `Number()`, cioè una coordinata valida in
-mezzo all'Atlantico. La richiesta supera il controllo di riga 369 e cade sul
-perimetro (406, "fuori zona"). Il messaggio al cliente resta sensato, quindi
-non è un guasto — ma nessuno l'aveva deciso. È registrato dal caso
-`riga-406-coordinate-vuote`, **da lasciare identico** attraverso il riordino.
-Cambiarlo sarebbe una decisione nuova, da mettere prima in spec.
-
-**f. Lo scatto crea ordini di prova** — il caso 690 arriva fino in fondo:
-crea un `pending` e una sessione Stripe. È voluto e autorizzato (§11): con
-Stripe in sandbox non esistono ordini veri, e la pulizia pre-apertura è già una
-condizione di §46. *Il conteggio degli scatti e degli ordini che ne derivano
-sta in §11d.g, in un punto solo: erano due al momento in cui questa sezione è
-stata scritta, e sono cresciuti con il riordino.*
-
-⚠️ **Se lo stato del servizio differisce fra i due scatti**, il confronto lo
-dichiara **in testa**, prima delle differenze: a locale aperto il caso 473
-risponde 200 invece di 409, e senza quell'avviso lo si attribuirebbe al
-riordino.
-
-## 11d) Il riordino della route — §46 tappa 2, chiusa (01/08/2026)
-
-**a. Cosa è successo** — `app/api/checkout/route.js` è passata da **691 a 332
-righe** (−52%) in cinque commit, tutti fra le 05:34 e le 06:45 del 01/08/2026:
-
-| commit | cosa | route dopo |
-|---|---|---|
-| `5a41b5f` | `lib/checkout-validation.js` (156 righe) + 73 asserzioni, **non agganciato** | 691 |
-| `0f981e7` | la route lo usa | 651 |
-| `2ff7225` | `scheduledRejectionMessage` in `lib/schedule-exceptions.js` | 645 |
-| `a0114a7` | `lib/checkout-resolve.js` (301) — i resolver degli articoli | 389 |
-| `4feb96d` | `lib/checkout-timing.js` (121) — il guard degli orari | 332 |
-
-⚠️ **Il comportamento non è mai cambiato**, e non è un'opinione: la fotografia
-(§11c) è stata riscattata **quattro volte**, sempre con **zero differenze** sui
-20 casi. Le decisioni di forma che ne sono uscite stanno in **spec §46, blocco
-"Forma dell'estrazione"** (v46) — non qui: qui c'è lo stato.
-
-Suite: **9 → 12**, asserzioni **345 → 449**. *Numeri di allora: dopo la tappa 4
-sono **13** e **461** (§11f).*
-
-**b. La mappa della route, per fasi** — *scritta per fasi e non per numeri di
-riga, perché i numeri invecchiano da soli: quelli di §11b.e sono diventati
-falsi in tre ore. I pochi numeri qui sotto vanno riverificati prima dell'uso.*
-
-| # | fase | dove vive ora |
-|---|---|---|
-| 1 | lettura del corpo (`request.json`, **non protetto**) | route |
-| 2 | validazioni di forma — 8 uscite 400 | `checkout-validation` |
-| 3 | store attivo e geofence | `get-active-store`, `get-store-geofence` |
-| 4 | guard degli orari — 2×500, 3×409 | `checkout-timing` |
-| 5 | ciclo articoli: forma del `ref`, risoluzione, prezzo di riga | route + `checkout-resolve` |
-| 6 | minimo Delivery e 18 anni — 2 uscite 400 | `checkout-validation` |
-| 7 | cliente (upsert), sconto, totali, payload | route |
-| 8 | **scrittura dell'ordine**, righe, Stripe, aggiornamento sessione | route |
-
-Nella route restano tre funzioni: `round2`, `insertOrderWithPickupCode`, `POST`.
-
-⚠️ **Il confronto dei prezzi (tappa 3) va agganciato nella fase 5**, dove il
-prezzo reale di ogni riga esiste già e si è ancora **prima** della scrittura
-dell'ordine (fase 8) — che è il vincolo di §46 v44 punto 7.
-
-**c. Contare le uscite senza spaventarsi** — ci sono **due misure diverse** e
-vanno sempre dichiarate insieme, o un numero da solo fa sospettare una
-regressione: le **risposte HTTP possibili** e i **`return NextResponse.json`
-scritti nella route**, che non coincidono perché le uscite delegate ai moduli
-si accorpano in un punto solo. ⚠️ **Tre uscite hanno uno status dinamico**:
-leggendo la sola route non si sa che codice rispondono, bisogna aprire il
-modulo. *I numeri correnti e l'aritmetica che li lega stanno in **spec §46,
-punto 7**, in un punto solo: qui non si ripetono, perché cambiano a ogni lavoro
-sul file — questa riga li ha già portati sbagliati una volta.*
-
-**d. Cosa NON è stato toccato, di proposito** — i tre casi noti restano
-identici e sono **decisioni rinviate, non dimenticanze**: l'uscita non censita
-di `getActiveStore` (un 404 o un 500 confezionati dentro quel modulo, fuori
-dalle 25 e fuori dalla fotografia), il `request.json()` **non protetto** (un
-corpo non-JSON non produce nessuna delle 25 uscite), e l'update della sessione
-Stripe **senza controllo d'errore** (se fallisce, il cliente riceve comunque il
-200). Cambiarli è modificare il comportamento: prima la decisione in spec.
-
-**e. Cosa la tappa 2 ha guadagnato in copertura** — una delle sette uscite
-scoperte non lo è più: `tests/checkout-timing.test.mjs` esercita un **guasto di
-lettura reale** puntando il client Supabase a una porta chiusa, e verifica che
-il modulo risponda con la sentinella importata. *È la prima volta che uno dei
-rami di guasto passa sotto un test automatico, e la strada esiste anche per gli
-altri.*
-
-⚠️ **Un ramo resta scoperto e va saputo**: il **rifiuto** della Delivery
-programmata. Tutti i casi Delivery della fotografia usano uno slot valido e
-attraversano quel ramo senza fermarsi, quindi nessuno lo fa rifiutare. Il
-gemello del Ritiro — stessa funzione, cambia solo il flag della chiusura
-inclusa — è invece provato due volte.
-
-**f. Perché ci si è fermati qui** — ciò che resta è la **sequenza delle
-scritture**: cliente, sconto, totali, ordine, righe, Stripe. *Non è un grumo, è
-un filo*: ogni passo produce il valore che serve al successivo. Spezzarlo non è
-riordino, è decidere dove passa il confine di ciò che, fallendo a metà, lascia
-dati incoerenti — e per metodo quella decisione va **prima in spec** (§46,
-punto 8 del blocco v46).
-
-**g. Costo** — **quattro** scatti della fotografia, tutti la mattina del
-01/08/2026 fra le 05:42 e le 06:43 = **quattro ordini `pending` di prova** in
-più, con le relative sessioni Stripe sandbox: **uno dopo ciascuno dei quattro
-commit che hanno toccato la route** (`0f981e7`, `2ff7225`, `a0114a7`,
-`4feb96d`). *Nessuno scatto dopo `5a41b5f`, che costruiva solo il modulo e il
-suo test: la route era intatta e non c'era nulla da confrontare.* La base di
-confronto `tests/snapshot-prima.json` viene dalla sessione precedente, ed è
-quella che §11c contava a parte.
-*Contati dai log dei quattro server avviati — 20 POST ciascuno, di cui una sola
-200 — non a memoria: la prima stesura di questa riga diceva "tre" e
-contraddiceva il punto (a) trenta righe sopra; la seconda aveva il numero
-giusto ma lo scomponeva in tre passi invece di quattro, cioè offriva a chi
-volesse ricontrollarlo una strada che porta al numero sbagliato.*
-Vanno nel conto della pulizia pre-apertura, che si rilegge dal database e non
-si ricopia da qui.
-
-## 11e) Il confronto dei prezzi agganciato al server — §46 tappa 3, passo 1 (01/08/2026)
-
-**a. Cosa è stato fatto** — commit `05c6bc9`. La route riceve, per ogni riga
-del carrello, il prezzo unitario che il cliente ha davanti, e lo confronta con
-quello ricalcolato dai dati vivi. Se differiscono si ferma; se il campo non
-arriva, rifiuta la richiesta.
-
-Route: **332 → 415 righe**. Import del guard a riga 40, raccolta del campo
-dentro il ciclo degli articoli, confronto subito dopo, le due uscite nuove poco
-sotto. *Numeri di riga verificati il 01/08 — da riverificare prima dell'uso.*
-
-⚠️ **Il confronto scatta prima di QUALUNQUE scrittura**, non solo prima
-dell'ordine: sta prima anche della riga cliente. §46 v44 punto 7 chiede solo
-"prima dell'ordine `pending`", ma anche la riga cliente è un residuo (§65) e
-fermarsi prima non costa nulla. *Verificato: lo scatto in cui tutti i casi
-cadevano sul guard non ha creato né ordini né clienti.*
-
-**b. Il campo si chiama `items[].unitPriceShown`** — dentro la riga, accanto a
-`ref` e `quantity`, non in un elenco parallelo a livello di corpo: un elenco a
-parte identificherebbe i prezzi **per posizione**, con due liste da tenere
-allineate. *Questo diverge dal preventivo di §11b.e, che diceva "due posti": con
-il campo dentro la riga il posto è **uno**, il ciclo.*
-
-⚠️ **Il prezzo ricevuto non entra mai nel calcolo dell'addebito**, e non per
-disciplina: `lib/price-guard.js` restituisce un verdetto e mai un importo, per
-costruzione (§46 v45).
-
-**c. Sito e server usano lo STESSO calcolo** — verificato leggendo tutte e
-cinque le strade che creano una riga di carrello: chiamano `productLinePrice` /
-`comboLinePrice`, gli stessi che usa il server. *Se le due formule fossero
-diverse, il confronto fallirebbe sempre e avremmo costruito una trappola invece
-di un controllo.* Un `409` significa quindi "il listino si è mosso", mai "le due
-formule non coincidono": il sito calcola su un menu letto **una volta sola**
-all'apertura della pagina, il server sui dati vivi.
-
-**d. Come si legge il confronto adesso** — ⚠️ **"zero differenze" non è più un
-esito possibile**, ed è voluto: il catalogo è passato da 20 a **23 casi**, e i
-tre nuovi (`guard-prezzo-salito`, `guard-prezzo-sceso`, `guard-prezzo-assente`)
-non esistono in `snapshot-prima.json`, quindi ogni confronto futuro mostrerà per
-sempre tre righe di "presenza".
-
-**La base NON si rigenera** (lezione `af`): una fotografia rifatta dopo il
-cambiamento coincide sempre e non dimostra più nulla. Le regole correnti stanno
-**in testa a `tests/route-snapshot.mjs`**, dove chi lo esegue le trova: tre
-righe di presenza attese e permanenti, ogni altra differenza da spiegare prima
-di accettarla, e il confronto da leggere insieme all'avviso sullo stato del
-servizio. *Tre righe sono previste; la quarta è una domanda.*
-
-**e. La previsione va scritta PRIMA dello scatto** — è il metodo che ha
-funzionato qui e che vale per ogni cambiamento voluto: si dichiara caso per
-caso cosa deve cambiare, poi si scatta, poi si confronta la realtà **con la
-previsione** e non con la fotografia vecchia. *Guardare le differenze e
-convincersi a posteriori che tornano è troppo facile.*
-
-⚠️ **Una lezione dal primo scatto**: la previsione diceva "3 differenze,
-nessun'altra", ma un quarto caso era stato dichiarato **condizionato allo stato
-del servizio** senza scriverne l'esito — e il semaforo era cambiato. Il
-meccanismo era previsto, **il numero no**. Un numero dichiarato è un impegno: se
-una condizione può spostarlo, va sciolta prima, non annotata a margine.
-
-**f. Copertura: 20 uscite su 27.** Le sette scoperte sono le stesse di sempre.
-Per la prima volta il **`409` è provato attraverso la route vera** e non solo
-sul modulo: senza i due casi nuovi, la regola che dà il nome a tutta la tappa
-non sarebbe esercitata da nulla.
-
-**g. Costo** — due scatti in questa fase: il primo **zero ordini** (tutti i casi
-cadevano sul guard), il secondo **un ordine**, da `riga-690`. *Contati dai log,
-non a memoria.*
-
-✅ **h. Il disallineamento è chiuso** (`9705d4a`, 01/08 23:38). *Fino a quel
-commit il sito non mandava `unitPriceShown` e un ordine dal browser riceveva un
-`400`; questa sezione lo dichiarava e la frase è stata vera per poche ore.*
-Dal `9705d4a` sito e server sono in passo, e dal 02/08 l'ordine dal browser è
-stato composto e verificato dal vivo (§11f).
-
-## 11f) Il lato sito e la chiusura di §46 — tappa 4 (01-02/08/2026)
-
-**a. I tre commit di codice**
-
-| commit | quando | cosa |
-|---|---|---|
-| `9705d4a` | 01/08 23:38 | il sito manda `items[].unitPriceShown`, dallo **stesso calcolo del server** |
-| `4304910` | 02/08 10:38 | riconosce i due rifiuti che riguardano il menu, rilegge il listino, riporta al carrello |
-| `dade165` | 02/08 10:50 | il testo deciso quando la rilettura fallisce |
-
-Dimensioni dopo: `app/page.js` **3827 righe**, `route.js` **415** (non toccata).
-**13 suite, 461 asserzioni** — contate eseguendo, non con `grep` (lezione `az`).
-
-**b. ⚠️ Il rifiuto si riconosce dal TESTO, non dallo status.** È il punto più
-insidioso dell'intera tappa. I testi distinti che il cliente può ricevere sono
-**quattordici** con `400` e **quattro** con `409`; **due soli** riguardano il
-menu. Riconoscerli dal solo codice numerico significherebbe buttare fuori dal
-checkout un cliente a cui manca la spunta della privacy, o uno a cui è scaduto
-lo slot — e quest'ultimo si ritroverebbe nel carrello, **dove il selettore
-dell'orario non c'è**, contro §41-45 v18.
-
-*Il difetto è stato scritto e poi trovato prima del commit: la prima stesura
-agganciava il `400` al testo e il `409` al solo status. È emerso **contando le
-uscite `409` nel codice**, non rileggendo il ragionamento.* Oggi la condizione è
-simmetrica e `tests/checkout-messages.test.mjs` tiene allineate le due copie dei
-testi fra sito e route, con guard verificati capaci di fallire.
-
-**c. Cosa fa il sito al rifiuto** — rilegge il menu con `fetchMenuData`,
-ricalcola le righe con `restoreCart` e lo **stesso** adattatore del rientro
-(estratto in `buildRestoreCatalog`, perché due copie divergerebbero), posa
-righe, avviso e messaggio, **poi** cambia schermata. L'ordine conta: le
-assegnazioni stanno tutte prima del passaggio al carrello.
-
-Le assegnazioni sono **incondizionate**, al contrario di quelle del rientro:
-così il carrello si svuota davvero se tutte le righe cadono, e l'avviso si
-azzera davvero invece di lasciare a schermo quello vecchio — che sembrerebbe la
-spiegazione di questo rifiuto.
-
-**d. Chi mostra cosa** — al `409` compare sopra il carrello il messaggio del
-listino; al `400` **no**, e di proposito: là parla l'avviso delle righe tolte,
-che dice **quale** articolo e **perché**, mentre il testo del server non lo dice.
-
-⚠️ **La gestione è rimasta in `CheckoutScreen` con una funzione passata
-dall'alto**, non spostata in `Home`. La ragione non è comodità: i tre consensi
-vivono nello stato locale del checkout **apposta perché si azzerino** (§36-40
-v39), e portare su la richiesta li avrebbe trascinati con sé.
-
-**e. ✅ Verificato dal vivo da Andrea il 02/08/2026**, su due rami:
-prezzo cambiato dal pannello a carrello pieno, e articolo messo esaurito nella
-stessa situazione. Entrambi si comportano come deciso.
-
-⚠️ **Un ramo NON è stato provato dal vivo: lo slot scaduto.** È verificato solo
-leggendo il percorso, più il controllo automatico che impedisce di riconoscere
-il rifiuto dal solo status. *Non appartiene a §46 e si comporta come prima di
-questo lavoro — ma è il **primo punto da riprovare** se qualcuno tocca quel
-ramo. Non era impossibile da provare: bastava aspettare che uno slot scadesse.*
-
-**f. La prova non ha lasciato residui**, per la prima volta (dettaglio al punto
-11). Il menu è tornato allo stato di partenza.
-
-**g. Cosa resta registrato e non fatto** — sta in **spec §46**, non qui: il
-server che dica **quale riga** e perché (una frase sola copre dodici cause) e
-il rilascio dell'indice dal modulo di confronto, che vanno insieme perché i due
-rami hanno ciascuno il proprio ostacolo; la protezione dal **guasto parziale**
-di `fetchMenuData`, dove sette query su nove falliscono in silenzio; le due
-cause che la rilettura non vede (filtro store, extra carne nel combo); e le due
-decisioni **rimandate** sulla riga bloccata.
 
 ## 12) To-do / prossimi passi (in ordine)
 
@@ -2015,43 +1303,15 @@ spec; tolto in v40.
 
 ## 14) Il giro privacy (02-03/08/2026)
 
-Sessione **fuori dal codice** per la quasi totalità: due audit di sola lettura, la stesura dell'informativa e un solo intervento sul repository alla fine.
+Sessione **fuori dal codice** per la quasi totalità: due audit di sola lettura, la stesura dell'informativa e un solo intervento sul repository — la pubblicazione dell'informativa, commit `c69642e`, quattro file toccati (`app/privacy/page.js` **995 righe**, `app/privacy-footer.js` 34, `app/page.js` +37/−1, `app/conferma/page.js` +5). `app/layout.js`, la route del checkout e tutto ciò che riguarda il salvataggio dei consensi sono **intatti**.
 
-### 14a) I due audit
+**Cosa è risultato buono e chiuso**: nessun cookie sulle pagine cliente, verificato dal vivo in finestra pulita; nessun analytics né error tracking; la pagina di stato non manda al browser alcun dato personale, perché la sua `select` prende quattro colonne; nessun `console.log` nel codice applicativo — tutti i 45 punti sono `console.error`.
 
-**Primo blocco** — Supabase, struttura dei dati personali, persistenza, cancellazione. **Secondo blocco** — consensi, pagina di stato, cookie e memoria del browser, logging. Entrambi con regola obbligatoria sulle fonti (`file:righe`, comando eseguito, `deduzione`, `non verificabile`) e con divieto esplicito di usare spec, handoff o commenti come prova.
+**Cosa è risultato da sanare**: sta tutto nel punto 16, che è l'elenco vivo. *Fra queste, la scoperta con conseguenza fuori dal codice — il progetto era su piano Free, che non include backup — è stata sanata il 04/08 (punto 18).*
 
-Due lezioni di metodo da conservare:
+⚠️ **Due limiti dell'ambiente di prova, da chiudere con un dito su un telefono vero**: l'apertura in scheda nuova è stata verificata **negli attributi e non nell'effetto**, e i clic per coordinate non atterravano, quindi le prove usano eventi dispatchati.
 
-* le **policy RLS non sono verificabili** né dal repository né dalle normali API: PostgREST espone solo `public`. Vanno lette con query eseguite a mano nella dashboard. Non dedurle mai dal codice;
-* una domanda che chiede *"confermi che X?"* invita a rispondere di sì. Chiedere il valore, non la conferma.
-
-### 14b) Cosa è risultato
-
-**Buono e chiuso:** nessun cookie sulle pagine cliente (verificato dal vivo in finestra pulita); nessun analytics o error tracking; la pagina di stato non invia al browser alcun dato personale, perché la `select` prende quattro colonne; nessun `console.log` nel codice applicativo, tutti i 45 punti sono `console.error`.
-
-**Da sanare, registrato in spec:** la prova del consenso marketing viene azzerata a ogni riordino; manca la costante di versione del testo privacy; tre `console.error` del checkout stampano oggetti errore interi; `km_direct_checkout` non viene mai cancellato; Google Maps caricato su ogni pagina prima dell'interattività.
-
-**Scoperta con conseguenza fuori dal codice:** il progetto Supabase era su **piano Free, che non include backup**. ✅ **Sanata il 04/08/2026**: piano Pro attivo, copie ripristinabili (punto 18).
-
-### 14c) L'unico intervento sul codice
-
-Pubblicazione dell'informativa. **Quattro file toccati**, nessun altro:
-
-| file | intervento |
-|---|---|
-| `app/privacy/page.js` | nuovo, 995 righe — la pagina, statica (`○ prerendered`) |
-| `app/privacy-footer.js` | nuovo, 34 righe — collegamento condiviso in fondo |
-| `app/page.js` | +37 / −1 — collegamento nella casella, footer prima della barra sticky |
-| `app/conferma/page.js` | +5 / −0 — footer prima di `</main>` |
-
-`app/layout.js`, `app/api/checkout/route.js` e tutto ciò che riguarda il salvataggio dei consensi sono **intatti**.
-
-Verifiche: testo servito identico al sorgente carattere per carattere (21285 su entrambi i lati, 18 h2 · 13 h3 · 98 voci); clic sul collegamento **non** cambia lo stato della casella, con prova di controllo che dimostra che il rilevatore scattava; dati del modulo intatti dopo la navigazione; footer presente su home e conferma, assente dal pannello staff; pagamento ancora bloccato senza spunta; rifiuto lato server `400`, prima di qualunque scrittura; 13 suite, 461 asserzioni, zero fallimenti.
-
-⚠️ **Due limiti dichiarati dall'ambiente di prova, da chiudere con un dito su un telefono vero:** l'apertura in scheda nuova è stata verificata negli attributi ma non nell'effetto; i clic per coordinate non atterravano, quindi le prove usano eventi dispatchati.
-
-Committato il 03/08/2026 come `c69642e`.
+⚠️ **Due regole di metodo nate qui, valide sempre**: le **policy RLS non sono verificabili** né dal repository né dalle normali API — PostgREST espone solo `public` — e vanno lette con query eseguite a mano nella dashboard, mai dedotte dal codice; e una domanda che chiede *"confermi che X?"* invita a rispondere di sì: **si chiede il valore, non la conferma.**
 
 ---
 
@@ -2121,7 +1381,7 @@ Tutto quanto segue è **di Andrea**, nella dashboard: attivazione del piano **Pr
 | `orders.privacy_accepted_at` **obbligatoria**: nessun ordine senza consenso | definizione della colonna |
 | **nessuno slug è mai stato generato da codice** | ricognizione di Code |
 
-**Conteggi al 04/08/2026**, letti dal database: `orders` **30** (26 mai pagati, 4 `succeeded` in sandbox), `customers` **40**, `promo_redemptions` **1**, `analytics_events` **0**, `staff_action_log` **70** di cui **43** di prova. *Identici a quelli del 30/07 sera: la verifica dal vivo del 02/08 non ha lasciato residui.*
+**Conteggi al 04/08/2026**, letti dal database: `orders` **30** (26 mai pagati, 4 `succeeded` in sandbox), `customers` **40**, `promo_redemptions` **1**, `analytics_events` **0**, `staff_action_log` **70** di cui **43** di prova. ⚠️ **SUPERATI il 05/08**: la rilettura ha trovato un ordine di prova in più, creato lo stesso 04/08 alle 13:07. **I numeri validi stanno al punto 11**, e questi restano solo come fotografia di quel momento.
 
 ### 18c) Le sette decisioni prese
 
