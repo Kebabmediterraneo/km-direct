@@ -1,6 +1,6 @@
 # KM DIRECT — MASTER SPECIFICATION
 
-**Versione 57** — sostituisce la v56.
+**Versione 58** — sostituisce la v57.
 
 Documento di riferimento definitivo per lo sviluppo. Le decisioni qui
 contenute sono approvate: non vanno reinterpretate senza un motivo concreto
@@ -22,30 +22,33 @@ versione corrente**. I precedenti vivono in `git log`, che è fatto per quello.
 del documento prima che cominciasse a parlare del progetto — e dentro c'erano
 istruzioni rovesciate che nessuno rileggeva.*
 
-**Novità della v57** (vincolanti, dalle decisioni del 05/08/2026 e dalla
-sfoltita dei documenti dello stesso giorno):
+**Novità della v58** (vincolanti, dalle decisioni del 05-06/08/2026 e dalla
+ricognizione di sola lettura del 06/08/2026 su codice e database vivo):
 
-1. §63-64 — ⚠️ **la tendina delle categorie cambia regola.** La v54 prescriveva
-   di **leggere** l'elenco dal database. **Non si può**: `product_category` è un
-   tipo del catalogo di Postgres, non una tabella, e il client del progetto non
-   ha modo di raggiungerlo senza aggiungere una funzione lato database. La
-   prescrizione era **irrealizzabile**, non solo scomoda.
-2. §63-64 — **Fase 3, tre decisioni chiuse** (Andrea, 05/08/2026): salvataggio
-   possibile solo a modulo completo; articolo che nasce **disponibile**, con il
-   rischio della scrittura interrotta **accettato**; tendina dall'elenco del
-   pannello con una prova che confronta le tre copie.
-3. §63-64, §67 — ⚠️ **registrato cosa vede il cliente su un articolo senza
-   allergeni: niente.** Il blocco sparisce del tutto, senza alcuna scritta. È il
-   fatto che dà la misura vera del rischio accettato al punto 2.
-4. §65 — ⚠️ **la pagina dei carrelli abbandonati ESISTE dal 19/07/2026 e
-   funziona.** Questo documento la dava da costruire. Non va costruita: va
-   conosciuta.
-5. §65 — **le altre statistiche si leggono con un referto mensile**, non con
-   schermate nuove (Andrea, 05/08/2026).
-6. §69 — **il referto si lancia prima della pulizia**, non dopo.
-7. §46 — portato nel corpo il fatto che **l'avviso delle rimozioni risulta
-   nascosto mentre il checkout è aperto**: se confermato, la regola del punto 9
-   non è realizzabile come scritta (passo 1 della sfoltita, commit `0411db5`).
+1. §63-64 — ✅ **le tre copie dell'elenco categorie COINCIDONO**, verificato sul
+   codice il 06/08/2026. La prova decisa in v57 si può quindi costruire e **non
+   nasce già fallita**. ⚠️ Accanto ad esse vivono **altre due liste da nove
+   voci** sul sito cliente, che comprendono legittimamente `menu_combo` e che la
+   prova **non deve confrontare**.
+2. §63-64 — **Fase 3, quattro decisioni operative chiuse** (Andrea, 06/08/2026):
+   `allergens_verified_at` si scrive **per ultima**; `sort_order` sta nel modulo
+   con il pannello che propone l'ultimo posto della categoria; il modulo
+   **cambia in base alla categoria**; il selettore dietetico c'è ma **non
+   blocca** il salvataggio.
+3. §63-64 — ⚠️ **una categoria fuori da `PRODUCT_CATEGORY_ORDER` non verrebbe
+   disegnata, in silenzio.** Oggi è latente (`menu_combo` ha **zero** righe,
+   letto dal database vivo il 06/08/2026). La prova del punto 1 verifica anche
+   che `menu_combo` sia assente da tutte e tre le copie.
+4. §66 — ⚠️ **la regola di protezione di `products` non esiste in nessun file del
+   repository**: è applicata a mano sul database. Non è ricostruibile da git.
+5. §66 — ⚠️ **`km_direct_schema.sql` è muto sulle protezioni, per tutte e 23 le
+   tabelle.** Non è incompleto su una: non le contiene mai. Cercarle lì non può
+   funzionare nemmeno in linea di principio.
+6. §66 — ✅ **il referto RLS del 04/08 è confermato per `products` da fonte
+   indipendente** il 06/08/2026: protezione attiva, **una sola** regola, di sola
+   lettura, senza condizioni.
+7. §67 — ✅ **Tzatziki e Yogurt dichiarati** da Andrea il 06/08/2026: la voce
+   aperta dal 28/07 è chiusa. La Fase 2A funzionava come dichiarata.
 
 *Il conteggio delle condizioni di apertura non cambia: **quattro chiuse, cinque
 aperte**. La procedura mensile di §69 conserva la sola prima esecuzione.*
@@ -2790,7 +2793,17 @@ solo una volta, la mattina.
 
 ⚠️ **Rischio residuo, dichiarato**: la prova **non** protegge dall'aggiunta di una categoria al database, perché il confronto col database non è costruibile. Protegge dal caso molto più probabile — qualcuno che la aggiunge in un posto e dimentica gli altri due. *Il giorno che servisse chiudere anche l'altro caso, la strada è una funzione lato database creata da migrazione, esattamente come nacque `set_updated_at()`.*
 
-✅ **Letto il 04/08/2026**: i valori ammessi sono **nove** — `roll`, `bowl`, `menu_combo`, `fritti`, `sides`, `salse`, `dolci`, `drink`, `birre` — quindi **otto** nella tendina, tolto `menu_combo`.
+✅ **Letto il 04/08/2026**: i valori ammessi sono **nove** — `roll`, `bowl`, `menu_combo`, `fritti`, `sides`, `salse`, `dolci`, `drink`, `birre` — quindi **otto** nella tendina, tolto `menu_combo`. *Riletto dal database vivo il 06/08/2026 con lo stesso esito: due letture indipendenti, stesso risultato.*
+
+✅ **Le tre copie coincidono davvero — verificato sul codice il 06/08/2026.** Tutte e tre portano gli stessi **otto** valori, nello stesso ordine: `PRODUCT_CATEGORY_LABEL` (chiave → etichetta) e `PRODUCT_CATEGORY_ORDER` (array di sole chiavi) nel pannello, `CATEGORY_DB_KEY` (chiave dell'interfaccia → chiave del database) sul sito cliente. *Era una premessa mai controllata: se avessero divergiuto, la prova decisa in v57 sarebbe nata rossa, e un controllo che fallisce il primo giorno insegna ad ammorbidirlo (lezione `bi`). Non è successo.*
+
+⚠️ **Le liste vicine che la prova NON deve confrontare.** Sul sito cliente ne esistono **altre due**, entrambe da **nove** voci perché comprendono `menu_combo`: quella delle linguette del menu e quella delle categorie apribili. **Sono giustamente diverse** — Menu Combo è una forma di menu e non ha righe proprie in `products` — e chi scriverà la prova le troverà lì accanto. Vanno nominate qui perché il rischio è concreto: o le si include e la prova fallisce senza un difetto, o la si allarga finché smette di controllare qualcosa.
+
+**Quale copia alimenta cosa, letto dal codice il 06/08/2026**: la sezione Menu del pannello usa `PRODUCT_CATEGORY_ORDER` per l'ordine e il filtro e `PRODUCT_CATEGORY_LABEL` per il titolo; il raggruppamento avviene invece sul valore grezzo di `products.category`. La tendina della Fase 3 segue la stessa coppia.
+
+⚠️ **Una categoria fuori da `PRODUCT_CATEGORY_ORDER` non verrebbe disegnata, e in silenzio.** Il filtro scorre quell'array: una riga con una categoria assente finirebbe raggruppata in memoria e **mai resa a schermo**, senza errore e senza messaggio. Il salvataggio direbbe che è andato tutto bene e l'articolo sparirebbe dalla lista. ✅ **Oggi è latente, non attivo**: `menu_combo` ha **zero righe**, contato sul database vivo il 06/08/2026. Diventerebbe attivo solo se quella categoria entrasse nella tendina.
+
+**Conseguenza sulla prova (decisione del 06/08/2026):** la prova che confronta le tre copie verifica **anche** che `menu_combo` sia assente da tutte e tre. Costa una riga dentro un controllo che si sta già scrivendo, e impedisce che qualcuno lo rimetta in mezzo "per simmetria" con le liste del sito cliente.
 
 ### Fase 3 — le tre decisioni di creazione (Andrea, 05/08/2026, vincolanti)
 
@@ -2803,6 +2816,22 @@ solo una volta, la mattina.
 ⚠️ **Il fatto che dà la misura del rischio al punto 2**, verificato sul codice il 05/08/2026 e da conoscere prima di toccare la Fase 3: su un articolo **senza righe in `product_allergens`, il blocco allergeni della pagina cliente sparisce del tutto** — nessuna scritta, nessuno spazio vuoto, zero pixel. **Non esiste in tutto il file cliente un testo del tipo "nessun allergene" o "non disponibili".** E `allergens_verified_at`, che distinguerebbe *"verificato: non ne ha"* da *"nessuno ha mai dichiarato"*, **arriva al browser e viene scartata** prima di raggiungere la card: i due casi appaiono identici al cliente. *Poiché tutti gli articoli di oggi mostrano il blocco, un articolo che non lo mostra si legge come "non ne ha". Il sito non lo afferma, ma lo lascia capire.*
 
 *Nota di direzione opposta, verificata lo stesso giorno*: i badge **Vegano/Vegetariano** si comportano bene — richiedono un `true` scritto in tabella, quindi un articolo non compilato **non riceve** il badge, e mai quello sbagliato. Su questa materia l'omissione sbaglia per difetto, che è la direzione giusta.
+
+### Fase 3 — le quattro decisioni operative (Andrea, 06/08/2026, vincolanti)
+
+Precedute da una ricognizione di sola lettura su codice e database vivo. **I valori che il pannello deve fornire per creare una riga sono cinque e cinque soltanto** — `store_id`, `category`, `slug`, `name`, `base_price` — letti dal database il 06/08/2026 e coincidenti con `km_direct_schema.sql` su tutte e 18 le colonne, nome per nome, obbligo per obbligo, valore predefinito per valore predefinito. Tutto il resto o accetta il vuoto o ha un valore predefinito.
+
+**1. `allergens_verified_at` si scrive PER ULTIMA.** L'ordine vincolante della creazione è: riga in `products` **senza** la data di verifica → righe in `product_allergens` → aggiornamento dei flag dietetici e della data → riga di log. ⚠️ *Motivo: la creazione sono scritture separate che il client non può raggruppare in transazione (§66), e il rischio dell'interruzione è accettato (decisione 2 del 05/08). Con quest'ordine un articolo lasciato a metà resta segnato **"mai verificato"** e si vede nella lista del pannello, dove §67 mostra lo stato di verifica. Con l'ordine opposto risulterebbe **verificato e senza allergeni**, che è la bugia peggiore possibile su un dato di sicurezza alimentare.* **Non riapre la decisione del 05/08**: l'articolo nasce comunque disponibile e il rischio resta accettato. Cambia solo che smette di essere invisibile. *È lo stesso ordine che la Fase 2A già esegue: prima le righe allergene, poi flag e data.*
+
+**2. `sort_order` sta nel modulo, con una proposta.** Il pannello propone il posto **dopo l'ultimo della categoria scelta** e lascia cambiare il valore. ⚠️ *Motivo: il valore predefinito del database è **`0`**, cioè il **primo** posto. Un modulo che non chiedesse quel numero farebbe scavalcare in silenzio tutti gli altri articoli della sezione, nel pannello e nel menu del cliente, a ogni creazione.* Il numero da proporre si calcola su dati che il pannello ha già in mano.
+
+**3. Il modulo cambia in base alla categoria.** Il selettore dietetico a tre voci **non compare su `drink` e `birre`**, coerentemente con §67 che le tiene fuori dal tracciamento. Gli allergeni invece si dichiarano **sempre**, lattina compresa: la casella "nessuno dei 14" è ciò che rende la regola applicabile anche a una bibita. *Quindi scegliere la categoria cambia quali campi il modulo pretende prima di sbloccare il salvataggio: è una conseguenza da conoscere prima di progettare il modulo, non da scoprire a metà.*
+
+**4. Il selettore dietetico c'è ma non blocca il salvataggio**, e non produce alcun avviso. Si compila dopo, dal modulo allergeni esistente, che è lo stesso blocco. ⚠️ **Conseguenza accettata, con nome e data: Andrea, 06/08/2026 — nulla segnalerà che manca.** *La direzione dell'errore è però quella sicura, ed è la ragione per cui la decisione regge: un flag non compilato non produce il badge sbagliato, non produce **nessun** badge (nota qui sopra). Il costo reale è misurato: Tzatziki e Yogurt sono rimasti senza badge dal 28/07 al 06/08 — nove giorni — e sono stati ritrovati perché scritti in un documento, non perché il pannello lo dicesse. Un articolo creato fra sei mesi non sarà scritto da nessuna parte.* **Alternativa scartata**: un avviso non bloccante nel modulo e nella lista del Menu.
+
+**Riuso, non costruzione.** Il blocco allergeni del pannello contiene **già** le quattordici caselle, la casella "nessuno dei 14" e il selettore dietetico, e li salva in un colpo solo. La Fase 3 lo riusa intero: toglierne il selettore sarebbe lavoro in più, non in meno. ⚠️ *Del precedente di creazione che esiste nel pannello — le chiusure eccezionali di §68 — si riusa la **forma lato server**, non quella a schermo: quella apre una finestra sopra la pagina, mentre la sezione Menu impone il modulo **in linea, sotto la riga** (§63-64, §67, §34-35).*
+
+⚠️ **Non esistono articoli in bozza, e non potrebbero esistere.** La decisione del 05/08 li esclude già — l'articolo nasce disponibile — ma va registrato che non sarebbero realizzabili nemmeno volendo: la regola di lettura pubblica su `products` è **senza condizioni** (§66), quindi una bozza sarebbe visibile al sito cliente dall'istante del salvataggio. Non per una svista del sito: perché il database dice di sì a tutto. Renderla possibile significherebbe **cambiare la regola sul database**, non il codice.
 
 ## 65. Analytics dal giorno 1
 
@@ -3045,6 +3074,12 @@ Eseguito da Andrea nell'editor SQL della dashboard con query di sola lettura sul
 * **Tredici senza alcuna regola**, quindi **chiuse**: `customers`, `orders`, `order_items`, `order_status_history`, `promo_redemptions`, `staff_action_log`, `staff_settings`, `analytics_events`, `coupons`, `stores`, `store_geofences`, `store_order_windows`, `store_schedule_exceptions`. Tutti i dati personali stanno qui.
 * **Nessuna regola di scrittura esiste, da nessuna parte.** Tutte e dieci sono di sola lettura: la chiave pubblica non può scrivere niente.
 
+✅ **Confermato per `products` da fonte indipendente il 06/08/2026**, con una query di sola lettura sui cataloghi eseguita da Andrea a due giorni di distanza: protezione **attiva**, non forzata al proprietario, e **una sola** regola — `Public read access`, permissiva, comando `SELECT`, ruoli `anon` e `authenticated`, senza condizioni. Nessuna regola per inserimento, modifica o cancellazione. *Due letture indipendenti dello stesso fatto, a due giorni di distanza: è il confronto che vale come verifica (lezione `bl`).*
+
+⚠️ **La regola di `products` non esiste in nessun file del repository**, accertato il 06/08/2026: l'unico file SQL versionato che crea protezioni è `sql/20260727_allergens_public_read.sql`, che copre `allergens`, `product_allergens` e `sauce_allergens`. La protezione del menu è stata **applicata a mano sul database** e **non è ricostruibile da git**: un database rifatto dai soli file versionati ripartirebbe senza quella regola. *Registrato, non sanato: sanarlo significa una migrazione che la dichiari, ed è lavoro fuori dal perimetro pre-go-live.*
+
+⚠️ **`km_direct_schema.sql` è muto sulle protezioni, e lo è per tutte e 23 le tabelle.** Non è incompleto su una: **non le contiene mai**. Cercare lì lo stato delle RLS non può funzionare nemmeno in linea di principio, e l'assenza della parola in quel file non dice nulla. *Il 05/08/2026 quella deduzione è stata fatta e presentata come fatto — "su `products` non c'è protezione" — su una tabella che invece è protetta. Lo schema autorevole è autorevole su tabelle e colonne, non su chi può leggerle: la fonte sono le query sul catalogo, sempre.*
+
 ✅ **La condizione da cui dipende tutto è verificata (04/08/2026, v55).** La chiave `service_role` **scavalca interamente le RLS**: tutta la protezione descritta qui regge sul fatto che non finisca mai nel browser. **Non ci finisce**, accertato per quattro vie: la variabile che la contiene si chiama `SUPABASE_SECRET_KEY` e non porta il prefisso `NEXT_PUBLIC_` (che in Next.js significa "spediscila al client"); nessuno dei ventitré file che la usano dichiara `"use client"`; la chiusura transitiva dai sei componenti che girano nel browser raggiunge diciannove file e `lib/supabase-admin.js` **non è fra questi**; e la ricerca del **valore vero** della chiave dentro una build di produzione — sia nei file statici sia nell'HTML servito — la trova in zero file, mentre nello stesso giro trova la chiave pubblica, che è ciò che rende quello zero una risposta e non un'assenza di risposta.
 
 ⚠️ **Vale per il codice di oggi, non per sempre.** I due modi in cui si romperebbe sono entrambi falsificabili in un comando: la chiusura transitiva dai componenti client, e la ricerca del valore nella build più l'HTML servito. **La verifica va rifatta quando si riapre `app/api/checkout/route.js` e quando si costruisce la Fase 3**: sono i due momenti in cui qualcuno tocca il confine fra server e browser.
@@ -3264,11 +3299,11 @@ allergeni o flag dietetici, su prodotti e su salse.
   **più** allergeni del vero, mai con meno. È lo stesso principio di prudenza
   già adottato per i prodotti con scelta gusto ("sovra-dichiarare è più
   sicuro che sotto-dichiarare"). L'errore resta visibile riaprendo la scheda.
-- **Nessuna preselezione del flag dietetico quando il dato manca**: sugli
-  articoli food con flag ancora NULL (Tzatziki e Yogurt, vedi in fondo alla
-  sezione) il selettore a tre voci si presenta **senza nulla di selezionato**
-  e obbliga a una scelta esplicita prima di salvare. Preselezionare "Nessuno
-  dei due" produrrebbe una dichiarazione che nessuno ha fatto.
+- **Nessuna preselezione del flag dietetico quando il dato manca**: su un
+  articolo food con flag ancora NULL il selettore a tre voci si presenta
+  **senza nulla di selezionato** e obbliga a una scelta esplicita prima di
+  salvare. Preselezionare "Nessuno dei due" produrrebbe una dichiarazione che
+  nessuno ha fatto.
 - **Ogni salvataggio scrive `allergens_verified_at`** con la data del
   momento, anche quando la selezione non cambia: la verifica è un atto, non
   un effetto collaterale della modifica.
@@ -3417,9 +3452,8 @@ eliminato il percorso di rendering separato in cui viveva quella forzatura, e
 il badge è ricomparso senza che nessuno lo aggiustasse. **Verificato a schermo
 su Black KM il 28/07/2026.**
 
-*Restano 2 salse — Tzatziki e Yogurt — con il flag vegetariano a NULL, quindi
-senza badge. Vanno dichiarate dall'utente, mai dedotte: si riconoscono perché
-aprendo il form allergeni il selettore dietetico si presenta vuoto.*
+✅ *Le 2 salse che restavano — Tzatziki e Yogurt — sono state dichiarate
+vegetariane da Andrea il 06/08/2026, verificato a schermo.*
 
 **Rendering al cliente (fatto, v24)**: gli allergeni e il badge dietetico
 sono mostrati al cliente. Ogni scheda prodotto con allergeni mostra un
@@ -3443,12 +3477,15 @@ questa sezione: selezione dai soli 14 allergeni UE, mai testo libero, mai
 deduzione, selettore dietetico a tre voci sul solo food, scrittura di
 `allergens_verified_at`, log della lista prima/dopo.
 
-**Resta da dichiarare, mai da dedurre**: **2 salse — Tzatziki e Yogurt** —
-hanno il flag vegetariano ancora vuoto, quindi non mostrano alcun badge
-dietetico. Si riconoscono perché aprendo il form allergeni il selettore
-dietetico si presenta vuoto. E le **21 bevande** restano fuori dal
-tracciamento, con la colonna di verifica a NULL: vanno compilate prima di
-poterle dichiarare senza allergeni.
+✅ **CHIUSO il 06/08/2026: Tzatziki e Yogurt sono dichiarati.** *Il gesto che
+questi documenti descrivevano da luglio — "si riconoscono perché aprendo il form
+allergeni il selettore dietetico si presenta vuoto" — è stato eseguito per la
+prima volta quel giorno ed è risultato esatto: il selettore c'era, stava nel
+modulo degli allergeni e non in quello dei campi semplici. **La descrizione era
+vera; nessuno l'aveva mai messa alla prova.***
+
+Le **21 bevande** restano fuori dal tracciamento, con la colonna di verifica a
+NULL: vanno compilate prima di poterle dichiarare senza allergeni.
 
 ## 68. Sezione Impostazioni pannello staff — chiusure eccezionali (aggiunta dopo l'MVP iniziale, vincolante)
 
