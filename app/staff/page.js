@@ -6,6 +6,7 @@ import ImpostazioniSection from "./impostazioni-section";
 import { sortQueueByReferenceTime } from "../../lib/staff-queue-order";
 import { BADGE_OPTIONS } from "../../lib/menu-badges";
 import { SPICE_OPTIONS } from "../../lib/menu-spice";
+import { PRODUCT_CATEGORIES } from "../../lib/menu-categories";
 
 const POLL_INTERVAL_MS = 12000;
 
@@ -20,17 +21,21 @@ const SECTIONS = [
 // §63: stesse categorie mostrate al cliente, nell'ordine del menu — Menu
 // Combo non ha righe proprie in `products` (è composto da Roll +
 // combo_side_options/combo_drink_options), quindi non compare qui.
-const PRODUCT_CATEGORY_LABEL = {
-  roll: "Roll",
-  bowl: "Bowl",
-  fritti: "Fritti",
-  sides: "Sides",
-  salse: "Salse",
-  dolci: "Dolci",
-  drink: "Drink",
-  birre: "Birre",
-};
-const PRODUCT_CATEGORY_ORDER = ["roll", "bowl", "fritti", "sides", "salse", "dolci", "drink", "birre"];
+//
+// L'elenco dei VALORI non vive più in questo file (06/08/2026): arriva da
+// `lib/menu-categories.js`, che è l'unica fonte e su cui il server valida
+// (§66). Il pannello tiene solo il testo da mostrare — quello sì è roba sua —
+// e anche le chiavi delle etichette si ricavano dall'elenco importato, così
+// non resta nessun secondo elenco da tenere allineato a mano.
+//
+// Le otto etichette sono la chiave con l'iniziale maiuscola, e la derivazione
+// le riproduce identiche a com'erano scritte prima. ⚠️ Se un giorno una
+// categoria avesse un'etichetta che non segue questa forma (per esempio due
+// parole), va aggiunta qui un'eccezione esplicita — mai un secondo elenco.
+const PRODUCT_CATEGORY_ORDER = PRODUCT_CATEGORIES;
+const PRODUCT_CATEGORY_LABEL = Object.fromEntries(
+  PRODUCT_CATEGORIES.map((category) => [category, category.charAt(0).toUpperCase() + category.slice(1)])
+);
 
 const FULFILLMENT_LABEL = {
   delivery: "Delivery",
