@@ -1561,6 +1561,30 @@ function MenuComboSection({
     setBuilderOpen(false);
   }
 
+  // §23-26 (06/08/2026, decisione di Andrea): se anche UNA SOLA delle tre scelte
+  // è rimasta senza voci, il Menu Combo non si propone affatto — banner, testo e
+  // pulsante compresi — invece di rompersi. Sparisce dal sito finché non torna
+  // disponibile qualcosa.
+  //
+  // Perché: `ComboBuilder` inizializza le tre scelte prendendo il PRIMO elemento
+  // di ciascuna lista — `rollProducts[0].name`, `comboSideOptions[0].id`,
+  // `comboDrinkOptions[0].id`. Su una lista vuota non è un combo mal disegnato:
+  // è un errore che porta via l'intera pagina del menu, non solo il combo.
+  //
+  // ⚠️ Il caso dei ROLL è un difetto PREESISTENTE, non una conseguenza della
+  // correzione sulle bibite: `rollProducts` è filtrata sulla disponibilità da
+  // prima di questo lavoro, quindi segnare esauriti tutti e sette i Roll rompeva
+  // già il builder. Le bibite entrano nello stesso caso da oggi, per via del
+  // filtro nuovo. I contorni non ci arrivano — nessuna schermata scrive
+  // `combo_side_options.is_available` — ma la guardia li copre lo stesso: la
+  // fragilità è nella forma del builder, non in quale lista si svuota.
+  //
+  // ⚠️ Sta DOPO `useState`, e deve restarci: un ritorno anticipato prima di un
+  // hook cambierebbe il numero di hook fra un render e l'altro.
+  const combinabile =
+    rollProducts.length > 0 && comboSideOptions.length > 0 && comboDrinkOptions.length > 0;
+  if (!combinabile) return null;
+
   return (
     <div
       style={{
