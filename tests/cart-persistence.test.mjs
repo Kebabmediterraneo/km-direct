@@ -58,9 +58,14 @@ const CATALOG = {
     { id: "s-std", label: "Patatine standard", priceDelta: 0 },
     { id: "s-km", label: "Patatine KM", priceDelta: 0.5 },
   ],
+  // §23-26 (06/08/2026): le voci bibita portano `isAvailable`, la disponibilità
+  // del PRODOTTO. Il catalogo del carrello riceve la lista PIENA — anche le
+  // esaurite — perché `restoreCombo` deve poterle distinguere da una bibita
+  // sparita dal menu. La lista filtrata che alimenta la tendina del builder è
+  // un'altra (`comboDrinkOptionsDisponibili`) e qui non entra.
   comboDrinkOptions: [
-    { id: "d-coca", name: "Coca-Cola lattina 33cl", priceDelta: 0 },
-    { id: "d-te", name: "Tè freddo al limone", priceDelta: 0.5 },
+    { id: "d-coca", name: "Coca-Cola lattina 33cl", priceDelta: 0, isAvailable: true },
+    { id: "d-te", name: "Tè freddo al limone", priceDelta: 0.5, isAvailable: true },
   ],
 };
 
@@ -237,6 +242,53 @@ const ROW_COMBO = {
 {
   const r = restoreCart({ v: 1, items: [{ ref: { kind: "misterioso", id: "p-pat" }, quantity: 1 }] }, CATALOG);
   assert(r.items.length === 0 && r.removed.length === 0, "p) ref.kind sconosciuto → scartato senza avviso");
+}
+
+// q) BIBITA DEL COMBO ESAURITA → combo tolto, con il motivo giusto (§23-26,
+// 06/08/2026). È il gemello del caso h): lì l'articolo semplice, qui la bibita
+// dentro un combo. Il motivo dev'essere lo stesso — "non è più disponibile" —
+// e NON "una scelta non è più disponibile", che è ciò che uscirebbe se la
+// bibita esaurita fosse stata tolta dal catalogo invece che marcata.
+{
+  const cat = {
+    ...CATALOG,
+    comboDrinkOptions: [
+      { id: "d-coca", name: "Coca-Cola lattina 33cl", priceDelta: 0, isAvailable: false },
+      { id: "d-te", name: "Tè freddo al limone", priceDelta: 0.5, isAvailable: true },
+    ],
+  };
+  const r = restoreCart(prepareCart([ROW_COMBO]), cat);
+  assert(r.items.length === 0, "q1) il combo con bibita esaurita non torna nel carrello");
+  assert(r.removed.length === 1, "q2) una sola riga tolta");
+  // Letture con `?.`: se il controllo sparisse dal modulo, `removed` sarebbe
+  // vuoto e queste tre righe devono FALLIRE, non sollevare un TypeError che
+  // interrompe l'intero file lasciando gli altri casi non eseguiti.
+  const tolto = r.removed[0];
+  assert(tolto?.reason === REASON_UNAVAILABLE, `q3) motivo "non più disponibile", non "scelta sparita" (è "${tolto?.reason}")`);
+  assert(tolto?.name === "Menu Combo · Il Turco", "q4) tolto col nome del combo, non con quello della bibita");
+  assert(tolto?.id === "p-turco", "q5) l'id riportato è quello del Roll, come per gli altri motivi del combo");
+}
+
+// r) CONTROPROVA di q) — con la bibita disponibile lo stesso combo RESTA.
+// Senza questa, q) passerebbe anche se `restoreCombo` togliesse i combo sempre.
+{
+  const r = restoreCart(prepareCart([ROW_COMBO]), CATALOG);
+  assert(r.items.length === 1 && r.removed.length === 0, "r1) bibita disponibile → il combo resta nel carrello");
+  assert(r.items[0].name === "Menu Combo · Il Turco", "r2) ed è proprio quello");
+}
+
+// s) La bibita esaurita è UN'ALTRA → il combo resta. Il controllo deve guardare
+// la bibita scelta, non una qualunque della lista.
+{
+  const cat = {
+    ...CATALOG,
+    comboDrinkOptions: [
+      { id: "d-coca", name: "Coca-Cola lattina 33cl", priceDelta: 0, isAvailable: true },
+      { id: "d-te", name: "Tè freddo al limone", priceDelta: 0.5, isAvailable: false },
+    ],
+  };
+  const r = restoreCart(prepareCart([ROW_COMBO]), cat);
+  assert(r.items.length === 1 && r.removed.length === 0, "s) esaurita una bibita NON scelta → il combo resta");
 }
 
 console.log(failures === 0 ? "\nTUTTI I TEST PASSATI" : `\n${failures} TEST FALLITI`);

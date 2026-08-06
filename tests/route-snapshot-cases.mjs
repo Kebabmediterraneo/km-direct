@@ -457,4 +457,36 @@ const CASI = [
   },
 ];
 
+// ┌─ NON COPERTO, e perché — bibita del combo esaurita (§23-26, 06/08/2026) ───
+// │
+// │ La v60 ha aggiunto al risolutore una lettura che rifiuta il combo se la
+// │ bibita scelta ha `products.is_available = false` (`lib/checkout-resolve.js`,
+// │ dentro `resolveCombo`). L'uscita attesa sarebbe il 400 già noto,
+// │ "Un articolo del carrello non è più disponibile."
+// │
+// │ ⚠️ **Il caso NON è stato aggiunto a `CASI`, di proposito.** Per provocarlo
+// │ servirebbe una bibita **realmente segnata esaurita** in `products` al
+// │ momento dello scatto: è uno stato che questa fotografia non sa preparare —
+// │ non ha setup né teardown — e che si otterrebbe solo sporcando dati veri,
+// │ cosa che questo file non fa per nessun altro caso (§66, e le sette uscite
+// │ già dichiarate non coperte per la stessa ragione).
+// │
+// │ ⚠️ **E un caso scritto con un id inventato sarebbe peggio di nessun caso**:
+// │ un uuid che non esiste in `products` produce **la stessa identica uscita**
+// │ — 400, stesso testo — perché anche la lettura esistente rifiuta ciò che non
+// │ trova. Passerebbe sempre, anche cancellando la riga che dovrebbe
+// │ verificare: una sonda che non può fallire non sta controllando niente
+// │ (famiglia 1 delle lezioni — `w` `u` `ap` `aq` `av` `an` `bb` `bc` `bh` `bm`).
+// │
+// │ Che cosa servirebbe per coprirlo davvero, il giorno che si decide:
+// │   1. un `combo_drink_options` con `is_available = true` il cui prodotto
+// │      abbia `is_available = false` — cioè esattamente la divergenza che la
+// │      v60 è nata per impedire;
+// │   2. quindi un setup che la crei e un teardown che la disfi, che oggi
+// │      questa fotografia non ha.
+// │ Finché non esiste, la correzione del pagamento resta scoperta dalle prove
+// │ automatiche, come le altre nove letture di `checkout-resolve.js`
+// │ (`tests/checkout-resolve.test.mjs`, intestazione).
+// └───────────────────────────────────────────────────────────────────────────
+
 export { FIXTURES, CASI };

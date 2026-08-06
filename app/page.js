@@ -398,8 +398,14 @@ async function fetchMenuData() {
     // prezzo combo attivo — gli stessi che il server accetterebbe. store_id NON
     // è filtrato qui: il client non ha uno store (menu a store singolo), e il
     // filtro per store resta al server (§46b). Da rivedere con il multi-store.
+    //
+    // §23-26 (06/08/2026): il join delle bibite porta anche
+    // `products.is_available`, perché la disponibilità che conta per la bibita è
+    // quella del PRODOTTO — una sola disponibilità, non due. ⚠️ Il filtro
+    // `.eq("is_available", true)` qui sotto RESTA e riguarda la colonna di
+    // `combo_drink_options`: si aggiunge un controllo, non se ne sostituisce uno.
     supabase.from("combo_side_options").select("*").eq("is_available", true).order("sort_order"),
-    supabase.from("combo_drink_options").select("*, products(name, base_price)").eq("is_available", true).order("sort_order"),
+    supabase.from("combo_drink_options").select("*, products(name, base_price, is_available)").eq("is_available", true).order("sort_order"),
     supabase.from("combo_pricing").select("*").eq("is_active", true),
     supabase.from("product_allergens").select("product_id, allergens(label)"),
   ]);
@@ -456,7 +462,22 @@ async function fetchMenuData() {
     id: d.drink_product_id,
     name: d.products.name,
     priceDelta: Number(d.price_delta),
+    // §23-26 (06/08/2026): la disponibilità del PRODOTTO, non quella della riga
+    // di `combo_drink_options`. Serve a due usi diversi, vedi qui sotto.
+    isAvailable: d.products.is_available,
   }));
+
+  // §23-26 (06/08/2026): DUE liste, non una filtrata — la stessa coppia che
+  // esiste già per i Roll (`rollProducts` filtrata per il builder,
+  // `categoryProducts.ROLL` piena per il carrello).
+  //   - `comboDrinkOptionsDisponibili` alimenta la tendina del builder: una
+  //     bibita esaurita non deve comparire fra le scelte;
+  //   - `comboDrinkOptions` resta PIENA e alimenta `buildRestoreCatalog`, per la
+  //     stessa ragione scritta in quella funzione: `restoreCart` deve poter
+  //     vedere la bibita esaurita per togliere il combo con il motivo giusto
+  //     ("non è più disponibile") invece che con quello sbagliato ("una scelta
+  //     non è più disponibile").
+  const comboDrinkOptionsDisponibili = comboDrinkOptions.filter((d) => d.isAvailable !== false);
 
   // §25 (v37): base standard = minimo fra le sole righe ATTIVE (la query filtra
   // is_active). Serve solo al supplemento MOSTRATO nel riepilogo ("CON KM
@@ -469,6 +490,7 @@ async function fetchMenuData() {
     rollProducts,
     comboSideOptions,
     comboDrinkOptions,
+    comboDrinkOptionsDisponibili,
     comboPricingByRoll,
     comboBaseStandard,
   };
@@ -3771,11 +3793,15 @@ export default function Home() {
             {titleCase(activeCategory)}
           </h2>
 
+          {/* §23-26 (06/08/2026): al builder va `comboDrinkOptionsDisponibili`,
+              la lista filtrata sulla disponibilità del PRODOTTO. Quella piena
+              (`comboDrinkOptions`) non passa di qui: resta al carrello, tramite
+              buildRestoreCatalog. */}
           {isMenuCombo ? (
             <MenuComboSection
               rollProducts={menuData.rollProducts}
               comboSideOptions={menuData.comboSideOptions}
-              comboDrinkOptions={menuData.comboDrinkOptions}
+              comboDrinkOptions={menuData.comboDrinkOptionsDisponibili}
               comboPricingByRoll={menuData.comboPricingByRoll}
               comboBaseStandard={menuData.comboBaseStandard}
               onAddToCart={addToCart}
