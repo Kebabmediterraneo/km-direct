@@ -1,6 +1,6 @@
 # KM DIRECT — MASTER SPECIFICATION
 
-**Versione 60** — sostituisce la v59.
+**Versione 61** — sostituisce la v60.
 
 Documento di riferimento definitivo per lo sviluppo. Le decisioni qui
 contenute sono approvate: non vanno reinterpretate senza un motivo concreto
@@ -22,58 +22,51 @@ versione corrente**. I precedenti vivono in `git log`, che è fatto per quello.
 del documento prima che cominciasse a parlare del progetto — e dentro c'erano
 istruzioni rovesciate che nessuno rileggeva.*
 
-**Novità della v60** (vincolanti, dalla ricognizione di sola lettura del
-06/08/2026 su percorso di lettura del menu e disponibilità, e dalle decisioni
-che ne sono seguite):
+**Novità della v61** (vincolanti, dal lavoro sulla disponibilità nel combo,
+scritto e provato dal vivo il 06/08/2026):
 
-1. §23-26 — ⚠️ **DIFETTO REALE, PRE-APERTURA: una bibita esaurita resta
-   scegliibile dentro il menu combo, e il pagamento la accetta.** Letto sul
-   codice: la tendina delle bibite del combo filtra su
-   `combo_drink_options.is_available` — **la colonna di quella tabella, non
-   quella del prodotto** — e `products.is_available` non viene nemmeno portato
-   al browser dal join. Al pagamento vale lo stesso: il risolutore controlla la
-   disponibilità del prodotto singolo e del Roll del combo, **non della
-   bibita**. *Contorni e Roll sono invece a posto.*
-2. §23-26 — ⚠️ **e la colonna che viene controllata non la scrive nessuno**:
-   nessuna schermata del pannello può toccare `combo_drink_options.is_available`
-   — la rotta della disponibilità mappa il solo `products`. Sul database vivo,
-   il 06/08/2026, era **`true` su tutte le righe**. Il difetto è quindi aperto
-   **per costruzione**, non per una svista su una riga.
-3. §23-26 — ✅ **DECISIONE (Andrea, 06/08/2026): una sola disponibilità, quella
-   del PRODOTTO.** La tendina del combo e il risolutore del pagamento guardano
-   `products.is_available`. *Si rinuncia a poter dire "questa bibita c'è, ma non
-   nel combo" — che oggi non è comunque esprimibile da nessuna schermata.
-   Alternativa scartata: un secondo comando nel pannello, che avrebbe aggiunto
-   una cosa da ricordare a ogni esaurimento e riportato il difetto il giorno che
-   qualcuno se ne dimentica.*
-4. §23-26 — ✅ **DECISIONE (Andrea, 06/08/2026): un combo già nel carrello con
-   una bibita diventata non disponibile viene TOLTO, con il motivo scritto**,
-   come già accade per gli articoli semplici. *Il carrello sopravvive alla
-   chiusura del browser: senza questa regola il caso si presenta da solo.*
-5. §23-26 — ⚠️ **la bibita del combo, nella riga d'ordine, è registrata SOLO
-   COME NOME.** `order_items.product_id` di una riga di combo punta al **Roll**;
-   la bibita vive dentro `configuration` come stringa. ⚠️ **Il commento di
-   `km_direct_schema.sql` dichiara il contrario** — mostra un `product_id`
-   dentro `configuration.drink` — **e vince il codice**, che è ciò che ha scritto
-   i dati esistenti. *Conseguenza: qualunque analisi retrospettiva sugli ordini
-   di combo aggancia le bibite per nome, e un articolo rinominato dopo l'ordine
-   non si aggancia più.*
-6. §63-64 — **l'ordine dei lavori pre-go-live diventa TRE** (Andrea,
-   06/08/2026): prima la bibita del combo, poi "togli dal menu", poi la Fase 4.
-7. §63-64 — ✅ **il menu del cliente si legge da UN SOLO punto**, e **nessuna
-   query filtra `products.is_available` sul server**: arriva tutto al browser e
-   gli esauriti si disegnano spenti. *Fatto utile a "togli dal menu": nascondere
-   un articolo si fa dove già si nasconde l'upsell delle salse.*
-8. §66 — ⚠️ **il reset notturno della disponibilità non scrive nel registro
-   azioni.** Rimette tutti i prodotti a disponibile e non lascia traccia: il
-   registro non permette quindi di ricostruire per quanto tempo un articolo sia
-   stato davvero esaurito. *È il motivo per cui l'indagine sugli ordini già
-   avvenuti è stata giudicata inutile e non è stata eseguita.*
+1. §23-26 — ✅ **il difetto della bibita è CORRETTO e provato dal vivo**, in tre
+   punti: la tendina non offre più una bibita il cui prodotto è esaurito, il
+   risolutore del pagamento la rifiuta, e un combo già nel carrello viene tolto
+   **col motivo giusto**. Sette prove a schermo superate.
+2. §23-26 — ⚠️ **la forma della correzione è vincolante: due liste, non una
+   filtrata.** La lista filtrata alimenta il builder; quella **piena** continua
+   ad alimentare il ripristino del carrello. *Il codice lo dichiarava già in un
+   commento: il carrello deve poter **vedere** gli articoli esauriti per toglierli
+   con il motivo giusto — "non è più disponibile" invece di "non è più nel menu".
+   Filtrare la lista unica avrebbe corretto un punto rompendone un altro in
+   silenzio. È la stessa coppia che i Roll già usavano.*
+3. §23-26 — ✅ **GUARDIA NUOVA: se una delle tre scelte del combo è vuota, il
+   combo non si propone affatto** — banner e pulsante spariscono. ⚠️ *Copre tutte
+   e tre le liste, non solo quella che il lavoro di oggi ha reso svuotabile: la
+   fragilità sta nella forma del builder, che prende il primo elemento di una
+   lista che può essere vuota.*
+4. §23-26 — ⚠️ **IL DIFETTO CHE LA GUARDIA COPRE ERA PREESISTENTE**, e non è una
+   conseguenza di questo lavoro: segnare esauriti tutti e sette i Roll rompeva
+   il builder **già prima**. Provato dal vivo il 06/08/2026 — la stessa prova ha
+   verificato insieme la guardia nuova e l'esistenza del guasto che copre.
+5. §23-26 — ⚠️ **la posizione della guardia è obbligata, non una preferenza**:
+   deve stare **dopo** l'unica chiamata a hook del componente. Messa prima
+   produrrebbe un guasto React peggiore del difetto che evita, perché il numero
+   di hook cambierebbe fra un disegno e l'altro.
+6. §26 — ⚠️ **LO SHORTCUT "FALLO COMBO" NON ESISTE NEL CODICE.** Questo documento
+   lo descrive in due punti come costruito — apre lo stesso builder col Roll
+   preselezionato — e nel codice quella strada **non c'è**: il builder si
+   raggiunge da un punto solo e non sa nemmeno ricevere un Roll preselezionato.
+   *Accertato cercandolo, non dedotto. È una funzione dichiarata e mai scritta,
+   non una nota invecchiata.*
+7. §46 — ⚠️ **il controllo nuovo sul pagamento resta SCOPERTO dalle prove
+   automatiche**, come le altre nove letture del risolutore, e **un caso finto
+   sarebbe stato peggio di nessun caso**: un identificativo inventato produce la
+   stessa identica risposta del caso vero, quindi la prova sarebbe passata sempre
+   — anche cancellando la riga da verificare. *Registrato come non coperto invece
+   che simulato. Il debito del client passato come parametro (v59) resta la sola
+   strada per chiuderlo davvero, ed è lavoro autonomo.*
 
 *Il conteggio delle condizioni di apertura non cambia: **quattro chiuse, cinque
 aperte**. La procedura mensile di §69 conserva la sola prima esecuzione. I
-lavori pre-go-live che restano sono **tre** — la bibita del combo, "togli dal
-menu" e la Fase 4 — e nessuno dei tre è condizione di apertura.*
+lavori pre-go-live che restano sono **due** — "togli dal menu" e la Fase 4 — e
+nessuno dei due è condizione di apertura.*
 
 ## 1. Visione del progetto
 
@@ -667,7 +660,8 @@ hardcodare "patatine": inizialmente Patatine standard incluse / Patatine KM
 +0,50 €), 3) scegli il soft drink (solo analcolici, fino a 2,50 € incluso,
 oltre +0,50 €, birre escluse), 4) aggiungi al carrello come articolo unico
 con componenti figli. Shortcut "Fallo combo" dal dettaglio Roll apre lo
-stesso builder col Roll preselezionato, senza duplicare logica.
+stesso builder col Roll preselezionato, senza duplicare logica. ⚠️ **Lo
+shortcut NON è stato costruito: vedi §26.**
 
 **Decisione UI (presa dopo l'MVP iniziale, vincolante)**: il builder si
 presenta come un **unico pannello con i 3 step di scelta in sequenza
@@ -757,10 +751,25 @@ nomi resta manuale finché non esisterà l'editor dei contenuti del combo
 
 ⚠️ **La bibita del combo, nella riga d'ordine, esiste solo come NOME.** `order_items.product_id` di una riga di combo punta al **Roll**; la bibita sta dentro `configuration` come stringa. **Il commento di `km_direct_schema.sql` dichiara un `product_id` che il codice non scrive**, e vince il codice: è quello che ha prodotto i dati esistenti. *Va saputo prima di provare a rispondere a domande sugli ordini passati: l'aggancio è per nome, e un articolo rinominato dopo l'ordine non si aggancia più. Non è in contraddizione con la regola dell'identità qui sopra, che governa i **collegamenti** fra prezzi e prodotti — quelli usano l'`id` davvero — ma la fotografia scritta nell'ordine no.*
 
+✅ **ESEGUITA il 06/08/2026, e provata dal vivo** (sette prove a schermo: tutte le bibite presenti nel caso normale, sparizione della sola bibita esaurita, combo tolto dal carrello col motivo giusto, ritorno dopo il ripristino della disponibilità, e la prova della guardia qui sotto). Le prove automatiche coprono per intero il **carrello**, che vive in un modulo puro; la tendina e il pagamento no, per i motivi scritti sotto.
+
+⚠️ **La forma è vincolante: DUE liste, non una filtrata.** La lista filtrata alimenta il builder; quella **piena** continua ad alimentare il ripristino del carrello. *Il motivo era già scritto in un commento del codice, ed è il tipo di regola che si viola per semplificare: il ripristino deve poter **vedere** un articolo esaurito per toglierlo dicendo "non è più disponibile" invece di "non è più nel menu". Filtrare la lista unica avrebbe corretto la tendina rompendo il messaggio del carrello, in silenzio. È la stessa coppia che i Roll usano già.*
+
+**La guardia sulle scelte vuote (06/08/2026, vincolante)**
+
+✅ **Se una qualsiasi delle tre liste del builder — Roll, contorni, bibite — è vuota, il menu combo NON si propone**: banner, testo e pulsante spariscono, e ricompaiono da soli quando torna disponibile qualcosa. *Motivo: il builder parte dal **primo elemento** di ciascuna lista, e su una lista vuota la pagina si rompe. Copre tutte e tre anche se oggi una sola è svuotabile dal pannello, perché la fragilità sta nella forma del builder e non in quale lista si svuota.*
+
+⚠️ **Il difetto coperto era PREESISTENTE.** Segnare esauriti tutti e sette i Roll rompeva il builder **già prima** di questo lavoro: la lista dei Roll era filtrata sulla disponibilità da molto tempo. *Va scritto qui perché fra un mese sembrerebbe un danno introdotto dalla correzione della bibita. Provato dal vivo il 06/08/2026 esaurendo tutti e sette i Roll: la stessa prova ha verificato la guardia nuova **e** l'esistenza del guasto che copre.*
+
+⚠️ **La posizione della guardia è obbligata**: sta **dopo** l'unica chiamata a hook del componente. Un ritorno anticipato messo prima cambierebbe il numero di hook fra un disegno e l'altro, e React fallisce — un guasto peggiore di quello evitato. *Non è una preferenza di stile: chi toccherà quel componente deve saperlo prima, non scoprirlo.*
+
 ## 26. Shortcut "Fallo combo"
 
-Vedi §23-26: apre lo stesso builder con il Roll già preselezionato, senza
-duplicare la logica.
+⚠️ **NON ESISTE NEL CODICE, e questo documento lo dava per costruito** (accertato il 06/08/2026 cercandolo, non dedotto dal silenzio). Il builder del combo si raggiunge da **un punto solo**, il banner del menu combo, e **non sa ricevere un Roll preselezionato**: non ha un parametro per farlo. *La descrizione qui sotto è quindi una funzione **da costruire**, non una che si può usare. Non è una nota invecchiata su un lavoro fatto: è un lavoro mai iniziato che due punti del documento davano per finito.*
+
+⚠️ **Il giorno che verrà costruito**, dovrà passare dallo stesso punto che porta la guardia sulle scelte vuote, oppure portarsela dietro: altrimenti riaprirà da quella strada il difetto appena chiuso.
+
+*Descrizione della funzione, quando si farà:* apre lo stesso builder con il Roll già preselezionato, senza duplicare la logica.
 
 ## 27. FRITTI
 
@@ -2642,9 +2651,6 @@ separato. L'introduzione di ruoli/permessi admin distinti dallo staff è
   sotto).
 
 *Prima del go-live, in quest'ordine (Andrea, 06/08/2026):*
-- **la disponibilità della bibita nel menu combo** — difetto reale, forma e
-  decisioni in §23-26. Va prima degli altri due perché è l'unico dei tre che
-  ripara qualcosa invece di aggiungerlo;
 - **"togli dal menu"** — terzo stato accanto a disponibile ed esaurito, per
   l'articolo che esce dal menu senza essere esaurito. **Un solo tasto che fa e
   disfa**, come l'esaurito; premuto, l'articolo **sparisce** dal sito cliente
