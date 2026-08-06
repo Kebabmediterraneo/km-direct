@@ -12,24 +12,23 @@ Web app per ordini **delivery e ritiro** di **FAME Srl / KM Kebab Mediterraneo**
 (Bologna, store `san-mamolo`). Stack **Next.js 14 + Supabase + Stripe (sandbox)**.
 Repo: **github.com/Kebabmediterraneo/km-direct** (branch `main`, push via SSH).
 La fonte di verità di tutte le decisioni è **`MASTER_SPEC.md`** — versione attuale
-**v57** (leggila sempre dall'intestazione, riga 3).
+**v59** (leggila sempre dall'intestazione, riga 3).
 
 ---
 
 ## 2) Stato git
 
 - Branch **`main`**, working tree **pulita**, allineata a `origin/main`.
-- HEAD: **`254ffad`** — la spec v57 (05/08/2026).
+- HEAD: **`4a51fb7`** — la spec v59 (06/08/2026).
 - Ultimi commit (dal più recente):
 
 ```
-254ffad spec: v57 — tendina categorie con una regola sola perché leggerle dal database non è possibile, tre decisioni della Fase 3 con il rischio allergeni accettato, la pagina carrelli abbandonati esiste e non va costruita, referto mensile e perimetro dei documenti §63-64 §65 §69
-0411db5 spec: sfoltita passo 1 — via i 42 blocchi Novità dalla v14 alla v55, resta il solo blocco corrente; portate nel corpo le due voci che vivevano solo lì
-91f055f handoff: stato al 05/08 — conteggi riletti e ordine di prova del 04/08 registrato, puntatore alla v56 e HEAD allineati, quattro imprecisioni corrette, quattro lezioni nuove e la sezione 20
-1f74e8f spec: v56 — corretta la destinazione dei motivi di problema e annullamento, annullamento in sequenza da problema, due decisioni di §65 chiuse
-f5e9e8b handoff: giro sugli script di pulizia dati del 04/08 e stato dopo la v55
-1686c93 spec: v55 — i tre script di pulizia esistono, staccare invece di cancellare anche al go-live, sequenza di apertura fissata e chiave service_role verificata §65 §66 §69
-f54c29d sql: script di pulizia dati — azzeramento pre-go-live con freno sull'ultima prova, pulizia mensile degli ordini mai pagati, e referto dei conteggi di sola lettura §66 §69
+4a51fb7 spec: v59 — Fase 3 completa e provata dal vivo, Fase 4 e togli-dal-menu prima del go-live
+a51f7db menu: interfaccia della Fase 3 — rotta sottile che risolve store e client come le chiusure eccezionali, e modulo di creazione in linea sotto il Menu con la tendina categorie senza preselezione perché un Roll creato per inerzia sembrerebbe buono a menu, allergeni obbligatori solo sul cibo e posto proposto dopo l'ultimo della categoria
+975a078 menu: cuore della creazione articoli della Fase 3, con l'ordine di scrittura che lascia l'articolo «mai verificato» invece che «verificato e senza allergeni»; bevande esentate dagli allergeni anche in creazione perché la Fase 2A non le riaprirebbe più, elenco categorie unica fonte sotto lib con il pannello che lo importa, e tabella dietetica esportata invece che duplicata
+a974817 menu: modulo dello slug per la Fase 3 con le sei regole di §63-64 più il divieto di trattini doppi o ai bordi, provato sui sette slug delle salse già in database; la settima regola non la esercita nessun nome del menu e la & di Kaymak & miele la copre la riduzione degli spazi, non lei
+ee402eb spec: v58 — le tre copie delle categorie coincidono, quattro decisioni operative della Fase 3, la protezione di products vive solo sul database
+d2d72cf handoff: sfoltita passo 2 — le 48 lezioni raccolte in nove famiglie più cinque isolate, tutte le lettere conservate perché i rimandi non si rompano, e due lezioni nuove sul contare il netto e sul non tagliare per intervalli di righe
 ```
 
 *Nota ricorrente, non un errore*: l'HEAD scritto qui è sempre quello
@@ -786,15 +785,31 @@ l'unica che richieda di scrivere codice": era imprecisa, ed è la seconda volta
 che questo punto viene scritto male — fino alla v42 diceva "le prime due sono
 lavoro di codice", in contraddizione con la frase successiva.*
 
-**I due lavori fra cui scegliere:**
+**I lavori pre-go-live, nell'ordine deciso da Andrea il 06/08/2026:**
 
+- ⬜ **"Togli dal menu"** — terzo stato accanto a disponibile ed esaurito, per
+  l'articolo che esce dal menu senza essere esaurito. **Un solo tasto che fa e
+  disfa**; premuto, l'articolo **sparisce** dal sito invece di comparire spento;
+  ripremuto, torna disponibile e visibile, senza memoria dello stato precedente.
+  **Non cancella.** Richiede **una colonna nuova** (DDL: migrazione in `sql/`
+  eseguita da Andrea nel SQL editor) e una modifica al percorso di lettura del
+  menu cliente, che è la parte delicata. Forma completa in **spec §63-64 v59**.
+  ⚠️ *Resta da decidere col pannello davanti: come si distingue a schermo un
+  articolo fuori menu, in mezzo a tutti gli altri.*
+- ⬜ **Fase 4 — creazione/editing di Roll e Bowl con le loro opzioni**,
+  **scegliendo fra le proteine già esistenti**. ⚠️ **Spostata a prima del
+  go-live il 06/08/2026** (Andrea): inserire e sospendere Roll è per lui
+  attività **frequente**. *Fino alla v58 stava fra i lavori del dopo go-live, su
+  una frequenza d'uso presunta e mai chiesta.* **Primo passo obbligato**:
+  accertare sul codice se il residuo label→id di §25 tocchi davvero una Fase 4
+  ristretta alla scelta da elenco chiuso — verosimile che non la tocchi, **non
+  accertato**.
 - ⬜ **Tappa 3b di §46** — riverifica del tempo di preparazione e della
   **griglia dei quarti d'ora** (§46b, lavoro registrato), e unificazione delle
   **due costruzioni delle finestre orarie**. *Non era parte della condizione di
   apertura, ma vive nel percorso di pagamento: vale la regola di sempre, non si
   riapre quel file per una cosa sola.* ⚠️ **Da fare senza ancorarlo a una
   scadenza futura**: quella frase è già invecchiata due volte (spec §46b, v51).
-- ⬜ **Fase 3 — creazione di articoli semplici** (blocco più sotto).
 
 ⚠️ **L'aggiornamento dei documenti è parte della tappa, non un lavoro a parte**
 (regola di Andrea, 01/08/2026): una tappa non è chiusa finché spec e handoff non
@@ -820,14 +835,12 @@ In più la Fase 3 crea articoli, e un articolo ha un prezzo: costruire il modo
 di aggiungere prezzi nuovi prima del controllo che il prezzo mostrato sia
 quello addebitato è l'ordine sbagliato.
 
-### Poi — Fase 3: creazione di articoli semplici
+### FATTA — Fase 3: creazione di articoli semplici
 
-⚠️ **Non è un extra rimandabile.** Non è una *condizione di apertura* — non è
-in quell'elenco — ma §63-64 la colloca fra i lavori **pre-go-live**, e il
-blocco di stato della v40 lo dice testualmente: prima del go-live resta la sola
-Fase 3, che non è ancora iniziata. Letto da solo, fino alla v42 questo
-documento la faceva sembrare facoltativa. **Va fatta prima di aprire**, subito
-dopo §46.
+✅ **Chiusa il 06/08/2026**, costruita in tre commit, **provata dal vivo da
+Andrea con sette prove a schermo** e ripulita lo stesso giorno. Il racconto sta
+al **punto 21**; qui restano le sole correzioni a ciò che questo elenco diceva
+quando era un to-do.
 
 Prodotti (fritti, sides, dolci, drink) **e salse**, che ora sono la stessa cosa.
 Dichiarazione allergeni obbligatoria alla creazione: o gli allergeni, o la
@@ -923,7 +936,6 @@ carrello**, non sulla riga.
 
 - editing dei **contenuti del combo** — richiede prima la conversione delle label
   a id (§25, residuo noto);
-- **Fase 4**: creazione/editing di Roll/Bowl con opzioni;
 - **creazione di nuovi tipi di menu combo** (richiede un motore generico di
   composizione: fino ad allora, intervento una tantum sul codice);
 - **ruoli/permessi** staff vs admin;
@@ -1173,7 +1185,7 @@ Pulizia in **due strumenti separati** invece di uno (rovescia §69 v53) · ordin
 
 **bg. ⚠️ Una frase di un fornitore non è un dato da cui calcolare.** La pagina dei backup dice che le copie si prendono "intorno alla mezzanotte della regione del progetto". Gli orari erano le 07:36 UTC, che in Irlanda non è mezzanotte: da lì è nata l'ipotesi che il database fosse negli Stati Uniti, con l'informativa che avrebbe dichiarato il falso in due punti. **Il campo Region diceva Irlanda.** La frase era approssimativa. *È la famiglia delle lezioni `ap` e `av` in forma nuova: là la sonda era costruita sulla forma attesa di un file, qui il calcolo era costruito sulla frase di un'interfaccia. Il rimedio è lo stesso — si legge il campo, non si deduce dall'orario — e il costo è stato due messaggi, perché l'ipotesi era stata dichiarata come ipotesi e non come fatto.*
 
-**bh. ⚠️ Un referto che finisce a 100 righe esatte non è un referto completo.** L'editor SQL della dashboard tronca a 100. Il primo giro sulle colonne si è fermato a `orders` colonna 32 e **sembrava una risposta**: mancavano tredici tabelle intere, fra cui proprio quella che serviva. È la lezione `aq` spostata sullo strumento — là una variabile vuota faceva corrispondere tutto, qui un limite silenzioso fa sembrare finito ciò che è a metà. *Rimedio: contare le righe attese prima di leggere il contenuto, e diffidare del numero tondo.*
+**bh. ⚠️ Un referto che finisce sul numero tondo non è un referto completo.** L'editor SQL della dashboard tronca. ⚠️ **Il numero è cambiato: 500, misurato il 06/08/2026; era 100 quando questa lezione è stata scritta.** *È la lezione stessa applicata a sé: la cifra è un dato dello strumento e invecchia, la diffidenza no.* Il primo giro sulle colonne si è fermato a `orders` colonna 32 e **sembrava una risposta**: mancavano tredici tabelle intere, fra cui proprio quella che serviva. È la lezione `aq` spostata sullo strumento — là una variabile vuota faceva corrispondere tutto, qui un limite silenzioso fa sembrare finito ciò che è a metà. *Rimedio: contare le righe attese prima di leggere il contenuto, e diffidare del numero tondo.*
 
 **Una terza, dal lato di chi scrive i comandi**: l'elenco delle righe **rimosse** attese nel comando di copia della v54 era sbagliato — dichiarava due zone quando erano quattro, dimenticando che la riga 3 va sostituita e che un `+1` netto si ottiene sostituendo una riga con due. Code l'ha segnalato senza fermarsi, correttamente. *È la lezione `ak`: ciò che un comando dichiara come atteso si ricava dal diff, non a memoria — e chi scriveva aveva il diff davanti.*
 
@@ -1308,3 +1320,86 @@ sicuro. *È il modo in cui un risultato vuoto smette di essere ambiguo (lezioni
 * **l'asimmetria della risoluzione**, che non scrive nel registro azioni
   mentre segnalazione e annullamento sì. Registrata in spec §62b v56 come
   limite noto, fuori dai lavori pre-go-live.
+
+---
+
+## 21) La Fase 3, dalla costruzione alla pulizia (06/08/2026)
+
+### 21a) Cosa è stato costruito
+
+Tre commit, nella forma che §63-64 già imponeva: modulo puro sotto `lib/`, rotta
+sottile, form **in linea** nella sezione Menu del pannello.
+
+* `lib/menu-slug.js` — generazione dello slug, con le sue prove;
+* `lib/menu-create.js` — il cuore della creazione, con le sue prove; accanto,
+  `lib/menu-categories.js` e `lib/menu-dietary.js`, che diventano la **fonte
+  unica** di elenco categorie e tabella dietetica;
+* `app/api/staff/menu/create/route.js` più il modulo a schermo nel pannello.
+
+⚠️ **Il debito che questa fase ha reso visibile, e che va saputo prima di
+toccare Fase 1 o Fase 2A**: `lib/menu-create.js` riceve il client del database
+**come parametro** invece di importarlo, ed è questo — non altro — che lo rende
+verificabile da una prova automatica. **Fase 1 e Fase 2A non hanno prove proprio
+perché importano `supabase-admin.js`**, che crea il client al caricamento del
+modulo. *Sistemarlo sbloccherebbe le prove di due fasi già in produzione: non è
+un abbellimento.*
+
+### 21b) Le prove dal vivo
+
+Sette, tutte superate, eseguite da Andrea sul server di sviluppo: modulo vuoto
+col pulsante spento; comparsa di allergeni e selettore dietetico scegliendo una
+categoria di cibo; loro **sparizione** scegliendo una bevanda; **collisione
+dello slug rifiutata senza lasciare traccia**; bevanda creata e ritrovata **in
+fondo** alla sua categoria; articolo di cibo creato con allergeni e ritrovato
+sul sito cliente; riapertura dal modulo allergeni con le caselle come lasciate.
+
+### 21c) Le decisioni nuove di Andrea (tutte del 06/08/2026, tutte in spec v59)
+
+* **La Fase 4 si sposta a prima del go-live** — inserire e sospendere Roll è
+  attività frequente. La collocazione precedente nasceva da una frequenza d'uso
+  **presunta e mai chiesta**.
+* **La Fase 4 sceglie fra le proteine già esistenti**, non ne crea di nuove.
+* **Prima della Fase 4 si costruisce "togli dal menu"**, che è indipendente e
+  molto più piccolo.
+* **Le bevande sono esentate dagli allergeni anche in creazione** — prezzo
+  accettato: una birra creata dal pannello non porta l'informazione sul glutine.
+
+### 21d) La pulizia degli articoli di prova
+
+I due articoli creati sono stati cancellati con uno script **usa-e-getta**, in
+tre passaggi: ricognizione di sola lettura, anteprima che non scrive,
+cancellazione. ⚠️ **Non è stato salvato in `sql/`**, come §69 impone per gli
+strumenti che cancellano articoli.
+
+* **Gli agganci a `products` sono OTTO, non sei**: ai cinque delle opzioni e
+  agli allergeni si aggiungono `combo_drink_options.drink_product_id` e
+  `combo_pricing.roll_product_id`. Sette sono in cascata; **`order_items` è
+  l'unico `NO ACTION`**, quindi il database rifiuta di cancellare un articolo
+  che sia stato ordinato — anche una sola volta, anche per prova.
+* **Le righe di `staff_action_log` restano**, e citano articoli che non
+  esistono più. È §66 che funziona come deve, non un residuo da pulire.
+* ⚠️ **La tabella `product_choice_options` porta un vincolo che si chiama ancora
+  `product_protein_options_product_id_fkey`.** Non tocca nulla oggi, ma è la
+  traccia di una tabella nata per le sole proteine e poi allargata: *è il primo
+  posto da guardare quando si aprirà la Fase 4 e si andrà a cercare il residuo
+  label→id.*
+
+### 21e) Due lezioni di metodo
+
+**bp. ⚠️ Fra il riquadro dell'editor SQL e il database, un testo lungo può
+arrivare tronco.** Il primo invio dello script di cancellazione è stato
+rifiutato per un blocco "mai chiuso": il testo ricevuto si interrompeva a metà
+riga, con in coda i commenti che la dashboard aggiunge. Il secondo invio dello
+**stesso identico testo** è passato intero. *Causa non accertata. La conseguenza
+pratica sì, ed è quella che conta: l'errore arriva prima di qualunque scrittura,
+quindi non lascia stati a metà — tranne nel caso in cui il taglio cadesse dopo
+il `commit`, dove il lavoro sarebbe fatto e mancherebbe solo il referto. In quel
+caso non si rilancia: si guarda.*
+
+**bq. ⚠️ Il file scaricato col nome semplice era quello VECCHIO.** In
+`Downloads` convivevano `MASTER_SPEC.md` (la v58, già nel repository) e
+`MASTER_SPEC_1.md` (la v59). Ha deciso l'**impronta**, non il nome né la data.
+*Se avesse deciso il nome, il `cp` avrebbe ricopiato la v58 su sé stessa e il
+diff sarebbe risultato **vuoto** — un esito che si legge come "niente da fare"
+invece che come "hai preso il file sbagliato". È il motivo per cui l'impronta
+attesa va scritta nel comando, sempre.*
