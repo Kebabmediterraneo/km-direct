@@ -1,6 +1,6 @@
 # KM DIRECT — MASTER SPECIFICATION
 
-**Versione 59** — sostituisce la v58.
+**Versione 60** — sostituisce la v59.
 
 Documento di riferimento definitivo per lo sviluppo. Le decisioni qui
 contenute sono approvate: non vanno reinterpretate senza un motivo concreto
@@ -22,48 +22,58 @@ versione corrente**. I precedenti vivono in `git log`, che è fatto per quello.
 del documento prima che cominciasse a parlare del progetto — e dentro c'erano
 istruzioni rovesciate che nessuno rileggeva.*
 
-**Novità della v59** (vincolanti, dalle decisioni del 06/08/2026 e dalla Fase 3
-costruita, provata dal vivo e ripulita nello stesso giorno):
+**Novità della v60** (vincolanti, dalla ricognizione di sola lettura del
+06/08/2026 su percorso di lettura del menu e disponibilità, e dalle decisioni
+che ne sono seguite):
 
-1. §63-64 — ✅ **la Fase 3 è COMPLETA e verificata dal vivo** (06/08/2026):
-   sette prove a schermo superate, due articoli veri creati e ritrovati sul sito
-   cliente, collisione dello slug rifiutata **senza lasciare traccia**. Gli
-   articoli di prova sono stati cancellati lo stesso giorno con uno script
-   usa-e-getta (§69), a controlli passati e con il registro azioni intatto.
-2. §63-64 — ⚠️ **la Fase 4 si sposta a PRIMA del go-live** (Andrea, 06/08/2026).
-   Inserire e sospendere Roll è per lui attività **frequente**, e un pannello si
-   costruisce prima di un'attività ricorrente, non dopo. *Fino alla v58 questo
-   documento la collocava dopo il go-live, su una frequenza d'uso presunta e mai
-   chiesta.*
-3. §63-64 — **la Fase 4 sceglie fra le proteine già esistenti e non ne crea di
-   nuove** (Andrea, 06/08/2026): una proteina nuova resta un intervento una
-   tantum sul codice. ⚠️ *Se il residuo label→id di §25 tocchi o no una Fase 4
-   così ristretta è **da accertare sul codice**, ed è la prima verifica di quel
-   lavoro. Che scegliere da un elenco invece di scrivere annulli il rischio è
-   verosimile, non accertato.*
-4. §63-64 — **prima della Fase 4 si costruisce "togli dal menu"** (Andrea,
-   06/08/2026): terzo stato accanto a disponibile ed esaurito, un solo tasto che
-   fa e disfa, e l'articolo **sparisce** dal sito invece di comparire spento. È
-   indipendente dalla Fase 4 e molto più piccolo.
-5. §63-64 — ⚠️ **la Fase 3 non costruisce Roll né Bowl, e ora è un fatto visto,
-   non previsto**: un Roll creato con essa esiste, si apre, e **non ha alcuna
-   scelta** — nessuna proteina, nessun ingrediente da togliere, nessuna aggiunta.
-   La tendina senza preselezione non lo impedisce: rende meno naturale arrivarci,
-   non impossibile.
-6. §63-64 — **le bevande sono esentate dagli allergeni anche in CREAZIONE**
-   (Andrea, 06/08/2026), non solo in modifica. ⚠️ *Prezzo accettato: una birra
-   creata dal pannello non porta l'informazione sul glutine.*
-7. §63-64 — **l'elenco delle categorie passa da tre copie a due**: la fonte unica
-   vive sotto `lib/` e il pannello la importa. La prova decisa in v57 confronta
-   quindi **due** copie, non tre.
-8. §66 — ⚠️ **l'editor SQL della dashboard restituisce fino a 500 righe, non
-   100.** La lezione non cambia — un referto che finisce sul numero tondo va
-   sospettato — ma il numero da sospettare è un altro.
+1. §23-26 — ⚠️ **DIFETTO REALE, PRE-APERTURA: una bibita esaurita resta
+   scegliibile dentro il menu combo, e il pagamento la accetta.** Letto sul
+   codice: la tendina delle bibite del combo filtra su
+   `combo_drink_options.is_available` — **la colonna di quella tabella, non
+   quella del prodotto** — e `products.is_available` non viene nemmeno portato
+   al browser dal join. Al pagamento vale lo stesso: il risolutore controlla la
+   disponibilità del prodotto singolo e del Roll del combo, **non della
+   bibita**. *Contorni e Roll sono invece a posto.*
+2. §23-26 — ⚠️ **e la colonna che viene controllata non la scrive nessuno**:
+   nessuna schermata del pannello può toccare `combo_drink_options.is_available`
+   — la rotta della disponibilità mappa il solo `products`. Sul database vivo,
+   il 06/08/2026, era **`true` su tutte le righe**. Il difetto è quindi aperto
+   **per costruzione**, non per una svista su una riga.
+3. §23-26 — ✅ **DECISIONE (Andrea, 06/08/2026): una sola disponibilità, quella
+   del PRODOTTO.** La tendina del combo e il risolutore del pagamento guardano
+   `products.is_available`. *Si rinuncia a poter dire "questa bibita c'è, ma non
+   nel combo" — che oggi non è comunque esprimibile da nessuna schermata.
+   Alternativa scartata: un secondo comando nel pannello, che avrebbe aggiunto
+   una cosa da ricordare a ogni esaurimento e riportato il difetto il giorno che
+   qualcuno se ne dimentica.*
+4. §23-26 — ✅ **DECISIONE (Andrea, 06/08/2026): un combo già nel carrello con
+   una bibita diventata non disponibile viene TOLTO, con il motivo scritto**,
+   come già accade per gli articoli semplici. *Il carrello sopravvive alla
+   chiusura del browser: senza questa regola il caso si presenta da solo.*
+5. §23-26 — ⚠️ **la bibita del combo, nella riga d'ordine, è registrata SOLO
+   COME NOME.** `order_items.product_id` di una riga di combo punta al **Roll**;
+   la bibita vive dentro `configuration` come stringa. ⚠️ **Il commento di
+   `km_direct_schema.sql` dichiara il contrario** — mostra un `product_id`
+   dentro `configuration.drink` — **e vince il codice**, che è ciò che ha scritto
+   i dati esistenti. *Conseguenza: qualunque analisi retrospettiva sugli ordini
+   di combo aggancia le bibite per nome, e un articolo rinominato dopo l'ordine
+   non si aggancia più.*
+6. §63-64 — **l'ordine dei lavori pre-go-live diventa TRE** (Andrea,
+   06/08/2026): prima la bibita del combo, poi "togli dal menu", poi la Fase 4.
+7. §63-64 — ✅ **il menu del cliente si legge da UN SOLO punto**, e **nessuna
+   query filtra `products.is_available` sul server**: arriva tutto al browser e
+   gli esauriti si disegnano spenti. *Fatto utile a "togli dal menu": nascondere
+   un articolo si fa dove già si nasconde l'upsell delle salse.*
+8. §66 — ⚠️ **il reset notturno della disponibilità non scrive nel registro
+   azioni.** Rimette tutti i prodotti a disponibile e non lascia traccia: il
+   registro non permette quindi di ricostruire per quanto tempo un articolo sia
+   stato davvero esaurito. *È il motivo per cui l'indagine sugli ordini già
+   avvenuti è stata giudicata inutile e non è stata eseguita.*
 
 *Il conteggio delle condizioni di apertura non cambia: **quattro chiuse, cinque
 aperte**. La procedura mensile di §69 conserva la sola prima esecuzione. I
-lavori pre-go-live che restano sono due — "togli dal menu" e la Fase 4 — e
-nessuno dei due è condizione di apertura.*
+lavori pre-go-live che restano sono **tre** — la bibita del combo, "togli dal
+menu" e la Fase 4 — e nessuno dei tre è condizione di apertura.*
 
 ## 1. Visione del progetto
 
@@ -736,6 +746,16 @@ si rompe e nessun prezzo sbaglia, ma il cliente vedrebbe due nomi diversi
 per la stessa cosa. Chi usa l'editor deve saperlo. L'allineamento dei due
 nomi resta manuale finché non esisterà l'editor dei contenuti del combo
 (rimandato a dopo il go-live, §63-64).
+
+**La disponibilità dentro il combo — difetto e decisione (06/08/2026, vincolante)**
+
+⚠️ **Il difetto, letto sul codice.** La tendina delle bibite del builder filtra su `combo_drink_options.is_available`, cioè sulla colonna **di quella tabella**; il join verso `products` porta nome e prezzo e **non** `is_available`, quindi il browser non ha nemmeno il dato per accorgersene. Al pagamento vale lo stesso: il risolutore filtra la disponibilità del prodotto singolo e del Roll del combo, e **non quella della bibita**. ⚠️ **E la colonna che viene controllata non è scrivibile da nessuna schermata**: la rotta della disponibilità del pannello mappa il solo `products`. *Conseguenza: una bibita segnata esaurita mostra il pulsante spento sulla sua card e resta selezionabile nel combo, dove viene venduta — con il supplemento, se è una di quelle che ce l'hanno.* **Contorni e Roll non hanno questo difetto**: i contorni non sono prodotti e hanno una disponibilità propria, filtrata sia nel browser sia sul server; il Roll è filtrato su `products` in entrambi i punti.
+
+✅ **La decisione (Andrea, 06/08/2026): una sola disponibilità, quella del PRODOTTO.** La tendina del combo e il risolutore del pagamento guardano `products.is_available`. Il controllo va messo **in entrambi i punti**: il browser perché il cliente non veda ciò che non può avere, il server perché è la rete sotto agli errori del browser — ed è già la forma che il risolutore usa per prodotto singolo e Roll. ⚠️ *Si rinuncia a poter esprimere "questa bibita c'è, ma non nel combo". **Alternativa scartata**: un secondo comando nel pannello per governare la presenza nel combo. Sarebbe più espressivo e sarebbe una cosa in più da ricordare a ogni esaurimento: il giorno che qualcuno se ne dimentica, il difetto è di nuovo qui, con in più uno strumento che dava l'impressione di averlo risolto. Con un interruttore solo, dimenticarsi non è possibile.*
+
+✅ **Il carrello (Andrea, 06/08/2026):** un combo già nel carrello la cui bibita diventa non disponibile viene **tolto, con il motivo scritto**, esattamente come già accade per gli articoli semplici. *Il carrello sopravvive alla chiusura del browser (§36-40): senza questa regola il caso non è teorico, si presenta da solo alla prima riapertura.*
+
+⚠️ **La bibita del combo, nella riga d'ordine, esiste solo come NOME.** `order_items.product_id` di una riga di combo punta al **Roll**; la bibita sta dentro `configuration` come stringa. **Il commento di `km_direct_schema.sql` dichiara un `product_id` che il codice non scrive**, e vince il codice: è quello che ha prodotto i dati esistenti. *Va saputo prima di provare a rispondere a domande sugli ordini passati: l'aggancio è per nome, e un articolo rinominato dopo l'ordine non si aggancia più. Non è in contraddizione con la regola dell'identità qui sopra, che governa i **collegamenti** fra prezzi e prodotti — quelli usano l'`id` davvero — ma la fotografia scritta nell'ordine no.*
 
 ## 26. Shortcut "Fallo combo"
 
@@ -2622,6 +2642,9 @@ separato. L'introduzione di ruoli/permessi admin distinti dallo staff è
   sotto).
 
 *Prima del go-live, in quest'ordine (Andrea, 06/08/2026):*
+- **la disponibilità della bibita nel menu combo** — difetto reale, forma e
+  decisioni in §23-26. Va prima degli altri due perché è l'unico dei tre che
+  ripara qualcosa invece di aggiungerlo;
 - **"togli dal menu"** — terzo stato accanto a disponibile ed esaurito, per
   l'articolo che esce dal menu senza essere esaurito. **Un solo tasto che fa e
   disfa**, come l'esaurito; premuto, l'articolo **sparisce** dal sito cliente
@@ -2885,6 +2908,14 @@ Precedute da una ricognizione di sola lettura su codice e database vivo. **I val
 **La tendina delle categorie parte VUOTA** (decisione del 06/08/2026, scritto il codice). ⚠️ *Motivo: una preselezione su "Roll" renderebbe **naturale** creare un Roll privo di opzioni, che è esattamente ciò che la Fase 3 non sa fare. `roll` e `bowl` restano nell'elenco — toglierli renderebbe la tendina diversa dal menu vero — si toglie solo la preselezione.* **Non basta**: il 06/08 un Roll senza scelte è stato creato lo stesso, provando la Fase 3. La tendina vuota alza il costo dell'errore, non lo impedisce; a impedirlo sarà la Fase 4.
 
 ⚠️ **Non esistono articoli in bozza, e non potrebbero esistere.** La decisione del 05/08 li esclude già — l'articolo nasce disponibile — ma va registrato che non sarebbero realizzabili nemmeno volendo: la regola di lettura pubblica su `products` è **senza condizioni** (§66), quindi una bozza sarebbe visibile al sito cliente dall'istante del salvataggio. Non per una svista del sito: perché il database dice di sì a tutto. Renderla possibile significherebbe **cambiare la regola sul database**, non il codice.
+
+### Il percorso di lettura del menu cliente (ricognizione del 06/08/2026)
+
+✅ **Il menu del cliente si legge da UN SOLO punto**, una funzione nella pagina cliente che legge nove tabelle in parallelo. Tutti gli altri percorsi che leggono `products` servono il pannello staff, il pagamento o il reset notturno, **non** la pagina del cliente.
+
+⚠️ **Nessuna query filtra `products.is_available` sul server, per il menu**: arriva tutto al browser, e ciò che si vede è disegno — la card resta, il pulsante si spegne. L'unico filtro server sulla disponibilità dei prodotti è **al pagamento**. *Fatto che serve a "togli dal menu": far sparire un articolo si fa nel browser, dove già si nascondono l'upsell delle salse e i Roll non disponibili del combo, senza toccare il server.* ⚠️ **Ma il pagamento va comunque coperto**, con la stessa logica per cui la bibita del combo lo è: il browser è ciò che si vede, il server è ciò che vale.
+
+⚠️ **La rotta della disponibilità è l'unica delle quattro rotte del menu senza cuore sotto `lib/`**: la logica sta tutta nella rotta, e non è quindi verificabile da una prova automatica. Fase 1, 2A e 3 hanno il modulo separato. *Chi costruirà "togli dal menu" copi la forma lato server da lì, ma la **provabilità** dalla Fase 3.*
 
 ### Fase 3 — esito della costruzione e della prova dal vivo (06/08/2026)
 
