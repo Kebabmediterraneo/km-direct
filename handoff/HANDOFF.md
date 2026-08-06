@@ -172,384 +172,159 @@ r. **Gli id non si cambiano mai in migrazione.** È ciò che ha reso banale il
    trasferimento degli allergeni e che ha permesso al carrello di continuare a
    funzionare mentre il codice veniva adeguato un pezzo alla volta.
 
-**Lezioni di verifica (da non ripetere)**
+**Lezioni di verifica — nove famiglie**
 
-s. **Mai ricostruire un elenco per differenza.** L'elenco dei residui di test è
-   stato sbagliato **due volte**, sempre sottraendo conteggi invece di leggere
-   le righe. Si legge dal database, uno per uno, con le date.
-t. **Quando una verifica non è possibile, va dichiarata, non aggirata.** È
-   successo più volte: nullabilità e vincoli non leggibili via API, `route.js`
-   non importabili fuori da Next, interruzione a metà non simulabile. La
-   dichiarazione permette di decidere se il rischio residuo è accettabile.
-u. **Anche lo strumento di verifica può mentire.** Un probe ha segnalato come
-   esistenti due tabelle già cancellate: il difetto era nel probe. Davanti a un
-   risultato che contraddice una verifica precedente si indaga il dato grezzo
-   prima di concludere.
-v. **Attenzione a "verificato sul codice vero".** Se il modulo non è
-   importabile, provarne una copia **non dimostra l'instradamento**: dimostra
-   solo il calcolo. Vale come verifica parziale e va chiusa da una prova dal
-   vivo.
-w. ⚠️ **Un controllo che non può fallire non sta controllando.** `node --check`
-   **non verifica i file JSX**: se il file contiene `import`, Node lo tratta come
-   modulo ESM e restituisce esito positivo **anche su JSX palesemente rotto**
-   (provato il 29/07/2026). Per i file con JSX — `app/page.js`,
-   `app/staff/page.js` — il compile-check si fa con **`next build`**. Per i
-   moduli `lib/` resta valido eseguirli davvero.
-x. **Una ricognizione lasciata a metà non lascia un buco, lascia assunzioni.**
-   Due domande poste il 28/07/2026 e mai riprese hanno prodotto due errori
-   distinti in spec, a una settimana di distanza (§34-35, nota di metodo v35).
-   Una domanda senza risposta va **riproposta**, non superata.
-y. **Spegnere il server dopo ogni verifica dal vivo.** Un `next dev` rimasto
-   acceso da una sessione precedente ha fatto perdere tempo a inseguire un 404
-   che non c'entrava con il lavoro in corso.
+⚠️ **Il 05/08/2026 le 48 lezioni sono state raccolte in nove famiglie più cinque
+isolate.** Dicevano in gran parte la stessa cosa da angolazioni diverse: `at`
+dichiarava di essere `ak` in altra forma, `bl` di essere `z` "in forma
+documentale", e `w` e `av` la stessa regola a undici mesi di distanza.
 
-**Lezioni aggiunte il 29/07/2026 (lavoro sul carrello)**
+⚠️ **Le lettere sono conservate tutte**, perché i due documenti vi rimandano per
+lettera: chi cerca la lezione `bc` deve trovarla. **Il testo però è uno per
+famiglia**, e l'episodio che l'ha generata resta solo dove insegna qualcosa che
+la regola generale non dice. *Le versioni per esteso sono nel deposito, ultima
+integra al commit `254ffad`.*
 
-z. **Un elenco si costruisce interrogando tutte le tabelle, non ricordando
-   quali si sono toccate.** È il seguito della lezione `s`, e serviva: la v33
-   aveva **riletto** i numeri dal database, ma solo dentro le tabelle che
-   qualcuno ricordava di aver usato, e ne mancavano **tre intere**
-   (`customers`, `order_status_history`, `promo_redemptions`). Rileggere non
-   basta se non si sa dove rileggere.
-aa. **Prima di riscrivere un documento col metodo file, verificarne
-   l'impronta.** La copia dell'handoff caricata all'inizio della sessione del
-   29/07 era ferma alla **v33** mentre il repo era alla **v35**: riscriverla
-   avrebbe riportato indietro tutto in silenzio, con un diff pieno di modifiche
-   che nessuno aveva chiesto. Si confrontano `wc -l`, `wc -c` e `sha256sum`
-   prima di partire, e si riparte dal file del repo.
-ab. **Una prova dal vivo va descritta indicando esattamente quale comando
-   premere.** Una verifica scritta male ("premi −") ha fatto usare ad Andrea un
-   pulsante diverso da quello previsto, facendo sembrare fallita una modifica
-   riuscita. L'imprecisione era nella prova, non nella risposta — e ha comunque
-   fatto emergere un difetto vero (il punto 5 della v36). Quando un esito non
-   torna, il primo sospettato è la prova.
-ac. **Prima di provare un percorso di rifiuto, verificare sul codice che non
-   scriva nulla.** Le tre prove HTTP sulla validazione delle variazioni sono
-   state precedute dal controllo che il rifiuto avvenga **prima** di ogni
-   scrittura; verificato dopo, il database era intatto. Il percorso
-   **positivo**, invece, crea un ordine e va deciso apertamente: costa un
-   residuo di prova in più (punto 11).
+---
 
-**Lezioni aggiunte il 30/07/2026 (ciclo dei prezzi)**
+**1 — `w` `u` `ap` `aq` `av` `an` `bb` `bc` `bh` `bm`: una sonda che non può
+fallire non sta controllando, e una che non trova non ha detto "non c'è".**
 
-ad. ⚠️ **Un rifiuto ottenuto per il motivo sbagliato sembra un successo.**
-   Provando che il server rifiutasse l'extra carne con la proteina sbagliata,
-   il primo tentativo era privo di accompagnamento e sarebbe stato respinto
-   comunque da §21, **prima** di arrivare al controllo cercato. Il 400 sarebbe
-   stato scambiato per la prova che la regola funzionava. Una prova di rifiuto
-   vale solo se è **attribuibile**: si costruisce partendo da un payload che
-   passa e si cambia **un campo solo**, come fatto poi riusando quello di
-   `KM-0010` con il solo `extraMeat` aggiunto.
-ae. **Una conclusione sbagliata che torna non si corregge ricordandosene.**
-   Durante il ciclo dei prezzi la conclusione "i due calcoli ora coincidono,
-   quindi §46 è risolto" è ricomparsa **tre volte**, sempre nella stessa forma
-   e sempre in buona fede: è una scorciatoia ragionevole che salta un
-   passaggio. Correggerla a voce non è servito. È stata chiusa **scrivendola in
-   spec** con la frase che toglie l'ambiguità (§46, v38: "va tolto da questo
-   elenco solo quando quel confronto sarà implementato e verificato"). Quando
-   un errore si ripete, il rimedio è il documento, non l'attenzione.
-af. **Una fotografia di verifica non si rigenera dopo la modifica.** La fixture
-   dei 609 prezzi vale perché è stata scattata **prima** ed è rimasta ferma:
-   rigenerarla dopo un cambiamento la farebbe coincidere sempre, e non
-   dimostrerebbe più nulla. Per lo stesso motivo il test non interroga il
-   database: un test che rilegge i prezzi vivi fallirebbe al primo cambio dal
-   pannello e verrebbe **disattivato invece che ascoltato**.
-ag. **Un'opzione si identifica dal dato che la caratterizza, mai dalla sua
-   posizione.** È la convenzione già in uso nel server (la label della
-   proteina, del contorno, l'id della bibita) ed è stata estesa all'extra carne
-   con `requires_protein` (§22, v38). "Prendi la prima riga" funziona finché le
-   righe sono una sola, e smette di funzionare in silenzio.
+Ogni risultato negativo va accompagnato da una **controprova** su un caso che
+esiste di sicuro: se la stessa sonda, puntata su un bersaglio noto, non lo trova,
+lo zero non è una risposta ma una cecità. E la sonda va costruita **sulla forma
+vera del file**, letta prima: un filtro tarato su come ci si immagina il testo
+misura le proprie aspettative.
 
-**Lezione aggiunta il 30/07/2026 (persistenza)**
+*Le forme in cui è già costata:* un `includes` che non conta ciò che il documento
+manda a capo dentro la frase (`bc`); una variabile vuota che nel filtro
+corrisponde a **tutto** invece che a niente (`aq`); un guard che confrontava
+numeri come testo e falliva su un file integro (`an`); un conteggio che non
+vedeva le righe vuote, e un altro che saltava le righe di separazione — due
+volte lo stesso difetto, entrambe nel dichiarare gli attesi di un diff (`bm`); un
+referto troncato a cento righe che sembrava completo (`bh`); un guard che non
+poteva fallire come dichiarava (`bb`); e **lo strumento di verifica stesso che
+mente** (`u`).
 
-ah. ⚠️ **Le decisioni chiuse si ripresentano come aperte, e vanno richiuse
-   ogni volta.** Nel riepilogo di fine lavoro le decisioni già prese
-   dall'utente sono state elencate come "in sospeso" **tre volte** (indirizzo,
-   sconto, refactoring dello stato del checkout). È il cugino della lezione
-   `ae`: là era una conclusione sbagliata che tornava, qui è una decisione
-   presa che sparisce. Il rimedio è lo stesso — **scriverla nel documento**, a
-   nome di chi l'ha presa e con la data — e il riflesso da tenere è: prima di
-   rimettere una cosa nell'elenco degli aperti, cercarla in spec e
-   nell'handoff.
+**2 — `at` `ak` `az` `aw` `ay` `bk`: ciò che si può eseguire non si ricorda e non
+si rilegge.**
 
-**Lezioni aggiunte il 30/07/2026 (allineamento della spec alla v40)**
+Un conteggio si esegue, non si `grep`a. Ciò che un comando dichiara va letto dal
+file, non dalla memoria di chi l'ha scritto. E **quando un documento descrive il
+codice, quella descrizione è una supposizione finché il codice non la conferma**
+— vale prima di pubblicarla (`ay`) e **anche prima di usarla come premessa di un
+ragionamento** (`bk`).
 
-ai. ⚠️ **Il file da copiare si identifica dall'impronta, mai dal nome.**
-   Scaricando la v40, il browser ha salvato `MASTER_SPEC_10.md` e ha lasciato
-   in `~/Downloads` un `MASTER_SPEC.md` **del 28/07 fermo a 2277 righe** —
-   undici versioni indietro. Un comando che avesse detto "copia
-   `MASTER_SPEC.md` dai download" avrebbe riportato indietro tutto in
-   silenzio, con un diff enorme che nessuno aveva chiesto. È la lezione `aa`
-   un passo più in là: là si verificava l'impronta del documento **prima di
-   riscriverlo**, qui quella del file **prima di copiarlo**. Il comando deve
-   dare **sha256, `wc -l` e `wc -c` attesi** e ordinare di fermarsi se anche
-   uno solo non combacia. *Il file vecchio è ancora lì e la trappola si
-   riarma a ogni aggiornamento col metodo file.*
-aj. **Una nota di stato lasciata indietro non invecchia in silenzio: mente
-   con l'autorità del documento.** §46b dichiarava dalla v14 che il controllo
-   server sul Ritiro non esisteva. Era vera quando fu scritta e **falsa dal
-   24/07/2026**, quando il guard fu aggiunto; nessuno l'aveva più guardata. Il
-   30/07 ha prodotto un sospetto di buco inesistente e un giro di verifica —
-   che è il costo *basso*: lo stesso testo, riletto fra un anno, avrebbe
-   prodotto un lavoro per costruire una cosa già costruita. Il rimedio non è
-   rileggere di più, è **tenere lo stato fuori dalla spec**: la v40 ha
-   riscritto quel blocco e ha spostato qui la fotografia dei residui (punto
-   11). *La spec tiene le decisioni, l'handoff tiene lo stato.* Le stesse
-   note stantie erano in §63-64 e §67, che descrivevano come da fare le Fasi
-   2A e 2B già concluse.
+⚠️ *Il caso peggiore, da tenere presente ogni volta:* la **v46 fu pubblicata con
+una descrizione falsa della sua regola più pericolosa**. La frase suonava giusta,
+era coerente, l'aveva scritta chi il codice l'aveva appena toccato. L'ha smentita
+solo l'esecuzione (`aw`).
 
-**Lezioni aggiunte il 30/07/2026 (persistenza del checkout)**
+**3 — `aj` `ah` `am` `ae` `be` `bl` `bf`: una nota di stato lasciata indietro
+mente con l'autorità del documento.**
 
-ak. ⚠️ **Ciò che un comando dichiara come atteso va letto dal file, mai
-   ricordato — e va citato per intero.** In una sola giornata lo stesso
-   difetto si è presentato **quattro volte**, sempre da parte di chi scriveva
-   i comandi e mai del codice: l'elenco delle zone attese di un diff ricavato
-   a memoria (due zone collocate male); la forma `{ ok }` attribuita a
-   `cart-persistence`, che invece la consuma soltanto; due righe rimosse
-   descritte come "voci dell'elenco" quando una era la coda di una nota. La
-   quarta è la più insidiosa perché **il fatto citato era vero**: la
-   validazione dell'orario in `computeScheduledDeliveryAt` è stata citata
-   riportando la sola regex di riga 243 e tacendo la riga 246, che rifiuta
-   `24:00` e `12:60` — chi legge conclude ragionevolmente il contrario del
-   vero. *Una citazione parziale è più pericolosa di una sbagliata: non
-   suona falsa.* Il rimedio è meccanico: l'elenco delle zone si ricava dal
-   diff, la forma di un modulo si legge dal modulo, e una validazione si cita
-   tutta o non si cita.
-al. **Il modo in cui il carrello si difende dal salvataggio prematuro NON si
-   trasferisce al checkout.** Il carrello usa un `useRef`; copiarlo per il
-   checkout ha prodotto un difetto che non dava alcun errore. Al montaggio
-   girano **tutte** le effect: il ref risultava già armato quando partiva il
-   salvataggio, che però vedeva lo stato **prima** del ripristino e riscriveva
-   la memoria con i campi vuoti un istante dopo averla letta. Il carrello ne è
-   immune solo perché il suo ripristino **attende `menuData`**, e quell'attesa
-   sposta l'ordine dei giri. La soluzione è uno **stato** invece di un ref, che
-   arma il salvataggio al render successivo. *Sarebbe sembrato "la persistenza
-   ogni tanto non funziona": nessun errore a schermo, nessuno nel log.*
-am. **Prima di dichiarare che la spec non dice, cercare.** La domanda "i dati
-   del checkout spariscono dopo un ordine completato?" è stata posta come
-   aperta **due volte** nella stessa sessione. §36-40 (v36) la chiude da mesi:
-   si svuotano gli **articoli**, i dati del checkout **possono restare** per
-   il resto della visita. È il gemello opposto della lezione `aj`: là si era
-   creduto a una frase vecchia, qui si era data per assente una frase che
-   c'è. *Stesso rimedio: cercare nel documento prima di concludere, in
-   entrambe le direzioni.*
-an. ⚠️ **Un guard che confronta numeri come testo si rompe sugli spazi.** Il
-   comando di copia della v43 confrontava righe e byte con `[ "$L" != "$RIGHE" ]`.
-   Su macOS `wc` allinea l'output a destra, quindi `L` valeva `" 3731"` e non
-   `"3731"`: stringhe diverse, blocco scattato su un file perfettamente
-   integro. Gli attesi erano stati calcolati su Linux, dove gli spazi non ci
-   sono. **Rimedio: `| tr -d ' '` su ogni misura prima di confrontarla.** La
-   spia, nell'output, è il divario di spaziatura fra i due numeri stampati
-   accanto. *Code ha fatto la cosa giusta a non aggirare il blocco (metodo
-   `k`): che il difetto fosse del guard e non del file non autorizza a
-   scavalcarlo.*
-ao. **Le zone attese di un diff vanno dichiarate con la sezione, non come
-   numero.** Per la v43 era stato dichiarato "10 zone": Code le ha trovate
-   dieci, ma ha dovuto costruirsi da solo la mappa zona → sezione, che non
-   aveva un atteso contro cui rompersi. Un numero solo verifica che il
-   **totale** torni, non che le modifiche siano atterrate dove dovevano: dieci
-   zone giuste in punti sbagliati darebbero lo stesso "10". **D'ora in poi
-   l'elenco va dichiarato prima, con sezione e dimensione di ciascuna zona.**
-ap. ⚠️ **Una sonda che cerca ciò che ci si aspetta, quando non trova, sembra
-   dire "non c'è".** Il 31/07/2026 tre comandi di ricognizione hanno mancato il
-   bersaglio nello stesso modo: cercavano test chiamati `*.test.js` mentre qui
-   sono `.mjs` (otto suite esistenti diventate zero), leggevano la richiesta con
-   `req.json` mentre la route usa `request` e destruttura in blocco, e
-   estraevano gli export con `export function|const` mentre `menu-pricing` usa
-   un blocco `export { … }` finale. **Un filtro vuoto non è una risposta
-   vuota**: è "ho guardato nel posto sbagliato", e va distinto. *Rimedio: la
-   sonda si costruisce dalla forma reale del file — che si legge — non da come
-   ci si aspetta che sia fatto.*
-aq. ⚠️ **Una variabile vuota dentro un filtro corrisponde a TUTTO.** Caso
-   peggiore del precedente, stesso giorno: `NAMES` è rimasto vuoto e
-   `grep -nE "$NAMES"` ha stampato 34 KB, cioè il file intero, dando
-   l'impressione di aver risposto. Il calcolo successivo, che cercava la "prima
-   occorrenza", ha risposto riga 1. **Una sonda che non trova insospettisce;
-   una che trova tutto sembra un risultato.** *Rimedio: ogni comando che
-   costruisce un filtro al volo deve fermarsi se il filtro è vuoto, prima di
-   usarlo.*
-ar. **Se si approva su prova indiretta, va scritto su cosa poggiava il sì.** Il
-   modulo `price-guard` è stato approvato sui suoi 31 test e sull'elenco dei
-   punti di uscita, **non sulla lettura diretta**: il file era stato chiesto due
-   volte e non era mai arrivato nella conversazione. Procedere è stata una
-   scelta ragionevole — i 13 casi erano stati scritti prima di vedere il codice
-   — ma la differenza fra "l'ho letto" e "ho letto le prove che lo riguardano"
-   non va lasciata implicita, perché fra sei mesi nessuno la ricostruisce.
-as. ⚠️ **Una prova che non raggiunge il punto che crede di provare è peggio di
-   una prova assente.** Il caso costruito per l'uscita 369 mandava la
-   latitudine come stringa numerica; la route non guarda il tipo, applica
-   `Number()`, e `Number("44.48")` è finito, quindi passava oltre e cadeva
-   sull'ordine minimo. La fotografia dichiarava coperta un'uscita che non
-   toccava mai. *Un buco dichiarato si può colmare; uno che sembra colmato no.*
-   **Rimedio: ogni caso deve dichiarare l'esito atteso, e uno scatto vale solo
-   se ogni caso ci arriva davvero** — è così che il difetto è emerso.
-at. **La rete ha smentito un'affermazione, non del codice.** Il difetto di `as`
-   stava in una frase scritta nella tabella delle "forme minime", non in un
-   file: "basta mandare la latitudine come stringa" *suona* giusto e nessuna
-   rilettura l'avrebbe smentita. Solo l'esecuzione l'ha fatto. *È la forma più
-   pura della lezione `ak`: ciò che si può eseguire non si ricorda.*
-au. **Lo spazio di contesto è una risorsa da controllare PRIMA di aprire un
-   lavoro lungo, non quando finisce.** Il 31/07 il riordino della route è stato
-   rinviato a sessione nuova con la finestra al 51%: non per stanchezza, ma
-   perché quella tappa non si può interrompere a metà, e perché una finestra
-   che si riempie inizia a perdere i vincoli dati all'inizio — è lì che
-   compaiono le modifiche a file che si era detto di non toccare. *Chiudere a
-   punto pulito e ripartire costa nulla quando spec e handoff sono aggiornati:
-   è precisamente ciò per cui esistono.*
-av. ⚠️ **Sei sonde sbagliate in una sola sessione, tutte della stessa
-   famiglia.** Il 01/08/2026: `\<`/`\>` non supportati dall'awk di macOS (zero
-   risultati per **tutte** le variabili, comprese quelle certamente usate);
-   `grep … | head -20 || echo "nessuna"` — l'exit code del pipe è quello di
-   `head`, sempre 0, quindi il ramo di allarme **non può scattare** e "vuoto"
-   significa *non lo so*; `grep -A3` su JSON caduto sul ramo "verifica
-   manuale"; un apostrofo che ha chiuso la stringa della shell; `grep
-   "supabase"` che ha classificato come dipendente dal database un file la cui
-   unica occorrenza era **un commento che dichiara il contrario**;
-   `^const NOME = ` che ha contato sei costanti invece di sette, perché una ha
-   il valore sulla riga dopo.
-   **Rimedio, in tre regole**: la sonda si costruisce sulla forma **vera** del
-   file, che si legge prima; un guard che non può fallire non sta controllando
-   (lezione `w`); e un risultato vuoto va distinto da un filtro che non ha
-   funzionato — se conta, si ricontrolla con un metodo diverso.
-aw. ⚠️ **La v46 è stata pubblicata con una descrizione FALSA della sua regola
-   più pericolosa.** Il punto sulla sentinella affermava che una copia locale
-   avrebbe degradato il guasto in *"articolo non disponibile"* con 400. Falso:
-   un `Symbol` è **veritiero**, quindi `if (!resolved)` non scatta, la
-   sentinella estranea prosegue **come riga valida**, il prezzo diventa `NaN`,
-   e **scavalca ordine minimo e controllo dei 18 anni** prima di schiantarsi
-   sull'insert — dopo che la riga cliente è già scritta. Nel guard degli orari
-   la conseguenza è ancora diversa: solleva. *Il danno vero era peggiore di
-   quello descritto, e non uniforme fra i due punti.*
-   La frase **suonava giusta**, era coerente col resto del blocco ed era stata
-   scritta da chi il codice l'aveva appena spostato: **nessuna rilettura
-   l'avrebbe smentita**. L'ha smentita l'esecuzione, richiesta apposta prima
-   del commit. **Rimedio: le affermazioni della spec su cosa succede se una
-   regola viene violata si verificano eseguendole, non rileggendole** —
-   soprattutto quando la spec stessa le definisce le più pericolose.
-ax. **Le impronte proteggono il trasporto, non il senso.** La v46 sbagliata era
-   già copiata nel repo con tutte e tre le misure combacianti: erano giuste,
-   perché il file era arrivato integro — era il **contenuto** a essere
-   sbagliato. Nessun guard automatico poteva accorgersene, dato che gli attesi
-   li calcola chi ha scritto il file. *Il controllo del contenuto resta un
-   lavoro di lettura, e va fatto prima del commit: dopo, è cronaca.*
-ay. ⚠️ **Quando la spec DESCRIVE com'è fatto il codice, i fatti si verificano
-   prima di scrivere, non dopo.** Il 01/08 il punto 7 di §46 ha richiesto **tre
-   stesure**: la prima sbagliava il numero di uscite di un gruppo, la seconda
-   azzeccava il numero e affermava che un `409` fosse "scritto separatamente"
-   nella route, dove non c'è. Entrambe suonavano giuste ed erano coerenti col
-   resto del blocco. *La distinzione che serve: **le regole si decidono, le
-   descrizioni si controllano**. Una regola nasce da una scelta e la spec è la
-   sua fonte; una descrizione del codice ha una fonte esterna — il codice — e
-   va confrontata con quella prima di essere pubblicata.*
-   **Rimedio operativo**: prima di scrivere un blocco che descrive il codice,
-   farsi dare i fatti da Code; e includere nella nota storica **come si
-   falsifica** l'errore corretto — nel caso del `409`, un `grep` su
-   `status: 409` nella route. *Un errore descritto insieme al modo di smentirlo
-   non torna una terza volta.*
-az. **I conteggi si eseguono, non si `grep`ano.** Stesso giorno: `grep -c 'id: '`
-   sul catalogo dei casi dava **28** contando anche `storeId:` e gli uuid delle
-   fixture; `grep -n 'status: [a-zA-Z]'` dava **4** status dinamici contando un
-   campo dell'ordine (`delivery_status: isDelivery ? …`) come una risposta HTTP.
-   I numeri veri — **23** casi e **3** status — si ottengono **eseguendo** il
-   catalogo (`CASI.length`) e **leggendo** le righe trovate una per una.
-   *Un conteggio testuale su codice conta stringhe, non cose: se il numero
-   finisce in un documento, va preso da un'esecuzione o da una lettura.*
-ba. ⚠️ **Una condizione scritta sulla forma attesa invece che su quella vera:
-   la stessa lezione, per la terza volta in due giorni.** Il 02/08 il ramo del
-   sito riconosceva il rifiuto per articolo dal **testo** (giusto: i `400`
-   distinti sono quattordici) e quello per prezzo dal **solo status** (sbagliato:
-   i `409` sono quattro). Il caso concreto: uno slot scaduto sarebbe finito nel
-   carrello, **dove il selettore dell'orario non esiste**, contro §41-45 v18.
-   *È emerso contando le uscite `409` nel codice, non rileggendo il
-   ragionamento — e la parte istruttiva è che era già stato evitato sull'altro
-   lato dello stesso `if`.*
-bb. ⚠️ **Un guard di test che non poteva fallire nel modo che dichiarava.** Il
-   controllo doveva verificare che un testo nella route fosse **codice e non un
-   commento**; usava `includes` sull'intero file, quindi commentando la riga la
-   sottostringa restava trovabile e il test continuava a passare. *Scoperto
-   **mutando il file in memoria** per vedere se scattava, non rileggendolo.*
-   È la lezione `w` in forma nuova: **ogni guard nuovo va provato a fallire**,
-   e la prova va fatta sul caso che il guard dichiara di coprire, non su uno
-   più facile.
-bc. **Un `includes` su un documento non conta le occorrenze che vanno a capo.**
-   Un conteggio del testo di un messaggio nella spec dava **1** invece di **3**,
-   perché il documento manda a capo dentro i backtick. *Le tre lezioni `ba`,
-   `bb` e `bc` sono la stessa cosa in tre forme, e sono tornate tutte nello
-   stesso giro: **quello che si può eseguire non si rilegge — si esegue, e poi
-   si guarda se il controllo poteva davvero fallire**.*
-bd. ⚠️ **Righe e byte non sono un'impronta.** Il 04/08/2026 due versioni
-   dell'handoff da copiare avevano **le stesse identiche righe (1894) e gli
-   stessi byte (114184)**: la correzione era `v52`→`v53`, che non cambia la
-   lunghezza. Un guard che confronta solo quelle due misure — la forma di
-   quasi tutti gli script usati finora — **sarebbe passato su entrambi i file
-   dicendo OK**, e avrebbe potuto ricopiare quello sbagliato senza che nulla
-   facesse rumore. *È la lezione `ai` un passo più in là: là il pericolo era
-   identificare il file dal nome, qui è credere che due misure di dimensione
-   siano un'identità. **Solo lo `sha256` distingue**; righe e byte sono un
-   indizio, e su una modifica di un carattere non distinguono nulla.*
-be. **Quando cambia la versione della spec, nell'handoff i punti da
-   correggere sono due, non uno.** La riga 15, che dichiara quale versione
-   della spec è quella corrente, e l'HEAD del §2. Il 04/08/2026 la v53 è stata
-   committata con la riga 15 ferma alla **v52**: il controllo era stato fatto
-   sull'HEAD e non sul puntatore. *Il documento è stato salvato dalla propria
-   parentesi — "leggila sempre dall'intestazione, riga 3" — che dice al lettore
-   di non fidarsi di quella riga; ma una nota di stato falsa resta falsa, ed è
-   la lezione `aj`. La verifica dopo una copia va fatta su **entrambi**.*
-bf. **Un numero fornito a voce finisce nei documenti.** Nello stesso giorno la
-   dimensione di `app/privacy/page.js` è stata riportata come **848 righe** in
-   un riepilogo di fine lavoro, stimata invece che misurata; da lì è entrata
-   nella tabella dei file di questo handoff ed è stata committata. Le righe
-   vere sono **995**, e le dice il `numstat` del commit `c69642e`. *Chi scrive
-   il documento si fida del numero che riceve: chi lo fornisce deve averlo
-   **eseguito**, non ricordato — è la lezione `az`, presa dal lato di chi passa
-   il dato invece che di chi lo scrive.*
+Chi legge non sa che quel punto è vecchio: gli sembra la fonte di verità. Da qui
+tre regole operative: **prima di dire che la spec non dice, cercare**; quando
+cambia la versione **i punti da correggere sono due**, non uno; e un numero
+fornito **a voce** finisce nei documenti e ci resta — chi lo fornisce deve averlo
+**eseguito**, non ricordato.
 
-**Lezioni aggiunte il 05/08/2026 (ricognizione su §62b e spec v56)**
+⚠️ *La forma più insidiosa:* **due misure della stessa grandezza, incompatibili,
+scritte lo stesso giorno in due documenti** — ciascuna verificata nel proprio
+contesto, nessuna che rileggesse l'altra (`bl`). Quando la stessa grandezza
+compare in due punti, **il confronto fra i due è esso stesso una verifica**, e
+costa una lettura.
 
-bk. ⚠️ **Una descrizione del codice creduta, e usata come fondamenta di un
-   ragionamento intero.** §62b dichiarava dalla sua stesura che il motivo del
-   problema e quello dell'annullamento sono "registrati in
-   `order_status_history`". È **falso**: quella tabella non ha una colonna che
-   possa ospitare un testo di motivo. Sopra quella frase era stata costruita una
-   raccomandazione articolata — copiare il motivo nel `payload` degli eventi
-   statistici perché la pulizia mensile l'avrebbe altrimenti perso — che era
-   **coerente, motivata e interamente sbagliata**, e che si è sciolta appena la
-   ricognizione ha detto dove il motivo finisce davvero. *È la lezione `ay` dal
-   lato di chi legge: là si diceva che una descrizione del codice va confrontata
-   con il codice **prima di essere pubblicata**; qui si aggiunge che va
-   confrontata anche **prima di essere usata come premessa**. Il costo è stato
-   nullo solo perché la ricognizione è stata chiesta prima di scrivere in spec;
-   fatta dopo, sarebbe stata una decisione da disfare.*
-bl. ⚠️ **Due misure dello stesso oggetto, incompatibili, scritte lo stesso
-   giorno in due documenti.** Il 04/08 i conteggi dichiaravano `orders` 30 con
-   l'ultimo ordine al 01/08, mentre la prova del freno di §69 citava un
-   `max(created_at)` del **04/08 alle 13:07**. Non potevano essere vere
-   entrambe, ed erano a poche righe di distanza in file che vengono committati
-   insieme. Nessuno le ha messe a confronto perché **ciascuna era stata scritta
-   nel proprio contesto e verificata lì**. *Rimedio: quando la stessa grandezza
-   compare in due punti — un conteggio e un massimo, un totale e un elenco — il
-   confronto fra i due è esso stesso una verifica, e costa una lettura. È la
-   forma documentale della lezione `z`: non basta rileggere, bisogna sapere
-   dove.*
-bm. **Un conteggio delle righe di un diff che non vede le righe vuote.**
-   Preparando gli attesi della v56, `grep -c '^+[^+]'` ha dato **107** righe
-   aggiunte invece di **125**: il filtro escludeva le righe aggiunte **vuote**,
-   che nel diff sono un `+` solo. Il numero sbagliato era diretto al comando di
-   copia, dove avrebbe fatto scattare il guard su un file perfettamente
-   integro — cioè avrebbe insegnato a diffidare del controllo (lezione `bi`).
-   *Scoperto perché il netto non tornava con la differenza fra le righe dei due
-   file: 4704 → 4813 sono +109, e +107/−16 ne dà +91. **La contro-misura non è
-   una sonda migliore, è tenere due strade che devono coincidere.***
-bn. **Il browser non sovrascrive da solo i file scaricati** (nota rimasta in
-   coda dal 04/08/2026). Quel giorno in `~/Downloads` è rimasta una sola copia
-   dell'handoff, e da lì era stato dedotto che il browser avesse sovrascritto la
-   precedente: l'aveva invece **cancellata Andrea a mano**. La deduzione portava
-   alla conclusione giusta per il motivo sbagliato, ed è il tipo di falsa
-   sicurezza che rilassa un controllo. *Confermato il 05/08: il file della v56 è
-   stato salvato come `MASTER_SPEC_2.md` accanto al vecchio `MASTER_SPEC.md`,
-   esattamente la trappola della lezione `ai`. **La regola resta: si cerca per
-   impronta, sempre**, e il comando di copia deve dichiarare gli attesi del
-   sorgente e ordinare di fermarsi.*
+**4 — `s` `z` `ao` `x`: un elenco si costruisce leggendo, mai per differenza né a
+memoria.**
+
+Non basta rileggere: bisogna sapere **dove**. Le zone di un diff si dichiarano
+con la sezione in cui atterrano, perché un totale che torna non dimostra che le
+modifiche siano finite nel punto giusto. E una ricognizione fatta a metà lascia
+assunzioni che poi nessuno rimette in discussione.
+
+**5 — `bd` `ai` `aa` `bn`: l'identità di un file si verifica dall'impronta, mai
+dal nome.**
+
+Righe e byte non identificano: **solo lo `sha256` distingue**. Prima di
+riscrivere un file si verifica anche l'impronta di **quello che si sta per
+sovrascrivere**, altrimenti il confronto che segue non ha significato.
+
+⚠️ *Perché non è teoria:* il browser **non sovrascrive** i file scaricati, ne
+salva accanto uno nuovo con un altro nome. Il 05/08/2026 è successo **tre volte
+di fila**, e ogni volta il file col nome più naturale era quello **vietato** —
+una volta la versione già committata, una volta una versione difettosa. Chi
+avesse copiato "il file dai download" avrebbe riportato indietro il lavoro **in
+silenzio**. *E dal fatto "non c'è più" non si conclude chi l'abbia tolto: una
+volta l'aveva cancellato Andrea a mano, e la deduzione portava alla conclusione
+giusta per il motivo sbagliato.*
+
+**6 — `t` `v` `ar`: una verifica impossibile si dichiara, non si aggira.**
+
+Se si approva su una prova indiretta, va scritto **su cosa poggiava il sì**.
+Attenzione alla formula "verificato sul codice vero", che suona come una prova e
+spesso è una lettura.
+
+**7 — `ad` `as` `ac` `ab`: una prova di rifiuto vale solo se è attribuibile.**
+
+Due cose cambiate insieme rendono un'anomalia non attribuibile a nessuna delle
+due. Una prova va descritta indicando **quale comando premere**, e va verificato
+che il rifiuto **non abbia scritto nulla** — e che la prova raggiunga davvero il
+punto che crede di raggiungere.
+
+**8 — `ag` `ba`: si identifica dal dato che caratterizza, mai dalla posizione o
+dalla forma attesa.**
+
+Una condizione scritta sulla forma che ci si aspetta funziona finché la realtà
+ha quella forma, e smette in silenzio quando cambia.
+
+**9 — `al` `bi` `bj`: un difetto che non fa rumore è peggio di uno rumoroso.**
+
+Un freno che scatta a torto **insegna ad aggirarlo**, ed è peggio di un freno
+assente. Un'istruzione che manda a leggere un dato che il referto non produce
+spinge verso la cosa più a portata di mano, che è quasi sempre quella sbagliata.
+E un meccanismo che funziona in un punto **non si trasferisce da solo** a quello
+accanto.
+
+---
+
+**Le cinque isolate**
+
+`af`. **Una fotografia di verifica non si rigenera**: rifatta dopo il
+cambiamento coincide sempre e non dimostra più nulla.
+`ax`. **Le impronte proteggono il trasporto, non il senso**: un file può arrivare
+integro e dire una cosa sbagliata. Servono anche controlli sul contenuto.
+`au`. **Lo spazio di contesto si controlla prima**, non quando finisce.
+`y`. **Il server si spegne dopo ogni verifica**, per non lasciarne due accesi.
+`bg`. **Una frase di un fornitore non è un dato da cui calcolare.**
+
+---
+
+**Lezioni aggiunte il 05/08/2026 (la sfoltita dei documenti)**
+
+`bo`. ⚠️ **I più e i meno di un diff dipendono dall'algoritmo; il netto no.**
+Dichiarando gli attesi di una copia, la mappa è stata sbagliata **due volte di
+fila**. La seconda causa è stata misurata: **cinque algoritmi sullo stesso
+identico confronto danno cinque conteggi diversi** — da `+261/−1001` a
+`+305/−1045` — e **un solo netto, sempre**. Sul Mac di Andrea `diff` è quello di
+FreeBSD, non GNU, quindi "usare lo stesso strumento" non era nemmeno possibile.
+*Quindi: si dichiarano **il netto e il conteggio finale delle righe**, che sono
+invarianti, più gli **intervalli** in cui ogni zona atterra. I più e i meno per
+zona restano utili come indizio, non come blocco.*
+
+`bp`. ⚠️ **Chi taglia per intervalli di righe non legge il contenuto, e cancella
+anche gli avvertimenti.** Nella sfoltita del 05/08 la sezione `## 11) Stato dei
+dati` è stata cancellata perché compresa in un intervallo di righe etichettato
+"diario", mentre è **stato vivo**: dentro c'erano i conteggi validi, due voci
+aperte sugli allergeni e una regola di validazione. *La cosa da ricordare non è
+l'errore ma la sua forma:* **quella sezione conteneva, dalla sua stesura, la
+frase "se questa sezione sparisse, non resterebbe traccia da nessuna parte"** —
+l'avvertimento era esatto, era nel posto giusto, ed è stato inutile. Nello stesso
+comando l'istruzione diceva **correttamente** di conservarla: istruzione giusta,
+taglio sbagliato, e nessuno ha notato la contraddizione.
+*Rimedio: un taglio si esegue sull'elenco delle **intestazioni** e del loro
+contenuto, mai su un intervallo numerico ricavato da un referto; e chi verifica
+riceve l'elenco di ciò che **deve restare**, non solo di ciò che deve sparire.*
 
 ---
 
