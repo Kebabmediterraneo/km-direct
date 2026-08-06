@@ -1,6 +1,6 @@
 # KM DIRECT — MASTER SPECIFICATION
 
-**Versione 58** — sostituisce la v57.
+**Versione 59** — sostituisce la v58.
 
 Documento di riferimento definitivo per lo sviluppo. Le decisioni qui
 contenute sono approvate: non vanno reinterpretate senza un motivo concreto
@@ -22,36 +22,48 @@ versione corrente**. I precedenti vivono in `git log`, che è fatto per quello.
 del documento prima che cominciasse a parlare del progetto — e dentro c'erano
 istruzioni rovesciate che nessuno rileggeva.*
 
-**Novità della v58** (vincolanti, dalle decisioni del 05-06/08/2026 e dalla
-ricognizione di sola lettura del 06/08/2026 su codice e database vivo):
+**Novità della v59** (vincolanti, dalle decisioni del 06/08/2026 e dalla Fase 3
+costruita, provata dal vivo e ripulita nello stesso giorno):
 
-1. §63-64 — ✅ **le tre copie dell'elenco categorie COINCIDONO**, verificato sul
-   codice il 06/08/2026. La prova decisa in v57 si può quindi costruire e **non
-   nasce già fallita**. ⚠️ Accanto ad esse vivono **altre due liste da nove
-   voci** sul sito cliente, che comprendono legittimamente `menu_combo` e che la
-   prova **non deve confrontare**.
-2. §63-64 — **Fase 3, quattro decisioni operative chiuse** (Andrea, 06/08/2026):
-   `allergens_verified_at` si scrive **per ultima**; `sort_order` sta nel modulo
-   con il pannello che propone l'ultimo posto della categoria; il modulo
-   **cambia in base alla categoria**; il selettore dietetico c'è ma **non
-   blocca** il salvataggio.
-3. §63-64 — ⚠️ **una categoria fuori da `PRODUCT_CATEGORY_ORDER` non verrebbe
-   disegnata, in silenzio.** Oggi è latente (`menu_combo` ha **zero** righe,
-   letto dal database vivo il 06/08/2026). La prova del punto 1 verifica anche
-   che `menu_combo` sia assente da tutte e tre le copie.
-4. §66 — ⚠️ **la regola di protezione di `products` non esiste in nessun file del
-   repository**: è applicata a mano sul database. Non è ricostruibile da git.
-5. §66 — ⚠️ **`km_direct_schema.sql` è muto sulle protezioni, per tutte e 23 le
-   tabelle.** Non è incompleto su una: non le contiene mai. Cercarle lì non può
-   funzionare nemmeno in linea di principio.
-6. §66 — ✅ **il referto RLS del 04/08 è confermato per `products` da fonte
-   indipendente** il 06/08/2026: protezione attiva, **una sola** regola, di sola
-   lettura, senza condizioni.
-7. §67 — ✅ **Tzatziki e Yogurt dichiarati** da Andrea il 06/08/2026: la voce
-   aperta dal 28/07 è chiusa. La Fase 2A funzionava come dichiarata.
+1. §63-64 — ✅ **la Fase 3 è COMPLETA e verificata dal vivo** (06/08/2026):
+   sette prove a schermo superate, due articoli veri creati e ritrovati sul sito
+   cliente, collisione dello slug rifiutata **senza lasciare traccia**. Gli
+   articoli di prova sono stati cancellati lo stesso giorno con uno script
+   usa-e-getta (§69), a controlli passati e con il registro azioni intatto.
+2. §63-64 — ⚠️ **la Fase 4 si sposta a PRIMA del go-live** (Andrea, 06/08/2026).
+   Inserire e sospendere Roll è per lui attività **frequente**, e un pannello si
+   costruisce prima di un'attività ricorrente, non dopo. *Fino alla v58 questo
+   documento la collocava dopo il go-live, su una frequenza d'uso presunta e mai
+   chiesta.*
+3. §63-64 — **la Fase 4 sceglie fra le proteine già esistenti e non ne crea di
+   nuove** (Andrea, 06/08/2026): una proteina nuova resta un intervento una
+   tantum sul codice. ⚠️ *Se il residuo label→id di §25 tocchi o no una Fase 4
+   così ristretta è **da accertare sul codice**, ed è la prima verifica di quel
+   lavoro. Che scegliere da un elenco invece di scrivere annulli il rischio è
+   verosimile, non accertato.*
+4. §63-64 — **prima della Fase 4 si costruisce "togli dal menu"** (Andrea,
+   06/08/2026): terzo stato accanto a disponibile ed esaurito, un solo tasto che
+   fa e disfa, e l'articolo **sparisce** dal sito invece di comparire spento. È
+   indipendente dalla Fase 4 e molto più piccolo.
+5. §63-64 — ⚠️ **la Fase 3 non costruisce Roll né Bowl, e ora è un fatto visto,
+   non previsto**: un Roll creato con essa esiste, si apre, e **non ha alcuna
+   scelta** — nessuna proteina, nessun ingrediente da togliere, nessuna aggiunta.
+   La tendina senza preselezione non lo impedisce: rende meno naturale arrivarci,
+   non impossibile.
+6. §63-64 — **le bevande sono esentate dagli allergeni anche in CREAZIONE**
+   (Andrea, 06/08/2026), non solo in modifica. ⚠️ *Prezzo accettato: una birra
+   creata dal pannello non porta l'informazione sul glutine.*
+7. §63-64 — **l'elenco delle categorie passa da tre copie a due**: la fonte unica
+   vive sotto `lib/` e il pannello la importa. La prova decisa in v57 confronta
+   quindi **due** copie, non tre.
+8. §66 — ⚠️ **l'editor SQL della dashboard restituisce fino a 500 righe, non
+   100.** La lezione non cambia — un referto che finisce sul numero tondo va
+   sospettato — ma il numero da sospettare è un altro.
 
 *Il conteggio delle condizioni di apertura non cambia: **quattro chiuse, cinque
-aperte**. La procedura mensile di §69 conserva la sola prima esecuzione.*
+aperte**. La procedura mensile di §69 conserva la sola prima esecuzione. I
+lavori pre-go-live che restano sono due — "togli dal menu" e la Fase 4 — e
+nessuno dei due è condizione di apertura.*
 
 ## 1. Visione del progetto
 
@@ -2606,12 +2618,32 @@ separato. L'introduzione di ruoli/permessi admin distinti dallo staff è
   nel blocco Novità della v30 che nessuno rileggeva: tre posizioni per la stessa
   tendina, e quella che il documento faceva incontrare per prima era sbagliata.
   Con la v57 ne resta una.*
+  ✅ **COMPLETA e verificata dal vivo il 06/08/2026** (§63-64, blocco d'esito più
+  sotto).
+
+*Prima del go-live, in quest'ordine (Andrea, 06/08/2026):*
+- **"togli dal menu"** — terzo stato accanto a disponibile ed esaurito, per
+  l'articolo che esce dal menu senza essere esaurito. **Un solo tasto che fa e
+  disfa**, come l'esaurito; premuto, l'articolo **sparisce** dal sito cliente
+  invece di comparire spento; ripremuto, torna **disponibile e visibile**, senza
+  memoria dello stato precedente. **Non cancella**: un articolo già ordinato non
+  è cancellabile dal database (§69), mentre nasconderlo funziona sempre ed è
+  reversibile. Gli ordini vecchi non ne risentono, perché congelano nome e
+  prezzo. Richiede **una colonna nuova** — DDL, quindi migrazione in `sql/` da
+  eseguire nel SQL editor (§63-64) — e una modifica al percorso di lettura del
+  menu cliente, che è la parte delicata;
+- **Fase 4** — creazione/editing di Roll/Bowl con le loro opzioni,
+  **scegliendo fra le proteine già esistenti** e senza crearne di nuove. ⚠️ *Il
+  rapporto fra questo lavoro e il residuo label→id di §25 va **accertato sul
+  codice come primo passo**: il residuo è pericoloso dove qualcuno può scrivere
+  o rinominare un'etichetta, e un pannello che pesca da un elenco chiuso
+  potrebbe non ricadere in quel caso. Verosimile non è accertato.* Una proteina
+  nuova resta un intervento una tantum sul codice.
 
 *Dopo il go-live:*
 - editing dei **contenuti del combo** (contorni, proteine, supplementi):
   richiede prima la conversione delle label a id (§25, residuo noto), perché
   sono proprio le etichette che l'editor andrebbe a modificare;
-- **Fase 4** — creazione/editing di Roll/Bowl con le loro opzioni;
 - **creazione di nuovi tipi di menu combo** (es. "Menu Bowl", "Menu
   famiglia"): oggi il sistema non ha "i combo" ma **un** combo, di forma
   fissa a tre scelte (Roll → contorno → bibita). Renderla libera richiede un
@@ -2711,10 +2743,11 @@ cambio di prezzo, form inline nella sezione Menu del pannello staff
 (coerente con §34-35) e registrazione di ogni modifica in
 `staff_action_log`, esteso anche al toggle disponibile/esaurito.
 
-**Stato di avanzamento (v40)**: **Fase 1, Fase 2A e Fase 2B sono complete e
-verificate dal vivo**. Prima del go-live resta la sola **Fase 3** (creazione di
-articoli semplici, con dichiarazione allergeni obbligatoria), che non è ancora
-iniziata. *Le formulazioni precedenti di questo blocco e di quello della Fase
+**Stato di avanzamento (v59)**: **Fase 1, Fase 2A, Fase 2B e Fase 3 sono
+complete e verificate dal vivo**. Prima del go-live restano **"togli dal menu"**
+e la **Fase 4**, in quest'ordine (Andrea, 06/08/2026): nessuno dei due era
+pre-go-live fino alla v58. *La formulazione precedente diceva che restava la
+sola Fase 3.* *Le formulazioni precedenti di questo blocco e di quello della Fase
 2A descrivevano lavori già fatti come da fare: erano note di stato lasciate
 indietro, dello stesso tipo corretto in §46b dalla v40.*
 
@@ -2775,7 +2808,19 @@ solo una volta, la mattina.
 3. **spazi** → trattino;
 4. **apostrofi** → trattino;
 5. **`&` eliminata**;
-6. **numeri e unità invariati**.
+6. **numeri e unità invariati**;
+7. **nessun trattino doppio e nessun trattino ai bordi** (aggiunta il
+   06/08/2026, scritto il codice). ⚠️ *Serve dove una regola precedente ne
+   incontra un'altra: un apostrofo accanto a uno spazio, o un nome che comincia
+   o finisce con spazio, `&` o apostrofo. Scoperta con un esperimento, non per
+   ragionamento: senza di essa un nome fatto del solo apostrofo produce lo slug
+   `-`, che il database accetterebbe. **Non** serve per un nome come "Kaymak &
+   miele", già coperto dalla riduzione degli spazi.*
+
+⚠️ **Un carattere per cui non esiste una regola fa RIFIUTARE il nome** — barre,
+parentesi e simili — invece di essere eliminato in silenzio. L'apostrofo
+tipografico dei Mac (`’`) è trattato come quello dritto: è lo stesso carattere
+per chi scrive, e sulla tastiera di Andrea è quello che esce.
 
 **Lo slug si genera dal nome, in automatico.** Nessun campo da compilare nel form: Andrea scrive il nome e basta. Un campo in più è un campo in cui sbagliare, su un valore che non arriva mai al cliente.
 
@@ -2789,7 +2834,9 @@ solo una volta, la mattina.
 
 *Perché non si ricopia*: le copie **sono già tre**, tutte scritte a mano e nessuna che importi dalle altre — `PRODUCT_CATEGORY_LABEL` e `PRODUCT_CATEGORY_ORDER` nel pannello, più la mappa del sito cliente. Aggiungerne una quarta peggiorerebbe il problema che la v54 voleva risolvere.
 
-**La regola**: la tendina **usa l'elenco che il pannello già possiede**, escludendo `menu_combo`, e si aggiunge **una prova automatica che confronta le tre copie fra loro** e fallisce se divergono.
+**La regola**: la tendina **usa l'elenco che il pannello già possiede**, escludendo `menu_combo`, e si aggiunge **una prova automatica che confronta le copie fra loro** e fallisce se divergono.
+
+✅ **Aggiornamento del 06/08/2026, scritto il codice: le copie sono scese da tre a due.** L'elenco vive ora in un modulo unico sotto `lib/`, che il pannello **importa** invece di riscrivere: le due copie del pannello sono diventate una sola fonte. Restano da confrontare **quella sotto `lib/` e la mappa del sito cliente**. *La prova decisa qui sopra va scritta su due copie, non su tre; il fatto storico — che al 06/08 fossero tre e coincidessero — resta vero e resta scritto sotto.* Con lo stesso criterio la tabella dei valori dietetici è stata portata in `lib/menu-dietary.js`.
 
 ⚠️ **Rischio residuo, dichiarato**: la prova **non** protegge dall'aggiunta di una categoria al database, perché il confronto col database non è costruibile. Protegge dal caso molto più probabile — qualcuno che la aggiunge in un posto e dimentica gli altri due. *Il giorno che servisse chiudere anche l'altro caso, la strada è una funzione lato database creata da migrazione, esattamente come nacque `set_updated_at()`.*
 
@@ -2803,7 +2850,7 @@ solo una volta, la mattina.
 
 ⚠️ **Una categoria fuori da `PRODUCT_CATEGORY_ORDER` non verrebbe disegnata, e in silenzio.** Il filtro scorre quell'array: una riga con una categoria assente finirebbe raggruppata in memoria e **mai resa a schermo**, senza errore e senza messaggio. Il salvataggio direbbe che è andato tutto bene e l'articolo sparirebbe dalla lista. ✅ **Oggi è latente, non attivo**: `menu_combo` ha **zero righe**, contato sul database vivo il 06/08/2026. Diventerebbe attivo solo se quella categoria entrasse nella tendina.
 
-**Conseguenza sulla prova (decisione del 06/08/2026):** la prova che confronta le tre copie verifica **anche** che `menu_combo` sia assente da tutte e tre. Costa una riga dentro un controllo che si sta già scrivendo, e impedisce che qualcuno lo rimetta in mezzo "per simmetria" con le liste del sito cliente.
+**Conseguenza sulla prova (decisione del 06/08/2026):** la prova che confronta le copie verifica **anche** che `menu_combo` sia assente da tutte. Costa una riga dentro un controllo che si sta già scrivendo, e impedisce che qualcuno lo rimetta in mezzo "per simmetria" con le liste del sito cliente.
 
 ### Fase 3 — le tre decisioni di creazione (Andrea, 05/08/2026, vincolanti)
 
@@ -2825,13 +2872,43 @@ Precedute da una ricognizione di sola lettura su codice e database vivo. **I val
 
 **2. `sort_order` sta nel modulo, con una proposta.** Il pannello propone il posto **dopo l'ultimo della categoria scelta** e lascia cambiare il valore. ⚠️ *Motivo: il valore predefinito del database è **`0`**, cioè il **primo** posto. Un modulo che non chiedesse quel numero farebbe scavalcare in silenzio tutti gli altri articoli della sezione, nel pannello e nel menu del cliente, a ogni creazione.* Il numero da proporre si calcola su dati che il pannello ha già in mano.
 
-**3. Il modulo cambia in base alla categoria.** Il selettore dietetico a tre voci **non compare su `drink` e `birre`**, coerentemente con §67 che le tiene fuori dal tracciamento. Gli allergeni invece si dichiarano **sempre**, lattina compresa: la casella "nessuno dei 14" è ciò che rende la regola applicabile anche a una bibita. *Quindi scegliere la categoria cambia quali campi il modulo pretende prima di sbloccare il salvataggio: è una conseguenza da conoscere prima di progettare il modulo, non da scoprire a metà.*
+**3. Il modulo cambia in base alla categoria.** Il selettore dietetico a tre voci **non compare su `drink` e `birre`**, coerentemente con §67 che le tiene fuori dal tracciamento.
+
+⚠️ **Correzione del 06/08/2026 (Andrea), che rovescia la seconda metà di questa decisione: anche gli ALLERGENI sono esentati su `drink` e `birre`, in creazione come in modifica.** *Motivo accertato sul codice: `updateAllergensCore` rifiuta in blocco quelle due categorie. Una bevanda creata **con** allergeni non sarebbe mai più modificabile dal pannello — nascerebbe in uno stato che nessuna schermata sa più raggiungere.* Nasce quindi senza allergeni, come le bevande già a menu. **Prezzo accettato, con nome e data: Andrea, 06/08/2026** — una birra creata dal pannello non porta l'informazione sul glutine. *La formulazione precedente diceva che gli allergeni si dichiarano sempre, lattina compresa: era coerente con §67 sulla carta e incompatibile col codice che §67 stesso descrive.*
+
+*Resta vero il punto generale: scegliere la categoria cambia quali campi il modulo pretende prima di sbloccare il salvataggio — è una conseguenza da conoscere prima di progettare il modulo, non da scoprire a metà.* *Quindi scegliere la categoria cambia quali campi il modulo pretende prima di sbloccare il salvataggio: è una conseguenza da conoscere prima di progettare il modulo, non da scoprire a metà.*
 
 **4. Il selettore dietetico c'è ma non blocca il salvataggio**, e non produce alcun avviso. Si compila dopo, dal modulo allergeni esistente, che è lo stesso blocco. ⚠️ **Conseguenza accettata, con nome e data: Andrea, 06/08/2026 — nulla segnalerà che manca.** *La direzione dell'errore è però quella sicura, ed è la ragione per cui la decisione regge: un flag non compilato non produce il badge sbagliato, non produce **nessun** badge (nota qui sopra). Il costo reale è misurato: Tzatziki e Yogurt sono rimasti senza badge dal 28/07 al 06/08 — nove giorni — e sono stati ritrovati perché scritti in un documento, non perché il pannello lo dicesse. Un articolo creato fra sei mesi non sarà scritto da nessuna parte.* **Alternativa scartata**: un avviso non bloccante nel modulo e nella lista del Menu.
 
 **Riuso, non costruzione.** Il blocco allergeni del pannello contiene **già** le quattordici caselle, la casella "nessuno dei 14" e il selettore dietetico, e li salva in un colpo solo. La Fase 3 lo riusa intero: toglierne il selettore sarebbe lavoro in più, non in meno. ⚠️ *Del precedente di creazione che esiste nel pannello — le chiusure eccezionali di §68 — si riusa la **forma lato server**, non quella a schermo: quella apre una finestra sopra la pagina, mentre la sezione Menu impone il modulo **in linea, sotto la riga** (§63-64, §67, §34-35).*
 
+**La tendina delle categorie parte VUOTA** (decisione del 06/08/2026, scritto il codice). ⚠️ *Motivo: una preselezione su "Roll" renderebbe **naturale** creare un Roll privo di opzioni, che è esattamente ciò che la Fase 3 non sa fare. `roll` e `bowl` restano nell'elenco — toglierli renderebbe la tendina diversa dal menu vero — si toglie solo la preselezione.* **Non basta**: il 06/08 un Roll senza scelte è stato creato lo stesso, provando la Fase 3. La tendina vuota alza il costo dell'errore, non lo impedisce; a impedirlo sarà la Fase 4.
+
 ⚠️ **Non esistono articoli in bozza, e non potrebbero esistere.** La decisione del 05/08 li esclude già — l'articolo nasce disponibile — ma va registrato che non sarebbero realizzabili nemmeno volendo: la regola di lettura pubblica su `products` è **senza condizioni** (§66), quindi una bozza sarebbe visibile al sito cliente dall'istante del salvataggio. Non per una svista del sito: perché il database dice di sì a tutto. Renderla possibile significherebbe **cambiare la regola sul database**, non il codice.
+
+### Fase 3 — esito della costruzione e della prova dal vivo (06/08/2026)
+
+✅ **COMPLETA.** Il cuore è `lib/menu-create.js` con la rotta sottile
+`app/api/staff/menu/create/route.js` e il modulo in linea nella sezione Menu del
+pannello, nella forma che §63-64 già imponeva. La generazione dello slug vive in
+`lib/menu-slug.js`, l'elenco delle categorie e la tabella dietetica in
+`lib/menu-categories.js` e `lib/menu-dietary.js`.
+
+✅ **Verificata dal vivo da Andrea**, sette prove a schermo: modulo vuoto col
+pulsante spento; comparsa del blocco allergeni e del selettore dietetico
+scegliendo una categoria di cibo; loro **sparizione** scegliendo una bevanda, con
+la riga che ne spiega il motivo; **collisione dello slug rifiutata senza lasciare
+traccia**; creazione di una bevanda vera, ritrovata **in fondo** alla sua
+categoria; creazione di un articolo di cibo con allergeni, ritrovato sul sito
+cliente; riapertura dal modulo allergeni con le caselle come lasciate. Gli
+articoli di prova sono stati poi cancellati (§69).
+
+⚠️ **Il debito che questa fase ha reso visibile: il client del database si passa
+come parametro, non si importa.** È ciò che rende `lib/menu-create.js`
+verificabile da una prova automatica. **Fase 1 e Fase 2A non hanno prove proprio
+perché importano `supabase-admin.js`**, che crea il client al caricamento del
+modulo. *Sistemarlo non è un abbellimento: sbloccherebbe le prove di due fasi già
+in produzione.*
 
 ## 65. Analytics dal giorno 1
 
@@ -3123,7 +3200,7 @@ Eseguito da Andrea nell'editor SQL della dashboard con query di sola lettura sul
 
 ⚠️ **Da verificare prima del passo 2, e non ancora verificato:** come il codice sceglie le chiavi di Stripe. Se sono lette da variabili d'ambiente il passaggio è cambiare quei valori; se da qualche parte è scritto "sandbox" è un lavoro diverso.
 
-⚠️ **Limite dello strumento, da ricordare:** l'editor SQL della dashboard restituisce **al massimo 100 righe**. Un referto che finisce a 100 righe esatte non va mai considerato completo — il primo giro sulle colonne si era interrotto lì, e sembrava una risposta.
+⚠️ **Limite dello strumento, da ricordare:** l'editor SQL della dashboard restituisce **al massimo 500 righe** (misurato il 06/08/2026; fino alla v58 questo documento diceva 100, ed era il limite di allora). Un referto che finisce sul numero tondo non va mai considerato completo — il primo giro sulle colonne si era interrotto così, e sembrava una risposta. *Il numero cambia con lo strumento senza avvisare: è la diffidenza verso il numero tondo che va conservata, non la cifra.*
 
 ---
 
