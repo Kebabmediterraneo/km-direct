@@ -12,24 +12,37 @@ Web app per ordini **delivery e ritiro** di **FAME Srl / KM Kebab Mediterraneo**
 (Bologna, store `san-mamolo`). Stack **Next.js 14 + Supabase + Stripe (sandbox)**.
 Repo: **github.com/Kebabmediterraneo/km-direct** (branch `main`, push via SSH).
 La fonte di verità di tutte le decisioni è **`MASTER_SPEC.md`** — versione attuale
-**v59** (leggila sempre dall'intestazione, riga 3).
+**v61** (leggila sempre dall'intestazione, riga 3).
 
 ---
 
 ## 2) Stato git
 
 - Branch **`main`**, working tree **pulita**, allineata a `origin/main`.
-- HEAD: **`4a51fb7`** — la spec v59 (06/08/2026).
+- HEAD: **`c6392d9`** — la spec v61 (06/08/2026).
 - Ultimi commit (dal più recente):
 
 ```
+c6392d9 spec: v61 — bibita del combo corretta e provata, guardia sulle scelte vuote col difetto Roll preesistente, lo shortcut Fallo combo non esiste
+1a48a93 combo: il builder non si propone se una delle tre scelte è vuota
+d8f034d combo: la bibita rispetta la disponibilità del prodotto in menu, checkout e carrello
+f750ee2 spec: v60 — la bibita del combo ignora la disponibilità del prodotto, decisa una disponibilità sola e il carrello che si svuota col motivo
+b50129c handoff: due spazi mancanti nella lezione br
+fe3dfbf handoff: corretto il quinto messaggio di commit ricostruito a memoria e registrata la lezione br
+6c22d17 handoff: stato al 06/08 — Fase 3 chiusa e provata dal vivo, prossimi lavori riordinati, sezione 21 e due lezioni nuove
 4a51fb7 spec: v59 — Fase 3 completa e provata dal vivo, Fase 4 e togli-dal-menu prima del go-live
 a51f7db menu: interfaccia della Fase 3 — rotta sottile che risolve store e client come le chiusure eccezionali, e modulo di creazione in linea sotto il Menu con la tendina categorie senza preselezione perché un Roll creato per inerzia sembrerebbe buono a menu, allergeni obbligatori solo sul cibo e posto proposto dopo l'ultimo della categoria
 975a078 menu: cuore della creazione articoli della Fase 3, con l'ordine di scrittura che lascia l'articolo «mai verificato» invece che «verificato e senza allergeni»; bevande esentate dagli allergeni anche in creazione perché la Fase 2A non le riaprirebbe più, elenco categorie unica fonte sotto lib con il pannello che lo importa, e tabella dietetica esportata invece che duplicata
 a974817 menu: modulo dello slug per la Fase 3 con le sei regole di §63-64 più il divieto di trattini doppi o ai bordi, provato sui sette slug delle salse già in database; la settima regola non la esercita nessun nome del menu e la & di Kaymak & miele la copre la riduzione degli spazi, non lei
 ee402eb spec: v58 — le tre copie delle categorie coincidono e la prova può nascere, quattro decisioni operative della Fase 3 con allergens_verified_at scritta per ultima, la regola RLS di products esiste sul database ma in nessun file versionato, Tzatziki e Yogurt dichiarati §63-64 §66 §67
-d2d72cf handoff: sfoltita passo 2 — le 48 lezioni raccolte in nove famiglie più cinque isolate, tutte le lettere conservate perché i rimandi non si rompano, e due lezioni nuove sul contare il netto e sul non tagliare per intervalli di righe
 ```
+
+⚠️ **QUESTO ELENCO VA RIGENERATO DA `git log`, MAI RICOPIATO NÉ RICOSTRUITO A
+MEMORIA** — l'avvertenza vale per l'elenco intero e non per singole righe, che è
+il rimedio della lezione `br`: marcare le voci che ci si ricorda di aver
+inventato lascia le altre affidabili per contrasto. *Il 06/08/2026 questo blocco
+è stato riscritto tre volte prima di essere giusto: quattro messaggi ricostruiti
+a memoria, poi un quinto che nessuno aveva marcato.*
 
 *Nota ricorrente, non un errore*: l'HEAD scritto qui è sempre quello
 **precedente** al commit che aggiorna questo documento — l'handoff fotografa
@@ -1405,3 +1418,88 @@ invece che come "hai preso il file sbagliato". È il motivo per cui l'impronta
 attesa va scritta nel comando, sempre.*
 
 **br. ⚠️ Una dichiarazione di incertezza INCOMPLETA è peggio di nessuna.** L'elenco dei commit del 06/08 marcava [messaggio da rileggere] su quattro righe: i messaggi ricostruiti a memoria erano **cinque**. La quinta, ee402eb, non portava il marcatore e divergeva da git log quanto le altre. *Il danno non è la riga sbagliata: è che marcarne quattro rende le altre **affidabili per contrasto**, e chi legge smette di controllarle. È stata trovata solo perché Code ha verificato tutte e sei le righe invece di fermarsi al perimetro che il comando gli dava. Rimedio: quando un elenco contiene voci non verificate, si marca **l'elenco**, non le voci che si ricorda di aver inventato.*
+
+---
+
+## 22) La disponibilità della bibita nel menu combo (06/08/2026, sera)
+
+### 22a) Il difetto, trovato cercando altro
+
+Nato da una domanda di Andrea sulla gestione del combo dal pannello. **Una
+bibita segnata esaurita restava scegliibile dentro il menu combo, e il pagamento
+la accetta**: la tendina filtrava sulla colonna della tabella del combo — che
+**nessuna schermata può scrivere** — invece che sulla disponibilità del
+prodotto, che non veniva nemmeno portata al browser. Contorni e Roll erano
+invece già a posto.
+
+⚠️ **Il buco era aperto per costruzione, non per una svista su una riga**: sul
+database vivo tutte le righe di `combo_drink_options` erano a `is_available =
+true`, perché nessuno le scrive mai. Le decisioni e la forma stanno in **spec
+§23-26 v60 e v61**.
+
+### 22b) Cosa è stato scritto, e cosa NON è stato provato
+
+Due commit: la correzione nei tre punti — tendina, risolutore del pagamento,
+carrello — e la guardia sulle scelte vuote. Provate dal vivo da Andrea con sette
+prove a schermo, guardia compresa.
+
+* **Provato dalle prove automatiche**: il solo carrello, che vive in un modulo
+  puro. Otto prove nuove.
+* ⚠️ **NON provato, e registrato come tale**: il controllo sul pagamento. È la
+  decima lettura da database di un modulo che le prove del progetto dichiarano
+  già scoperte. **Un caso finto sarebbe stato peggio di nessun caso**: un
+  identificativo inventato produce la stessa identica risposta del caso vero,
+  quindi la prova sarebbe passata sempre, anche cancellando la riga da
+  verificare. *Scritto un blocco "NON COPERTO" invece di una prova che non può
+  fallire (famiglia 1).*
+* ⚠️ **Non provata**: la guardia, che è tre confronti dentro un componente React
+  in un file da quasi 4000 righe. Verificata **leggendo** la proprietà che conta
+  — che stia dopo l'unico hook.
+
+### 22c) Tre cose trovate scrivendo, che il piano non prevedeva
+
+* ⚠️ **Filtrare la lista unica avrebbe rotto il carrello in silenzio.** Il codice
+  lo dichiarava già in un commento: il ripristino deve **vedere** gli articoli
+  esauriti per toglierli col motivo giusto. Servono due liste, ed è la stessa
+  coppia che i Roll usavano già.
+* ⚠️ **La posizione della guardia è obbligata dall'ordine degli hook**, non è
+  stile: messa dove il comando diceva letteralmente — in cima alla funzione —
+  avrebbe prodotto un guasto React peggiore del difetto evitato.
+* ⚠️ **Lo shortcut "Fallo combo" non esiste nel codice**, ed era descritto come
+  costruito in **due** punti della spec. Cercato, non dedotto. Corretto in v61.
+
+### 22d) Il difetto preesistente che la guardia ha chiuso
+
+⚠️ **Segnare esauriti tutti e sette i Roll rompeva il builder del combo già
+prima di questo lavoro.** Non è un danno introdotto dalla correzione della
+bibita, ed è scritto qui perché fra un mese lo sembrerebbe. La prova dal vivo del
+06/08 — sette Roll esauriti e rimessi — ha verificato **insieme** la guardia
+nuova e l'esistenza del guasto che copre.
+
+### 22e) Tre lezioni
+
+**bs. ⚠️ Una prova può ESPLODERE invece di fallire, e nascondere quelle dopo di
+sé.** Togliendo il controllo per verificare che le prove nuove potessero
+fallire, tre di esse non fallivano: sollevavano un errore leggendo il primo
+elemento di un elenco vuoto, interrompendo il file e lasciando le prove
+successive **non eseguite**. *Riscritte per fallire in modo pulito. Il rimedio
+non è scrivere prove più prudenti: è che la controprova va fatta sempre, perché
+è l'unica cosa che distingue una prova che passa da una prova che non può
+fallire.*
+
+**bt. ⚠️ Una citazione sbagliata dentro un file pesa più che dentro un
+messaggio.** Il riferimento a una lezione era stato scelto per assonanza invece
+che letto, ed era **già finito in un file** pronto per il commit. *È la lezione
+`br` applicata a sé stessa: una riga scritta a memoria acquista l'autorità del
+documento che la contiene. Il rimedio è quello di sempre — si rilegge, non si
+ricorda — e vale anche per i rimandi interni, non solo per i fatti.*
+
+**bu. ⚠️ Un commit dev'essere sano DA SOLO, non solo insieme al successivo.**
+Separando due lavori in due commit senza gli strumenti comodi, la strada seguita
+è stata: salvare il file completo e verificarne l'impronta, togliere la sola
+parte del secondo lavoro, **verificare che lo stato intermedio compilasse e
+passasse tutte le prove**, committare, rimettere il file dalla copia e
+**riverificare l'impronta**. *È quel passaggio finale che dimostra che ciò che
+finisce in git è bit per bit quello che è stato approvato, e non una
+ricostruzione somigliante. Un commit verde solo insieme al successivo è un punto
+in cui non si può tornare.*
