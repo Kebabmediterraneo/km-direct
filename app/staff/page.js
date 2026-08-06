@@ -6,7 +6,7 @@ import ImpostazioniSection from "./impostazioni-section";
 import { sortQueueByReferenceTime } from "../../lib/staff-queue-order";
 import { BADGE_OPTIONS } from "../../lib/menu-badges";
 import { SPICE_OPTIONS } from "../../lib/menu-spice";
-import { PRODUCT_CATEGORIES } from "../../lib/menu-categories";
+import { PRODUCT_CATEGORIES, isBevanda } from "../../lib/menu-categories";
 
 const POLL_INTERVAL_MS = 12000;
 
@@ -1293,6 +1293,347 @@ const secondaryBtn = {
   cursor: "pointer",
 };
 
+// §63-64 (Fase 3): posto proposto per un articolo nuovo — dopo l'ultimo della
+// categoria scelta. Il calcolo si fa su dati che il pannello ha già in mano
+// (decisione 2 del 06/08/2026); il server lo rifà per conto suo se il numero
+// non arriva, ma il modulo lo manda sempre, perché deve essere modificabile.
+// Categoria vuota → 0, che lì è davvero il primo posto.
+function prossimoPosto(products, category) {
+  const valori = products
+    .filter((p) => p.category === category)
+    .map((p) => p.sort_order)
+    .filter((v) => Number.isInteger(v));
+  return valori.length === 0 ? 0 : Math.max(...valori) + 1;
+}
+
+// §63-64 (Fase 3) / §67 — modulo di CREAZIONE, in linea sotto la sezione Menu.
+// Nessuna finestra sopra la pagina: stessa forma della Fase 1 e della Fase 2A
+// (§34-35). Del precedente delle chiusure eccezionali (§68) si riusa la
+// struttura lato server, non la modale.
+//
+// Le liste chiuse arrivano tutte da dove già stanno: le categorie da
+// `lib/menu-categories.js`, i badge da `lib/menu-badges.js`, la piccantezza da
+// `lib/menu-spice.js`, i 14 allergeni dal database (§67 regola 1). Qui non se
+// ne riscrive nessuna.
+//
+// Nessun campo per lo slug: lo genera `lib/menu-slug.js` dal nome (§63-64). Un
+// campo in più è un campo in cui sbagliare, su un valore che non arriva al
+// cliente. In collisione il server risponde con il messaggio che dice di
+// cambiare il nome, e quel messaggio si mostra così com'è.
+//
+// Nessuna conferma sul prezzo: quella di §63-64 confronta valore precedente e
+// nuovo, e in una creazione un valore precedente non esiste.
+function ProductCreateForm({ products, allergensCatalog, onCreated, onCancel }) {
+  // ⚠️ La tendina parte VUOTA, senza preselezione (decisione del 06/08/2026).
+  //
+  // Perché non si preseleziona la prima voce: con "Roll" già scelto il percorso
+  // più naturale del modulo — nome, prezzo, salva — crea un Roll senza opzioni,
+  // senza rimozioni e senza proteina, che comparirebbe nel menu del cliente
+  // accanto agli altri sette sembrando un articolo buono. Roll e Bowl sono
+  // lavoro della Fase 4 (§63-64) e la Fase 3 non li costruisce. Una scelta
+  // esplicita costa un tocco e toglie di mezzo l'errore silenzioso.
+  //
+  // ⚠️ Quello che si toglie è la PRESELEZIONE, non le voci: `roll` e `bowl`
+  // restano nella tendina, perché l'elenco è la fonte unica di
+  // `lib/menu-categories.js` e va usato intero.
+  const [category, setCategory] = useState("");
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const [price, setPrice] = useState("");
+  const [badge, setBadge] = useState("");
+  const [spiceLevel, setSpiceLevel] = useState("0");
+  // Nessuna proposta finché non c'è una categoria: un posto "dopo l'ultimo"
+  // calcolato su nessuna categoria non vuol dire niente.
+  const [sortOrder, setSortOrder] = useState("");
+  const [selected, setSelected] = useState(() => new Set());
+  const [noAllergens, setNoAllergens] = useState(false);
+  const [dietary, setDietary] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState(null);
+
+  const categoriaScelta = category !== "";
+  const bevanda = categoriaScelta && isBevanda(category);
+
+  // Cambiare categoria rifà la proposta del posto — un numero calcolato su
+  // un'altra categoria non vuol dire niente — e azzera ciò che su una bevanda
+  // non si può nemmeno inviare, così non resta selezionato e invisibile.
+  function changeCategory(value) {
+    setCategory(value);
+    setSortOrder(value === "" ? "" : String(prossimoPosto(products, value)));
+    if (value === "" || isBevanda(value)) {
+      setSelected(new Set());
+      setNoAllergens(false);
+      setDietary("");
+    }
+  }
+
+  // §67: mutua esclusione fra la selezione e "nessuno dei 14", identica alla
+  // Fase 2A.
+  function toggleAllergen(id) {
+    setNoAllergens(false);
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+  function toggleNoAllergens() {
+    setNoAllergens((prev) => {
+      const nv = !prev;
+      if (nv) setSelected(new Set());
+      return nv;
+    });
+  }
+
+  // Salvataggio possibile solo a modulo completo (decisione di Andrea del
+  // 05/08/2026): finché manca un obbligatorio il pulsante resta spento.
+  // ⚠️ Il tipo dietetico NON entra qui: è facoltativo e non blocca (decisione 4
+  // del 06/08/2026). Sulle bevande non entrano nemmeno gli allergeni.
+  const prezzoValido = price.trim() !== "" && Number(price) > 0;
+  const ordineValido = sortOrder.trim() !== "" && Number.isInteger(Number(sortOrder));
+  // Senza categoria il blocco allergeni non è nemmeno disegnato — non si sa
+  // ancora se serva — quindi non lo si conta fra ciò che manca: manca la
+  // categoria, ed è quella che va detta.
+  const allergeniValidi = !categoriaScelta || bevanda || noAllergens || selected.size > 0;
+  const canSave = categoriaScelta && name.trim() !== "" && prezzoValido && ordineValido && allergeniValidi;
+
+  // Che cosa manca, detto in chiaro: un pulsante spento senza spiegazione manda
+  // a cercare l'errore nel posto sbagliato. Non è l'avviso sul tipo dietetico
+  // che §63-64 esclude — quello riguarda un campo facoltativo, questi sono i
+  // campi obbligatori.
+  const mancanti = [
+    !categoriaScelta && "la categoria",
+    name.trim() === "" && "il nome",
+    !prezzoValido && "un prezzo maggiore di zero",
+    !ordineValido && "un ordinamento intero",
+    !allergeniValidi && "gli allergeni, oppure la casella «nessuno dei 14»",
+  ].filter(Boolean);
+
+  async function handleSubmit(event) {
+    event.preventDefault();
+    if (isSubmitting || !canSave) return;
+    setIsSubmitting(true);
+    setError(null);
+    try {
+      const payload = {
+        category,
+        name,
+        description,
+        base_price: price,
+        badge: badge === "" ? null : badge,
+        sort_order: Number(sortOrder),
+        // §34-35: si manda SOLO il livello; la dicitura la ricava il server.
+        spice_level: Number(spiceLevel),
+      };
+      // §67: sulle bevande non si manda nulla di allergeni e dietetico — il
+      // server li rifiuterebbe, perché sono esentate anche in creazione.
+      if (!bevanda) {
+        payload.allergenIds = noAllergens ? [] : [...selected];
+        payload.noAllergens = noAllergens;
+        if (dietary !== "") payload.dietary = dietary;
+      }
+      const response = await fetch("/api/staff/menu/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Errore nella creazione.");
+      onCreated();
+    } catch (err) {
+      setError(err.message);
+      setIsSubmitting(false);
+    }
+  }
+
+  const labelStyle = { fontSize: 12, fontWeight: 600, color: "var(--navy)" };
+  const inputStyle = {
+    padding: "8px 10px",
+    borderRadius: 8,
+    border: "1px solid var(--card-border)",
+    background: "var(--surface-white)",
+    color: "var(--navy)",
+    fontSize: 13,
+    fontFamily: "inherit",
+  };
+
+  return (
+    <form
+      onSubmit={handleSubmit}
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        gap: 10,
+        padding: "12px 14px",
+        border: "1px solid var(--brand-orange)",
+        borderRadius: 10,
+        background: "var(--bg-warm)",
+      }}
+    >
+      <h3 style={{ fontWeight: 700, fontSize: 15, color: "var(--navy)", margin: 0 }}>Nuovo articolo</h3>
+
+      <label style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+        <span style={labelStyle}>Categoria</span>
+        <select value={category} onChange={(e) => changeCategory(e.target.value)} style={inputStyle}>
+          {/* Voce vuota di partenza: la scelta è esplicita, mai ereditata. Le
+              otto voci restano tutte, `roll` e `bowl` compresi. */}
+          <option value="">Scegli una categoria…</option>
+          {PRODUCT_CATEGORIES.map((c) => (
+            <option key={c} value={c}>
+              {PRODUCT_CATEGORY_LABEL[c]}
+            </option>
+          ))}
+        </select>
+      </label>
+
+      <label style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+        <span style={labelStyle}>Nome</span>
+        <input type="text" value={name} onChange={(e) => setName(e.target.value)} maxLength={60} style={inputStyle} />
+      </label>
+
+      <label style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+        <span style={labelStyle}>Descrizione</span>
+        <textarea
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          maxLength={300}
+          rows={2}
+          style={{ ...inputStyle, resize: "vertical" }}
+        />
+      </label>
+
+      <div style={{ display: "flex", gap: 10 }}>
+        <label style={{ display: "flex", flexDirection: "column", gap: 4, flex: 1 }}>
+          <span style={labelStyle}>Prezzo (€)</span>
+          <input
+            type="number"
+            step="0.01"
+            min="0"
+            value={price}
+            onChange={(e) => setPrice(e.target.value)}
+            style={inputStyle}
+          />
+        </label>
+        <label style={{ display: "flex", flexDirection: "column", gap: 4, flex: 1 }}>
+          <span style={labelStyle}>Ordinamento</span>
+          <input
+            type="number"
+            step="1"
+            value={sortOrder}
+            onChange={(e) => setSortOrder(e.target.value)}
+            disabled={!categoriaScelta}
+            style={inputStyle}
+          />
+          <span style={{ fontSize: 11, color: "var(--text-on-dark)" }}>
+            {categoriaScelta
+              ? `Proposto: dopo l'ultimo di ${PRODUCT_CATEGORY_LABEL[category]}. Modificabile.`
+              : "Scegli prima una categoria."}
+          </span>
+        </label>
+      </div>
+
+      <label style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+        <span style={labelStyle}>Badge</span>
+        <select value={badge} onChange={(e) => setBadge(e.target.value)} style={inputStyle}>
+          <option value="">Nessun badge</option>
+          {BADGE_OPTIONS.map((b) => (
+            <option key={b} value={b}>
+              {b}
+            </option>
+          ))}
+        </select>
+      </label>
+
+      <label style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+        <span style={labelStyle}>Piccantezza</span>
+        <select value={spiceLevel} onChange={(e) => setSpiceLevel(e.target.value)} style={inputStyle}>
+          {SPICE_OPTIONS.map((option) => (
+            <option key={option.level} value={option.level}>
+              {option.label ? `${"🌶️".repeat(option.level)} ${option.label}` : "Non piccante"}
+            </option>
+          ))}
+        </select>
+      </label>
+
+      {/* §67: su drink e birre spariscono sia gli allergeni sia il tipo
+          dietetico, e il pulsante si sblocca senza di essi — le bevande sono
+          esentate anche in creazione (decisione del 06/08/2026). */}
+      {!categoriaScelta ? (
+        <p style={{ fontSize: 12, color: "var(--text-on-dark)", margin: 0 }}>
+          Scegli una categoria: da quella dipende se servono gli allergeni.
+        </p>
+      ) : bevanda ? (
+        <p style={{ fontSize: 12, color: "var(--text-on-dark)", margin: 0 }}>
+          Le bevande sono fuori dal tracciamento allergeni (§67): nascono senza allergeni e senza tipo
+          dietetico, come quelle già a menu.
+        </p>
+      ) : (
+        <>
+          <span style={labelStyle}>Allergeni</span>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 14px" }}>
+            {allergensCatalog.map((a) => (
+              <label
+                key={a.id}
+                style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, color: "var(--navy)" }}
+              >
+                <input type="checkbox" checked={selected.has(a.id)} onChange={() => toggleAllergen(a.id)} />
+                {a.label}
+              </label>
+            ))}
+          </div>
+
+          <label
+            style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, fontWeight: 600, color: "var(--navy)" }}
+          >
+            <input type="checkbox" checked={noAllergens} onChange={toggleNoAllergens} />
+            Nessuno dei 14 allergeni
+          </label>
+
+          {/* §67: il selettore c'è ma NON blocca e non produce avvisi
+              (decisione 4 del 06/08/2026). Si può compilare dopo, dal modulo
+              allergeni, che è lo stesso blocco. */}
+          <span style={labelStyle}>Tipo dietetico (facoltativo)</span>
+          <div style={{ display: "flex", gap: 16, fontSize: 13, color: "var(--navy)" }}>
+            {[
+              ["vegan", "Vegano"],
+              ["vegetarian", "Vegetariano"],
+              ["none", "Nessuno dei due"],
+            ].map(([value, text]) => (
+              <label key={value} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <input
+                  type="radio"
+                  name="dietary-nuovo"
+                  checked={dietary === value}
+                  onChange={() => setDietary(value)}
+                />
+                {text}
+              </label>
+            ))}
+          </div>
+        </>
+      )}
+
+      {error && <p style={{ fontSize: 13, color: "#C0392B", margin: 0 }}>{error}</p>}
+
+      {mancanti.length > 0 && (
+        <p style={{ fontSize: 12, color: "var(--text-on-dark)", margin: 0 }}>
+          Per salvare manca ancora: {mancanti.join(", ")}.
+        </p>
+      )}
+
+      <div style={{ display: "flex", gap: 8 }}>
+        <button type="submit" disabled={!canSave || isSubmitting} style={confirmBtn(!canSave || isSubmitting)}>
+          {isSubmitting ? "Creazione…" : "Crea articolo"}
+        </button>
+        <button type="button" onClick={onCancel} disabled={isSubmitting} style={secondaryBtn}>
+          Annulla
+        </button>
+      </div>
+    </form>
+  );
+}
+
 // §63: disponibile/esaurito per articolo, Roll e Bowl indipendenti,
 // niente propagazioni automatiche — ogni riga si aggiorna da sola.
 function MenuSection() {
@@ -1303,6 +1644,7 @@ function MenuSection() {
   const [updatingId, setUpdatingId] = useState(null);
   const [editingId, setEditingId] = useState(null);
   const [allergensId, setAllergensId] = useState(null);
+  const [creating, setCreating] = useState(false);
 
   async function fetchMenu() {
     try {
@@ -1354,6 +1696,30 @@ function MenuSection() {
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
       {error && <p style={{ fontSize: 14, color: "#C0392B", margin: 0 }}>{error}</p>}
 
+      {/* §63-64 (Fase 3): creazione in linea, mai sopra la pagina. Il pulsante
+          sta in cima perché il menu è lungo — 62 articoli — e in fondo non lo
+          si troverebbe; il modulo si apre qui sotto, dentro la sezione. */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        {!creating && (
+          <div>
+            <button type="button" onClick={() => setCreating(true)} style={confirmBtn(false)}>
+              Nuovo articolo
+            </button>
+          </div>
+        )}
+        {creating && (
+          <ProductCreateForm
+            products={products}
+            allergensCatalog={allergensCatalog}
+            onCancel={() => setCreating(false)}
+            onCreated={() => {
+              setCreating(false);
+              fetchMenu();
+            }}
+          />
+        )}
+      </div>
+
       {PRODUCT_CATEGORY_ORDER.filter((category) => productsByCategory[category]?.length > 0).map(
         (category) => (
           <div key={category} style={{ display: "flex", flexDirection: "column", gap: 8 }}>
@@ -1362,8 +1728,10 @@ function MenuSection() {
             </h2>
             {productsByCategory[category].map((product) => {
               // §67: le bevande sono fuori dal tracciamento allergeni: niente
-              // pulsante "Allergeni" e niente indicatore di verifica.
-              const isFood = !["drink", "birre"].includes(product.category);
+              // pulsante "Allergeni" e niente indicatore di verifica. L'elenco
+              // arriva da `lib/menu-categories.js` come nel resto del file: era
+              // ricopiato a mano e non lo è più (06/08/2026, esito invariato).
+              const isFood = !isBevanda(product.category);
               return (
                 <div key={product.id} style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                   <MenuItemRow
