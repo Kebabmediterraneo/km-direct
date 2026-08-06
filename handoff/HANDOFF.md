@@ -27,7 +27,7 @@ La fonte di verità di tutte le decisioni è **`MASTER_SPEC.md`** — versione a
 a51f7db menu: interfaccia della Fase 3 — rotta sottile che risolve store e client come le chiusure eccezionali, e modulo di creazione in linea sotto il Menu con la tendina categorie senza preselezione perché un Roll creato per inerzia sembrerebbe buono a menu, allergeni obbligatori solo sul cibo e posto proposto dopo l'ultimo della categoria
 975a078 menu: cuore della creazione articoli della Fase 3, con l'ordine di scrittura che lascia l'articolo «mai verificato» invece che «verificato e senza allergeni»; bevande esentate dagli allergeni anche in creazione perché la Fase 2A non le riaprirebbe più, elenco categorie unica fonte sotto lib con il pannello che lo importa, e tabella dietetica esportata invece che duplicata
 a974817 menu: modulo dello slug per la Fase 3 con le sei regole di §63-64 più il divieto di trattini doppi o ai bordi, provato sui sette slug delle salse già in database; la settima regola non la esercita nessun nome del menu e la & di Kaymak & miele la copre la riduzione degli spazi, non lei
-ee402eb spec: v58 — le tre copie delle categorie coincidono, quattro decisioni operative della Fase 3, la protezione di products vive solo sul database
+ee402eb spec: v58 — le tre copie delle categorie coincidono e la prova può nascere, quattro decisioni operative della Fase 3 con allergens_verified_at scritta per ultima, la regola RLS di products esiste sul database ma in nessun file versionato, Tzatziki e Yogurt dichiarati §63-64 §66 §67
 d2d72cf handoff: sfoltita passo 2 — le 48 lezioni raccolte in nove famiglie più cinque isolate, tutte le lettere conservate perché i rimandi non si rompano, e due lezioni nuove sul contare il netto e sul non tagliare per intervalli di righe
 ```
 
@@ -1403,3 +1403,5 @@ caso non si rilancia: si guarda.*
 diff sarebbe risultato **vuoto** — un esito che si legge come "niente da fare"
 invece che come "hai preso il file sbagliato". È il motivo per cui l'impronta
 attesa va scritta nel comando, sempre.*
+
+**br. ⚠️ Una dichiarazione di incertezza INCOMPLETA è peggio di nessuna.** L'elenco dei commit del 06/08 marcava [messaggio da rileggere]su quattro righe: i messaggi ricostruiti a memoria erano **cinque**. La quinta,ee402eb, non portava il marcatore e divergeva da git log quanto le altre. *Il danno non è la riga sbagliata: è che marcarne quattro rende le altre **affidabili per contrasto**, e chi legge smette di controllarle. È stata trovata solo perché Code ha verificato tutte e sei le righe invece di fermarsi al perimetro che il comando gli dava. Rimedio: quando un elenco contiene voci non verificate, si marca **l'elenco**, non le voci che si ricorda di aver inventato.*
