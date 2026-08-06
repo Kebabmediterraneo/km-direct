@@ -1,6 +1,6 @@
 # KM DIRECT — MASTER SPECIFICATION
 
-**Versione 61** — sostituisce la v60.
+**Versione 62** — sostituisce la v61.
 
 Documento di riferimento definitivo per lo sviluppo. Le decisioni qui
 contenute sono approvate: non vanno reinterpretate senza un motivo concreto
@@ -22,51 +22,47 @@ versione corrente**. I precedenti vivono in `git log`, che è fatto per quello.
 del documento prima che cominciasse a parlare del progetto — e dentro c'erano
 istruzioni rovesciate che nessuno rileggeva.*
 
-**Novità della v61** (vincolanti, dal lavoro sulla disponibilità nel combo,
-scritto e provato dal vivo il 06/08/2026):
+**Novità della v62** (vincolanti, dalle decisioni di Andrea del 06/08/2026 e
+dalla ricognizione di sola lettura sulla riga dell'articolo nel pannello):
 
-1. §23-26 — ✅ **il difetto della bibita è CORRETTO e provato dal vivo**, in tre
-   punti: la tendina non offre più una bibita il cui prodotto è esaurito, il
-   risolutore del pagamento la rifiuta, e un combo già nel carrello viene tolto
-   **col motivo giusto**. Sette prove a schermo superate.
-2. §23-26 — ⚠️ **la forma della correzione è vincolante: due liste, non una
-   filtrata.** La lista filtrata alimenta il builder; quella **piena** continua
-   ad alimentare il ripristino del carrello. *Il codice lo dichiarava già in un
-   commento: il carrello deve poter **vedere** gli articoli esauriti per toglierli
-   con il motivo giusto — "non è più disponibile" invece di "non è più nel menu".
-   Filtrare la lista unica avrebbe corretto un punto rompendone un altro in
-   silenzio. È la stessa coppia che i Roll già usavano.*
-3. §23-26 — ✅ **GUARDIA NUOVA: se una delle tre scelte del combo è vuota, il
-   combo non si propone affatto** — banner e pulsante spariscono. ⚠️ *Copre tutte
-   e tre le liste, non solo quella che il lavoro di oggi ha reso svuotabile: la
-   fragilità sta nella forma del builder, che prende il primo elemento di una
-   lista che può essere vuota.*
-4. §23-26 — ⚠️ **IL DIFETTO CHE LA GUARDIA COPRE ERA PREESISTENTE**, e non è una
-   conseguenza di questo lavoro: segnare esauriti tutti e sette i Roll rompeva
-   il builder **già prima**. Provato dal vivo il 06/08/2026 — la stessa prova ha
-   verificato insieme la guardia nuova e l'esistenza del guasto che copre.
-5. §23-26 — ⚠️ **la posizione della guardia è obbligata, non una preferenza**:
-   deve stare **dopo** l'unica chiamata a hook del componente. Messa prima
-   produrrebbe un guasto React peggiore del difetto che evita, perché il numero
-   di hook cambierebbe fra un disegno e l'altro.
-6. §26 — ⚠️ **LO SHORTCUT "FALLO COMBO" NON ESISTE NEL CODICE.** Questo documento
-   lo descrive in due punti come costruito — apre lo stesso builder col Roll
-   preselezionato — e nel codice quella strada **non c'è**: il builder si
-   raggiunge da un punto solo e non sa nemmeno ricevere un Roll preselezionato.
-   *Accertato cercandolo, non dedotto. È una funzione dichiarata e mai scritta,
-   non una nota invecchiata.*
-7. §46 — ⚠️ **il controllo nuovo sul pagamento resta SCOPERTO dalle prove
-   automatiche**, come le altre nove letture del risolutore, e **un caso finto
-   sarebbe stato peggio di nessun caso**: un identificativo inventato produce la
-   stessa identica risposta del caso vero, quindi la prova sarebbe passata sempre
-   — anche cancellando la riga da verificare. *Registrato come non coperto invece
-   che simulato. Il debito del client passato come parametro (v59) resta la sola
-   strada per chiuderlo davvero, ed è lavoro autonomo.*
+1. §63-64 — ✅ **"togli dal menu" ha la sua forma completa**: pulsante
+   **quadrato con la sola icona**, un occhio barrato rosso, in coda alla riga
+   dopo Disponibile. Premuto, l'articolo sparisce dal sito; l'icona diventa un
+   occhio **aperto verde**, e tutti gli altri pulsanti della riga si **spengono**.
+   Ripremuto, l'articolo torna **disponibile e visibile subito**.
+2. §63-64 — ⚠️ **il cestino è stato SCARTATO come icona**: significa "cancella"
+   per chiunque, e questo comando non cancella. *Occuperebbe il simbolo che
+   servirà il giorno che si vorrà cancellare davvero, e farebbe credere a chi lo
+   preme di aver eliminato l'articolo per sempre. Proposto da Andrea, scartato
+   dopo averne discusso il rischio, sostituito con l'occhio barrato.*
+3. §63-64 — ✅ **il quadrato con la sola icona è la scelta che rende possibile il
+   quarto pulsante**: occupa circa un terzo di uno di testo, su una riga che
+   Andrea ha verificato dal telefono essere **già piena**.
+4. §63-64 — ⚠️ **LO STATO SPENTO NON ESISTE OGGI NEL PANNELLO e va costruito**:
+   un pulsante disattivato si distingue da uno attivo **solo per il cursore del
+   mouse**, che sul telefono non esiste. *Un pulsante spento sarebbe quindi
+   indistinguibile da uno acceso proprio dove il pannello si usa di più. Va reso
+   visibile — grigio, testo scolorito, non premibile — e sarà il primo del
+   pannello.*
+5. §63-64 — ⚠️ **non esiste nessun pulsante con sola icona in tutto il
+   pannello**: l'occhio barrato sarà il primo, e non c'è una forma da cui
+   copiare.
+6. §63-64 — **il motivo nel carrello è "non è più nel menu"** (Andrea), non "non
+   è più disponibile": sono due messaggi che il carrello già distingue, e questa
+   è la verità — l'articolo non è esaurito, è stato ritirato.
+7. §63-64 — ⚠️ **NEL PROGETTO NON ESISTE NESSUNA REGOLA DI SCHERMO, e il
+   viewport non è dichiarato.** Zero `@media` in tutto il repository, verificato
+   con controprova. *Il pannello resta leggibile dal telefono — Andrea l'ha
+   guardato — ma il **sito del cliente** non è mai stato esaminato con questa
+   lente. Registrato come lavoro da valutare prima dell'apertura, non incluso in
+   "togli dal menu".*
+8. §63-64 — **la riga dell'articolo nel pannello è UNA SOLA**, usata per tutte le
+   categorie, salse comprese: il lavoro si fa in un posto solo.
 
 *Il conteggio delle condizioni di apertura non cambia: **quattro chiuse, cinque
 aperte**. La procedura mensile di §69 conserva la sola prima esecuzione. I
-lavori pre-go-live che restano sono **due** — "togli dal menu" e la Fase 4 — e
-nessuno dei due è condizione di apertura.*
+lavori pre-go-live che restano sono **due** — "togli dal menu" e la Fase 4 — più
+la valutazione del viewport, che non è condizione di apertura.*
 
 ## 1. Visione del progetto
 
@@ -2651,7 +2647,8 @@ separato. L'introduzione di ruoli/permessi admin distinti dallo staff è
   sotto).
 
 *Prima del go-live, in quest'ordine (Andrea, 06/08/2026):*
-- **"togli dal menu"** — terzo stato accanto a disponibile ed esaurito, per
+- **"togli dal menu"** — forma completa nel blocco dedicato più sotto. In breve:
+  terzo stato accanto a disponibile ed esaurito, per
   l'articolo che esce dal menu senza essere esaurito. **Un solo tasto che fa e
   disfa**, come l'esaurito; premuto, l'articolo **sparisce** dal sito cliente
   invece di comparire spento; ripremuto, torna **disponibile e visibile**, senza
@@ -2914,6 +2911,30 @@ Precedute da una ricognizione di sola lettura su codice e database vivo. **I val
 **La tendina delle categorie parte VUOTA** (decisione del 06/08/2026, scritto il codice). ⚠️ *Motivo: una preselezione su "Roll" renderebbe **naturale** creare un Roll privo di opzioni, che è esattamente ciò che la Fase 3 non sa fare. `roll` e `bowl` restano nell'elenco — toglierli renderebbe la tendina diversa dal menu vero — si toglie solo la preselezione.* **Non basta**: il 06/08 un Roll senza scelte è stato creato lo stesso, provando la Fase 3. La tendina vuota alza il costo dell'errore, non lo impedisce; a impedirlo sarà la Fase 4.
 
 ⚠️ **Non esistono articoli in bozza, e non potrebbero esistere.** La decisione del 05/08 li esclude già — l'articolo nasce disponibile — ma va registrato che non sarebbero realizzabili nemmeno volendo: la regola di lettura pubblica su `products` è **senza condizioni** (§66), quindi una bozza sarebbe visibile al sito cliente dall'istante del salvataggio. Non per una svista del sito: perché il database dice di sì a tutto. Renderla possibile significherebbe **cambiare la regola sul database**, non il codice.
+
+### "Togli dal menu" — forma decisa il 06/08/2026 (vincolante)
+
+**Il comando.** Un pulsante **quadrato, con la sola icona**, in **coda** alla riga dell'articolo, dopo Disponibile — gli altri scalano a sinistra. Icona: **occhio barrato, rosso**. Premuto, l'articolo **sparisce dal sito cliente** (non compare spento: proprio assente) e la riga nel pannello resta, **tutta grigia**; l'icona diventa un **occhio aperto verde**, così si capisce che premendo lì l'articolo torna. Ripremuto, torna **disponibile e visibile subito**, senza memoria dello stato precedente.
+
+⚠️ **Il cestino è stato scartato, e il motivo va conservato**: significa "cancella" per chiunque, e questo comando **non cancella**. *Userebbe il simbolo che servirà il giorno che si vorrà cancellare davvero, e chi lo preme potrebbe credere di aver eliminato l'articolo per sempre — agendo su una convinzione falsa. Proposto da Andrea il 06/08, scartato dopo aver discusso il rischio, sostituito con l'occhio barrato.*
+
+⚠️ **Perché quadrato e con la sola icona, e non un quarto pulsante di testo.** Non è gusto: i tre pulsanti attuali sono di solo testo con `whiteSpace: nowrap`, la riga **non ha `flexWrap`** e quindi non va mai a capo, e Andrea ha verificato **dal telefono** che gli articoli ci stanno su una riga ma che per un altro pulsante non c'è posto. Un quadrato occupa circa un terzo di uno di testo. *È la scelta che rende possibile il quarto comando, non un abbellimento.*
+
+**Tutti gli altri pulsanti si spengono** quando l'articolo è fuori menu (Andrea, 06/08/2026): Modifica, Allergeni e Disponibile/Esaurito. *Alternativa scartata: lasciare attivi Modifica e Allergeni per poter sistemare un articolo mentre è nascosto. Andrea ha scelto di spegnere tutto — se l'articolo non è nel menu, l'unica cosa sensata da fargli è rimetterlo.*
+
+⚠️ **LO STATO SPENTO VA COSTRUITO, e sarà il primo del pannello.** Accertato il 06/08/2026: oggi un pulsante disattivato **non si distingue visivamente** da uno attivo — `disabled` è usato in una ventina di punti, ma gli stili cambiano **solo il cursore**, e alcuni tengono perfino `cursor: pointer` fisso. ⚠️ *Sul telefono il cursore non esiste: un pulsante spento sarebbe indistinguibile da uno acceso proprio sul dispositivo dove il pannello si usa di più, e verrebbe premuto aspettandosi un effetto. Va reso **visibile**: grigio, testo scolorito, non premibile. La coppia di colori più vicina già in tavolozza è quella che il toggle usa per "Esaurito".*
+
+⚠️ **Non esiste nessun pulsante con sola icona in tutto il pannello**: l'occhio barrato sarà il primo, e **non c'è una forma da cui copiare**. Va disegnato con l'altezza dei tre esistenti, così la riga resta allineata.
+
+**Il carrello.** Un articolo tolto dal menu che si trovi in un carrello viene rimosso con il motivo **"non è più nel menu"** (Andrea, 06/08/2026) — non "non è più disponibile". *Sono due messaggi che il carrello già distingue, ed è la verità: l'articolo non è esaurito, è stato ritirato. È lo stesso meccanismo usato per la bibita del combo (§23-26), con l'altro motivo.*
+
+**Il database.** Serve una **colonna nuova**, e non si può riusare `is_available`: ⚠️ *il reset notturno rimette **tutti** i prodotti disponibili ogni giorno, quindi un articolo "tolto dal menu" tornerebbe a menu da solo dopo poche ore.* È DDL: migrazione in `sql/`, eseguita da Andrea nel SQL editor (§63-64), non da Code.
+
+**Dove si applica il nascondere.** Nel browser, nel punto unico che legge il menu del cliente, dove già si nascondono l'upsell delle salse e i Roll non disponibili del combo. ⚠️ **Ma il pagamento va coperto lo stesso**, per la stessa ragione della bibita del combo: il browser è ciò che si vede, il server è ciò che vale.
+
+⚠️ **NESSUNA REGOLA DI SCHERMO ESISTE NEL PROGETTO, e il viewport non è dichiarato** (accertato il 06/08/2026 con controprova: zero `@media` ovunque, un solo file `.css` di 32 righe, nessun `viewport` nel layout). *Senza quella dichiarazione un browser mobile può disegnare la pagina come se lo schermo fosse largo quasi mille punti e poi rimpicciolire tutto. Il **pannello** si legge lo stesso — Andrea l'ha verificato dal telefono — ma il **sito del cliente** non è mai stato guardato con questa lente. Da valutare prima dell'apertura, come lavoro a sé: non fa parte di "togli dal menu" e non è condizione di apertura.*
+
+✅ **La riga dell'articolo è una sola**, usata per tutte le categorie, salse comprese: il lavoro si fa in un punto solo del pannello.
 
 ### Il percorso di lettura del menu cliente (ricognizione del 06/08/2026)
 
