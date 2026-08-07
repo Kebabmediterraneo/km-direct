@@ -1,6 +1,6 @@
 # KM DIRECT — MASTER SPECIFICATION
 
-**Versione 62** — sostituisce la v61.
+**Versione 63** — sostituisce la v62.
 
 Documento di riferimento definitivo per lo sviluppo. Le decisioni qui
 contenute sono approvate: non vanno reinterpretate senza un motivo concreto
@@ -22,47 +22,69 @@ versione corrente**. I precedenti vivono in `git log`, che è fatto per quello.
 del documento prima che cominciasse a parlare del progetto — e dentro c'erano
 istruzioni rovesciate che nessuno rileggeva.*
 
-**Novità della v62** (vincolanti, dalle decisioni di Andrea del 06/08/2026 e
-dalla ricognizione di sola lettura sulla riga dell'articolo nel pannello):
+**Novità della v63** (vincolanti, dalla costruzione e dalle prove dal vivo del
+07/08/2026):
 
-1. §63-64 — ✅ **"togli dal menu" ha la sua forma completa**: pulsante
-   **quadrato con la sola icona**, un occhio barrato rosso, in coda alla riga
-   dopo Disponibile. Premuto, l'articolo sparisce dal sito; l'icona diventa un
-   occhio **aperto verde**, e tutti gli altri pulsanti della riga si **spengono**.
-   Ripremuto, l'articolo torna **disponibile e visibile subito**.
-2. §63-64 — ⚠️ **il cestino è stato SCARTATO come icona**: significa "cancella"
-   per chiunque, e questo comando non cancella. *Occuperebbe il simbolo che
-   servirà il giorno che si vorrà cancellare davvero, e farebbe credere a chi lo
-   preme di aver eliminato l'articolo per sempre. Proposto da Andrea, scartato
-   dopo averne discusso il rischio, sostituito con l'occhio barrato.*
-3. §63-64 — ✅ **il quadrato con la sola icona è la scelta che rende possibile il
-   quarto pulsante**: occupa circa un terzo di uno di testo, su una riga che
-   Andrea ha verificato dal telefono essere **già piena**.
-4. §63-64 — ⚠️ **LO STATO SPENTO NON ESISTE OGGI NEL PANNELLO e va costruito**:
-   un pulsante disattivato si distingue da uno attivo **solo per il cursore del
-   mouse**, che sul telefono non esiste. *Un pulsante spento sarebbe quindi
-   indistinguibile da uno acceso proprio dove il pannello si usa di più. Va reso
-   visibile — grigio, testo scolorito, non premibile — e sarà il primo del
-   pannello.*
-5. §63-64 — ⚠️ **non esiste nessun pulsante con sola icona in tutto il
-   pannello**: l'occhio barrato sarà il primo, e non c'è una forma da cui
-   copiare.
-6. §63-64 — **il motivo nel carrello è "non è più nel menu"** (Andrea), non "non
-   è più disponibile": sono due messaggi che il carrello già distingue, e questa
-   è la verità — l'articolo non è esaurito, è stato ritirato.
-7. §63-64 — ⚠️ **NEL PROGETTO NON ESISTE NESSUNA REGOLA DI SCHERMO, e il
-   viewport non è dichiarato.** Zero `@media` in tutto il repository, verificato
-   con controprova. *Il pannello resta leggibile dal telefono — Andrea l'ha
-   guardato — ma il **sito del cliente** non è mai stato esaminato con questa
-   lente. Registrato come lavoro da valutare prima dell'apertura, non incluso in
-   "togli dal menu".*
-8. §63-64 — **la riga dell'articolo nel pannello è UNA SOLA**, usata per tutte le
-   categorie, salse comprese: il lavoro si fa in un posto solo.
+1. §63-64 — ✅ **"TOGLI DAL MENU" È FATTO**, in sei pezzi, e **provato dal vivo
+   da Andrea** in tutte le sue parti: pannello, sito cliente, carrello e
+   pagamento. La colonna è **`is_in_menu`** (boolean not null default true su
+   `products`), migrazione eseguita da Andrea il 07/08 — commit `74a3b6b`. Il
+   resto in `ec54cc2` (cuore e rotta), `ba05531` (pulsante e stato spento),
+   `200b94d` (sito cliente), `05ac016` (pagamento), `f9a8470` (carrello).
+   *La v62 descriveva la forma senza mai nominare la colonna: il nome viveva
+   solo nel database.*
+2. §63-64 — ✅ **il rientro nel menu rimette anche `is_available` a `true`**,
+   nella stessa scrittura. ⚠️ *Motivo: mentre l'articolo è fuori menu il
+   pulsante Disponibile è spento, quindi un articolo tolto **mentre era
+   esaurito** rientrerebbe esaurito e nessuna schermata potrebbe più
+   cambiarlo. È il vicolo cieco che la regola "torna disponibile e visibile
+   subito, senza memoria dello stato precedente" esisteva per evitare, e che
+   il piano iniziale non realizzava.*
+3. §36-40, §63-64 — ✅ **DUE LISTE NEL SITO CLIENTE, MAI UNA FILTRATA**
+   (Andrea, 07/08/2026). Filtrare nel punto unico romperebbe **due cose in
+   silenzio**: il carrello direbbe *"Un articolo: non è più nel menu"* senza il
+   nome, e una riga già nel carrello perderebbe la categoria sparendo dai
+   gruppi dell'upsell. È la terza applicazione della stessa forma già imposta
+   per Roll e bibite.
+4. §33, §41-45 — ⚠️ **le BIRRE ricevono la lista PIENA, non la filtrata**, e il
+   motivo è di sicurezza, non di gusto: la lista delle birre non disegna nulla,
+   serve solo a riconoscere se nel carrello c'è una birra. Da quel
+   riconoscimento dipendono la casella **«sono maggiorenne»**, lo sblocco del
+   pagamento e il dato mandato al server. *Con la lista filtrata, una birra
+   tolta dal menu mentre è già in un carrello smetterebbe di essere
+   riconosciuta al primo ridisegno: la casella sparirebbe e il pagamento si
+   sbloccherebbe da sé.*
+5. §23-26 — ✅ **il messaggio del combo NOMINA LA BIBITA** (Andrea, 07/08/2026),
+   non più il solo Roll. ⚠️ *Cambia anche il comportamento scritto il 06/08 per
+   la bibita **esaurita**: è allargamento di perimetro voluto, non una svista.
+   Prima i tre casi del combo producevano a schermo la stessa identica frase e
+   il cliente non poteva sapere che gli bastava cambiare bibita.*
+6. §46 — ⚠️ **LA FINESTRA DEL PAGAMENTO: dal momento in cui il cliente arriva
+   su Stripe, nessun controllo viene più eseguito.** Trovata da Andrea il
+   07/08 sbagliando l'ordine di una prova. **Non è un difetto di "togli dal
+   menu"**: vale identica per `is_available` e precede tutto questo lavoro.
+   Da decidere prima dell'apertura.
+7. §36-40, §46b — ⚠️ **CORREZIONE DI DUE PUNTI DELLA v62: il carrello NON
+   sopravvive alla chiusura del browser.** §36-40 lo dice dalla v33 — *"si
+   conserva finché la scheda resta aperta e si perde alla chiusura"* — ma due
+   passaggi affermavano il contrario, e uno di essi citava §36-40 come propria
+   autorità. *Segnalato da Andrea. Era la famiglia 3 delle lezioni nella sua
+   forma peggiore: due misure incompatibili della stessa grandezza, nello
+   stesso file, e nessuna che rileggesse l'altra.*
+8. §66 — ⚠️ **il ruolo pubblico `anon` ha il permesso `TRUNCATE` su
+   `products`**, trovato per caso da Andrea, **preesistente**. Registrato qui
+   perché fino a oggi non stava in nessun file. Da accertare se sia davvero
+   raggiungibile da fuori.
+9. §66 — ⚠️ **tre cose governano il progetto e non stanno in nessun file del
+   repository**: le regole di lettura del database, l'integrazione Git di
+   Vercel (**ogni push su `main` pubblica il sito**, anche i commit di soli
+   documenti) e il piano di hosting. Vedi il blocco nuovo in fondo a §66.
 
 *Il conteggio delle condizioni di apertura non cambia: **quattro chiuse, cinque
-aperte**. La procedura mensile di §69 conserva la sola prima esecuzione. I
-lavori pre-go-live che restano sono **due** — "togli dal menu" e la Fase 4 — più
-la valutazione del viewport, che non è condizione di apertura.*
+aperte**. La procedura mensile di §69 conserva la sola prima esecuzione. Il
+lavoro pre-go-live che resta è **uno** — la Fase 4 — più la valutazione del
+viewport e la decisione sulla finestra del pagamento, che non erano condizioni
+di apertura e ora vanno guardate prima di aprire.*
 
 ## 1. Visione del progetto
 
@@ -743,7 +765,7 @@ nomi resta manuale finché non esisterà l'editor dei contenuti del combo
 
 ✅ **La decisione (Andrea, 06/08/2026): una sola disponibilità, quella del PRODOTTO.** La tendina del combo e il risolutore del pagamento guardano `products.is_available`. Il controllo va messo **in entrambi i punti**: il browser perché il cliente non veda ciò che non può avere, il server perché è la rete sotto agli errori del browser — ed è già la forma che il risolutore usa per prodotto singolo e Roll. ⚠️ *Si rinuncia a poter esprimere "questa bibita c'è, ma non nel combo". **Alternativa scartata**: un secondo comando nel pannello per governare la presenza nel combo. Sarebbe più espressivo e sarebbe una cosa in più da ricordare a ogni esaurimento: il giorno che qualcuno se ne dimentica, il difetto è di nuovo qui, con in più uno strumento che dava l'impressione di averlo risolto. Con un interruttore solo, dimenticarsi non è possibile.*
 
-✅ **Il carrello (Andrea, 06/08/2026):** un combo già nel carrello la cui bibita diventa non disponibile viene **tolto, con il motivo scritto**, esattamente come già accade per gli articoli semplici. *Il carrello sopravvive alla chiusura del browser (§36-40): senza questa regola il caso non è teorico, si presenta da solo alla prima riapertura.*
+✅ **Il carrello (Andrea, 06/08/2026):** un combo già nel carrello la cui bibita diventa non disponibile viene **tolto, con il motivo scritto**, esattamente come già accade per gli articoli semplici. *⚠️ **Correzione della v63**: la v61 giustificava questa regola scrivendo che il carrello sopravvive alla chiusura del browser. **È falso**, e §36-40 dice il contrario dalla v33 — il carrello si conserva finché la scheda resta aperta e si perde alla chiusura. La regola resta valida, ma per un motivo diverso e più stretto: il carrello viene ricostruito dal menu fresco al **ritorno da Stripe**, che è l'unico caso reale in cui la pagina si ricarica nella stessa scheda, ed è per la spec stessa "il momento peggiore in cui poteva succedere". Il caso non è teorico: è raro e capita nel punto peggiore.*
 
 ⚠️ **La bibita del combo, nella riga d'ordine, esiste solo come NOME.** `order_items.product_id` di una riga di combo punta al **Roll**; la bibita sta dentro `configuration` come stringa. **Il commento di `km_direct_schema.sql` dichiara un `product_id` che il codice non scrive**, e vince il codice: è quello che ha prodotto i dati esistenti. *Va saputo prima di provare a rispondere a domande sugli ordini passati: l'aggancio è per nome, e un articolo rinominato dopo l'ordine non si aggancia più. Non è in contraddizione con la regola dell'identità qui sopra, che governa i **collegamenti** fra prezzi e prodotti — quelli usano l'`id` davvero — ma la fotografia scritta nell'ordine no.*
 
@@ -1427,6 +1449,40 @@ Stripe. Regole non negoziabili: prezzo ricalcolato server-side (mai fidarsi
 del browser), webhook, idempotenza, prevenzione doppio ordine, stato
 pending, ordine storico con snapshot prezzi immutabile, procedura rimborso.
 
+⚠️ **LA FINESTRA DEL PAGAMENTO — trovata il 07/08/2026, da decidere prima
+dell'apertura (v63)**
+
+**Dal momento in cui il cliente arriva sulla pagina Stripe, nessun controllo
+viene più eseguito.** Il risolutore — l'unico punto che verifica
+`is_available` e `is_in_menu` — gira **una volta sola**, quando il sito prepara
+la sessione di pagamento, **187 righe prima** che la sessione esista. Quando il
+cliente vede Stripe, la verifica è già finita e l'ordine è già scritto in
+tabella come `pending`.
+
+**Un secondo controllo dopo il pagamento NON esiste**, e va detto
+esplicitamente. Il webhook fa tre cose e nessun'altra: verifica la firma
+dell'evento, porta il pagamento da `pending` a riuscito, e consuma GIVEMEFIVE
+se c'era. **Non legge `products`**: né la disponibilità, né la presenza a menu,
+né i prezzi. Non c'è alcun punto in cui un ordine possa essere rifiutato dopo
+che il cliente ha pagato.
+
+*Conseguenza concreta: un articolo che diventa esaurito, o che viene tolto dal
+menu, mentre il cliente è già su Stripe, produce **un ordine pagato che lo
+staff non può preparare**. Si gestisce col telefono.*
+
+⚠️ **Non è un difetto di "togli dal menu" e non è stato introdotto dal lavoro
+del 07/08**: vale identico per `is_available`, cioè da mesi, perché le due
+colonne stanno nella medesima query chiamata nel medesimo istante e ne
+condividono il destino. *Trovata da Andrea sbagliando l'ordine di una prova —
+aveva tolto l'articolo dal menu **dopo** essere arrivato su Stripe, e il
+pagamento era passato. La diagnosi è stata chiusa con la controprova sul caso
+noto: **anche l'esaurito passa**, quindi non era il filtro nuovo a essere
+rotto, era il giro a non toccarlo.*
+
+**Da decidere prima dell'apertura**, come lavoro a sé: se chiudere la finestra
+significa aggiungere una rilettura nel webhook — una strada mai aperta — e
+decidere cosa fare di un ordine già incassato che non si può servire.
+
 **Prezzo mostrato vs prezzo addebitato — da chiudere PRIMA del go-live
 (v28, vincolante)**
 
@@ -1645,7 +1701,9 @@ può fare nello stesso giro.
 
 **La riga non ordinabile viene tolta, e l'avviso già esistente dice quale e
 perché** (decisione di Andrea, 01/08/2026). Si riusa l'avviso che il carrello
-mostra già al rientro dopo una chiusura del browser — titolo *"Abbiamo
+mostra già al rientro da Stripe — ⚠️ *la v62 scriveva qui "dopo una chiusura
+del browser", ed era falso: §36-40 dice dalla v33 che il carrello si perde alla
+chiusura. Corretto in v63* — titolo *"Abbiamo
 aggiornato il tuo carrello"* e una voce per riga, *"«nome»: «ragione»."* — e
 **non se ne scrive uno nuovo**: due testi che dicono la stessa cosa
 divergerebbero, ed è la seconda implementazione che §46b vieta.
@@ -2647,7 +2705,9 @@ separato. L'introduzione di ruoli/permessi admin distinti dallo staff è
   sotto).
 
 *Prima del go-live, in quest'ordine (Andrea, 06/08/2026):*
-- **"togli dal menu"** — forma completa nel blocco dedicato più sotto. In breve:
+- ✅ **"togli dal menu" — FATTO il 07/08/2026**, sei pezzi, provato dal vivo:
+  vedi il blocco dell'esito più sotto. Forma completa nel blocco dedicato. In
+  breve:
   terzo stato accanto a disponibile ed esaurito, per
   l'articolo che esce dal menu senza essere esaurito. **Un solo tasto che fa e
   disfa**, come l'esaurito; premuto, l'articolo **sparisce** dal sito cliente
@@ -2769,10 +2829,11 @@ cambio di prezzo, form inline nella sezione Menu del pannello staff
 (coerente con §34-35) e registrazione di ogni modifica in
 `staff_action_log`, esteso anche al toggle disponibile/esaurito.
 
-**Stato di avanzamento (v59)**: **Fase 1, Fase 2A, Fase 2B e Fase 3 sono
-complete e verificate dal vivo**. Prima del go-live restano **"togli dal menu"**
-e la **Fase 4**, in quest'ordine (Andrea, 06/08/2026): nessuno dei due era
-pre-go-live fino alla v58. *La formulazione precedente diceva che restava la
+**Stato di avanzamento (aggiornato in v63)**: **Fase 1, Fase 2A, Fase 2B, Fase
+3 e "togli dal menu" sono complete e verificate dal vivo.** Prima del go-live
+resta la sola **Fase 4**. *"Togli dal menu" è stato chiuso il 07/08/2026 in sei
+pezzi — esito e prove nel blocco dedicato più sotto. Fino alla v58 né esso né la
+Fase 4 erano pre-go-live.* *La formulazione precedente diceva che restava la
 sola Fase 3.* *Le formulazioni precedenti di questo blocco e di quello della Fase
 2A descrivevano lavori già fatti come da fare: erano note di stato lasciate
 indietro, dello stesso tipo corretto in §46b dalla v40.*
@@ -2928,13 +2989,116 @@ Precedute da una ricognizione di sola lettura su codice e database vivo. **I val
 
 **Il carrello.** Un articolo tolto dal menu che si trovi in un carrello viene rimosso con il motivo **"non è più nel menu"** (Andrea, 06/08/2026) — non "non è più disponibile". *Sono due messaggi che il carrello già distingue, ed è la verità: l'articolo non è esaurito, è stato ritirato. È lo stesso meccanismo usato per la bibita del combo (§23-26), con l'altro motivo.*
 
-**Il database.** Serve una **colonna nuova**, e non si può riusare `is_available`: ⚠️ *il reset notturno rimette **tutti** i prodotti disponibili ogni giorno, quindi un articolo "tolto dal menu" tornerebbe a menu da solo dopo poche ore.* È DDL: migrazione in `sql/`, eseguita da Andrea nel SQL editor (§63-64), non da Code.
+**Il database.** Serve una **colonna nuova** — è **`is_in_menu`**, boolean not null default true su `products`, migrazione eseguita da Andrea il 07/08/2026, commit `74a3b6b` — e non si può riusare `is_available`: ⚠️ *il reset notturno rimette **tutti** i prodotti disponibili ogni giorno, quindi un articolo "tolto dal menu" tornerebbe a menu da solo dopo poche ore.* È DDL: migrazione in `sql/`, eseguita da Andrea nel SQL editor (§63-64), non da Code.
 
 **Dove si applica il nascondere.** Nel browser, nel punto unico che legge il menu del cliente, dove già si nascondono l'upsell delle salse e i Roll non disponibili del combo. ⚠️ **Ma il pagamento va coperto lo stesso**, per la stessa ragione della bibita del combo: il browser è ciò che si vede, il server è ciò che vale.
 
 ⚠️ **NESSUNA REGOLA DI SCHERMO ESISTE NEL PROGETTO, e il viewport non è dichiarato** (accertato il 06/08/2026 con controprova: zero `@media` ovunque, un solo file `.css` di 32 righe, nessun `viewport` nel layout). *Senza quella dichiarazione un browser mobile può disegnare la pagina come se lo schermo fosse largo quasi mille punti e poi rimpicciolire tutto. Il **pannello** si legge lo stesso — Andrea l'ha verificato dal telefono — ma il **sito del cliente** non è mai stato guardato con questa lente. Da valutare prima dell'apertura, come lavoro a sé: non fa parte di "togli dal menu" e non è condizione di apertura.*
 
 ✅ **La riga dell'articolo è una sola**, usata per tutte le categorie, salse comprese: il lavoro si fa in un punto solo del pannello.
+
+### "Togli dal menu" — esito della costruzione e delle prove dal vivo (07/08/2026)
+
+✅ **COMPLETO in sei pezzi, tutti provati dal vivo da Andrea.** Il cuore è
+`lib/menu-visibility.js` con la rotta sottile
+`app/api/staff/menu/visibility/route.js`, nella forma provabile che la Fase 3
+aveva inaugurato: **il client del database si passa come parametro, non si
+importa**. Il pulsante e lo stato spento vivono in `app/staff/page.js`, il sito
+cliente in `app/page.js`, il pagamento in `lib/checkout-resolve.js`, il carrello
+in `lib/cart-persistence.js`.
+
+**Il rientro rimette anche la disponibilità (Andrea, 07/08/2026, vincolante).**
+`setInMenuCore` con `isInMenu` vero scrive `is_in_menu` **e** `is_available` a
+`true` in **una sola scrittura**; con `isInMenu` falso scrive solo
+`is_in_menu` e non tocca la disponibilità. ⚠️ *Motivo: mentre l'articolo è
+fuori menu il pulsante Disponibile è spento, quindi un articolo tolto **mentre
+era esaurito** rientrerebbe esaurito e nessuna schermata potrebbe più
+cambiarlo. Una sola scrittura e non due, perché un guasto in mezzo lascerebbe
+l'articolo visibile ma esaurito: esattamente il vicolo cieco che la regola
+esiste per evitare.* Il registro scrive **una voce per colonna cambiata**, col
+valore precedente letto prima della scrittura, e **nessuna riga** se non cambia
+niente. *Il reset notturno non interferisce e va nella stessa direzione:
+rimette a `true` ciò che è esaurito e nomina una sola colonna, quindi un
+articolo fuori menu resta fuori.*
+
+⚠️ **LE DUE LISTE DEL SITO CLIENTE — MAI UNA FILTRATA (Andrea, 07/08/2026,
+vincolante).** Accanto all'elenco pieno dei prodotti per categoria ne esiste
+uno **filtrato** su `is_in_menu`. La **filtrata** alimenta ciò che si vede:
+griglia delle card, upsell che **propone**, Roll del combo. La **piena**
+alimenta chi deve **vedere** l'articolo per nominarlo o classificarlo: la
+ricostruzione del carrello e la funzione che risale la categoria di una riga
+già nel carrello. *Filtrare nel punto unico avrebbe coperto quattro consumatori
+in un colpo solo e ne avrebbe rotti due **in silenzio**: il carrello avrebbe
+detto "Un articolo: non è più nel menu" senza il nome, e una riga già nel
+carrello sarebbe sparita dai gruppi dell'upsell. È lo stesso difetto che §23-26
+vieta per le bibite, riaperto su un altro ramo il giorno dopo averlo chiuso.*
+✅ **Nel codice c'è il commento che lo spiega, e la prova `t5` di
+`tests/cart-persistence.test.mjs` cade se qualcuno unifica le due liste**: è
+una sentinella del sito cliente piazzata dentro le prove del carrello, e cade
+senza che nulla si rompa a schermo.
+
+⚠️ **LE BIRRE RICEVONO LA LISTA PIENA, ed è una regola di sicurezza.** La lista
+delle birre non disegna nulla: serve solo a riconoscere se nel carrello c'è una
+birra, e quel riconoscimento è **ricalcolato a ogni disegno**, mai conservato.
+Da esso dipendono la casella **«sono maggiorenne»**, lo sblocco del pagamento e
+il dato mandato al server. *Con la lista filtrata, una birra tolta dal menu
+mentre è già in un carrello smetterebbe di essere riconosciuta al primo
+ridisegno: la casella sparirebbe e la condizione "non c'è birra, oppure l'età è
+confermata" diventerebbe vera da sé. Le birre che si **vedono** nel menu sono
+già filtrate dalla griglia, come tutte le altre categorie.* ✅ *Verificato lo
+stesso giorno che i tre consensi — privacy, marketing e **conferma dell'età** —
+restano fuori dal salvataggio, e due volte: non stanno nella lista chiusa delle
+chiavi che il modulo copia, e non sono nemmeno raggiungibili dal punto in cui
+il salvataggio avviene. La prova è stata **eseguita**, non descritta: passando
+al modulo uno stato che li conteneva, in uscita non compaiono.*
+
+**Il messaggio del combo nomina la bibita (Andrea, 07/08/2026, vincolante).**
+Quando la bibita di un combo non è ordinabile, l'avviso del carrello dice che
+è **la bibita**, con il motivo "non è più disponibile", **sia** che sia
+esaurita **sia** che sia fuori menu. ⚠️ *Questo cambia anche il comportamento
+deciso il 06/08 per la bibita esaurita: è allargamento di perimetro voluto.
+Prima i tre casi del combo — Roll esaurito, prezzo combo spento, bibita
+esaurita — producevano a schermo la **stessa identica frase**, che nominava il
+Roll: il cliente non poteva sapere che gli bastava cambiare bibita e credeva
+fosse saltato il combo intero. **Motivo per cui non si usa "non è più nel
+menu"**: la frase nomina il combo, e il combo nel menu c'è ancora — sarebbe
+l'unica delle quattro frasi a essere falsa.* Una prova esistente si opponeva al
+comportamento nuovo ed è stata **riscritta e dichiarata**, non aggirata.
+
+**Un quinto caso, deciso scrivendo il codice**: un articolo tolto dal menu
+**mentre era esaurito** — vere entrambe le cose insieme — legge **"non è più
+nel menu"**, perché il controllo del ritiro sta prima di quello della
+disponibilità. *È il più vero dei due: spiega anche perché non tornerà domani
+col reset notturno.*
+
+**Il pagamento.** Le **tre** letture su `products` in `lib/checkout-resolve.js`
+— prodotto singolo, Roll del combo, bibita del combo — hanno il filtro su
+`is_in_menu` **accanto** a quello sulla disponibilità, non al suo posto: i due
+si sommano. *Il commit che le ha aggiunte è **+17 −0**, e lo zero è la prova
+contabile che nessun filtro è stato sostituito.* ⚠️ **Nessuna delle tre è
+coperta da prove automatiche**, come le altre letture di quel modulo: leggono
+dal database e simularle proverebbe la simulazione. La loro rete dichiarata è
+la fotografia della rotta, che richiede server e dati veri.
+
+✅ **Prove dal vivo di Andrea, 07/08/2026.** Sul pannello, sette: la riga sta su
+una riga sola; occhio barrato e occhio aperto distinguibili; l'articolo diventa
+grigio con la scritta *· fuori menu*; i tre pulsanti non rispondono; si vede a
+occhio che sono spenti, **telefono compreso**; il rientro funziona; e un
+articolo segnato **esaurito**, tolto dal menu e rimesso, **torna disponibile**.
+Sul sito cliente, cinque, fatte **dopo aver tolto due articoli dal menu** —
+⚠️ *con 62 articoli dentro e zero fuori le due liste sono identiche e la prova
+non può fallire: guardare il sito prima di togliere qualcosa non è una prova
+blanda, non è una prova.* Sul carrello e sul pagamento, tre, con un giro
+completo fino a Stripe e ritorno, che è l'unico modo per far comparire
+l'avviso.
+
+⚠️ **Un fatto sul metodo, dalla stessa giornata: chiudere la shell non spegne
+il server.** I processi sopravvivono riattaccandosi a `init`, la porta resta
+occupata, **e il sistema segnala il comando come "fallito" mentre il server è
+vivo**. Lo stesso segnale è comparso anche a spegnimento riuscito: non misura
+nulla. Lo spegnimento si dichiara con tre riscontri indipendenti — nessun
+processo, nessun ascolto sulla porta, e una chiamata alla porta che **prima
+rispondeva** e ora no.
 
 ### Il percorso di lettura del menu cliente (ricognizione del 06/08/2026)
 
@@ -3268,6 +3432,34 @@ Eseguito da Andrea nell'editor SQL della dashboard con query di sola lettura sul
 * **Nessun cookie sulle pagine cliente**, né del progetto né di terze parti. Verificato dal vivo in finestra pulita.
 * **Nessuno strumento di analytics, error tracking o session recording** nel progetto.
 * **Glovo non invia alcun collegamento di tracking al cliente.** I riferimenti in spec sono desideri di fase futura: non vanno mai nell'informativa finché non esistono.
+
+### Ciò che governa il progetto e non sta in nessun file (v63, 07/08/2026)
+
+⚠️ **Quattro cose decidono come il progetto si comporta e non sono leggibili
+dal repository.** Registrate qui perché il silenzio dei file non le rendeva
+false, solo invisibili — ed è la stessa forma del limite dichiarato in testa a
+questo documento.
+
+* **Le regole di lettura e scrittura del database** vivono su Supabase. La più
+  citata è quella di lettura pubblica su `products`, **senza condizioni**, che
+  è il motivo per cui gli articoli in bozza non sarebbero realizzabili.
+* ⚠️ **Il ruolo pubblico `anon` ha il permesso `TRUNCATE` su `products`.**
+  Trovato per caso da Andrea, **preesistente a tutto il lavoro di agosto**, e
+  fino alla v63 non scritto da nessuna parte. **Da accertare se sia davvero
+  raggiungibile da fuori**: il permesso concesso e il permesso esercitabile
+  attraverso l'API pubblica non sono la stessa cosa, e la differenza va
+  stabilita, non supposta.
+* ⚠️ **L'integrazione Git di Vercel: ogni push su `main` pubblica il sito**,
+  **compresi i commit di soli documenti**. Verificato da Andrea il 07/08
+  guardando le distribuzioni: tutte marcate come produzione, `spec:` e
+  `handoff:` incluse. *Nessun file del repository lo dichiara — `vercel.json`
+  contiene solo la pianificazione del reset notturno — ed è un'impostazione del
+  pannello Vercel. Oggi è innocuo perché il sito non è raggiungibile; dal
+  giorno dell'apertura ogni push diventa una pubblicazione.*
+* ⚠️ **Il piano di hosting è Hobby.** Da verificare sulle condizioni di Vercel
+  se sia adatto a un sito che incassa ordini per una società: **non è stato
+  accertato**, è un dubbio sollevato il 07/08 e va chiuso leggendo le loro
+  condizioni, non fidandosi di questa riga. Potenziale condizione di apertura.
 
 ## 67. Allergeni
 

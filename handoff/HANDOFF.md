@@ -12,29 +12,31 @@ Web app per ordini **delivery e ritiro** di **FAME Srl / KM Kebab Mediterraneo**
 (Bologna, store `san-mamolo`). Stack **Next.js 14 + Supabase + Stripe (sandbox)**.
 Repo: **github.com/Kebabmediterraneo/km-direct** (branch `main`, push via SSH).
 La fonte di verità di tutte le decisioni è **`MASTER_SPEC.md`** — versione attuale
-**v61** (leggila sempre dall'intestazione, riga 3).
+**v63** (leggila sempre dall'intestazione, riga 3).
 
 ---
 
 ## 2) Stato git
 
 - Branch **`main`**, working tree **pulita**, allineata a `origin/main`.
-- HEAD: **`c6392d9`** — la spec v61 (06/08/2026).
+- HEAD: **`f9a8470`** — il carrello che nomina la bibita (07/08/2026).
 - Ultimi commit (dal più recente):
 
 ```
+f9a8470 carrello: il combo con la bibita non ordinabile nomina la bibita invece del solo Roll, perche' il cliente non sapeva che gli bastava cambiarla
+05ac016 pagamento: le tre letture su products rifiutano anche l'articolo fuori menu, accanto al filtro sulla disponibilita' e non al suo posto
+200b94d sito: l'articolo fuori menu sparisce dalla vista con due liste e non una, perche' il carrello deve poterlo vedere per dirne il nome e l'upsell per classificare una riga gia' nel carrello
+ba05531 menu: il pulsante occhio di togli-dal-menu e lo stato spento, che nel pannello non esisteva e distingueva un tasto disattivato solo dal cursore, assente sul telefono
+ec54cc2 menu: cuore e rotta di togli-dal-menu, con is_available rimessa a true al rientro perché un articolo tolto mentre era esaurito non sarebbe più raggiungibile dal pannello
+74a3b6b sql: colonna is_in_menu su products per togli dal menu, eseguita il 07/08
+2d928bf spec: v62 — togli dal menu con occhio barrato al posto del cestino, pulsante quadrato perché la riga è piena, e lo stato spento da costruire
+8c46f2a handoff: stato a fine 06/08 — la bibita del combo corretta e provata, la guardia sulle scelte vuote, tre lezioni nuove
 c6392d9 spec: v61 — bibita del combo corretta e provata, guardia sulle scelte vuote col difetto Roll preesistente, lo shortcut Fallo combo non esiste
 1a48a93 combo: il builder non si propone se una delle tre scelte è vuota
 d8f034d combo: la bibita rispetta la disponibilità del prodotto in menu, checkout e carrello
 f750ee2 spec: v60 — la bibita del combo ignora la disponibilità del prodotto, decisa una disponibilità sola e il carrello che si svuota col motivo
 b50129c handoff: due spazi mancanti nella lezione br
 fe3dfbf handoff: corretto il quinto messaggio di commit ricostruito a memoria e registrata la lezione br
-6c22d17 handoff: stato al 06/08 — Fase 3 chiusa e provata dal vivo, prossimi lavori riordinati, sezione 21 e due lezioni nuove
-4a51fb7 spec: v59 — Fase 3 completa e provata dal vivo, Fase 4 e togli-dal-menu prima del go-live
-a51f7db menu: interfaccia della Fase 3 — rotta sottile che risolve store e client come le chiusure eccezionali, e modulo di creazione in linea sotto il Menu con la tendina categorie senza preselezione perché un Roll creato per inerzia sembrerebbe buono a menu, allergeni obbligatori solo sul cibo e posto proposto dopo l'ultimo della categoria
-975a078 menu: cuore della creazione articoli della Fase 3, con l'ordine di scrittura che lascia l'articolo «mai verificato» invece che «verificato e senza allergeni»; bevande esentate dagli allergeni anche in creazione perché la Fase 2A non le riaprirebbe più, elenco categorie unica fonte sotto lib con il pannello che lo importa, e tabella dietetica esportata invece che duplicata
-a974817 menu: modulo dello slug per la Fase 3 con le sei regole di §63-64 più il divieto di trattini doppi o ai bordi, provato sui sette slug delle salse già in database; la settima regola non la esercita nessun nome del menu e la & di Kaymak & miele la copre la riduzione degli spazi, non lei
-ee402eb spec: v58 — le tre copie delle categorie coincidono e la prova può nascere, quattro decisioni operative della Fase 3 con allergens_verified_at scritta per ultima, la regola RLS di products esiste sul database ma in nessun file versionato, Tzatziki e Yogurt dichiarati §63-64 §66 §67
 ```
 
 ⚠️ **QUESTO ELENCO VA RIGENERATO DA `git log`, MAI RICOPIATO NÉ RICOSTRUITO A
@@ -357,6 +359,12 @@ riceve l'elenco di ciò che **deve restare**, non solo di ciò che deve sparire.
   prezzo, form inline e log. **Dal 28/07/2026 copre anche le salse**, senza
   codice dedicato (punto 6).
 - **Editor menu — FASE 2A** (§67): modifica di **allergeni e flag dietetici**.
+- **Editor menu — FASE 3** (§63-64): creazione di articoli semplici dal pannello.
+- **"Togli dal menu"** (§63-64) — *chiuso il 07/08/2026, sei pezzi, provato dal
+  vivo*: terzo stato accanto a disponibile ed esaurito, colonna `is_in_menu`,
+  pulsante occhio in coda alla riga, stato spento visibile anche sul telefono,
+  due liste nel sito cliente, filtro al pagamento e messaggio del carrello che
+  nomina la bibita. Racconto al punto **23**.
 - **Unificazione delle salse dentro `products`** (§30) — *conclusa il
   29/07/2026*, punto 6.
 - **Editor menu — FASE 2B COMPLETA** (§34-35, §63-64) — *conclusa il
@@ -800,15 +808,9 @@ lavoro di codice", in contraddizione con la frase successiva.*
 
 **I lavori pre-go-live, nell'ordine deciso da Andrea il 06/08/2026:**
 
-- ⬜ **"Togli dal menu"** — terzo stato accanto a disponibile ed esaurito, per
-  l'articolo che esce dal menu senza essere esaurito. **Un solo tasto che fa e
-  disfa**; premuto, l'articolo **sparisce** dal sito invece di comparire spento;
-  ripremuto, torna disponibile e visibile, senza memoria dello stato precedente.
-  **Non cancella.** Richiede **una colonna nuova** (DDL: migrazione in `sql/`
-  eseguita da Andrea nel SQL editor) e una modifica al percorso di lettura del
-  menu cliente, che è la parte delicata. Forma completa in **spec §63-64 v59**.
-  ⚠️ *Resta da decidere col pannello davanti: come si distingue a schermo un
-  articolo fuori menu, in mezzo a tutti gli altri.*
+- ✅ **"Togli dal menu" — FATTO il 07/08/2026**, sei pezzi, provato dal vivo da
+  Andrea in ogni sua parte. Colonna **`is_in_menu`**. Esito e prove in **spec
+  §63-64 v63**; racconto della giornata al punto **23** di questo documento.
 - ⬜ **Fase 4 — creazione/editing di Roll e Bowl con le loro opzioni**,
   **scegliendo fra le proteine già esistenti**. ⚠️ **Spostata a prima del
   go-live il 06/08/2026** (Andrea): inserire e sospendere Roll è per lui
@@ -1503,3 +1505,136 @@ passasse tutte le prove**, committare, rimettere il file dalla copia e
 finisce in git è bit per bit quello che è stato approvato, e non una
 ricostruzione somigliante. Un commit verde solo insieme al successivo è un punto
 in cui non si può tornare.*
+
+---
+
+## 23) "Togli dal menu", dalla migrazione alle prove dal vivo (07/08/2026)
+
+### 23a) Cosa è stato fatto
+
+**Sei pezzi, cinque commit più la migrazione**, tutti spinti. La colonna è
+`is_in_menu` (boolean not null default true su `products`), migrazione eseguita
+da Andrea nel SQL editor — 62 articoli nel menu, 0 fuori al momento
+dell'esecuzione.
+
+Il cuore è `lib/menu-visibility.js` con la rotta sottile
+`app/api/staff/menu/visibility/route.js`, nella forma provabile inaugurata dalla
+Fase 3: **il client si passa come parametro**. 37 prove sul solo cuore. Il
+pulsante occhio e lo stato spento in `app/staff/page.js`, il sito cliente in
+`app/page.js`, il pagamento in `lib/checkout-resolve.js`, il carrello in
+`lib/cart-persistence.js`. Prove: da **648** a **669**.
+
+**Decisioni e forma stanno in spec §63-64, §23-26 e §46 v63.** Qui resta solo
+ciò che il racconto aggiunge.
+
+### 23b) Le quattro cose cambiate rispetto al piano iniziale
+
+Nessuna delle quattro era nel piano approvato la mattina. Tutte e quattro sono
+nate da qualcuno che ha **guardato** invece di ricordare.
+
+* **Il rientro rimette anche `is_available`.** Il piano scriveva una colonna
+  sola. Un articolo tolto dal menu **mentre era esaurito** sarebbe rientrato
+  esaurito, e col pulsante Disponibile spento nessuna schermata avrebbe più
+  potuto cambiarlo.
+* ⚠️ **Le birre ricevono la lista PIENA, non la filtrata.** Il comando dato a
+  Code diceva il contrario, e veniva da un elenco di sola lettura che
+  classificava le birre fra ciò che "non deve vedere un fuori menu". **Code si
+  è fermato e ha spiegato prima di eseguire**: quella lista non disegna nulla,
+  serve a riconoscere se c'è una birra nel carrello, e da lì dipende la casella
+  **«sono maggiorenne»**. Con la filtrata sarebbe sparita da sé sbloccando il
+  pagamento.
+* **Il messaggio del combo nomina la bibita**, allargamento di perimetro voluto
+  da Andrea che tocca anche il comportamento scritto la sera prima.
+* **Le due liste nel sito cliente**, contro la strada facile del filtro unico.
+
+### 23c) I due elenchi sbagliati, e come sono venuti fuori
+
+⚠️ **Un referto di sola lettura ha prodotto due verdetti falsi, e le righe erano
+giuste.** Lo stesso documento dichiarava prima **cinque** consumatori di una
+variabile e poi, eseguendo la ricerca, ne trovava **diciassette**; e in un altro
+punto dichiarava **nove** aiuti trovati mentre la tabella ne elencava **sette**.
+
+*Entrambi sono stati scoperti contando, non leggendo. Il rimedio applicato è
+diventato regola: quando si chiede un elenco, si chiede **completo** — tutti i
+punti, non i soli cambiati — perché è il confronto fra il totale e la tabella a
+far cadere l'errore.*
+
+### 23d) Il numero delle prove che è cambiato da solo
+
+⚠️ **Il conteggio è passato da 648 a 664 senza che nessuno avesse scritto una
+prova.** La spiegazione data — "è solo un modo diverso di contare" — era falsa:
+il comando cercava `PASS` in qualunque punto della riga, e l'ultima riga di ogni
+suite è `TUTTI I TEST PASSATI`, che contiene `PASS`. **Sedici suite, sedici
+striscioni contati come prove.**
+
+**Il metro, scritto una volta sola:**
+
+```
+for f in tests/*.test.mjs; do node "$f"; done 2>/dev/null | grep -c '^PASS — '
+```
+
+*Se il numero sale, qualcuno ha scritto prove nuove. Se scende, qualcosa si è
+rotto.*
+
+### 23e) La prova che non poteva fallire, due volte in un giorno
+
+* ⚠️ **Guardare il sito cliente con 62 articoli dentro e 0 fuori non è una prova
+  blanda: non è una prova.** Le due liste sono identiche e il sito sembra giusto
+  qualunque cosa sia stata scritta. Le prove dal vivo del sito vanno fatte
+  **dopo** aver tolto qualcosa dal menu, e almeno un articolo dev'essere di una
+  delle categorie che l'upsell propone.
+* ⚠️ **Un pagamento riuscito non dimostra che un filtro sia rotto.** Andrea ha
+  tolto l'articolo dal menu **mentre era già sulla pagina Stripe**, e l'ordine è
+  passato. La diagnosi è stata chiusa con la controprova sul caso noto: **anche
+  un articolo esaurito passa**, quindi il giro non toccava il filtro. *La causa
+  era il comando, che diceva "toglila dal menu e poi prova a pagare" senza dire
+  che il controllo gira quando si preme il pulsante, non quando si è già su
+  Stripe.*
+
+### 23f) Ciò che questo lavoro NON ha chiuso
+
+* ⚠️ **La finestra del pagamento** (spec §46 v63): dopo che il cliente è su
+  Stripe non c'è più alcun controllo, e il webhook non legge `products`. Vale
+  identica per `is_available`, quindi **precede questo lavoro**. Da decidere
+  prima dell'apertura.
+* ⚠️ **Il permesso `TRUNCATE` del ruolo `anon` su `products`**, preesistente,
+  trovato per caso. Da accertare se sia raggiungibile da fuori.
+* ⚠️ **Il piano di hosting Hobby**, da verificare sulle condizioni di Vercel.
+* **Il viewport e lo schermo mobile del sito cliente**, invariato.
+* **La Fase 4**, unico lavoro pre-go-live rimasto.
+
+### 23g) Cinque lezioni
+
+**bv. ⚠️ Un elenco si chiede COMPLETO, non solo nelle voci che cambiano.** Due
+elenchi sbagliati nello stesso giorno sono caduti perché qualcuno ha confrontato
+il totale dichiarato con le righe scritte. *Chiedere "solo i punti che cambi"
+avrebbe lasciato passare entrambi: è il totale a fare da controprova alla
+tabella, e senza di esso una tabella incompleta si legge come completa.*
+
+**bw. ⚠️ Un numero di riscontro che cambia da solo va stabilito, non spiegato.**
+Il conteggio delle prove è passato da 648 a 664 con una spiegazione plausibile e
+falsa. *Un metro che cambia senza che nessuno lo abbia stabilito smette di
+misurare, e "le prove passano tutte" diventa una frase senza niente dietro. Il
+comando che produce il numero va scritto una volta sola, in chiaro.*
+
+**bx. ⚠️ Chiudere la shell non spegne il server, e il segnale di errore mente.**
+I processi sopravvivono riattaccandosi a `init` e la porta resta occupata,
+**mentre il sistema segnala il comando come "fallito"**. Lo stesso segnale è
+comparso anche a spegnimento riuscito: non misura nulla. *Lo spegnimento si
+dichiara con tre riscontri indipendenti, uno dei quali è una chiamata alla porta
+che **prima rispondeva**.*
+
+**by. ⚠️ Il comando che descrive una prova può renderla incapace di fallire.**
+Due volte in un giorno: il sito cliente guardato senza articoli fuori menu, e il
+pagamento provato togliendo l'articolo dopo essere arrivati su Stripe. *In
+entrambi i casi l'errore era in chi ha scritto le istruzioni, non in chi le ha
+eseguite. Il rimedio è quello di sempre — la controprova su un caso noto — ed è
+ciò che ha smascherato il secondo caso: anche l'esaurito passava.*
+
+**bz. ⚠️ Fermarsi e spiegare vale più che eseguire alla lettera.** Il comando
+sulle birre era sbagliato e sarebbe passato: la lista filtrata avrebbe fatto
+sparire la casella «sono maggiorenne» al primo ridisegno, sbloccando il
+pagamento di una birra senza dichiarazione d'età. *È stato evitato perché chi
+scriveva il codice ha seguito la variabile fino a scoprire cosa facesse davvero,
+ha passato la lista giusta e **ha spiegato prima di lasciarlo così**, invece di
+eseguire o di correggere in silenzio.*
