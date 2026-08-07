@@ -16,15 +16,25 @@ function assert(cond, msg) {
 }
 const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 
+// La frase che il cliente legge davvero. Composta QUI con la stessa formula di
+// app/page.js — `${r.name ?? "Un articolo"}: ${r.reason}.` — perché `name` e
+// `reason` presi da soli non dicono che cosa finisce sotto gli occhi di chi
+// ordina, e il punto di questi motivi è proprio quello.
+const frase = (r) => `${r?.name ?? "Un articolo"}: ${r?.reason}.`;
+
 // --- CATALOGO FINTO (forma di buildCatalogProduct + fetchMenuData) -----------
 // Patatine: prodotto semplice. Il Turco Bowl: con proteine, rimozioni,
 // accompagnamento, extra carne. Il Turco: Roll per il combo.
-const PATATINE = { id: "p-pat", name: "Patatine", basePriceValue: 4, isAvailable: true };
+// "Togli dal menu" (spec v62): ogni voce porta anche `isInMenu`, come la porta
+// `buildCatalogProduct` da quando la colonna esiste. Il catalogo finto deve
+// avere la forma di quello vero, o le prove verificherebbero un'altra cosa.
+const PATATINE = { id: "p-pat", name: "Patatine", basePriceValue: 4, isAvailable: true, isInMenu: true };
 const BOWL = {
   id: "p-bowl",
   name: "Il Turco Bowl",
   basePriceValue: 11,
   isAvailable: true,
+  isInMenu: true,
   config: {
     basePrice: 11,
     proteins: [
@@ -43,6 +53,7 @@ const TURCO = {
   name: "Il Turco",
   basePriceValue: 8,
   isAvailable: true,
+  isInMenu: true,
   config: {
     basePrice: 8,
     proteins: [
@@ -64,8 +75,8 @@ const CATALOG = {
   // sparita dal menu. La lista filtrata che alimenta la tendina del builder è
   // un'altra (`comboDrinkOptionsDisponibili`) e qui non entra.
   comboDrinkOptions: [
-    { id: "d-coca", name: "Coca-Cola lattina 33cl", priceDelta: 0, isAvailable: true },
-    { id: "d-te", name: "Tè freddo al limone", priceDelta: 0.5, isAvailable: true },
+    { id: "d-coca", name: "Coca-Cola lattina 33cl", priceDelta: 0, isAvailable: true, isInMenu: true },
+    { id: "d-te", name: "Tè freddo al limone", priceDelta: 0.5, isAvailable: true, isInMenu: true },
   ],
 };
 
@@ -249,24 +260,45 @@ const ROW_COMBO = {
 // dentro un combo. Il motivo dev'essere lo stesso — "non è più disponibile" —
 // e NON "una scelta non è più disponibile", che è ciò che uscirebbe se la
 // bibita esaurita fosse stata tolta dal catalogo invece che marcata.
+//
+// ⚠️ q4 È CAMBIATA il 07/08/2026, ed è un cambio di COMPORTAMENTO deciso da
+// Andrea, non un adattamento della prova al codice. Fino a ieri il combo veniva
+// tolto col solo nome del combo, e il cliente leggeva "Menu Combo · Il Turco:
+// non è più disponibile." — senza alcun modo di capire che gli sarebbe bastato
+// rifarlo con un'altra bibita. Ora il messaggio NOMINA LA BIBITA. La vecchia
+// q4 pretendeva il vecchio testo, quindi era la prova stessa a opporsi al
+// comportamento nuovo: è stata riscritta, non aggirata.
 {
   const cat = {
     ...CATALOG,
     comboDrinkOptions: [
-      { id: "d-coca", name: "Coca-Cola lattina 33cl", priceDelta: 0, isAvailable: false },
-      { id: "d-te", name: "Tè freddo al limone", priceDelta: 0.5, isAvailable: true },
+      { id: "d-coca", name: "Coca-Cola lattina 33cl", priceDelta: 0, isAvailable: false, isInMenu: true },
+      { id: "d-te", name: "Tè freddo al limone", priceDelta: 0.5, isAvailable: true, isInMenu: true },
     ],
   };
   const r = restoreCart(prepareCart([ROW_COMBO]), cat);
   assert(r.items.length === 0, "q1) il combo con bibita esaurita non torna nel carrello");
   assert(r.removed.length === 1, "q2) una sola riga tolta");
   // Letture con `?.`: se il controllo sparisse dal modulo, `removed` sarebbe
-  // vuoto e queste tre righe devono FALLIRE, non sollevare un TypeError che
+  // vuoto e queste righe devono FALLIRE, non sollevare un TypeError che
   // interrompe l'intero file lasciando gli altri casi non eseguiti.
   const tolto = r.removed[0];
   assert(tolto?.reason === REASON_UNAVAILABLE, `q3) motivo "non più disponibile", non "scelta sparita" (è "${tolto?.reason}")`);
-  assert(tolto?.name === "Menu Combo · Il Turco", "q4) tolto col nome del combo, non con quello della bibita");
+  assert(
+    tolto?.name === "La bibita Coca-Cola lattina 33cl del Menu Combo · Il Turco",
+    `q4) il nome NOMINA LA BIBITA e dice di quale combo è (è "${tolto?.name}")`
+  );
   assert(tolto?.id === "p-turco", "q5) l'id riportato è quello del Roll, come per gli altri motivi del combo");
+  // Il testo LETTERALE che il cliente legge, composto come lo compone
+  // app/page.js: `${r.name ?? "Un articolo"}: ${r.reason}.`
+  assert(
+    frase(tolto) === "La bibita Coca-Cola lattina 33cl del Menu Combo · Il Turco: non è più disponibile.",
+    `q6) frase intera a schermo (è "${frase(tolto)}")`
+  );
+  assert(
+    !frase(tolto).startsWith("Menu Combo · Il Turco:"),
+    "q7) e NON è più la vecchia frase, che faceva credere saltato il combo intero"
+  );
 }
 
 // r) CONTROPROVA di q) — con la bibita disponibile lo stesso combo RESTA.
@@ -283,12 +315,135 @@ const ROW_COMBO = {
   const cat = {
     ...CATALOG,
     comboDrinkOptions: [
-      { id: "d-coca", name: "Coca-Cola lattina 33cl", priceDelta: 0, isAvailable: true },
-      { id: "d-te", name: "Tè freddo al limone", priceDelta: 0.5, isAvailable: false },
+      { id: "d-coca", name: "Coca-Cola lattina 33cl", priceDelta: 0, isAvailable: true, isInMenu: true },
+      { id: "d-te", name: "Tè freddo al limone", priceDelta: 0.5, isAvailable: false, isInMenu: true },
     ],
   };
   const r = restoreCart(prepareCart([ROW_COMBO]), cat);
   assert(r.items.length === 1 && r.removed.length === 0, "s) esaurita una bibita NON scelta → il combo resta");
+}
+
+// ===========================================================================
+// "TOGLI DAL MENU" (spec v62) — l'articolo RITIRATO, terzo stato accanto a
+// disponibile ed esaurito. Quattro casi, uno per ogni strada che il cliente può
+// percorrere, più le loro controprove.
+// ===========================================================================
+
+// t) ARTICOLO SEMPLICE FUORI MENU → tolto con "non è più nel menu" E COL NOME.
+// ⚠️ È il caso per cui il pezzo 4 lascia al carrello la mappa PIENA. Se il
+// catalogo ricevesse quella filtrata, l'articolo non ci sarebbe affatto e si
+// cadrebbe nel ramo g) — stesso motivo, ma `name` a null, e il cliente
+// leggerebbe "Un articolo: non è più nel menu" senza sapere QUALE.
+{
+  const cat = { ...CATALOG, productsById: { ...CATALOG.productsById, "p-pat": { ...PATATINE, isInMenu: false } } };
+  const r = restoreCart(prepareCart([ROW_SIMPLE]), cat);
+  assert(r.items.length === 0, "t1) l'articolo tolto dal menu non torna nel carrello");
+  const tolto = r.removed[0];
+  assert(r.removed.length === 1 && tolto?.reason === REASON_GONE, `t2) motivo "non è più nel menu", non "non disponibile" (è "${tolto?.reason}")`);
+  assert(tolto?.name === "Patatine", `t3) IL NOME dell'articolo, non null (è ${JSON.stringify(tolto?.name)})`);
+  assert(frase(tolto) === "Patatine: non è più nel menu.", `t4) frase intera a schermo (è "${frase(tolto)}")`);
+  assert(frase(tolto) !== "Un articolo: non è più nel menu.", "t5) e NON la frase anonima del caso g)");
+}
+
+// u) ARTICOLO TOLTO DAL MENU **MENTRE ERA ESAURITO** → vince "non è più nel
+// menu". Le due condizioni sono vere insieme, e l'ordine dei controlli decide
+// quale frase legge il cliente: si sceglie la più vera delle due, perché è
+// quella che spiega perché l'articolo non tornerà col reset notturno.
+{
+  const cat = {
+    ...CATALOG,
+    productsById: { ...CATALOG.productsById, "p-pat": { ...PATATINE, isAvailable: false, isInMenu: false } },
+  };
+  const r = restoreCart(prepareCart([ROW_SIMPLE]), cat);
+  assert(r.removed[0]?.reason === REASON_GONE, `u) ritirato + esaurito → "non è più nel menu" (è "${r.removed[0]?.reason}")`);
+}
+
+// v) BIBITA DEL COMBO FUORI MENU → stessa frase della bibita esaurita, che
+// NOMINA LA BIBITA, e stesso motivo "non è più disponibile" (Andrea,
+// 07/08/2026). ⚠️ Asimmetria VOLUTA rispetto a t): lì il ritiro dà REASON_GONE,
+// qui no. La frase non parla della riga ma di una sua PARTE, e al cliente serve
+// sapere che il resto del combo si può rifare, non se la bibita tornerà.
+{
+  const cat = {
+    ...CATALOG,
+    comboDrinkOptions: [
+      { id: "d-coca", name: "Coca-Cola lattina 33cl", priceDelta: 0, isAvailable: true, isInMenu: false },
+      { id: "d-te", name: "Tè freddo al limone", priceDelta: 0.5, isAvailable: true, isInMenu: true },
+    ],
+  };
+  const r = restoreCart(prepareCart([ROW_COMBO]), cat);
+  assert(r.items.length === 0 && r.removed.length === 1, "v1) il combo con bibita fuori menu non torna nel carrello");
+  const tolto = r.removed[0];
+  assert(tolto?.reason === REASON_UNAVAILABLE, `v2) motivo "non è più disponibile", come per la bibita esaurita (è "${tolto?.reason}")`);
+  assert(
+    frase(tolto) === "La bibita Coca-Cola lattina 33cl del Menu Combo · Il Turco: non è più disponibile.",
+    `v3) frase intera identica a quella di q6) (è "${frase(tolto)}")`
+  );
+}
+
+// w) FUORI MENU una bibita NON scelta → il combo RESTA. Controprova di v): senza
+// questa, v) passerebbe anche se il modulo togliesse i combo a ogni bibita
+// ritirata della lista invece che solo a quella scelta. È il gemello di s).
+{
+  const cat = {
+    ...CATALOG,
+    comboDrinkOptions: [
+      { id: "d-coca", name: "Coca-Cola lattina 33cl", priceDelta: 0, isAvailable: true, isInMenu: true },
+      { id: "d-te", name: "Tè freddo al limone", priceDelta: 0.5, isAvailable: true, isInMenu: false },
+    ],
+  };
+  const r = restoreCart(prepareCart([ROW_COMBO]), cat);
+  assert(r.items.length === 1 && r.removed.length === 0, "w) fuori menu una bibita NON scelta → il combo resta");
+}
+
+// x) ROLL FUORI MENU → il combo si toglie con "non è più nel menu". Il Roll è
+// l'identità del combo: ritirato lui, il combo non esiste più. Il nome resta
+// quello del combo, perché è la riga che il cliente aveva nel carrello.
+{
+  const cat = { ...CATALOG, productsById: { ...CATALOG.productsById, "p-turco": { ...TURCO, isInMenu: false } } };
+  const r = restoreCart(prepareCart([ROW_COMBO]), cat);
+  assert(r.items.length === 0 && r.removed.length === 1, "x1) il combo col Roll fuori menu non torna nel carrello");
+  const tolto = r.removed[0];
+  assert(tolto?.reason === REASON_GONE, `x2) motivo "non è più nel menu", come per l'articolo semplice (è "${tolto?.reason}")`);
+  assert(frase(tolto) === "Menu Combo · Il Turco: non è più nel menu.", `x3) frase intera a schermo (è "${frase(tolto)}")`);
+  assert(tolto?.id === "p-turco", "x4) l'id riportato è quello del Roll");
+}
+
+// y) ROLL FUORI MENU e comprato ANCHE da solo → due righe tolte, con DUE frasi
+// diverse per lo stesso articolo. Il combo porta il nome del combo, il Roll da
+// solo il proprio: è la prova che il nome non viene indovinato da una parte
+// sola del modulo.
+{
+  const rowRollSolo = {
+    key: "z", name: "Il Turco", price: 8, details: {},
+    ref: { kind: "product", id: "p-turco", proteinLabel: "Pollo e tacchino", removals: [] },
+    quantity: 1,
+  };
+  const cat = { ...CATALOG, productsById: { ...CATALOG.productsById, "p-turco": { ...TURCO, isInMenu: false } } };
+  const r = restoreCart(prepareCart([ROW_COMBO, rowRollSolo]), cat);
+  assert(r.items.length === 0 && r.removed.length === 2, "y1) tolte tutte e due le righe");
+  assert(frase(r.removed[0]) === "Menu Combo · Il Turco: non è più nel menu.", `y2) la riga combo (è "${frase(r.removed[0])}")`);
+  assert(frase(r.removed[1]) === "Il Turco: non è più nel menu.", `y3) la riga del Roll da solo (è "${frase(r.removed[1])}")`);
+}
+
+// z) CONTROPROVA GENERALE — con tutto DENTRO il menu nulla si toglie. Senza
+// questa, ogni prova qui sopra passerebbe anche se il modulo avesse cominciato
+// a svuotare il carrello sempre.
+{
+  const r = restoreCart(prepareCart([ROW_SIMPLE, ROW_BOWL, ROW_COMBO]), CATALOG);
+  assert(r.items.length === 3 && r.removed.length === 0, "z1) tutto nel menu → tre righe, niente tolto");
+  // E la stessa cosa con `isInMenu` ASSENTE dal catalogo, non solo vero: il
+  // controllo è `=== false`, quindi un catalogo vecchio non deve svuotare nulla.
+  const senzaFlag = {
+    ...CATALOG,
+    productsById: {
+      "p-pat": { id: "p-pat", name: "Patatine", basePriceValue: 4, isAvailable: true },
+      "p-bowl": BOWL,
+      "p-turco": TURCO,
+    },
+  };
+  const r2 = restoreCart(prepareCart([ROW_SIMPLE]), senzaFlag);
+  assert(r2.items.length === 1 && r2.removed.length === 0, "z2) `isInMenu` assente ≠ fuori menu: la riga resta");
 }
 
 console.log(failures === 0 ? "\nTUTTI I TEST PASSATI" : `\n${failures} TEST FALLITI`);
