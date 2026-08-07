@@ -716,7 +716,99 @@ function HistoryRow({ order, onChangeStatus }) {
   );
 }
 
-function MenuItemRow({ label, price, isAvailable, isUpdating, onToggle, onEdit, isEditing, onAllergens, isEditingAllergens, verification }) {
+// §63-64 ("togli dal menu", spec v62) — L'ASPETTO SPENTO, che nel pannello NON
+// ESISTEVA. Accertato il 06/08/2026: `disabled` è usato in una ventina di punti
+// ma nessuno stile ne teneva conto, e alcuni tenevano perfino `cursor: pointer`
+// fisso. ⚠️ Sul telefono il cursore non esiste: un pulsante spento sarebbe
+// indistinguibile da uno acceso proprio dove il pannello si usa di più.
+//
+// UN SOLO aiuto, non tre copie della stessa regola nei tre pulsanti: tre copie
+// divergono alla prima modifica. Prende lo stile acceso e ne restituisce la
+// versione spenta, così i due restano per costruzione la stessa forma.
+//
+// La coppia di colori è quella che il toggle usa già per "Esaurito" — fondo
+// `--card-border`, testo `--text-on-dark` — perché è l'unico "spento" che il
+// pannello mostra oggi e non ne serve un secondo.
+function stileSpento(base) {
+  return {
+    ...base,
+    background: "var(--card-border)",
+    color: "var(--text-on-dark)",
+    // `borderColor` DOPO lo spread: sui due pulsanti con contorno smorza il
+    // bordo senza toglierlo, su quello pieno (`border: "none"`) non fa nulla.
+    borderColor: "var(--card-border)",
+    cursor: "not-allowed",
+  };
+}
+
+// §63-64 (spec v62) — l'icona del comando, in SVG inline: nel progetto non ci
+// sono librerie di icone né file `.svg`, quindi si disegna qui.
+// `barrato` = l'articolo è NEL menu, e premendo lo si toglie → occhio barrato.
+// `!barrato` = l'articolo è FUORI menu, e premendo torna → occhio aperto.
+// 14×14 come l'altezza della riga di testo dei pulsanti accanto (12px a
+// interlinea normale), così il quadrato non sfonda la riga.
+function IconaOcchio({ barrato }) {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+         strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7z" />
+      <circle cx="12" cy="12" r="3" />
+      {barrato && <line x1="3" y1="21" x2="21" y2="3" />}
+    </svg>
+  );
+}
+
+function MenuItemRow({ label, price, isAvailable, isUpdating, onToggle, onEdit, isEditing, onAllergens, isEditingAllergens, verification, isInMenu, onToggleInMenu }) {
+  // §63-64: fuori menu la riga resta, TUTTA GRIGIA, e tutti i comandi si
+  // spengono tranne quello che riporta l'articolo indietro.
+  const fuoriMenu = isInMenu === false;
+
+  // Gli stili accesi, nominati una volta: servono anche a `stileSpento`, che li
+  // riceve e li smorza. Prima erano scritti in linea dentro ogni pulsante.
+  const bottoneContorno = {
+    background: "none",
+    color: "var(--navy)",
+    border: "1px solid var(--card-border)",
+    borderRadius: 8,
+    padding: "8px 14px",
+    fontWeight: 600,
+    fontSize: 12,
+    cursor: "pointer",
+    whiteSpace: "nowrap",
+  };
+  const bottoneDisponibilita = {
+    background: isAvailable ? "var(--success-green)" : "var(--card-border)",
+    color: isAvailable ? "var(--bg-warm)" : "var(--text-on-dark)",
+    border: "none",
+    borderRadius: 8,
+    padding: "8px 14px",
+    fontWeight: 600,
+    fontSize: 12,
+    cursor: isUpdating ? "not-allowed" : "pointer",
+    whiteSpace: "nowrap",
+  };
+  // §63-64: QUADRATO con la sola icona, perché per un quarto pulsante di testo
+  // non c'è posto — la riga non ha `flexWrap` e non va mai a capo.
+  // I 32 px non sono scelti a occhio: sono l'altezza dei due pulsanti con
+  // contorno, cioè 8 (padding) + 14 (riga di testo a 12px) + 8 (padding) + 2
+  // (bordo). Larghezza uguale all'altezza → quadrato per costruzione.
+  // ⚠️ Il pulsante Disponibile è 2 px più basso perché non ha bordo: la
+  // differenza esiste da prima ed è assorbita da `alignItems: "center"`.
+  const bottoneOcchio = {
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    width: 32,
+    height: 32,
+    padding: 0,
+    background: "var(--surface-white)",
+    color: fuoriMenu ? "var(--success-green)" : "var(--danger-red)",
+    border: `1px solid ${fuoriMenu ? "var(--success-green)" : "var(--card-border)"}`,
+    borderRadius: 8,
+    cursor: isUpdating ? "not-allowed" : "pointer",
+    flexShrink: 0,
+  };
+
   return (
     <div
       style={{
@@ -725,13 +817,16 @@ function MenuItemRow({ label, price, isAvailable, isUpdating, onToggle, onEdit, 
         alignItems: "center",
         gap: 12,
         padding: "10px 14px",
-        background: "var(--surface-white)",
+        background: fuoriMenu ? "var(--card-border)" : "var(--surface-white)",
         border: "1px solid var(--card-border)",
         borderRadius: 10,
       }}
     >
       <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
-        <span style={{ fontWeight: 600, fontSize: 14, color: "var(--navy)" }}>{label}</span>
+        <span style={{ fontWeight: 600, fontSize: 14, color: fuoriMenu ? "var(--text-on-dark)" : "var(--navy)" }}>
+          {label}
+          {fuoriMenu && " · fuori menu"}
+        </span>
         <span style={{ fontSize: 13, color: "var(--text-on-dark)" }}>{formatPrice(price)}</span>
         {/* §67 v31 regola 3: indicatore di verifica allergeni, solo per i food
             (verification passato). I mai verificati sono distinti dal colore. */}
@@ -750,17 +845,8 @@ function MenuItemRow({ label, price, isAvailable, isUpdating, onToggle, onEdit, 
         {onEdit && (
           <button
             onClick={onEdit}
-            style={{
-              background: "none",
-              color: "var(--navy)",
-              border: "1px solid var(--card-border)",
-              borderRadius: 8,
-              padding: "8px 14px",
-              fontWeight: 600,
-              fontSize: 12,
-              cursor: "pointer",
-              whiteSpace: "nowrap",
-            }}
+            disabled={fuoriMenu}
+            style={fuoriMenu ? stileSpento(bottoneContorno) : bottoneContorno}
           >
             {isEditing ? "Chiudi" : "Modifica"}
           </button>
@@ -770,38 +856,37 @@ function MenuItemRow({ label, price, isAvailable, isUpdating, onToggle, onEdit, 
         {onAllergens && (
           <button
             onClick={onAllergens}
-            style={{
-              background: "none",
-              color: "var(--navy)",
-              border: "1px solid var(--card-border)",
-              borderRadius: 8,
-              padding: "8px 14px",
-              fontWeight: 600,
-              fontSize: 12,
-              cursor: "pointer",
-              whiteSpace: "nowrap",
-            }}
+            disabled={fuoriMenu}
+            style={fuoriMenu ? stileSpento(bottoneContorno) : bottoneContorno}
           >
             {isEditingAllergens ? "Chiudi" : "Allergeni"}
           </button>
         )}
         <button
           onClick={onToggle}
-          disabled={isUpdating}
-          style={{
-            background: isAvailable ? "var(--success-green)" : "var(--card-border)",
-            color: isAvailable ? "var(--bg-warm)" : "var(--text-on-dark)",
-            border: "none",
-            borderRadius: 8,
-            padding: "8px 14px",
-            fontWeight: 600,
-            fontSize: 12,
-            cursor: isUpdating ? "not-allowed" : "pointer",
-            whiteSpace: "nowrap",
-          }}
+          disabled={isUpdating || fuoriMenu}
+          style={fuoriMenu ? stileSpento(bottoneDisponibilita) : bottoneDisponibilita}
         >
           {isUpdating ? "…" : isAvailable ? "Disponibile" : "Esaurito"}
         </button>
+        {/* §63-64 (spec v62): "togli dal menu", IN CODA dopo Disponibile — gli
+            altri scalano a sinistra. È l'unico comando che resta acceso quando
+            l'articolo è fuori menu: se l'articolo non è nel menu, l'unica cosa
+            sensata da fargli è rimettercelo.
+            ⚠️ Il cestino è stato scartato: significa "cancella" per chiunque, e
+            questo comando NON cancella. */}
+        {onToggleInMenu && (
+          <button
+            type="button"
+            onClick={onToggleInMenu}
+            disabled={isUpdating}
+            style={bottoneOcchio}
+            title={fuoriMenu ? "Rimetti nel menu" : "Togli dal menu"}
+            aria-label={fuoriMenu ? "Rimetti nel menu" : "Togli dal menu"}
+          >
+            <IconaOcchio barrato={!fuoriMenu} />
+          </button>
+        )}
       </div>
     </div>
   );
@@ -1683,6 +1768,30 @@ function MenuSection() {
     }
   }
 
+  // §63-64 (spec v62): "togli dal menu" e il suo contrario, dallo stesso
+  // pulsante. Stessa forma di `handleToggle`: si rilegge il menu dopo, invece di
+  // aggiustare lo stato a mano, così a schermo finisce ciò che il database dice.
+  // ⚠️ Rimettendo un articolo nel menu il server rimette anche `is_available` a
+  // true (decisione di Andrea): la rilettura fa comparire il cambiamento su
+  // entrambi i pulsanti senza che il pannello debba saperlo.
+  async function handleToggleInMenu(id, currentInMenu) {
+    setUpdatingId(id);
+    try {
+      const response = await fetch("/api/staff/menu/visibility", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, isInMenu: !currentInMenu }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Errore nell'aggiornamento.");
+      await fetchMenu();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setUpdatingId(null);
+    }
+  }
+
   if (loading) {
     return <p style={{ fontSize: 14, color: "var(--text-on-dark)" }}>Caricamento…</p>;
   }
@@ -1742,6 +1851,8 @@ function MenuSection() {
                     isEditing={editingId === product.id}
                     isEditingAllergens={allergensId === product.id}
                     verification={isFood ? { at: product.allergens_verified_at } : undefined}
+                    isInMenu={product.is_in_menu}
+                    onToggleInMenu={() => handleToggleInMenu(product.id, product.is_in_menu)}
                     onToggle={() => handleToggle("product", product.id, product.is_available)}
                     onEdit={() => {
                       setAllergensId(null);
