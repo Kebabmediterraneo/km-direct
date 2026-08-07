@@ -190,6 +190,11 @@ function groupBy(rows, key) {
 // §40: risale alla categoria UI di una riga carrello a partire dal suo
 // `ref` — serve solo per decidere quali regole di upsell scattano, non
 // per il calcolo prezzi (già fatto altrove).
+//
+// ⚠️ Vuole la mappa PIENA (spec v62, "togli dal menu"): qui si CLASSIFICA una
+// riga che è GIÀ nel carrello, non si propone nulla. Con la mappa filtrata un
+// articolo tolto dal menu perderebbe la categoria e la sua riga sparirebbe dai
+// gruppi dell'upsell.
 function getItemCategory(item, categoryProducts) {
   // Un Menu Combo è sempre costruito attorno a un Roll (§23-26).
   if (item.ref?.kind === "combo") return "ROLL";
@@ -211,7 +216,11 @@ function getItemCategory(item, categoryProducts) {
 // tutto, ripartiti tra le regole che scattano rispettando l'ordine.
 // Solo prodotti semplici (senza config): sono gli unici con un tap unico
 // "+ Aggiungi" già esistente, richiesto per il suggerimento.
-function buildUpsellGroups(items, categoryProducts, subtotal) {
+//
+// ⚠️ Vuole ENTRAMBE le mappe (spec v62, "togli dal menu"), perché fa due cose
+// diverse: CLASSIFICA le righe già nel carrello — mappa piena — e PROPONE
+// prodotti nuovi — mappa filtrata. Passargliene una sola romperebbe l'altra metà.
+function buildUpsellGroups(items, categoryProducts, categoryProductsInMenu, subtotal) {
   const cartCategories = new Set(
     items.map((item) => getItemCategory(item, categoryProducts))
   );
@@ -219,8 +228,9 @@ function buildUpsellGroups(items, categoryProducts, subtotal) {
   const hasFritti = cartCategories.has("FRITTI");
   const hasSalsa = cartCategories.has("SALSE");
 
+  // Qui si PROPONE: mappa filtrata, un articolo tolto dal menu non si suggerisce.
   function simpleAvailable(category, kind) {
-    return (categoryProducts[category] ?? [])
+    return (categoryProductsInMenu[category] ?? [])
       .filter((p) => p.isAvailable !== false && !p.config)
       .map((p) => ({ ...p, kind }));
   }
@@ -336,6 +346,10 @@ function buildCatalogProduct(product, choicesByProduct, removalsByProduct, accom
     spicy: spicyLabel(product.spice_level, product.spice_label),
     ingredients: product.description ?? undefined,
     isAvailable: product.is_available,
+    // "Togli dal menu" (spec v62): l'articolo ritirato. Diverso da `isAvailable`
+    // — esaurito significa "oggi finito", fuori menu significa "ritirato" — e
+    // per questo ha una colonna sua, che il reset notturno non tocca.
+    isInMenu: product.is_in_menu,
     // §67: flag dietetici e allergeni (nomi) per badge e blocco allergeni.
     isVegan: product.is_vegan === true,
     isVegetarian: product.is_vegetarian === true,
@@ -405,7 +419,7 @@ async function fetchMenuData() {
     // `.eq("is_available", true)` qui sotto RESTA e riguarda la colonna di
     // `combo_drink_options`: si aggiunge un controllo, non se ne sostituisce uno.
     supabase.from("combo_side_options").select("*").eq("is_available", true).order("sort_order"),
-    supabase.from("combo_drink_options").select("*, products(name, base_price, is_available)").eq("is_available", true).order("sort_order"),
+    supabase.from("combo_drink_options").select("*, products(name, base_price, is_available, is_in_menu)").eq("is_available", true).order("sort_order"),
     supabase.from("combo_pricing").select("*").eq("is_active", true),
     supabase.from("product_allergens").select("product_id, allergens(label)"),
   ]);
@@ -433,6 +447,31 @@ async function fetchMenuData() {
         buildCatalogProduct(p, choicesByProduct, removalsByProduct, accompanimentsByProduct, addonsByProduct, allergensByProduct)
       );
   }
+
+  // "Togli dal menu" (spec v62) — DUE LISTE, MAI UNA FILTRATA.
+  // ⚠️ NON unificare queste due mappe "per semplificare": è esattamente
+  // l'unificazione che romperebbe due cose in silenzio, senza alcun errore a
+  // schermo.
+  //   - `categoryProductsInMenu` alimenta ciò che si VEDE: la griglia delle
+  //     card, l'upsell che PROPONE, i Roll del combo, le birre;
+  //   - `categoryProducts` resta PIENA e alimenta chi deve vedere l'articolo
+  //     ritirato per NOMINARLO o per CLASSIFICARLO:
+  //       · `buildRestoreCatalog` — se l'articolo esce dalla mappa, `restoreCart`
+  //         non lo riconosce più e il cliente legge "Un articolo: non è più nel
+  //         menu" invece del nome dell'articolo (Andrea, 06/08/2026: il cliente
+  //         deve leggere IL NOME dell'articolo tolto);
+  //       · `getItemCategory` — se l'articolo esce dalla mappa, una riga già nel
+  //         carrello perde la categoria e sparisce dai gruppi dell'upsell.
+  // È la stessa forma già imposta da §23-26 per le bibite del combo e già usata
+  // dai Roll (`rollProducts` filtrata / `categoryProducts.ROLL` piena): la terza
+  // volta, non un'invenzione.
+  const categoryProductsInMenu = {};
+  for (const uiCategory of Object.keys(categoryProducts)) {
+    categoryProductsInMenu[uiCategory] = categoryProducts[uiCategory].filter(
+      (p) => p.isInMenu !== false
+    );
+  }
+
   // Chiave per id del Roll (non per nome): rinominare un Roll non deve alterare
   // il lookup del prezzo combo. La query filtra già is_active, quindi qui ci
   // sono solo i prezzi combo attivi.
@@ -444,8 +483,9 @@ async function fetchMenuData() {
   // §63: un Roll esaurito non deve restare acquistabile nemmeno tramite il Menu
   // Combo (stesso prodotto, percorso diverso). §46 (v37): e nemmeno un Roll
   // senza un prezzo combo attivo — il server lo rifiuterebbe, quindi non si
-  // offre affatto.
-  const rollProducts = categoryProducts.ROLL.filter(
+  // offre affatto. "Togli dal menu" (spec v62): e nemmeno un Roll ritirato —
+  // parte quindi dalla mappa FILTRATA, perché qui si PROPONE.
+  const rollProducts = categoryProductsInMenu.ROLL.filter(
     (r) => r.isAvailable && comboPricingByRoll[r.id] !== undefined
   );
 
@@ -465,6 +505,9 @@ async function fetchMenuData() {
     // §23-26 (06/08/2026): la disponibilità del PRODOTTO, non quella della riga
     // di `combo_drink_options`. Serve a due usi diversi, vedi qui sotto.
     isAvailable: d.products.is_available,
+    // "Togli dal menu" (spec v62): anch'essa presa dal PRODOTTO, per la stessa
+    // ragione — una bibita ritirata è ritirata ovunque, non solo fuori dal combo.
+    isInMenu: d.products.is_in_menu,
   }));
 
   // §23-26 (06/08/2026): DUE liste, non una filtrata — la stessa coppia che
@@ -477,7 +520,14 @@ async function fetchMenuData() {
   //     vedere la bibita esaurita per togliere il combo con il motivo giusto
   //     ("non è più disponibile") invece che con quello sbagliato ("una scelta
   //     non è più disponibile").
-  const comboDrinkOptionsDisponibili = comboDrinkOptions.filter((d) => d.isAvailable !== false);
+  //
+  // "Togli dal menu" (spec v62): il filtro della lista del builder si ESTENDE a
+  // `isInMenu` — una bibita ritirata non deve comparire fra le scelte, come
+  // quella esaurita. ⚠️ La lista PIENA non si tocca: deve continuare a vedere la
+  // bibita ritirata per poterla NOMINARE quando il combo viene tolto.
+  const comboDrinkOptionsDisponibili = comboDrinkOptions.filter(
+    (d) => d.isAvailable !== false && d.isInMenu !== false
+  );
 
   // §25 (v37): base standard = minimo fra le sole righe ATTIVE (la query filtra
   // is_active). Serve solo al supplemento MOSTRATO nel riepilogo ("CON KM
@@ -487,6 +537,7 @@ async function fetchMenuData() {
 
   return {
     categoryProducts,
+    categoryProductsInMenu,
     rollProducts,
     comboSideOptions,
     comboDrinkOptions,
@@ -509,6 +560,12 @@ async function fetchMenuData() {
 // ⚠️ Gli articoli esauriti restano DENTRO la mappa, di proposito: `restoreCart`
 // deve poterli vedere per toglierli con il motivo giusto ("non è più
 // disponibile") invece che col motivo sbagliato ("non è più nel menu").
+//
+// ⚠️ Per la stessa ragione ci restano anche gli articoli TOLTI DAL MENU (spec
+// v62): qui va la mappa PIENA, `categoryProducts`, non `categoryProductsInMenu`.
+// Un articolo che uscisse dalla mappa non verrebbe più riconosciuto, e il
+// cliente leggerebbe "Un articolo: non è più nel menu" senza sapere QUALE —
+// mentre deve leggerne il nome (Andrea, 06/08/2026).
 function buildRestoreCatalog(menuData) {
   const productsById = {};
   for (const list of Object.values(menuData.categoryProducts)) {
@@ -2254,7 +2311,10 @@ function CartScreen({
   items,
   fulfillmentMode,
   giveMeFiveApplied,
+  // Spec v62 ("togli dal menu"): il carrello riceve ENTRAMBE le mappe — la piena
+  // per classificare le righe che ha già, la filtrata per suggerire.
   categoryProducts,
+  categoryProductsInMenu,
   onUpdateQuantity,
   onRemove,
   onApplyGiveMeFive,
@@ -2275,7 +2335,9 @@ function CartScreen({
   const total = subtotal - giveMeFiveDiscount + deliveryFee;
   const canCheckout = items.length > 0 && meetsMinimum;
   const upsellGroups =
-    items.length > 0 ? buildUpsellGroups(items, categoryProducts, subtotal) : [];
+    items.length > 0
+      ? buildUpsellGroups(items, categoryProducts, categoryProductsInMenu, subtotal)
+      : [];
 
   const progressMessageStyle = {
     fontSize: 13,
@@ -3137,7 +3199,9 @@ export default function Home() {
   // ci sono davvero.
   const [checkoutHydrated, setCheckoutHydrated] = useState(false);
   const isMenuCombo = activeCategory === "MENU COMBO";
-  const products = menuData?.categoryProducts[activeCategory] ?? [];
+  // Spec v62 ("togli dal menu"): la griglia è ciò che si VEDE → mappa FILTRATA.
+  // Un articolo tolto dal menu non compare spento: è proprio assente.
+  const products = menuData?.categoryProductsInMenu[activeCategory] ?? [];
 
   // §36-40 (v42) — ⚠️ IL VERDETTO DI ZONA HA TRE VALORI, NON DUE.
   //  - "unknown": non lo sappiamo ancora. È il valore finché il perimetro non è
@@ -3729,6 +3793,14 @@ export default function Home() {
           pickupSlotExpired={pickupSlotExpired}
           serviceStatus={serviceStatus}
           giveMeFiveApplied={giveMeFiveApplied}
+          /* ⚠️ Spec v62 ("togli dal menu"): qui va la lista PIENA, NON la
+             filtrata. `birreProducts` non mostra nulla: serve solo a riconoscere
+             se nel carrello c'è una birra, e da quel riconoscimento dipendono la
+             casella "sono maggiorenne", il blocco del pulsante di pagamento e il
+             dato mandato al server. Con la lista filtrata, una birra tolta dal
+             menu mentre è già in un carrello smetterebbe di essere riconosciuta e
+             la conferma dell'età sparirebbe. La birra che si VEDE nel menu è già
+             filtrata altrove, dalla griglia (`categoryProductsInMenu`). */
           birreProducts={menuData.categoryProducts.BIRRE}
           deliveryDetails={deliveryDetails}
           customerDetails={customerDetails}
@@ -3750,6 +3822,7 @@ export default function Home() {
           fulfillmentMode={fulfillmentMode}
           giveMeFiveApplied={giveMeFiveApplied}
           categoryProducts={menuData.categoryProducts}
+          categoryProductsInMenu={menuData.categoryProductsInMenu}
           onUpdateQuantity={updateQuantity}
           onRemove={removeItem}
           onApplyGiveMeFive={() => setGiveMeFiveApplied(true)}
@@ -3818,9 +3891,10 @@ export default function Home() {
           </h2>
 
           {/* §23-26 (06/08/2026): al builder va `comboDrinkOptionsDisponibili`,
-              la lista filtrata sulla disponibilità del PRODOTTO. Quella piena
-              (`comboDrinkOptions`) non passa di qui: resta al carrello, tramite
-              buildRestoreCatalog. */}
+              la lista filtrata sulla disponibilità del PRODOTTO — e, dalla spec
+              v62, anche su `is_in_menu`. Quella piena (`comboDrinkOptions`) non
+              passa di qui: resta al carrello, tramite buildRestoreCatalog.
+              Stessa coppia per i Roll: `menuData.rollProducts` è la filtrata. */}
           {isMenuCombo ? (
             <MenuComboSection
               rollProducts={menuData.rollProducts}
