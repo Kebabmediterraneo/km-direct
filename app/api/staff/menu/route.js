@@ -23,7 +23,11 @@ export async function GET() {
     supabaseAdmin
       .from("products")
       .select(
-        "id, name, category, base_price, is_available, description, badge, sort_order, spice_level, spice_label, is_vegan, is_vegetarian, allergens_verified_at"
+        // §63-64 ("togli dal menu", spec v62): `is_in_menu` serve al pannello per
+        // sapere in quale stato disegnare la riga — l'icona del comando e i tre
+        // pulsanti spenti. Senza questa colonna nell'elenco il pannello non
+        // saprebbe distinguere un articolo a menu da uno tolto.
+        "id, name, category, base_price, is_available, is_in_menu, description, badge, sort_order, spice_level, spice_label, is_vegan, is_vegetarian, allergens_verified_at"
       )
       .order("category")
       .order("sort_order"),
