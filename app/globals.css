@@ -20,12 +20,37 @@ html, body {
   padding: 0;
   background: var(--bg-warm);
   color: var(--navy);
-  /* NOTA: font Termina non ancora collegato. Va aggiunto lo snippet
-     Adobe Fonts nel <head> (vedi app/layout.js) appena avremo il
-     web project ID da Adobe Fonts. Nel frattempo usiamo un
-     sans-serif di sistema, molto bold, come sostituto temporaneo. */
-  font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+  /* Termina, da Adobe Fonts — collegata il 07/08/2026, il foglio di stile
+     sta nel <head> di app/layout.js (web project `jth6flt`).
+     ⚠️ QUESTO È IL PUNTO UNICO da cui tutto il sito eredita la famiglia:
+     nessun'altra regola ne sceglie una, e i `fontFamily: "inherit"` sparsi
+     nel codice non sono definizioni alternative — riportano dentro questa
+     eredità i campi e i pulsanti, che altrimenti il browser escluderebbe.
+     ⚠️ I pesi disponibili sono QUATTRO: 400, 600, 700, 800. Un peso diverso
+     non esiste come file e verrebbe fabbricato dal browser.
+     `sans-serif` resta come rete: se Adobe Fonts non risponde il sito si
+     legge lo stesso, con il carattere di sistema. */
+  font-family: termina, sans-serif;
 }
+
+/* ⚠️ QUESTA RIGA SEMBRA NON FARE NIENTE, E INVECE REGGE TRE QUARTI DEL SITO.
+   NON TOGLIERLA.
+
+   Il browser NON fa ereditare il font della pagina agli elementi di modulo:
+   pulsanti, campi, tendine e aree di testo partono con un carattere loro, del
+   sistema operativo, e la regola su `html, body` qui sopra non li raggiunge.
+   Senza questa riga il font della pagina è Termina ma **74 punti su 121** —
+   contati il 07/08/2026 in tutto `app/` — restano col carattere di sistema, e
+   a schermo si vede un miscuglio.
+
+   I `fontFamily: "inherit"` sparsi nel codice fanno la stessa cosa un punto
+   alla volta, e coprono solo i 47 punti che qualcuno si è ricordato di
+   scrivere. Questa regola li copre tutti, compresi quelli che verranno.
+
+   ⚠️ `option` è incluso di proposito: sono 10 e nessun `fontFamily` li
+   toccava. Su alcuni sistemi le tendine sono disegnate dal sistema operativo
+   e lì la regola può non avere effetto — accettato, non fa danno. */
+button, input, select, textarea, option { font-family: inherit; }
 
 a {
   color: inherit;
