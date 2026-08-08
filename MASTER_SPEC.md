@@ -1,6 +1,6 @@
 # KM DIRECT — MASTER SPECIFICATION
 
-**Versione 63** — sostituisce la v62.
+**Versione 64** — sostituisce la v63.
 
 Documento di riferimento definitivo per lo sviluppo. Le decisioni qui
 contenute sono approvate: non vanno reinterpretate senza un motivo concreto
@@ -22,69 +22,60 @@ versione corrente**. I precedenti vivono in `git log`, che è fatto per quello.
 del documento prima che cominciasse a parlare del progetto — e dentro c'erano
 istruzioni rovesciate che nessuno rileggeva.*
 
-**Novità della v63** (vincolanti, dalla costruzione e dalle prove dal vivo del
-07/08/2026):
+**Novità della v64** (vincolanti, dal lavoro e dalle prove dal vivo
+dell'08/08/2026):
 
-1. §63-64 — ✅ **"TOGLI DAL MENU" È FATTO**, in sei pezzi, e **provato dal vivo
-   da Andrea** in tutte le sue parti: pannello, sito cliente, carrello e
-   pagamento. La colonna è **`is_in_menu`** (boolean not null default true su
-   `products`), migrazione eseguita da Andrea il 07/08 — commit `74a3b6b`. Il
-   resto in `ec54cc2` (cuore e rotta), `ba05531` (pulsante e stato spento),
-   `200b94d` (sito cliente), `05ac016` (pagamento), `f9a8470` (carrello).
-   *La v62 descriveva la forma senza mai nominare la colonna: il nome viveva
-   solo nel database.*
-2. §63-64 — ✅ **il rientro nel menu rimette anche `is_available` a `true`**,
-   nella stessa scrittura. ⚠️ *Motivo: mentre l'articolo è fuori menu il
-   pulsante Disponibile è spento, quindi un articolo tolto **mentre era
-   esaurito** rientrerebbe esaurito e nessuna schermata potrebbe più
-   cambiarlo. È il vicolo cieco che la regola "torna disponibile e visibile
-   subito, senza memoria dello stato precedente" esisteva per evitare, e che
-   il piano iniziale non realizzava.*
-3. §36-40, §63-64 — ✅ **DUE LISTE NEL SITO CLIENTE, MAI UNA FILTRATA**
-   (Andrea, 07/08/2026). Filtrare nel punto unico romperebbe **due cose in
-   silenzio**: il carrello direbbe *"Un articolo: non è più nel menu"* senza il
-   nome, e una riga già nel carrello perderebbe la categoria sparendo dai
-   gruppi dell'upsell. È la terza applicazione della stessa forma già imposta
-   per Roll e bibite.
-4. §33, §41-45 — ⚠️ **le BIRRE ricevono la lista PIENA, non la filtrata**, e il
-   motivo è di sicurezza, non di gusto: la lista delle birre non disegna nulla,
-   serve solo a riconoscere se nel carrello c'è una birra. Da quel
-   riconoscimento dipendono la casella **«sono maggiorenne»**, lo sblocco del
-   pagamento e il dato mandato al server. *Con la lista filtrata, una birra
-   tolta dal menu mentre è già in un carrello smetterebbe di essere
-   riconosciuta al primo ridisegno: la casella sparirebbe e il pagamento si
-   sbloccherebbe da sé.*
-5. §23-26 — ✅ **il messaggio del combo NOMINA LA BIBITA** (Andrea, 07/08/2026),
-   non più il solo Roll. ⚠️ *Cambia anche il comportamento scritto il 06/08 per
-   la bibita **esaurita**: è allargamento di perimetro voluto, non una svista.
-   Prima i tre casi del combo producevano a schermo la stessa identica frase e
-   il cliente non poteva sapere che gli bastava cambiare bibita.*
-6. §46 — ⚠️ **LA FINESTRA DEL PAGAMENTO: dal momento in cui il cliente arriva
-   su Stripe, nessun controllo viene più eseguito.** Trovata da Andrea il
-   07/08 sbagliando l'ordine di una prova. **Non è un difetto di "togli dal
-   menu"**: vale identica per `is_available` e precede tutto questo lavoro.
-   Da decidere prima dell'apertura.
-7. §36-40, §46b — ⚠️ **CORREZIONE DI DUE PUNTI DELLA v62: il carrello NON
-   sopravvive alla chiusura del browser.** §36-40 lo dice dalla v33 — *"si
-   conserva finché la scheda resta aperta e si perde alla chiusura"* — ma due
-   passaggi affermavano il contrario, e uno di essi citava §36-40 come propria
-   autorità. *Segnalato da Andrea. Era la famiglia 3 delle lezioni nella sua
-   forma peggiore: due misure incompatibili della stessa grandezza, nello
-   stesso file, e nessuna che rileggesse l'altra.*
-8. §66 — ⚠️ **il ruolo pubblico `anon` ha il permesso `TRUNCATE` su
-   `products`**, trovato per caso da Andrea, **preesistente**. Registrato qui
-   perché fino a oggi non stava in nessun file. Da accertare se sia davvero
-   raggiungibile da fuori.
-9. §66 — ⚠️ **tre cose governano il progetto e non stanno in nessun file del
-   repository**: le regole di lettura del database, l'integrazione Git di
-   Vercel (**ogni push su `main` pubblica il sito**, anche i commit di soli
-   documenti) e il piano di hosting. Vedi il blocco nuovo in fondo a §66.
+1. §6b — ✅ **IL FONT DEL SITO È TERMINA**, da Adobe Fonts, progetto `jth6flt`,
+   **quattro pesi soli: 400, 600, 700, 800**, set di caratteri completo. Vale
+   **ovunque**, sito cliente e pannello staff (Andrea, 08/08). Sezione nuova
+   §6b. ⚠️ *Il collegamento ad Adobe è legato al dominio: oggi vale per
+   `localhost`, e il giorno del dominio vero va autorizzato lì o il sito
+   pubblicato mostrerà il carattere di riserva. È la cosa più facile da
+   dimenticare di tutto questo documento, perché quando succederà sembrerà un
+   guasto.*
+2. §6b — ⚠️ **UNA REGOLA SOLA RIPORTA I MODULI NELL'EREDITÀ DEL FONT**, e senza
+   di essa **74 punti su 121** tornano al carattere di sistema. Il browser
+   tiene pulsanti, campi e tendine fuori dall'eredità della pagina: la regola
+   li rimette dentro tutti insieme. *Non si nota finché il font della pagina è
+   quello di sistema — cioè era già così prima, e il cambio l'ha solo reso
+   visibile.*
+3. §9, §41-45, §46 — ✅ **quattro ritocchi al sito cliente** provati dal vivo:
+   l'invito a mettere l'indirizzo **prima** di riempire il carrello, "Oggi" e
+   "Domani" **affiancati** perché si veda che la tendina vale per entrambi,
+   l'**asterisco** sui campi obbligatori letti dalla validazione, e il
+   preordine detto per quello che è.
+4. §12, §12b — ⚠️ **DUE COSE CHE SEMBRAVANO DIFETTI ERANO GIÀ A POSTO**:
+   "PRIMA POSSIBILE" **esiste ed è la scelta predefinita** del Delivery, e la
+   tendina dell'orario **è già una sola e condivisa** fra Oggi e Domani.
+   *Sembravano assenti perché il sito era guardato a locale chiuso, dove le due
+   scelte del momento spariscono e resta la sola programmata. Registrato perché
+   non venga "risolto" di nuovo un problema che non c'è.*
+5. §14, §46 — ✅ **il cuore dello sconto è uscito dalla rotta** in
+   `lib/checkout-discount.js`, col client come parametro, **32 prove nuove**.
+   Comportamento verificato **identico su 112 casi** contro il codice vecchio
+   preso da git, non riletto.
+6. §14 — ⚠️ **SE LA LETTURA FALLISCE, LO SCONTO VIENE CONCESSO invece che
+   negato.** È il verso opposto a quello prudente di §46b: là un guasto blocca,
+   qui regala. **Conservato alla lettera** perché quel giro era un riordino, e
+   **fissato dalla prova `g`**: il giorno che si deciderà di cambiarlo quella
+   prova cadrà, e sarà una decisione anziché una svista. *Prima dell'08/08 non
+   era scritto da nessuna parte.*
+7. §14 — ⚠️ **le due costanti dello sconto — soglia e importo — esistono in due
+   copie**, sito e server, e **nessuna prova le confronta**. Cambiarne una sola
+   farebbe mostrare al cliente uno sconto che il server non concede, in
+   silenzio.
+8. §14 — ⚠️ **LO SPOSTAMENTO DI GIVEMEFIVE È DECISO MA NON REALIZZATO, ED È
+   BLOCCATO**: nel progetto **non esiste alcun freno** contro le richieste
+   ripetute, e senza di esso la rotta che dice se un numero è già cliente non
+   si può aprire. Decisioni e blocco per intero nel blocco nuovo di §14.
+9. §52-56 — **il "valore perso" dei carrelli abbandonati è già scontato**, e
+   **ad Andrea va bene così** (08/08). *Registrato come scelta e non come
+   difetto rimasto lì: la differenza è che una scelta scritta resta una scelta,
+   mentre un difetto ignorato torna a galla come sorpresa.*
 
 *Il conteggio delle condizioni di apertura non cambia: **quattro chiuse, cinque
-aperte**. La procedura mensile di §69 conserva la sola prima esecuzione. Il
-lavoro pre-go-live che resta è **uno** — la Fase 4 — più la valutazione del
-viewport e la decisione sulla finestra del pagamento, che non erano condizioni
-di apertura e ora vanno guardate prima di aprire.*
+aperte**. Il lavoro pre-go-live che resta è la **Fase 4**, più lo spostamento
+di GIVEMEFIVE col suo freno, il viewport e le tre verifiche registrate in v63.*
 
 ## 1. Visione del progetto
 
@@ -128,6 +119,70 @@ al cliente finché esiste un solo store.
 La home coincide col menu, mobile-first: header → stato servizio → "ORDINA
 ORA" → tab Delivery/Ritiro → dati operativi → banner GIVEMEFIVE → categorie
 sticky → menu → carrello sticky (quando non vuoto).
+
+## 6b. Font e tipografia (aggiunta in v64, vincolante)
+
+**Il font del progetto è Termina**, da Adobe Fonts, ed è quello dell'immagine
+coordinata del locale. Scelto da Andrea l'08/08/2026 per ragioni di marchio,
+non di leggibilità: nessun problema di visibilità era stato rilevato.
+
+**Progetto Adobe `jth6flt`**, nome tecnico da usare nel codice **`termina`**
+(minuscolo), con `sans-serif` come riserva se Adobe non risponde. Il
+collegamento è un foglio di stile nel `<head>`, **non uno script**: un foglio
+deve arrivare prima del primo disegno.
+
+⚠️ **QUATTRO PESI SOLI: 400, 600, 700, 800.** Il sito può usare **solo**
+quelli. *Se una riga chiedesse un peso non attivato — un 500, per esempio — non
+comparirebbe nessun errore: il browser lo fabbrica deformando il più vicino, e
+il risultato non è Termina, cioè l'opposto esatto del motivo per cui il font è
+stato cambiato.* Alla data della scelta il sito usava 600 (×31), 700 (×32) e
+800 (×5), più il 400 implicito di tutto ciò che non dichiara nulla. Termina ne
+ha nove disponibili: gli altri cinque **non sono stati attivati di proposito**,
+perché ogni peso è un file che il cliente scarica prima di vedere il testo.
+
+**Set di caratteri completo**, non il predefinito: il menu contiene *Kaymak*,
+nomi turchi e greci, lettere accentate. Con l'insieme ridotto un carattere
+mancante verrebbe preso da un altro font, e in mezzo a una parola si vede.
+
+⚠️ **IL COLLEGAMENTO È LEGATO AL DOMINIO.** Oggi è autorizzato per `localhost`.
+**Il giorno del dominio vero va aggiunto nel pannello Adobe**, o il sito
+pubblicato mostrerà il carattere di riserva. *È la cosa più facile da
+dimenticare di tutto questo documento: quando succederà sembrerà un guasto del
+sito, e non lo sarà.*
+
+### La regola che riporta i moduli nell'eredità (v64, vincolante)
+
+```css
+button, input, select, textarea, option { font-family: inherit; }
+```
+
+⚠️ **Questa riga sembra non fare niente e invece regge tre quarti del sito.**
+Il browser tiene gli elementi di modulo **fuori** dall'eredità del font della
+pagina e usa un carattere proprio del sistema. Senza questa regola, **74 punti
+su 121** — pulsanti, campi, tendine — restano col font sbagliato.
+
+*Prima esistevano diciassette `fontFamily: "inherit"` scritti riga per riga,
+che ne coprivano 47. Non era abbastanza, e soprattutto era un lavoro che ogni
+pulsante nuovo avrebbe dovuto rifare. Il difetto non è nato col cambio di font:
+c'era già, ma finché il font della pagina **era** quello di sistema nessuno
+poteva accorgersene.*
+
+I diciassette `inherit` sparsi sono ora **ridondanti**. Toglierli è pulizia,
+cioè un lavoro a sé: **non si mescola** a un cambio di comportamento, o
+guardando il commit non si capirebbe quale delle due cose ha rotto qualcosa.
+
+⚠️ **`option` è incluso di proposito, con una riserva**: su alcuni sistemi —
+Windows in particolare — le tendine sono disegnate dal sistema operativo e la
+regola potrebbe non avere effetto. **Non è verificabile da qui** e non è un
+difetto del progetto: è un limite noto.
+
+### Cosa il font ha reso visibile
+
+Le **120 misure** del sito sono numeri fissi, senza alcuna regola di schermo
+(§66). Un font con un disegno diverso cambia la resa di **tutte**, non di
+alcune: dopo un cambio di famiglia la cosa da guardare per prima **non è se
+piace**, ma se qualche scritta esce dai bordi o va a capo, sul telefono
+soprattutto. Provato dal vivo l'08/08: nessuna rottura.
 
 ## 7. Stato del servizio
 
@@ -446,6 +501,62 @@ leggere `scheduled_delivery_at`, ma il pulsante di export non compare mai
 sugli ordini Ritiro, quindi un orario di ritiro non finisce mai in un CSV
 Glovo.
 
+## 12c. Ritocchi al sito cliente dell'08/08/2026 (v64)
+
+Quattro correzioni nate dall'uso vero del sito da parte di Andrea, non da una
+lettura del codice. *Il primo punto in particolare nessuna prova automatica
+avrebbe potuto trovarlo: è emerso perché usandolo lui stesso dimenticava
+l'indirizzo più volte e se ne accorgeva solo alla fine.*
+
+* ✅ **L'invito a mettere l'indirizzo prima del carrello**, sopra il campo:
+  *"Inserisci il tuo indirizzo prima di riempire il tuo carrello"*.
+  ⚠️ **È un consiglio, non una descrizione di come funziona il sito**, e questo
+  è il punto. Un primo testo proposto diceva che senza indirizzo non si vedono
+  menu e tempi: **era falso** — entrambe le letture partono al caricamento
+  della pagina e non sanno nulla dell'indirizzo — e il lavoro si è fermato
+  prima di scriverlo. *Una scritta falsa insegna al cliente che le nostre
+  scritte non sono affidabili.* L'indirizzo serve davvero a due cose, entrambe
+  più avanti: sbloccare il pagamento e stabilire se si è in zona.
+* ✅ **"Oggi" e "Domani" affiancati su una riga**, non incolonnati, perché la
+  tendina degli orari sta sotto entrambi e incolonnati sembrava appartenesse
+  solo al secondo. La disposizione regge anche quando una sola delle due
+  compare, e va a capo su schermo stretto invece di uscire dal bordo.
+* ✅ **Asterisco sui campi obbligatori** del checkout, con la legenda *"I campi
+  con * sono obbligatori."* ⚠️ *Quali campi non è stato deciso a mano: è stato
+  **letto dalla validazione esistente**.* Nome, Cognome e Telefono sempre;
+  Indirizzo e Civico **solo in Delivery**, e il loro asterisco si comporta da
+  sé perché i due campi vivono già dentro il blocco del Delivery. *I campi non
+  hanno etichette — il loro nome è il testo dentro il campo — quindi
+  l'asterisco è andato lì.* La casella dell'informativa **non è marcata**: è un
+  obbligo ma non un campo, e una casella di consenso con l'asterisco si legge
+  male.
+* ✅ **Il preordine detto per quello che è**, nel riquadro sopra il pulsante di
+  pagamento: *"Questo è un preordine: il tuo ordine sarà preparato per l'orario
+  richiesto"*, al posto di una frase che prometteva un orario di inizio
+  preparazione. ⚠️ **Le due frasi del semaforo in testa alla pagina NON sono
+  state toccate**, di proposito: quel riquadro è **l'unico posto** dove il
+  cliente legge l'orario di apertura, e il testo nuovo non lo contiene.
+
+### Due cose che sembravano difetti ed erano già a posto (v64)
+
+⚠️ Registrate perché non vengano "risolte" di nuovo. In entrambi i casi la
+causa dell'equivoco è la stessa: **il sito era stato guardato a locale chiuso**.
+
+* **"PRIMA POSSIBILE" esiste, ed è la scelta predefinita del Delivery.** Non è
+  mai stata tolta. La struttura è a due livelli: *prima possibile* oppure
+  *consegna programmata*, e **solo dentro la programmata** compaiono Oggi e
+  Domani. Le due scelte del momento si disegnano **solo a semaforo verde**: a
+  giallo o rosso spariscono e il cliente viene portato sulla programmata col
+  primo slot utile. **Ad Andrea sta bene così** (08/08) e non va aggiunta
+  alcuna frase in loro assenza. *Il Ritiro non ha il prima possibile per
+  decisione, §12b.*
+* **La tendina dell'orario è già una sola e condivisa.** Non è legata a un
+  giorno: si riempie con gli orari del giorno scelto e sta sotto entrambe le
+  radio. *Sembrava legata a "Domani" perché "Oggi" aveva zero slot — e in quel
+  caso la sua radio non era spenta, era **assente**.* Duplicarla avrebbe creato
+  due tendine dove ne basta una: il problema era la **disposizione**, ed è
+  stato risolto affiancandole.
+
 ## 13. Orari ordini (Delivery e Ritiro)
 
 **Orari definitivi (aggiunti dopo l'MVP iniziale, risolvono il buco
@@ -485,6 +596,94 @@ se il carrello risale. Il server, dal canto suo, ricontrolla la soglia **sul
 subtotale che ricalcola lui**, non su quello ricevuto: dal sito arriva solo
 un'intenzione, mai un importo. Registrato qui perché nessuna modifica futura
 lo indebolisca.
+
+### Lo sconto dopo il riordino dell'08/08/2026 (v64)
+
+✅ **Il cuore è uscito dalla rotta** in `lib/checkout-discount.js`, con il
+client del database come **parametro obbligatorio** — la stessa forma di
+`menu-create` e `menu-visibility`. Contiene le costanti, il controllo della
+soglia **sul subtotale ricalcolato**, il controllo su `promo_redemptions` per
+`customer_id`, e il calcolo del totale. Restituisce **cosa è successo**, mai
+una risposta al cliente: la parola verso il cliente resta della rotta.
+**32 prove nuove.**
+
+*Il comportamento è stato verificato **identico su 112 casi** — sette subtotali
+per tutte le combinazioni — facendo girare il codice vecchio **preso da git**
+accanto al nuovo. Non è stato riletto né ricopiato: è stato eseguito.*
+
+⚠️ **SE LA LETTURA DI `promo_redemptions` FALLISCE, LO SCONTO VIENE CONCESSO.**
+L'errore non viene guardato: il nulla si legge come "nessun riscatto trovato".
+È il verso **opposto** a quello prudente di §46b — là un guasto blocca, qui
+regala. **Conservato alla lettera** perché quel giro era un riordino e cambiare
+comportamento di nascosto sarebbe stato peggio, e **fissato dalla prova `g`**
+con un commento che dice perché sta lì. *Il giorno che si deciderà di
+cambiarlo, quella prova cadrà: sarà una decisione, non una svista. Prima
+dell'08/08 quel comportamento non era scritto da nessuna parte e nessuno lo
+avrebbe scoperto se non incontrandolo.*
+
+⚠️ **Le due costanti — soglia e importo — sono in DUE COPIE**, `app/page.js` e
+il modulo, e **nessuna prova le confronta** perché `app/page.js` non è
+importabile senza React. *Cambiarne una sola farebbe mostrare al cliente uno
+sconto che il server non concede, in silenzio.* Unificarle richiede un terzo
+modulo di sole costanti: far importare al browser il modulo dello sconto
+tenderebbe un cavo verso codice che interroga il database e che nel browser non
+deve girare mai.
+
+**Restano scoperti**: il **consumo** nel webhook e il **rilascio**
+all'annullamento, entrambi ancora dentro le rispettive rotte senza cuore in
+`lib/`. Il riordino ha coperto **chi offre** lo sconto, non chi lo consuma. La
+difesa vera resta il vincolo `unique (promo_code, customer_id)` del database,
+che nessuna prova automatica tocca ma che nessun errore di codice può aggirare.
+
+### Lo spostamento nel checkout — DECISO, NON REALIZZATO, BLOCCATO (v64)
+
+**Il difetto da cui nasce.** Il carrello mostra e scala i 5 € **prima di sapere
+chi è il cliente**. Chi ha già usato GIVEMEFIVE lo applica, vede il totale
+scalato, e **su Stripe si trova 5 € in più** senza che nessuna schermata glielo
+spieghi. Il server ha ragione — controlla e toglie — ma il cliente non lo sa.
+*È lo stesso scollamento della finestra del pagamento registrata in v63: il
+sito promette prima di poter sapere a chi sta promettendo.*
+
+**Le decisioni di Andrea (08/08/2026), tutte prese:**
+
+* sotto soglia resta il messaggio "ti mancano X €", **con la condizione
+  scritta**: valido per il **primo ordine**;
+* sopra soglia **sparisce il pulsante "Applica"**, e resta la frase esatta
+  *"GIVEMEFIVE sbloccato — 5 € di benvenuto validi sul primo ordine. Conferma
+  al checkout"*;
+* **il totale del carrello non scala più i 5 €** e sparisce la riga dello
+  sconto dal carrello;
+* nel checkout lo sconto compare **solo a dati obbligatori completi**, non
+  appena si scrive il telefono, e **solo a chi ne ha diritto**: a chi non
+  spetta non compare nulla, perché non gli è stato promesso nulla;
+* la rotta che dice se un numero è già cliente risponde **solo un booleano**
+  sull'eleggibilità, **mai** dati del cliente;
+* un **campo per i codici promozionali**, che per ora accetta il solo
+  GIVEMEFIVE. ⚠️ *Non è un sistema di codici: quello è un lavoro a sé e Andrea
+  non ha ancora deciso che codici vuole.*
+
+⚠️ **PERCHÉ È BLOCCATO: nel progetto NON ESISTE ALCUN FRENO** contro le
+richieste ripetute. Verificato l'08/08 con controprova — la stessa ricerca
+trova le difese che ci sono (la sessione staff 35 volte, i conflitti 25) e non
+trova il freno perché non c'è. Nessuna libreria, nessuna tabella, niente sulla
+piattaforma. *Le difese del progetto sono di un'altra natura: impediscono di
+**ottenere due volte** la stessa cosa, non di **chiedere mille volte**.*
+
+⚠️ **E l'ordine dei lavori non è libero.** L'unico interruttore che accende lo
+sconto in tutto il progetto è **il pulsante del carrello**. Togliere il
+pulsante prima che il suo sostituto esista **spegnerebbe GIVEMEFIVE in
+silenzio**: nessuno lo prenderebbe più, e nessun errore comparirebbe da nessuna
+parte. La catena obbligata è: **freno → sconto nel checkout → il carrello
+smette di applicarlo**. *Un comando che chiedeva l'ordine inverso è stato
+fermato prima di essere eseguito.*
+
+**La domanda da decidere prima di scrivere: su cosa si frena.** Sul numero
+chiesto non serve — chi vuole provarne mille ne prova mille diversi e il freno
+non scatta mai. Su chi chiede richiede di identificarlo, e l'unica cosa
+disponibile è l'indirizzo di rete, **che è un dato personale e riguarda
+l'informativa pubblicata**. Contare in memoria del server **non funziona su
+Vercel**: le funzioni sono senza stato e il conteggio si azzera da solo —
+sarebbe un freno che sembra esserci e non c'è, il peggiore dei casi.
 
 ## 15. Categorie menu (ordine fisso)
 
@@ -2464,6 +2663,24 @@ notifica WhatsApp a `staff_notification_phone` resta un futuro possibile
   il codice funzionava (oggetto Notification istanziato con contenuto
   corretto) ma nulla compariva a schermo — sbloccato il livello
   macOS, tutto ha funzionato immediatamente.
+
+### Il "valore perso" dei carrelli abbandonati è già scontato (v64)
+
+Il numero mostrato nel pannello — totale di ogni carrello, *valore totale
+perso* e *valore medio* — nasce da `orders.total`, che è **il totale già
+scontato**: la riga d'ordine viene scritta prima che il cliente paghi, con lo
+sconto già sottratto. Quindi quando un cliente eleggibile abbandona, il valore
+perso che si legge è **5 € più basso** del valore del carrello.
+
+✅ **Ad Andrea va bene così** (08/08/2026): quel numero serve a capire quanto si
+perde in ordini non conclusi, e cinque euro non cambiano quella lettura.
+⚠️ *Registrato come **scelta** e non come difetto rimasto lì. La differenza
+conta: una scelta scritta resta una scelta, un difetto ignorato torna a galla
+fra sei mesi come sorpresa.*
+
+*Nota coerente: gli abbandonati sono ordini mai pagati, e la promo si consuma
+solo a pagamento riuscito — quindi un carrello abbandonato **non brucia** lo
+sconto.*
 
 ## 57-61. Glovo On-Demand (fase 1, manuale)
 

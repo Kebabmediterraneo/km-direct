@@ -12,17 +12,21 @@ Web app per ordini **delivery e ritiro** di **FAME Srl / KM Kebab Mediterraneo**
 (Bologna, store `san-mamolo`). Stack **Next.js 14 + Supabase + Stripe (sandbox)**.
 Repo: **github.com/Kebabmediterraneo/km-direct** (branch `main`, push via SSH).
 La fonte di verità di tutte le decisioni è **`MASTER_SPEC.md`** — versione attuale
-**v63** (leggila sempre dall'intestazione, riga 3).
+**v64** (leggila sempre dall'intestazione, riga 3).
 
 ---
 
 ## 2) Stato git
 
 - Branch **`main`**, working tree **pulita**, allineata a `origin/main`.
-- HEAD: **`f9a8470`** — il carrello che nomina la bibita (07/08/2026).
+- HEAD: **`770dcf9`** — il cuore dello sconto estratto dalla rotta (08/08/2026).
 - Ultimi commit (dal più recente):
 
 ```
+770dcf9 sconto: il cuore di GIVEMEFIVE esce dalla rotta in un modulo provabile col client come parametro, comportamento identico verificato su 112 casi contro il codice vecchio preso da git
+fd6eeb0 sito: l'indirizzo chiesto prima del carrello perche' ci si arrivava in fondo senza, oggi e domani affiancati cosi' si vede che la tendina vale per entrambi, asterischi sui campi obbligatori letti dalla validazione, e il preordine detto per quello che e'
+8689599 font: Termina da Adobe Fonts al posto del sans-serif di sistema, con i moduli riportati nell'eredita' perche' il browser li tiene fuori e tre quarti dei pulsanti restavano col carattere del sistema
+4894899 docs: v63 e handoff — togli dal menu chiuso in sei pezzi, il rientro rimette la disponibilita', due liste nel sito cliente e le birre sulla piena perche' la casella dei 18 anni sparirebbe, piu' la finestra del pagamento dopo Stripe che nessuno controlla
 f9a8470 carrello: il combo con la bibita non ordinabile nomina la bibita invece del solo Roll, perche' il cliente non sapeva che gli bastava cambiarla
 05ac016 pagamento: le tre letture su products rifiutano anche l'articolo fuori menu, accanto al filtro sulla disponibilita' e non al suo posto
 200b94d sito: l'articolo fuori menu sparisce dalla vista con due liste e non una, perche' il carrello deve poterlo vedere per dirne il nome e l'upsell per classificare una riga gia' nel carrello
@@ -35,8 +39,6 @@ c6392d9 spec: v61 — bibita del combo corretta e provata, guardia sulle scelte 
 1a48a93 combo: il builder non si propone se una delle tre scelte è vuota
 d8f034d combo: la bibita rispetta la disponibilità del prodotto in menu, checkout e carrello
 f750ee2 spec: v60 — la bibita del combo ignora la disponibilità del prodotto, decisa una disponibilità sola e il carrello che si svuota col motivo
-b50129c handoff: due spazi mancanti nella lezione br
-fe3dfbf handoff: corretto il quinto messaggio di commit ricostruito a memoria e registrata la lezione br
 ```
 
 ⚠️ **QUESTO ELENCO VA RIGENERATO DA `git log`, MAI RICOPIATO NÉ RICOSTRUITO A
@@ -360,6 +362,13 @@ riceve l'elenco di ciò che **deve restare**, non solo di ciò che deve sparire.
   codice dedicato (punto 6).
 - **Editor menu — FASE 2A** (§67): modifica di **allergeni e flag dietetici**.
 - **Editor menu — FASE 3** (§63-64): creazione di articoli semplici dal pannello.
+- **Il font Termina** (§6b) — *08/08/2026*: famiglia dell'immagine coordinata
+  applicata a sito e pannello da un punto solo, più la regola che riporta i
+  moduli nell'eredità. Racconto al punto **24**.
+- **Il cuore dello sconto** (§14, §46) — *08/08/2026*: la validazione e il
+  calcolo del totale escono dalla rotta in un modulo provabile. ⚠️ *Lo
+  **spostamento** di GIVEMEFIVE nel checkout è invece deciso e NON fatto:
+  vedi il punto 24 e §14.*
 - **"Togli dal menu"** (§63-64) — *chiuso il 07/08/2026, sei pezzi, provato dal
   vivo*: terzo stato accanto a disponibile ed esaurito, colonna `is_in_menu`,
   pulsante occhio in coda alla riga, stato spento visibile anche sul telefono,
@@ -1638,3 +1647,123 @@ pagamento di una birra senza dichiarazione d'età. *È stato evitato perché chi
 scriveva il codice ha seguito la variabile fino a scoprire cosa facesse davvero,
 ha passato la lista giusta e **ha spiegato prima di lasciarlo così**, invece di
 eseguire o di correggere in silenzio.*
+
+---
+
+## 24) Font, ritocchi al sito e il cuore dello sconto (08/08/2026)
+
+Giornata su tre fronti: il **font** dell'immagine coordinata, **quattro
+ritocchi** nati dall'uso vero del sito, e il **riordino dello sconto**. Le
+decisioni e la forma stanno in **spec §6b, §12c, §14 e §52-56 v64**; qui c'è
+solo ciò che il racconto aggiunge.
+
+### 24a) Il font
+
+Termina da Adobe Fonts, progetto `jth6flt`, quattro pesi. **Cambiarlo è stata
+una riga**, perché un punto unico esisteva già e i `fontFamily: "inherit"`
+sparsi erano la toppa che lo rendeva davvero unico: chi le aveva scritte aveva
+già fatto il lavoro difficile.
+
+⚠️ **Ma non bastavano.** Coprivano 47 punti su 121: pulsanti, campi e tendine
+restavano col carattere di sistema, e **non si notava soltanto perché il font
+della pagina *era* quello di sistema**. Il cambio non ha creato il difetto,
+l'ha reso visibile. Chiuso con una regola sola.
+
+*Nel commento sopra quella riga c'è scritto «questa riga sembra non fare
+niente, e invece regge tre quarti del sito — non toglierla», perché è
+esattamente l'errore che farebbe chi la leggesse fra sei mesi.*
+
+**Cinque prove dal vivo di Andrea**, telefono compreso, in questo ordine: se
+qualcosa esce dai bordi, se i titoli sono il font vero o un grassetto
+fabbricato, se il testo salta al caricamento, se le lettere particolari
+mancano — **e solo alla fine se piace**.
+
+### 24b) I quattro ritocchi, e le due voci che non erano difetti
+
+Andrea ha portato sette osservazioni raccolte **usando il sito**. Quattro erano
+lavori, **due erano già a posto** e una si è rivelata più grossa di come era
+stata descritta.
+
+⚠️ **Le due cadute vengono dallo stesso equivoco: il sito era stato guardato a
+locale chiuso**, dove "prima possibile" sparisce e resta la sola programmata.
+La lezione non è che l'osservazione fosse sbagliata — è che *guardare il sito
+in una condizione e dedurne la regola* produce diagnosi false, e la conferma
+costa una lettura.
+
+⚠️ **Un testo proposto per l'invito sull'indirizzo era falso**, e il lavoro si
+è fermato prima di scriverlo. Diceva che senza indirizzo non si vedono menu e
+tempi: entrambe le letture partono al caricamento della pagina e non sanno
+nulla dell'indirizzo. *L'ha scritto chi guida, non chi esegue, e chi esegue si
+è fermato perché il comando gli chiedeva di verificarlo. La frase finale è di
+Andrea ed è migliore di quelle proposte, perché **consiglia invece di
+descrivere**: un consiglio non può essere falso.*
+
+### 24c) Lo sconto: prima la rete, poi lo spostamento
+
+Lo spostamento di GIVEMEFIVE era pronto per essere scritto. **Non è stato
+scritto**, e per due ragioni trovate una dopo l'altra.
+
+**La prima: la catena era scoperta.** Una ricognizione ha trovato **108
+occorrenze in tredici file**, e il verdetto era che *le prove sapevano solo che
+lo sconto non viene salvato male — che venga concesso a chi spetta, tolto a chi
+non spetta, contato bene e consumato una volta sola, non lo verificava
+nessuno*. Da qui il riordino: cuore in `lib/`, 32 prove, comportamento
+verificato identico su **112 casi** contro il codice vecchio **preso da git**.
+
+**La seconda: il freno non esiste**, e senza freno la rotta che dice se un
+numero è già cliente non si può aprire. §14 ha il dettaglio.
+
+⚠️ **E l'ordine dei lavori non era libero.** Il comando dato chiedeva di
+togliere il pulsante del carrello e di costruire il sostituto. Ma quel pulsante
+è **l'unico interruttore** che accende lo sconto in tutto il progetto:
+eseguendo nell'ordine scritto, GIVEMEFIVE si sarebbe spento **in silenzio**,
+senza un errore da nessuna parte. *Trovato perché il comando chiedeva di
+cercare il freno **per primo**, e da lì è emerso che tutto il resto ci passava.*
+
+### 24d) Un comando che diceva due cose opposte
+
+Un blocco conteneva **"non spingere" in testa e "poi spingi" nel corpo** — un
+residuo del comando precedente ricopiato senza rileggerlo. Chi eseguiva **si è
+fermato e ha chiesto**, invece di scegliere: il push è l'unica azione di quel
+giro che esce verso l'esterno, perché ripubblica il sito.
+
+### 24e) Cosa resta di questa giornata
+
+* ⚠️ **Il collegamento Adobe da autorizzare sul dominio vero** (§6b) — la cosa
+  più facile da dimenticare, perché quando succederà sembrerà un guasto.
+* ⚠️ **Lo spostamento di GIVEMEFIVE**, deciso e bloccato dal freno (§14).
+* ⚠️ **Il guasto di lettura che concede lo sconto** invece di negarlo, fissato
+  dalla prova `g` (§14).
+* ⚠️ **Le due copie delle costanti dello sconto**, che nessuna prova confronta.
+* **Il consumo e il rilascio** dello sconto, ancora senza cuore e senza prove.
+* **La pulizia dei 17 `fontFamily: "inherit"` ridondanti**, lavoro a sé.
+* **La frase del preordine**, scritta e pubblicata ma **mai vista dal vivo**:
+  compare solo in Delivery a semaforo non verde.
+
+### 24f) Quattro lezioni
+
+**ca. ⚠️ Un elenco di lavori da fare non è un ordine di esecuzione.** Un
+comando in sei punti numerati chiedeva di smontare l'interruttore esistente
+prima che il suo sostituto fosse costruibile, e il quinto punto — quello da cui
+tutti gli altri dipendevano — era in fondo. *Prima di eseguire una lista, va
+chiesto quale voce è **premessa** delle altre: l'ordine in cui le cose vengono
+scritte non è quello in cui vanno fatte.*
+
+**cb. ⚠️ Guardare il sistema in una condizione e dedurne la regola produce
+diagnosi false.** Due osservazioni su tre riguardavano funzioni che
+funzionavano già: erano state viste a locale chiuso, dove metà dell'interfaccia
+non si disegna. *Non è colpa di chi guarda — è che una schermata è un caso, non
+una regola, e la conferma costa una lettura.*
+
+**cc. ⚠️ Un difetto invisibile perché il valore giusto coincideva con quello
+sbagliato.** Tre quarti dei moduli non ereditavano il font, e nessuno poteva
+accorgersene finché il font della pagina **era** quello di sistema: le due cose
+davano lo stesso risultato. *Cambiare un valore predefinito rivela tutti i
+punti che non lo stavano rispettando — e vale la pena aspettarselo, invece di
+scambiarli per difetti nuovi.*
+
+**cd. ⚠️ Prima la rete, poi lo spostamento — e la rete va misurata, non
+assunta.** La logica dello sconto è stata estratta e provata **prima** di
+toccarla, perché una ricognizione aveva accertato che nessuna prova la
+copriva. *L'ordine inverso — spostare e poi provare — non avrebbe dato alcun
+segnale in caso di rottura: il denaro sbagliato non si vede, si incassa.*
