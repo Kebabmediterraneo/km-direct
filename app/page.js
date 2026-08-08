@@ -1724,28 +1724,37 @@ function ScheduledSlotPicker({ slots, day, time, onDayChange, onTimeChange, radi
         paddingLeft: 4,
       }}
     >
-      {todaySlots.length > 0 && (
-        <label style={optionLabelStyle}>
-          <input
-            type="radio"
-            name={radioName}
-            checked={day === "today"}
-            onChange={() => onDayChange("today")}
-          />
-          Oggi
-        </label>
-      )}
-      {tomorrowSlots.length > 0 && (
-        <label style={optionLabelStyle}>
-          <input
-            type="radio"
-            name={radioName}
-            checked={day === "tomorrow"}
-            onChange={() => onDayChange("tomorrow")}
-          />
-          Domani
-        </label>
-      )}
+      {/* Oggi e Domani AFFIANCATI, non incolonnati: incolonnati, con la tendina
+          sotto, sembrava che gli orari appartenessero al solo secondo giorno,
+          mentre la tendina è UNA e segue il giorno scelto.
+          ⚠️ Ciascuna radio compare solo se quel giorno ha almeno uno slot —
+          a tarda sera "Oggi" sparisce da sé — quindi la riga deve reggere anche
+          con UNA sola voce: `flex` con `flexWrap` lo fa senza casi speciali, e
+          su schermo stretto le due voci vanno a capo invece di uscire. */}
+      <div style={{ display: "flex", flexDirection: "row", flexWrap: "wrap", gap: 20 }}>
+        {todaySlots.length > 0 && (
+          <label style={optionLabelStyle}>
+            <input
+              type="radio"
+              name={radioName}
+              checked={day === "today"}
+              onChange={() => onDayChange("today")}
+            />
+            Oggi
+          </label>
+        )}
+        {tomorrowSlots.length > 0 && (
+          <label style={optionLabelStyle}>
+            <input
+              type="radio"
+              name={radioName}
+              checked={day === "tomorrow"}
+              onChange={() => onDayChange("tomorrow")}
+            />
+            Domani
+          </label>
+        )}
+      </div>
 
       {daySlots.length > 0 && (
         <select
@@ -1958,6 +1967,26 @@ function FulfillmentSelector({
             marginTop: 12,
           }}
         >
+          {/* Consiglio, non descrizione: NON dice che senza indirizzo il menu
+              non si veda — il menu si vede eccome, e i tempi pure. Dice quando
+              conviene inserirlo, perché chi lo lascia per ultimo se ne accorge
+              solo al pagamento, dove il pulsante resta bloccato finché non c'è
+              indirizzo, civico e zona verificata.
+              ⚠️ Deve VEDERSI: colore del marchio e peso 700 come i titoli, non
+              il grigio dei testi di servizio. Se un giorno sembrasse troppo
+              gridata, si abbassa il colore — non la si sposta sotto il campo,
+              dove arriverebbe dopo il momento in cui serve. */}
+          <p
+            style={{
+              margin: 0,
+              fontSize: 13,
+              fontWeight: 700,
+              color: "var(--brand-orange)",
+            }}
+          >
+            Inserisci il tuo indirizzo prima di riempire il tuo carrello
+          </p>
+
           <div style={{ position: "relative" }}>
             <input
               type="text"
@@ -2857,6 +2886,15 @@ function CheckoutScreen({
           </div>
         )}
 
+        {/* Legenda dell'asterisco. Sta FUORI dai due blocchi qui sotto perché
+            deve comparire una volta sola e in entrambe le modalità: "Dati
+            delivery" esiste solo nel Delivery, "Dati cliente" sempre.
+            ⚠️ I campi non hanno etichette: il loro nome è il testo dentro il
+            campo (`placeholder`), quindi l'asterisco va lì. */}
+        <p style={{ margin: 0, fontSize: 12, color: "var(--text-on-dark)" }}>
+          I campi con * sono obbligatori.
+        </p>
+
         {isDelivery && (
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             <span style={sectionTitleStyle}>Dati delivery</span>
@@ -2865,14 +2903,14 @@ function CheckoutScreen({
                 mai riscrivibili a mano al checkout. */}
             <input
               type="text"
-              placeholder="Indirizzo"
+              placeholder="Indirizzo *"
               value={address}
               readOnly
               style={{ ...fieldStyle, background: "var(--bg-warm)", color: "var(--text-on-dark)" }}
             />
             <input
               type="text"
-              placeholder="Civico"
+              placeholder="Civico *"
               value={civico}
               readOnly
               style={{ ...fieldStyle, background: "var(--bg-warm)", color: "var(--text-on-dark)" }}
@@ -2928,21 +2966,21 @@ function CheckoutScreen({
           <span style={sectionTitleStyle}>Dati cliente</span>
           <input
             type="text"
-            placeholder="Nome"
+            placeholder="Nome *"
             value={customerDetails.firstName}
             onChange={(event) => updateCustomerField("firstName", event.target.value)}
             style={fieldStyle}
           />
           <input
             type="text"
-            placeholder="Cognome"
+            placeholder="Cognome *"
             value={customerDetails.lastName}
             onChange={(event) => updateCustomerField("lastName", event.target.value)}
             style={fieldStyle}
           />
           <input
             type="tel"
-            placeholder="Telefono"
+            placeholder="Telefono *"
             value={customerDetails.phone}
             onChange={(event) => updateCustomerField("phone", event.target.value)}
             style={fieldStyle}
@@ -3090,9 +3128,15 @@ function CheckoutScreen({
                 padding: 10,
               }}
             >
-              {`Siamo chiusi ora, il tuo ordine sarà preparato a partire dalle ${
-                scheduledTime ?? serviceStatus.firstSlotLabel ?? ""
-              }.`}
+              {/* Il testo non nomina più un orario: prima diceva "siamo chiusi
+                  ora … a partire dalle X", e quel messaggio faceva sembrare
+                  l'ordine un ripiego. L'orario resta a schermo dove il cliente
+                  l'ha scelto — nel selettore qui sopra — quindi qui non serve
+                  ripeterlo. ⚠️ Nel riquadro del semaforo, in testa alla pagina,
+                  vivono altre due frasi sulla chiusura, con l'orario di
+                  apertura: quelle NON sono state toccate. */}
+              Questo è un preordine: il tuo ordine sarà preparato per l&apos;orario
+              richiesto
             </div>
           )
         )}
