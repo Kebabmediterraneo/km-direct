@@ -38,13 +38,19 @@ import { READ_ERROR, resolveProduct, resolveCombo } from "../../../lib/checkout-
 // (§46 v46, "Forma dell'estrazione", punto 1 — nessun modulo confeziona la
 // risposta, nessuna route ripete la logica).
 import { OK, CHANGED, checkAllLines } from "../../../lib/price-guard";
+// §14/§62 (08/08/2026): lo sconto e il calcolo del totale vivono in un modulo
+// raggiungibile da una prova, con lo stesso criterio del price-guard qui sopra.
+// Le tre costanti di GIVEMEFIVE — codice, soglia, importo — stanno lì e non più
+// qui: erano scritte in questo file e in `app/page.js`, cioè in due posti, e
+// tenerne una copia anche qui ne avrebbe fatti tre.
+// ⚠️ `round2` arriva dallo stesso modulo per la stessa ragione: è l'unica
+// definizione dell'arrotondamento nel percorso del pagamento, e due copie di un
+// arrotondamento divergono senza che nulla lo segnali.
+import { resolveDiscountAndTotal, round2 } from "../../../lib/checkout-discount";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 const DELIVERY_FEE = 2.5;
-const GIVEMEFIVE_THRESHOLD = 25;
-const GIVEMEFIVE_DISCOUNT = 5;
-const GIVEMEFIVE_CODE = "GIVEMEFIVE";
 const MARKETING_TEXT_VERSION = "v1";
 
 // §v19: messaggio unico per gli errori TECNICI di sistema mostrati al cliente
@@ -64,10 +70,6 @@ const PRICE_CHANGED_MESSAGE = "Abbiamo aggiornato il listino, controlla il tuo c
 // costruita a mano, quindi è un problema nostro e indica l'unica cosa che chi
 // legge può fare.
 const PRICE_MALFORMED_MESSAGE = "Si è verificato un problema. Ricarica la pagina e riprova.";
-
-function round2(value) {
-  return Math.round(value * 100) / 100;
-}
 
 // §58: pickup_code progressivo (KM-0001, KM-0002, ...), mai casuale. Riprova
 // con un numero più alto in caso di collisione (race condition tra ordini
@@ -310,25 +312,20 @@ export async function POST(request) {
   }
 
   // §14/§62: GIVEMEFIVE consumata solo dopo pagamento confermato (Fase B) —
-  // qui verifichiamo solo l'eleggibilità, senza inserire promo_redemptions.
-  let discountAmount = 0;
-  let couponCode = null;
-  if (giveMeFiveRequested && subtotal >= GIVEMEFIVE_THRESHOLD) {
-    const { data: existingRedemption } = await supabaseAdmin
-      .from("promo_redemptions")
-      .select("id")
-      .eq("promo_code", GIVEMEFIVE_CODE)
-      .eq("customer_id", customerRow.id)
-      .maybeSingle();
-
-    if (!existingRedemption) {
-      discountAmount = GIVEMEFIVE_DISCOUNT;
-      couponCode = GIVEMEFIVE_CODE;
-    }
-  }
-
+  // qui si verifica solo l'eleggibilità, senza inserire promo_redemptions.
+  // Il come sta in `lib/checkout-discount.js`; qui resta la sola chiamata.
+  //
+  // ⚠️ `subtotal` è quello RICALCOLATO poche righe sopra dai dati vivi, mai
+  // quello arrivato dal browser: è la condizione che rende sensato il controllo
+  // della soglia, e va tenuta d'occhio se un giorno queste righe si spostano.
   const deliveryFee = isDelivery ? DELIVERY_FEE : 0;
-  const total = round2(subtotal - discountAmount + deliveryFee);
+  const { discountAmount, couponCode, total } = await resolveDiscountAndTotal({
+    db: supabaseAdmin,
+    giveMeFiveRequested,
+    subtotal,
+    customerId: customerRow.id,
+    deliveryFee,
+  });
 
   const orderPayload = {
     store_id: store.id,
