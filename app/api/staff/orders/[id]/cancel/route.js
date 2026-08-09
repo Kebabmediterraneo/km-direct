@@ -2,9 +2,12 @@ import { NextResponse } from "next/server";
 import Stripe from "stripe";
 import { supabaseAdmin } from "../../../../../../lib/supabase-admin";
 import { requireStaffSession } from "../../../../../../lib/require-staff-session";
+// §14: il nome del codice dall'unico posto in cui esiste. Era riscritto qui a
+// mano, ed è il valore confrontato con `orders.coupon_code` per decidere se
+// rilasciare la promo: una copia che divergesse non la rilascerebbe più.
+import { GIVEMEFIVE_CODE } from "../../../../../../lib/givemefive";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
-const GIVEMEFIVE_CODE = "GIVEMEFIVE";
 
 // §62b: annullamento con rimborso condizionale. Il confine è
 // "in_preparazione mai raggiunto" (nessuna riga in order_status_history con

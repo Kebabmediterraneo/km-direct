@@ -1,9 +1,12 @@
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
 import { supabaseAdmin } from "../../../../lib/supabase-admin";
+// §14: il nome del codice dall'unico posto in cui esiste. Era riscritto qui a
+// mano, ed è il valore confrontato con `orders.coupon_code`: una copia che
+// divergesse non consumerebbe più la promo, senza alcun errore.
+import { GIVEMEFIVE_CODE } from "../../../../lib/givemefive";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
-const GIVEMEFIVE_CODE = "GIVEMEFIVE";
 
 // §46: mai fidarsi di un evento non verificato — chiunque potrebbe inviare
 // richieste finte a questo endpoint spacciandosi per Stripe. Per verificare

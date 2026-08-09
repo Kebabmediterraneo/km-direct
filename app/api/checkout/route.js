@@ -40,9 +40,11 @@ import { READ_ERROR, resolveProduct, resolveCombo } from "../../../lib/checkout-
 import { OK, CHANGED, checkAllLines } from "../../../lib/price-guard";
 // §14/§62 (08/08/2026): lo sconto e il calcolo del totale vivono in un modulo
 // raggiungibile da una prova, con lo stesso criterio del price-guard qui sopra.
-// Le tre costanti di GIVEMEFIVE — codice, soglia, importo — stanno lì e non più
-// qui: erano scritte in questo file e in `app/page.js`, cioè in due posti, e
-// tenerne una copia anche qui ne avrebbe fatti tre.
+// Le tre costanti di GIVEMEFIVE — codice, soglia, importo — non stanno né qui
+// né lì: dal 09/08/2026 vivono in `lib/givemefive.js`, un modulo di sole
+// costanti che anche il browser può importare, e `checkout-discount` le
+// ri-esporta per chi le prendeva da lui. Erano riscritte a mano in quattro
+// file, e nessuna prova poteva confrontarle.
 // ⚠️ `round2` arriva dallo stesso modulo per la stessa ragione: è l'unica
 // definizione dell'arrotondamento nel percorso del pagamento, e due copie di un
 // arrotondamento divergono senza che nulla lo segnali.

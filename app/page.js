@@ -11,6 +11,12 @@ import {
 import { productLinePrice, comboLinePrice } from "../lib/menu-pricing";
 import { prepareCart, restoreCart } from "../lib/cart-persistence";
 import { prepareCheckout, restoreCheckout } from "../lib/checkout-persistence";
+// §14: soglia e importo dello sconto, dall'unico posto in cui esistono.
+// ⚠️ Si importa `givemefive`, NON `checkout-discount`: quest'ultimo contiene
+// `resolveDiscountAndTotal`, che interroga il database e nel browser non deve
+// girare mai. `givemefive` è di sole costanti, senza import e senza funzioni,
+// ed è sicuro da entrambe le parti.
+import { GIVEMEFIVE_THRESHOLD, GIVEMEFIVE_DISCOUNT } from "../lib/givemefive";
 import PrivacyFooter from "./privacy-footer";
 
 const CATEGORIES = [
@@ -68,10 +74,6 @@ const STORE_BIAS_RADIUS_METERS = 15000;
 // §9: fee e minimo d'ordine, solo Delivery.
 const DELIVERY_FEE = 2.5;
 const DELIVERY_MINIMUM_ORDER = 15;
-
-// §14: valido sia Delivery sia Ritiro, sconto fisso su soglia prodotti.
-const GIVEMEFIVE_THRESHOLD = 25;
-const GIVEMEFIVE_DISCOUNT = 5;
 
 // §46 punti 8 e 9 (v51) — I DUE SOLI RIFIUTI CHE RIGUARDANO IL MENU.
 //
