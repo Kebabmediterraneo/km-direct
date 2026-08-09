@@ -1,6 +1,6 @@
 # KM DIRECT — MASTER SPECIFICATION
 
-**Versione 65** — sostituisce la v64.
+**Versione 66** — sostituisce la v65.
 
 Documento di riferimento definitivo per lo sviluppo. Le decisioni qui
 contenute sono approvate: non vanno reinterpretate senza un motivo concreto
@@ -22,36 +22,35 @@ versione corrente**. I precedenti vivono in `git log`, che è fatto per quello.
 del documento prima che cominciasse a parlare del progetto — e dentro c'erano
 istruzioni rovesciate che nessuno rileggeva.*
 
-**Novità della v65** (vincolanti, dalle decisioni di Andrea della sera
-dell'08/08/2026):
+**Novità della v66** (vincolanti, dal lavoro e dalle decisioni del
+09/08/2026):
 
-1. §14 — ✅ **LO SPOSTAMENTO DI GIVEMEFIVE NON È PIÙ BLOCCATO.** Deciso che
-   **non si costruisce alcun freno a conteggio**: la rotta che dice se lo
-   sconto spetta **non risponderà su un numero di telefono**, ma **solo a un
-   checkout compilato**. Non c'è nulla da martellare, quindi non c'è nulla da
-   contare.
-2. §14 — ⚠️ **CAMBIA LA QUINTA DELLE SEI DECISIONI DELL'08/08**: fino a quel
-   pomeriggio quella rotta rispondeva a chi scrivesse un numero. Le altre
-   cinque restano identiche.
-3. §14 — ⚠️ **LA DIFESA STA O CADE SUL RICALCOLO DELLA SOGLIA.** Il subtotale
-   va ricalcolato **dal server sul contenuto del carrello**: se si fidasse
-   dell'importo ricevuto dal sito, basterebbe dichiarare un carrello sopra
-   soglia e la porta tornerebbe aperta com'era.
-4. §14 — la scelta **lascia l'informativa privacy pubblicata com'è** e non
-   conserva alcun dato personale nuovo. *Era quello il costo delle altre
-   strade, non di questa.*
-5. §14 — **un utilizzo per numero di telefono**, detto così invece che "per
-   cliente". ⚠️ *Il progetto non verifica che il numero sia vero: la regola
-   vale quanto vale l'identificatore. Prima dell'08/08 non era scritto da
-   nessuna parte.*
-6. §14 — accertato eseguendo: **il nome del codice sta in TRE copie**, non
-   due. Soglia e importo restano due, come già scritto.
+1. §14 — ✅ **LE COSTANTI DELLO SCONTO SONO IN UN POSTO SOLO.** Nasce
+   `lib/givemefive.js`, modulo di **sole costanti**, importato da tutti e
+   quattro i posti che prima le riscrivevano. Le due copie di soglia e importo
+   e le tre copie del nome **non esistono più**.
+2. §14 — ✅ **e ora c'è una prova che se ne accorge**, `tests/givemefive.test.mjs`.
+   Le suite passano da diciassette a **diciotto**, le prove da 701 a **714**.
+3. §14 — ⚠️ **`next build` NON FALLISCE SU UN IMPORT INESISTENTE**, accertato
+   il 09/08 con controprova: compila e tace, il valore diventa `undefined` e il
+   difetto si vede solo a schermo. *Vale per tutto il progetto, non solo per lo
+   sconto.*
+4. §14 — ⚠️ **nel modulo delle costanti non deve entrare MAI una funzione**,
+   perché è l'unico modulo dello sconto che il browser può aprire. Prima era un
+   proposito scritto in un commento, ora è una prova che fallisce.
+5. **Nuova §6c** — ⚠️ **TRE COSE DA FARE PRIMA DEL GO-LIVE che non erano
+   scritte da nessuna parte**: il **piano Vercel** da portare a Pro, il **font
+   Termina** da autorizzare sul dominio vero, **Stripe** da portare fuori dalla
+   sandbox. *Emerse il 09/08 guardando il pannello, non il codice.*
+6. **§6c** — il sottodominio scelto è **`ordina.kebabmediterraneo.it`**,
+   deciso e **in attesa del DNS**.
+7. **§6c** — ⚠️ accertato il 09/08: **il sito è già raggiungibile** su
+   `km-direct.vercel.app`. *Non è mai stato chiuso: era solo sconosciuto.*
 
 *Il conteggio delle condizioni di apertura non cambia: **quattro chiuse, cinque
 aperte**. Il lavoro pre-go-live che resta è la **Fase 4**, lo **spostamento di
-GIVEMEFIVE** — ora sbloccato —, i **due lavori piccoli** registrati in v64 (le
-costanti dello sconto in §14, i diciassette `fontFamily` in §6b), il **viewport**
-e le tre verifiche registrate in v63.*
+GIVEMEFIVE**, i **diciassette `fontFamily`** di §6b, il **viewport**, le tre
+verifiche registrate in v63 e le **tre voci nuove di §6c**.*
 
 ## 1. Visione del progetto
 
@@ -159,6 +158,57 @@ Le **120 misure** del sito sono numeri fissi, senza alcuna regola di schermo
 alcune: dopo un cambio di famiglia la cosa da guardare per prima **non è se
 piace**, ma se qualche scritta esce dai bordi o va a capo, sul telefono
 soprattutto. Provato dal vivo l'08/08: nessuna rottura.
+
+## 6c. Prima del go-live, fuori dal codice (aggiunta in v66, vincolante)
+
+⚠️ **Questa sezione non riguarda il repository.** Sono cose che nessun comando
+e nessuna prova possono accorgersi che mancano: il codice sarà verde lo stesso.
+*Emerse il 09/08/2026 guardando il pannello di pubblicazione, non il codice.*
+
+**L'indirizzo pubblico sarà `ordina.kebabmediterraneo.it`** — deciso il
+09/08/2026, **in attesa che il DNS venga creato**. Il valore da configurare è
+un record `CNAME` **specifico di questo progetto**, che si legge dal pannello e
+**non si ricopia da nessuna guida**: i valori generici che circolano possono
+non valere. *Va copiato con il pulsante, non ribattuto a mano: contiene cifre e
+lettere che sullo schermo si assomigliano.*
+
+⚠️ **IL SITO È GIÀ RAGGIUNGIBILE**, accertato il 09/08: `km-direct.vercel.app`
+risponde e risulta configurato. *Non è mai stato chiuso — era solo sconosciuto,
+che è un'altra cosa. Ogni frase di questo progetto che dice "non lo raggiunge
+nessuno" va letta come "nessuno lo conosce".*
+
+### Le tre cose da fare prima di incassare
+
+**1. ⚠️ IL PIANO DI PUBBLICAZIONE VA PORTATO A PRO.** Il progetto sta oggi sul
+piano gratuito, che le condizioni del fornitore riservano all'uso **personale e
+non commerciale**, e la loro definizione di uso commerciale include
+esplicitamente **qualunque forma di richiesta o incasso di pagamenti dai
+visitatori**. KM Direct incassa ordini. *Le stesse condizioni si riservano di
+disattivare un progetto sul piano gratuito **senza preavviso**: non è una
+multa, è il sito che smette di rispondere, potenzialmente di sabato sera.*
+Finché non si incassa nulla non succede niente, ma **è una condizione di
+apertura a tutti gli effetti**, e costa circa venti dollari al mese.
+
+**2. ⚠️ IL FONT VA AUTORIZZATO SUL DOMINIO VERO.** Vedi §6b: il collegamento a
+Termina è legato al dominio ed è oggi autorizzato per `localhost`. Il giorno in
+cui il sottodominio risponde, va aggiunto `ordina.kebabmediterraneo.it` fra i
+domini del progetto Adobe `jth6flt`. *§6b la definisce la cosa più facile da
+dimenticare di tutto il documento, e aggiunge la ragione: quando succederà
+sembrerà un guasto del sito, e non lo sarà.*
+
+**3. ⚠️ STRIPE VA PORTATO FUORI DALLA SANDBOX.** Oggi il pagamento è in
+ambiente di prova. Passare al reale non è un interruttore: cambiano le chiavi,
+e **cambia l'indirizzo a cui Stripe manda le conferme di pagamento** — cioè il
+webhook, che è il pezzo da cui dipende se un ordine pagato risulta pagato.
+*Fino a quel momento nessun euro si muove davvero, quindi il passaggio è anche
+il primo momento in cui un errore costa soldi veri.*
+
+⚠️ **Il passaggio a Stripe reale va provato a fondo prima dell'apertura, non il
+giorno stesso.** *Scritto nella forma prudente: alla data della stesura non è
+confermato se KM Direct sarà il primo canale d'ordine o se se ne aggiunge ad
+altri già attivi. Se fosse il primo, il giorno dell'apertura non esiste una
+rete sotto e questa riga è vincolante; se ce ne sono altri, si può ammorbidire.
+**Da confermare con Andrea.***
 
 ## 7. Stato del servizio
 
@@ -597,17 +647,40 @@ cambiarlo, quella prova cadrà: sarà una decisione, non una svista. Prima
 dell'08/08 quel comportamento non era scritto da nessuna parte e nessuno lo
 avrebbe scoperto se non incontrandolo.*
 
-⚠️ **Le due costanti — soglia e importo — sono in DUE COPIE**, `app/page.js` e
-il modulo, e **nessuna prova le confronta** perché `app/page.js` non è
-importabile senza React. *Cambiarne una sola farebbe mostrare al cliente uno
-sconto che il server non concede, in silenzio.* Unificarle richiede un terzo
-modulo di sole costanti: far importare al browser il modulo dello sconto
-tenderebbe un cavo verso codice che interroga il database e che nel browser non
-deve girare mai.
+✅ **LE COSTANTI VIVONO IN UN POSTO SOLO (v66, 09/08/2026).** Soglia, importo e
+nome del codice stanno in **`lib/givemefive.js`**, modulo di **sole costanti**,
+importato da `lib/checkout-discount.js` — che le ri-esporta per chi le prendeva
+da lui — da `app/page.js`, dal webhook di Stripe e dalla rotta di
+annullamento. *Prima soglia e importo erano in due copie e il nome in tre, e
+nessuna prova le confrontava: cambiarne una sola avrebbe mostrato al cliente
+uno sconto che il server non concede, in silenzio.*
 
-⚠️ *Il solo **nome** del codice sta invece in **tre** copie — il modulo, il
-webhook di Stripe e la rotta di annullamento — accertato l'08/08 eseguendo la
-ricerca, non ricordando. Soglia e importo restano due.*
+⚠️ **`app/page.js` NON deve MAI importare `lib/checkout-discount.js`**: quel
+modulo contiene `resolveDiscountAndTotal`, che interroga il database, e nel
+browser non deve girare. È l'intero motivo per cui esiste un terzo modulo
+invece della scorciatoia.
+
+⚠️ **E NEL MODULO DELLE COSTANTI NON DEVE ENTRARE UNA FUNZIONE.** La prima che
+entrasse lo renderebbe di nuovo pericoloso da aprire nel browser, **senza che
+nulla lo segnali**. *Fino al 09/08 era un avvertimento scritto nel commento in
+cima al file, cioè una difesa che funziona solo se qualcuno legge.*
+
+**La prova che sorveglia tutto questo è `tests/givemefive.test.mjs`** (v66,
+13 prove): controlla che il modulo esporti le tre costanti e nient'altro, che
+ogni nome importato da `app/page.js` esista davvero e non valga `undefined`, e
+che `app/page.js` non torni a riscriverle a mano. **Legge** `app/page.js` come
+testo invece di importarlo, perché senza React non parte. *Contiene anche due
+prove che sorvegliano sé stessa: una fallisce se la riga di import sparisce —
+un file senza import passerebbe altrimenti in silenzio — e una verifica su un
+caso finto che la sonda sappia riconoscere un import.*
+
+⚠️ **`next build` NON È UNA RETE CONTRO GLI IMPORT SBAGLIATI**, accertato il
+09/08 con controprova: aggiunto di proposito un nome inesistente all'import di
+`app/page.js`, la compilazione è riuscita **senza un errore né un avviso**. Il
+valore sarebbe diventato `undefined` e il cliente avrebbe visto conti privi di
+senso, mentre server e prove restavano verdi. *Questo vale per QUALUNQUE import
+del progetto, non solo per lo sconto: la compilazione dice che il codice sta in
+piedi, non che chiede cose che esistono.*
 
 **Restano scoperti**: il **consumo** nel webhook e il **rilascio**
 all'annullamento, entrambi ancora dentro le rispettive rotte senza cuore in

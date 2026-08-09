@@ -19,10 +19,13 @@ La fonte di verità di tutte le decisioni è **`MASTER_SPEC.md`** — versione a
 ## 2) Stato git
 
 - Branch **`main`**, working tree **pulita**, allineata a `origin/main`.
-- HEAD: **`efabb37`** — la spec v64 e l'handoff (08/08/2026).
+- HEAD: **`a7ebbdf`** — la prova che sorveglia il modulo delle costanti (09/08/2026).
 - Ultimi commit (dal più recente):
 
 ```
+a7ebbdf prove: una suite verifica che i nomi importati dal modulo delle costanti esistano davvero e che li' dentro non entrino funzioni, perche' next build su un import inesistente compila in silenzio
+11b3ce6 sconto: soglia importo e nome di GIVEMEFIVE in un modulo unico importabile anche dal browser, perche' le due copie potevano divergere mostrando al cliente uno sconto che il server non concede
+34646c9 docs: v65 e handoff — il freno di GIVEMEFIVE deciso di non costruirlo perche' la rotta non rispondera' piu' su un numero ma solo a un checkout compilato, con la difesa che sta sul ricalcolo della soglia lato server
 efabb37 docs: v64 e handoff — il font Termina con la regola che riporta i moduli nell'eredita', i quattro ritocchi al sito, il cuore dello sconto estratto e provato, e lo spostamento di GIVEMEFIVE deciso ma bloccato perche' un freno nel progetto non esiste
 770dcf9 sconto: il cuore di GIVEMEFIVE esce dalla rotta in un modulo provabile col client come parametro, comportamento identico verificato su 112 casi contro il codice vecchio preso da git
 fd6eeb0 sito: l'indirizzo chiesto prima del carrello perche' ci si arrivava in fondo senza, oggi e domani affiancati cosi' si vede che la tendina vale per entrambi, asterischi sui campi obbligatori letti dalla validazione, e il preordine detto per quello che e'
@@ -621,7 +624,7 @@ dalle prove fatte e dai test del modulo.
 
 ### Come si eseguono le prove
 
-**Diciassette suite** in `tests/`, tutte con estensione **`.mjs`** e non `.js`,
+**Diciotto suite** in `tests/`, tutte con estensione **`.mjs`** e non `.js`,
 perché vanno eseguite da Node fuori da Next. In `package.json` **non esiste uno
 script `test`**: si lanciano una per una con `node tests/<nome>.test.mjs`, o
 tutte con
@@ -1889,3 +1892,88 @@ stretta. Il primo che l'ha letta se l'è attribuita e l'ha contestata: non fra
 sei mesi, subito. Il fatto era giusto, la frase no. In un documento che
 qualcun altro eredita, un soggetto sottinteso non è brevità: è un buco che il
 lettore riempie con sé stesso.*
+
+
+---
+
+## 26) Le costanti dello sconto unificate, e il silenzio di next build (09/08/2026)
+
+### 26a) Il lavoro
+
+Le tre costanti di GIVEMEFIVE vivono ora in **`lib/givemefive.js`**, modulo di
+sole costanti importato dai quattro posti che prima le riscrivevano. Dettagli in
+**spec §14 v66**. Due commit, spinti: `11b3ce6` il codice, `a7ebbdf` la prova.
+
+⚠️ **CONTROPROVA PRIMA DI TOCCARE, e va rifatta ogni volta.** Prima di
+unificare, la soglia è stata spostata di proposito da 25 a 40: **12 prove sono
+cadute**, con nome e riga. *Senza quel gesto, "le prove passano ancora" alla
+fine del lavoro non avrebbe voluto dire niente — poteva significare che quei
+numeri non erano coperti da nessuna prova.* Rifatta dopo, sulla catena nuova:
+spostata la soglia **nel modulo unico**, cadono di nuovo 12. È questo che
+dimostra che il filo dal punto unico fino alle prove è attaccato.
+
+### 26b) ⚠️ `next build` compila in silenzio su un import che non esiste
+
+**Il fatto più importante della giornata, e non riguarda lo sconto.** Aggiunto
+di proposito all'import di `app/page.js` un nome inesistente, `next build` ha
+risposto `✓ Compiled successfully`: **nessun errore, nessun avviso, nemmeno una
+menzione del nome inventato**.
+
+Il valore sarebbe diventato `undefined` e sarebbe proseguito. Nel caso nostro
+avrebbe reso `undefined` una soglia o un importo, e il cliente avrebbe letto
+conti privi di senso mentre server e prove restavano verdi. *È il difetto che
+si scopre da una recensione, non da un errore.*
+
+⚠️ **Vale per QUALUNQUE import del progetto.** La compilazione dice che il
+codice sta in piedi, non che chiede cose che esistono. *Ogni volta che si
+sposta qualcosa in un modulo nuovo, "il build passa" non è una verifica: è un
+rumore rassicurante.*
+
+### 26c) La prova nuova, e le due prove che sorvegliano sé stessa
+
+`tests/givemefive.test.mjs`, 13 prove, **legge** `app/page.js` come testo
+invece di importarlo — senza React non parte. Le suite passano a **diciotto**,
+le prove a **714**.
+
+Due difese aggiunte da Code **senza che gli fossero chieste**, ed è il motivo
+per cui la prova vale:
+
+* una fallisce **se la riga di import sparisce del tutto**: senza, un file
+  senza import passerebbe in silenzio, perché la sonda non troverebbe niente da
+  controllare e direbbe di sì. *Un sì per assenza di domande.*
+* una verifica **su un caso finto che la sonda sappia riconoscere un import**:
+  altrimenti direbbe sempre "nessun import" anche con dieci import dentro.
+
+*È la regola del progetto — una sonda che non può fallire non controlla niente
+— applicata alla sonda stessa.*
+
+Provata in tutti e due i versi prima di essere accettata: sporcato l'import,
+**2 prove cadono** ed esce con codice 1; aggiunta una funzione dentro il modulo
+delle costanti, **2 prove cadono**. Rimesso tutto, verde. *E il ripristino non
+è stato dichiarato a memoria ma dimostrato: `git status` non vedeva quei file.*
+
+### 26d) Cosa si è saputo del pannello di pubblicazione
+
+Guardando il pannello, non il codice, sono emerse **tre cose che nessuna prova
+può accorgersi che mancano** — piano da portare a Pro, font da autorizzare sul
+dominio vero, Stripe da portare in reale. Sono ora in **spec §6c**, sezione
+nuova.
+
+⚠️ **E si è scoperto che il sito è già raggiungibile** su
+`km-direct.vercel.app`. *Non è mai stato chiuso: era sconosciuto. La differenza
+non era registrata da nessuna parte, e tutte le frasi di questi documenti che
+dicono "non lo raggiunge nessuno" vanno lette come "nessuno lo conosce".*
+
+### 26e) Due lezioni
+
+**ch. ⚠️ La compilazione non è una verifica, è un rumore rassicurante.**
+`next build` non sa distinguere un import giusto da uno che chiede una cosa
+inesistente. *Quando si sposta del codice in un modulo nuovo, la domanda da
+farsi non è "compila?" ma "chi controlla che i nomi combacino?". Se la risposta
+è nessuno, quella è la prova da scrivere prima di committare.*
+
+**ci. ⚠️ Un avvertimento in un commento è una difesa che funziona solo se
+qualcuno legge.** In cima al modulo delle costanti c'era scritto di non
+aggiungerci funzioni. È diventata una prova che fallisce. *Ogni regola scritta
+in un commento è una regola che aspetta di essere violata da chi ha fretta:
+quando si può, va trasformata in qualcosa che si arrabbia da solo.*
