@@ -19,10 +19,11 @@ La fonte di verità di tutte le decisioni è **`MASTER_SPEC.md`** — versione a
 ## 2) Stato git
 
 - Branch **`main`**, working tree **pulita**, allineata a `origin/main`.
-- HEAD: **`770dcf9`** — il cuore dello sconto estratto dalla rotta (08/08/2026).
+- HEAD: **`efabb37`** — la spec v64 e l'handoff (08/08/2026).
 - Ultimi commit (dal più recente):
 
 ```
+efabb37 docs: v64 e handoff — il font Termina con la regola che riporta i moduli nell'eredita', i quattro ritocchi al sito, il cuore dello sconto estratto e provato, e lo spostamento di GIVEMEFIVE deciso ma bloccato perche' un freno nel progetto non esiste
 770dcf9 sconto: il cuore di GIVEMEFIVE esce dalla rotta in un modulo provabile col client come parametro, comportamento identico verificato su 112 casi contro il codice vecchio preso da git
 fd6eeb0 sito: l'indirizzo chiesto prima del carrello perche' ci si arrivava in fondo senza, oggi e domani affiancati cosi' si vede che la tendina vale per entrambi, asterischi sui campi obbligatori letti dalla validazione, e il preordine detto per quello che e'
 8689599 font: Termina da Adobe Fonts al posto del sans-serif di sistema, con i moduli riportati nell'eredita' perche' il browser li tiene fuori e tre quarti dei pulsanti restavano col carattere del sistema
@@ -628,6 +629,21 @@ tutte con
 ⚠️ `tests/checkout-timing.test.mjs` **costa circa 7 secondi**: provoca un guasto
 di lettura reale puntando il client a una porta chiusa, e il client impiega quel
 tempo ad arrendersi. Non è un blocco.
+
+⚠️ **Com'è fatto un fallimento** (letto dal codice delle prove l'08/08/2026,
+non supposto): tutte e diciassette le suite usano la stessa funzione `assert`,
+che stampa `PASS — <testo>` oppure **`FAIL — <testo>`**. In fondo a ogni suite
+compare `TUTTI I TEST PASSATI` oppure `<n> TEST FALLITI`, e in quel caso il
+codice di uscita diventa **1**. *Serve saperlo perché è ciò che rende
+verificabile un esito negativo: senza, "zero fallite" è un'opinione.*
+
+⚠️ **CONTARE LE RIGHE `PASS` NON È UN METRO.** Un comando che conta solo i
+successi non annuncia un fallimento: lo fa **sparire dal totale**. Se una prova
+si rompe dice 700 invece di 701, e se un'intera suite non parte dice 660 e
+nient'altro. Funziona solo finché qualcuno ricorda a memoria il numero del
+giorno prima. *Il metro buono è quello scritto qui sopra — che segnala il file
+fallito — oppure il conteggio delle righe `FAIL`, che di suo può dare esito
+negativo.*
 
 ⚠️ **Ogni scatto della fotografia della route crea ordini `pending` di prova**
 con le relative sessioni Stripe — quattro scatti nella sola tappa 2. Vanno nel
@@ -1731,7 +1747,8 @@ giro che esce verso l'esterno, perché ripubblica il sito.
 
 * ⚠️ **Il collegamento Adobe da autorizzare sul dominio vero** (§6b) — la cosa
   più facile da dimenticare, perché quando succederà sembrerà un guasto.
-* ⚠️ **Lo spostamento di GIVEMEFIVE**, deciso e bloccato dal freno (§14).
+* ✅ **Lo spostamento di GIVEMEFIVE**, deciso e **sbloccato la sera stessa**
+  (spec §14 v65, punto **25**). Resta da costruire.
 * ⚠️ **Il guasto di lettura che concede lo sconto** invece di negarlo, fissato
   dalla prova `g` (§14).
 * ⚠️ **Le due copie delle costanti dello sconto**, che nessuna prova confronta.
@@ -1767,3 +1784,108 @@ assunta.** La logica dello sconto è stata estratta e provata **prima** di
 toccarla, perché una ricognizione aveva accertato che nessuna prova la
 copriva. *L'ordine inverso — spostare e poi provare — non avrebbe dato alcun
 segnale in caso di rottura: il denaro sbagliato non si vede, si incassa.*
+---
+
+## 25) La decisione sul freno, e lo stato ritrovato (08/08/2026, sera)
+
+Sessione di **sola decisione**: nessuna riga di codice scritta, nessun commit
+di codice. Le decisioni stanno in **spec §14 v65**; qui c'è solo ciò che il
+racconto aggiunge.
+
+### 25a) Il freno: deciso di NON costruirlo
+
+Deciso che **non nasce alcun freno a conteggio**. La rotta che dice se lo
+sconto spetta **non risponderà su un numero di telefono**, ma solo a un
+checkout compilato: non c'è nulla da martellare, quindi non c'è nulla da
+contare. Motivo e alternative scartate per intero in spec §14.
+
+⚠️ **La domanda, com'era scritta, era mal posta — ed è questo che ha tenuto
+fermo il lavoro, non la difficoltà del problema.** La v64 chiedeva "su cosa si
+frena" e nella stessa frase mescolava **due domande diverse**: *su cosa* si
+frena, e *dove* si tiene il conto. Delle tre strade che nominava ne demoliva
+**due da sola**, lasciandone in piedi una, cara. Chi la leggeva credeva di
+avere una scelta a tre e ne aveva una sola.
+
+*Separate le due domande, è comparsa una quarta strada che nessuna delle due
+nominava. Non è stata inventata: era già mezza scritta nelle decisioni di
+Andrea dell'08/08 — "lo sconto compare solo a dati obbligatori completi".
+Portata fino in fondo, quella frase **è** il freno.*
+
+### 25b) Ciò che l'osservazione di Andrea ha aggiunto
+
+Andrea, decidendo: *«non abbiamo un controllo che il numero di telefono sia
+reale»*. Vero, e non scritto da nessuna parte in nessuno dei due documenti.
+
+Conseguenza registrata in spec §14 come **"un utilizzo per numero di
+telefono"**, su sua indicazione e **senza farne una sezione**: il danno è
+limitato per costruzione, perché per prendersi i 5 € bisogna comporre e
+**pagare davvero** un ordine da 25 €. È margine perso su una vendita vera, non
+denaro che esce.
+
+⚠️ **Il numero non verificato NON toglie il problema di riservatezza, lo
+sposta.** I numeri che stanno nel database ci sono finiti perché clienti veri
+li hanno scritti per farsi consegnare la cena: sono veri quasi sempre, per
+forza. Confermare "questo numero ha già ordinato" resta una fuga. *È il motivo
+per cui la porta va chiusa comunque, anche avendo scartato il freno.*
+
+### 25c) La fotografia dello stato, e la sessione che non ha lasciato niente
+
+Una sessione parallela era stata aperta sui **due lavori piccoli** (le costanti
+dello sconto, i diciassette `fontFamily`). Andrea l'ha chiusa senza che avesse
+finito. Verificato eseguendo: HEAD **`efabb37`**, allineato a `origin/main`,
+**albero pulito**, e le impronte `sha256` dei due documenti **identiche** a
+quelle in mano al ragionamento — quindi si è lavorato sulla verità, non su una
+copia vecchia.
+
+⚠️ **È l'albero pulito a dimostrare che non si è perso nulla**, non la memoria
+di nessuno: se quella sessione avesse scritto anche una riga, comparirebbe come
+modifica in sospeso. Non c'è. **I due lavori piccoli sono intatti e ancora da
+fare**, e il codice conferma il documento: nessun terzo modulo di costanti,
+soglia e importo ancora in due posti, diciassette `fontFamily` ancora lì.
+
+*Trovato di passaggio e registrato in spec §14: il **nome** del codice
+`GIVEMEFIVE` sta in **tre** copie — il modulo, il webhook di Stripe, la rotta
+di annullamento — mentre soglia e importo restano due.*
+
+### 25d) Il conteggio delle prove, e ciò che il conteggio non dice
+
+Rifatto tenendo anche l'errore standard: **17 file**, **701 righe `PASS`**,
+**86 righe di esito non-`PASS`**, e **nessuna di queste è un fallimento** —
+zero righe `FAIL`, zero `TEST FALLITI`, diciassette `TUTTI I TEST PASSATI`,
+zero file con codice di uscita diverso da zero. Il verdetto poggia su quattro
+riscontri indipendenti, non su uno.
+
+⚠️ **La ripartizione delle 86 righe NON torna**: le tre voci in cui è stata
+spiegata fanno **88**. I tre numeri erano stati eseguiti davvero, uno per uno:
+a non tornare sono **le categorie, che si sovrappongono** — una stessa riga può
+cadere in due schemi e farsi contare due volte. E "quattro righe per suite" era
+una glossa, non una misura: le suite sono diciassette e quelle righe
+sessantaquattro. *Non intacca il verdetto, che poggia su altri quattro
+riscontri, ma è il tipo di numero che fra un mese viene citato come fatto.*
+
+### 25e) Tre lezioni
+
+**ce. ⚠️ Una domanda mal posta ferma il lavoro più a lungo di un problema
+difficile.** Il freno non è stato bloccato dalla sua difficoltà: è stato
+bloccato da una domanda che ne conteneva due e che presentava come scelta a tre
+una scelta a una. *Quando una decisione non si riesce a prendere, vale la pena
+sospettare della domanda prima che di sé stessi: separarla nelle sue parti fa
+comparire le strade che nessuna delle due formulazioni nominava.*
+
+**cf. ⚠️ Contare i successi non è misurare.** Un metro che conta le righe
+`PASS` non può dare esito negativo: un fallimento non lo annuncia, lo toglie
+dal totale. *Vale la regola generale del progetto — una sonda che non può
+fallire non controlla niente — applicata allo strumento con cui si controlla
+tutto il resto.*
+
+**cg. ⚠️ In un documento che resta, una sonda va attribuita a CHI l'ha fatta
+girare.** Il controllo strutturale sulla spec v65 è stato fatto due volte: la
+sonda **del ragionamento** contava i titoli fino a tre cancelletti, diede 84 e
+84, ed era cieca al titolo nuovo a quattro che il ragionamento stesso aveva
+aggiunto; la sonda **di Code** contava tutti i cancelletti, diede 84 e 85, e il
+titolo lo trovò. *La prima stesura di questa lezione raccontava il fatto al
+passivo — "è stato annunciato", "contava" — senza dire di chi fosse la sonda
+stretta. Il primo che l'ha letta se l'è attribuita e l'ha contestata: non fra
+sei mesi, subito. Il fatto era giusto, la frase no. In un documento che
+qualcun altro eredita, un soggetto sottinteso non è brevità: è un buco che il
+lettore riempie con sé stesso.*

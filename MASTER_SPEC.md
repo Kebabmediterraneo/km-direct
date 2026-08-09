@@ -1,6 +1,6 @@
 # KM DIRECT — MASTER SPECIFICATION
 
-**Versione 64** — sostituisce la v63.
+**Versione 65** — sostituisce la v64.
 
 Documento di riferimento definitivo per lo sviluppo. Le decisioni qui
 contenute sono approvate: non vanno reinterpretate senza un motivo concreto
@@ -22,60 +22,36 @@ versione corrente**. I precedenti vivono in `git log`, che è fatto per quello.
 del documento prima che cominciasse a parlare del progetto — e dentro c'erano
 istruzioni rovesciate che nessuno rileggeva.*
 
-**Novità della v64** (vincolanti, dal lavoro e dalle prove dal vivo
+**Novità della v65** (vincolanti, dalle decisioni di Andrea della sera
 dell'08/08/2026):
 
-1. §6b — ✅ **IL FONT DEL SITO È TERMINA**, da Adobe Fonts, progetto `jth6flt`,
-   **quattro pesi soli: 400, 600, 700, 800**, set di caratteri completo. Vale
-   **ovunque**, sito cliente e pannello staff (Andrea, 08/08). Sezione nuova
-   §6b. ⚠️ *Il collegamento ad Adobe è legato al dominio: oggi vale per
-   `localhost`, e il giorno del dominio vero va autorizzato lì o il sito
-   pubblicato mostrerà il carattere di riserva. È la cosa più facile da
-   dimenticare di tutto questo documento, perché quando succederà sembrerà un
-   guasto.*
-2. §6b — ⚠️ **UNA REGOLA SOLA RIPORTA I MODULI NELL'EREDITÀ DEL FONT**, e senza
-   di essa **74 punti su 121** tornano al carattere di sistema. Il browser
-   tiene pulsanti, campi e tendine fuori dall'eredità della pagina: la regola
-   li rimette dentro tutti insieme. *Non si nota finché il font della pagina è
-   quello di sistema — cioè era già così prima, e il cambio l'ha solo reso
-   visibile.*
-3. §9, §41-45, §46 — ✅ **quattro ritocchi al sito cliente** provati dal vivo:
-   l'invito a mettere l'indirizzo **prima** di riempire il carrello, "Oggi" e
-   "Domani" **affiancati** perché si veda che la tendina vale per entrambi,
-   l'**asterisco** sui campi obbligatori letti dalla validazione, e il
-   preordine detto per quello che è.
-4. §12, §12b — ⚠️ **DUE COSE CHE SEMBRAVANO DIFETTI ERANO GIÀ A POSTO**:
-   "PRIMA POSSIBILE" **esiste ed è la scelta predefinita** del Delivery, e la
-   tendina dell'orario **è già una sola e condivisa** fra Oggi e Domani.
-   *Sembravano assenti perché il sito era guardato a locale chiuso, dove le due
-   scelte del momento spariscono e resta la sola programmata. Registrato perché
-   non venga "risolto" di nuovo un problema che non c'è.*
-5. §14, §46 — ✅ **il cuore dello sconto è uscito dalla rotta** in
-   `lib/checkout-discount.js`, col client come parametro, **32 prove nuove**.
-   Comportamento verificato **identico su 112 casi** contro il codice vecchio
-   preso da git, non riletto.
-6. §14 — ⚠️ **SE LA LETTURA FALLISCE, LO SCONTO VIENE CONCESSO invece che
-   negato.** È il verso opposto a quello prudente di §46b: là un guasto blocca,
-   qui regala. **Conservato alla lettera** perché quel giro era un riordino, e
-   **fissato dalla prova `g`**: il giorno che si deciderà di cambiarlo quella
-   prova cadrà, e sarà una decisione anziché una svista. *Prima dell'08/08 non
-   era scritto da nessuna parte.*
-7. §14 — ⚠️ **le due costanti dello sconto — soglia e importo — esistono in due
-   copie**, sito e server, e **nessuna prova le confronta**. Cambiarne una sola
-   farebbe mostrare al cliente uno sconto che il server non concede, in
-   silenzio.
-8. §14 — ⚠️ **LO SPOSTAMENTO DI GIVEMEFIVE È DECISO MA NON REALIZZATO, ED È
-   BLOCCATO**: nel progetto **non esiste alcun freno** contro le richieste
-   ripetute, e senza di esso la rotta che dice se un numero è già cliente non
-   si può aprire. Decisioni e blocco per intero nel blocco nuovo di §14.
-9. §52-56 — **il "valore perso" dei carrelli abbandonati è già scontato**, e
-   **ad Andrea va bene così** (08/08). *Registrato come scelta e non come
-   difetto rimasto lì: la differenza è che una scelta scritta resta una scelta,
-   mentre un difetto ignorato torna a galla come sorpresa.*
+1. §14 — ✅ **LO SPOSTAMENTO DI GIVEMEFIVE NON È PIÙ BLOCCATO.** Deciso che
+   **non si costruisce alcun freno a conteggio**: la rotta che dice se lo
+   sconto spetta **non risponderà su un numero di telefono**, ma **solo a un
+   checkout compilato**. Non c'è nulla da martellare, quindi non c'è nulla da
+   contare.
+2. §14 — ⚠️ **CAMBIA LA QUINTA DELLE SEI DECISIONI DELL'08/08**: fino a quel
+   pomeriggio quella rotta rispondeva a chi scrivesse un numero. Le altre
+   cinque restano identiche.
+3. §14 — ⚠️ **LA DIFESA STA O CADE SUL RICALCOLO DELLA SOGLIA.** Il subtotale
+   va ricalcolato **dal server sul contenuto del carrello**: se si fidasse
+   dell'importo ricevuto dal sito, basterebbe dichiarare un carrello sopra
+   soglia e la porta tornerebbe aperta com'era.
+4. §14 — la scelta **lascia l'informativa privacy pubblicata com'è** e non
+   conserva alcun dato personale nuovo. *Era quello il costo delle altre
+   strade, non di questa.*
+5. §14 — **un utilizzo per numero di telefono**, detto così invece che "per
+   cliente". ⚠️ *Il progetto non verifica che il numero sia vero: la regola
+   vale quanto vale l'identificatore. Prima dell'08/08 non era scritto da
+   nessuna parte.*
+6. §14 — accertato eseguendo: **il nome del codice sta in TRE copie**, non
+   due. Soglia e importo restano due, come già scritto.
 
 *Il conteggio delle condizioni di apertura non cambia: **quattro chiuse, cinque
-aperte**. Il lavoro pre-go-live che resta è la **Fase 4**, più lo spostamento
-di GIVEMEFIVE col suo freno, il viewport e le tre verifiche registrate in v63.*
+aperte**. Il lavoro pre-go-live che resta è la **Fase 4**, lo **spostamento di
+GIVEMEFIVE** — ora sbloccato —, i **due lavori piccoli** registrati in v64 (le
+costanti dello sconto in §14, i diciassette `fontFamily` in §6b), il **viewport**
+e le tre verifiche registrate in v63.*
 
 ## 1. Visione del progetto
 
@@ -576,7 +552,7 @@ il Ritiro.
 
 Codice `GIVEMEFIVE`, sconto 5 €, valido sul primo ordine diretto da almeno
 25 € di prodotti (fee esclusa), sia Delivery sia Ritiro, un utilizzo per
-cliente (telefono come identificatore principale, email come controllo
+numero di telefono (identificatore principale; email come controllo
 secondario). Consumata solo su ordine valido/completato: mai su pagamento
 fallito, ordine abbandonato, o annullato per rider non disponibile. Mantenere
 comunque un campo coupon generico per codici futuri.
@@ -629,13 +605,17 @@ modulo di sole costanti: far importare al browser il modulo dello sconto
 tenderebbe un cavo verso codice che interroga il database e che nel browser non
 deve girare mai.
 
+⚠️ *Il solo **nome** del codice sta invece in **tre** copie — il modulo, il
+webhook di Stripe e la rotta di annullamento — accertato l'08/08 eseguendo la
+ricerca, non ricordando. Soglia e importo restano due.*
+
 **Restano scoperti**: il **consumo** nel webhook e il **rilascio**
 all'annullamento, entrambi ancora dentro le rispettive rotte senza cuore in
 `lib/`. Il riordino ha coperto **chi offre** lo sconto, non chi lo consuma. La
 difesa vera resta il vincolo `unique (promo_code, customer_id)` del database,
 che nessuna prova automatica tocca ma che nessun errore di codice può aggirare.
 
-### Lo spostamento nel checkout — DECISO, NON REALIZZATO, BLOCCATO (v64)
+### Lo spostamento nel checkout — DECISO e SBLOCCATO, non ancora realizzato (v65)
 
 **Il difetto da cui nasce.** Il carrello mostra e scala i 5 € **prima di sapere
 chi è il cliente**. Chi ha già usato GIVEMEFIVE lo applica, vede il totale
@@ -656,34 +636,66 @@ sito promette prima di poter sapere a chi sta promettendo.*
 * nel checkout lo sconto compare **solo a dati obbligatori completi**, non
   appena si scrive il telefono, e **solo a chi ne ha diritto**: a chi non
   spetta non compare nulla, perché non gli è stato promesso nulla;
-* la rotta che dice se un numero è già cliente risponde **solo un booleano**
-  sull'eleggibilità, **mai** dati del cliente;
+* ⚠️ **la rotta che dice se lo sconto spetta NON risponde su un numero di
+  telefono**: risponde **solo a un checkout compilato** — dati obbligatori
+  completi e carrello sopra soglia — e restituisce **solo un booleano**
+  sull'eleggibilità, **mai** dati del cliente. *Questa decisione è cambiata la
+  sera dell'08/08: fino ad allora la rotta rispondeva a chiunque scrivesse un
+  numero, ed è ciò che teneva bloccato tutto il lavoro.*
 * un **campo per i codici promozionali**, che per ora accetta il solo
   GIVEMEFIVE. ⚠️ *Non è un sistema di codici: quello è un lavoro a sé e Andrea
   non ha ancora deciso che codici vuole.*
 
-⚠️ **PERCHÉ È BLOCCATO: nel progetto NON ESISTE ALCUN FRENO** contro le
-richieste ripetute. Verificato l'08/08 con controprova — la stessa ricerca
-trova le difese che ci sono (la sessione staff 35 volte, i conflitti 25) e non
-trova il freno perché non c'è. Nessuna libreria, nessuna tabella, niente sulla
-piattaforma. *Le difese del progetto sono di un'altra natura: impediscono di
-**ottenere due volte** la stessa cosa, non di **chiedere mille volte**.*
+#### Il freno: deciso che NON si costruisce (Andrea, 08/08/2026, sera)
 
-⚠️ **E l'ordine dei lavori non è libero.** L'unico interruttore che accende lo
-sconto in tutto il progetto è **il pulsante del carrello**. Togliere il
-pulsante prima che il suo sostituto esista **spegnerebbe GIVEMEFIVE in
-silenzio**: nessuno lo prenderebbe più, e nessun errore comparirebbe da nessuna
-parte. La catena obbligata è: **freno → sconto nel checkout → il carrello
-smette di applicarlo**. *Un comando che chiedeva l'ordine inverso è stato
-fermato prima di essere eseguito.*
+**Il pericolo non erano i soldi.** Nessuno può prendersi due volte i 5 €
+attraverso quella rotta: il server ricontrolla al pagamento e il vincolo
+`unique (promo_code, customer_id)` rende il doppio riscatto materialmente
+impossibile. Il pericolo era **un'altra cosa**: una rotta che risponde sì/no su
+un numero di telefono è un distributore automatico di risposte, e chi ne provi
+molti si ricostruisce **l'elenco di chi ha ordinato**. Non è un furto, è una
+fuga di informazioni sui clienti.
 
-**La domanda da decidere prima di scrivere: su cosa si frena.** Sul numero
-chiesto non serve — chi vuole provarne mille ne prova mille diversi e il freno
-non scatta mai. Su chi chiede richiede di identificarlo, e l'unica cosa
-disponibile è l'indirizzo di rete, **che è un dato personale e riguarda
-l'informativa pubblicata**. Contare in memoria del server **non funziona su
-Vercel**: le funzioni sono senza stato e il conteggio si azzera da solo —
-sarebbe un freno che sembra esserci e non c'è, il peggiore dei casi.
+**Le tre strade a conteggio, tutte scartate:**
+
+* **sul numero chiesto** — non scatta mai, perché chi abusa prova numeri
+  diversi;
+* **su chi chiede**, riconosciuto dall'indirizzo di rete — funziona a metà, e
+  costa **la riapertura dell'informativa privacy già pubblicata**, perché
+  l'indirizzo di rete è un dato personale da conservare, dichiarare e
+  cancellare;
+* **contando in memoria del server** — **non funziona su Vercel**: le funzioni
+  sono senza stato e il conteggio si azzera da solo. Sarebbe un freno che
+  sembra esserci e non c'è, il peggiore dei casi.
+
+**La strada scelta è la quarta: non costruire una cosa da martellare.** La
+risposta arriva **solo insieme a un ordine intero e plausibile**. Per
+ricostruire quell'elenco non basta più digitare numeri: bisogna comporre ordini
+finti completi, uno per numero. È **un pedaggio, non un muro** — e in cambio non
+si conserva alcun dato nuovo, non nasce alcuna tabella, non si tocca
+l'informativa.
+
+⚠️ **LA DIFESA STA O CADE SUL RICALCOLO DELLA SOGLIA.** Il subtotale va
+ricalcolato **dal server sul contenuto del carrello**, mai ricevuto dal sito. È
+la stessa regola che questa sezione applica già al pagamento — *dal sito arriva
+solo un'intenzione, mai un importo* — ed è ciò che rende il pedaggio reale: se
+il server si fidasse di un subtotale dichiarato, chi vuole l'elenco scriverebbe
+"il mio carrello vale 30 €" e la porta tornerebbe aperta com'era, con in più
+l'illusione di averla chiusa.
+
+*Se un domani si osservasse un abuso vero, il freno a conteggio si potrà
+aggiungere **sopra** questa scelta. Il contrario — tornare indietro da
+un'informativa riaperta — è più difficile: è questo, e non la robustezza, il
+motivo dell'ordine.*
+
+⚠️ **E l'ordine dei lavori non è libero, ma ha un anello in meno.** L'unico
+interruttore che accende lo sconto in tutto il progetto è **il pulsante del
+carrello**. Togliere il pulsante prima che il suo sostituto esista
+**spegnerebbe GIVEMEFIVE in silenzio**: nessuno lo prenderebbe più, e nessun
+errore comparirebbe da nessuna parte. Caduto il freno come lavoro a sé, la
+catena obbligata è: **sconto nel checkout → il carrello smette di applicarlo**.
+*Un comando che chiedeva l'ordine inverso è stato fermato prima di essere
+eseguito.*
 
 ## 15. Categorie menu (ordine fisso)
 
