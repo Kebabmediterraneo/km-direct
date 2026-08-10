@@ -1,6 +1,6 @@
 # KM DIRECT — MASTER SPECIFICATION
 
-**Versione 66** — sostituisce la v65.
+**Versione 67** — sostituisce la v66.
 
 Documento di riferimento definitivo per lo sviluppo. Le decisioni qui
 contenute sono approvate: non vanno reinterpretate senza un motivo concreto
@@ -22,35 +22,24 @@ versione corrente**. I precedenti vivono in `git log`, che è fatto per quello.
 del documento prima che cominciasse a parlare del progetto — e dentro c'erano
 istruzioni rovesciate che nessuno rileggeva.*
 
-**Novità della v66** (vincolanti, dal lavoro e dalle decisioni del
-09/08/2026):
+**Novità della v67** (vincolanti, dal lavoro del 09/08/2026, sera):
 
-1. §14 — ✅ **LE COSTANTI DELLO SCONTO SONO IN UN POSTO SOLO.** Nasce
-   `lib/givemefive.js`, modulo di **sole costanti**, importato da tutti e
-   quattro i posti che prima le riscrivevano. Le due copie di soglia e importo
-   e le tre copie del nome **non esistono più**.
-2. §14 — ✅ **e ora c'è una prova che se ne accorge**, `tests/givemefive.test.mjs`.
-   Le suite passano da diciassette a **diciotto**, le prove da 701 a **714**.
-3. §14 — ⚠️ **`next build` NON FALLISCE SU UN IMPORT INESISTENTE**, accertato
-   il 09/08 con controprova: compila e tace, il valore diventa `undefined` e il
-   difetto si vede solo a schermo. *Vale per tutto il progetto, non solo per lo
-   sconto.*
-4. §14 — ⚠️ **nel modulo delle costanti non deve entrare MAI una funzione**,
-   perché è l'unico modulo dello sconto che il browser può aprire. Prima era un
-   proposito scritto in un commento, ora è una prova che fallisce.
-5. **Nuova §6c** — ⚠️ **TRE COSE DA FARE PRIMA DEL GO-LIVE che non erano
-   scritte da nessuna parte**: il **piano Vercel** da portare a Pro, il **font
-   Termina** da autorizzare sul dominio vero, **Stripe** da portare fuori dalla
-   sandbox. *Emerse il 09/08 guardando il pannello, non il codice.*
-6. **§6c** — il sottodominio scelto è **`ordina.kebabmediterraneo.it`**,
-   deciso e **in attesa del DNS**.
-7. **§6c** — ⚠️ accertato il 09/08: **il sito è già raggiungibile** su
-   `km-direct.vercel.app`. *Non è mai stato chiuso: era solo sconosciuto.*
+1. §6b — ✅ **I DICIASSETTE `fontFamily: "inherit"` NON ESISTONO PIÙ.** Tolti
+   col commit `f3422b3`: diciassette righe tolte, **zero aggiunte**. Li
+   sostituisce la sola regola in `app/globals.css`.
+2. §6b — ✅ **e i due commenti che li nominavano sono stati corretti**
+   (`f1955af`), perché dicevano al presente una cosa non più vera.
+3. §6b — ⚠️ **la garanzia di quella pulizia NON è che il progetto compili.**
+   Nessuna prova guarda lo schermo. Regge perché si è verificato, **una per
+   una**, che ogni riga tolta stesse su un elemento coperto dalla regola —
+   seguendo per gli stili condivisi **ogni consumatore**, non il primo.
+4. ✅ **Entrambi i lavori piccoli registrati in v64 sono chiusi**: le costanti
+   dello sconto (v66) e i font (v67).
 
 *Il conteggio delle condizioni di apertura non cambia: **quattro chiuse, cinque
 aperte**. Il lavoro pre-go-live che resta è la **Fase 4**, lo **spostamento di
-GIVEMEFIVE**, i **diciassette `fontFamily`** di §6b, il **viewport**, le tre
-verifiche registrate in v63 e le **tre voci nuove di §6c**.*
+GIVEMEFIVE**, il **viewport**, le tre verifiche registrate in v63 e le **tre
+voci di §6c**.*
 
 ## 1. Visione del progetto
 
@@ -142,9 +131,23 @@ pulsante nuovo avrebbe dovuto rifare. Il difetto non è nato col cambio di font:
 c'era già, ma finché il font della pagina **era** quello di sistema nessuno
 poteva accorgersene.*
 
-I diciassette `inherit` sparsi sono ora **ridondanti**. Toglierli è pulizia,
-cioè un lavoro a sé: **non si mescola** a un cambio di comportamento, o
-guardando il commit non si capirebbe quale delle due cose ha rotto qualcosa.
+✅ **I DICIASSETTE SONO STATI TOLTI (v67, 09/08/2026, commit `f3422b3`).** Nel
+codice non ne resta **nessuno**: diciassette righe tolte, **zero aggiunte,
+zero modificate**. *Il commit successivo `f1955af` ha corretto i due commenti
+in `app/globals.css` che li davano ancora per esistenti — la stessa frase viveva
+in tre posti, e correggerne uno solo li avrebbe lasciati a raccontare cose
+diverse.*
+
+⚠️ **QUELLA PULIZIA NON È GARANTITA DAL FATTO CHE IL PROGETTO COMPILI.** Né
+`next build` né le 714 prove guardano lo schermo: un carattere sbagliato non fa
+fallire niente. Regge perché **prima** di togliere si è verificato, riga per
+riga, che ognuna stesse su un `button`, `input`, `select`, `textarea` o
+`option` — cioè dentro i cinque tipi che la regola copre — e perché per i sette
+che stavano in **oggetti di stile condivisi** si è seguito **ogni consumatore,
+non il primo**. *Uno stile usato in dieci punti può finire su un elemento che
+la regola non tocca: ne basta uno per cambiare il carattere in un angolo che
+nessuno guarda.* Verifica a schermo del pannello staff fatta da Andrea il
+09/08: nessuna differenza.
 
 ⚠️ **`option` è incluso di proposito, con una riserva**: su alcuni sistemi —
 Windows in particolare — le tendine sono disegnate dal sistema operativo e la

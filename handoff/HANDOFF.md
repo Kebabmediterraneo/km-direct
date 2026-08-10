@@ -19,10 +19,13 @@ La fonte di verità di tutte le decisioni è **`MASTER_SPEC.md`** — versione a
 ## 2) Stato git
 
 - Branch **`main`**, working tree **pulita**, allineata a `origin/main`.
-- HEAD: **`a7ebbdf`** — la prova che sorveglia il modulo delle costanti (09/08/2026).
+- HEAD: **`f1955af`** — i due commenti del CSS allineati alla pulizia dei font (09/08/2026).
 - Ultimi commit (dal più recente):
 
 ```
+f1955af css: i due commenti dicevano che i fontFamily sono sparsi nel codice, ma da f3422b3 nel codice non ce n'e' piu' nessuno
+f3422b3 font: via i diciassette fontFamily inherit riga per riga, resi inutili dalla regola in globals.css che riporta tutti i moduli nell'eredita'
+7a0f0be docs: v66 e handoff — le costanti dello sconto in un modulo unico con la prova che le sorveglia, e la sezione nuova sulle tre cose fuori dal codice da fare prima di incassare
 a7ebbdf prove: una suite verifica che i nomi importati dal modulo delle costanti esistano davvero e che li' dentro non entrino funzioni, perche' next build su un import inesistente compila in silenzio
 11b3ce6 sconto: soglia importo e nome di GIVEMEFIVE in un modulo unico importabile anche dal browser, perche' le due copie potevano divergere mostrando al cliente uno sconto che il server non concede
 34646c9 docs: v65 e handoff — il freno di GIVEMEFIVE deciso di non costruirlo perche' la rotta non rispondera' piu' su un numero ma solo a un checkout compilato, con la difesa che sta sul ricalcolo della soglia lato server
@@ -1977,3 +1980,69 @@ qualcuno legge.** In cima al modulo delle costanti c'era scritto di non
 aggiungerci funzioni. È diventata una prova che fallisce. *Ogni regola scritta
 in un commento è una regola che aspetta di essere violata da chi ha fretta:
 quando si può, va trasformata in qualcosa che si arrabbia da solo.*
+
+
+---
+
+## 27) I font tolti, e i commenti allineati (09/08/2026, sera)
+
+### 27a) Il lavoro
+
+Tolti i diciassette `fontFamily: "inherit"` scritti riga per riga: **`f3422b3`**,
+cinque file, **17 righe tolte e zero aggiunte**. Poi **`f1955af`**, che ha
+corretto i due commenti in `app/globals.css` rimasti a dire che quelle righe
+esistevano ancora. Dettagli in **spec §6b v67**. *Con questo entrambi i lavori
+piccoli registrati in v64 sono chiusi.*
+
+⚠️ **Perché la pulizia è sicura, e non è perché compila.** Né `next build` né
+le 714 prove guardano lo schermo: un carattere sbagliato non fa fallire nulla.
+La garanzia sta **tutta** nel controllo fatto PRIMA di togliere — ogni riga
+verificata sull'elemento su cui stava — e in un diff di **sole rimozioni**, che
+per costruzione non può cambiare comportamento.
+
+⚠️ **Il punto dove ci si poteva far male erano gli stili condivisi.** Sette
+delle diciassette stavano dentro oggetti riusati in più punti: `fieldStyle` su
+dieci `<input>`, `inputStyle` su sei e su sette elementi diversi. *Uno stile
+usato in dieci punti può finire su un elemento che la regola non copre, e ne
+basta uno.* Sono stati seguiti **tutti i consumatori**, non il primo.
+
+### 27b) ⚠️ Due lezioni sulle sonde, dalla stessa giornata
+
+**La prima: un numero sbagliato si corregge cambiando strumento, non il
+numero.** Verificando che nessuna riga di CSS fosse stata toccata, la sonda ne
+ha contata **una**. Era falsa: la parola italiana *«riga:»* dentro una frase ha
+la stessa forma di una proprietà CSS — nome, due punti. *La sonda non è stata
+ritoccata per farla tornare: è stata rifatta con un altro criterio*, marcando
+ogni riga come dentro o fuori da un blocco `/* … */` e guardando dove cadessero
+le otto righe aggiunte. Zero fuori. **E il falso positivo è stato riferito
+invece che nascosto**, perché per un momento lo schermo diceva il contrario.
+
+**La seconda: contare non è capire.** Nel comando di spegnimento era scritto
+come un fatto che i quattro processi `next` fossero «avanzi di sessioni
+precedenti». Non lo erano: i PPID mostrano una sola catena — shell → `npm exec`
+→ `next dev` → `next-server`. *Quattro anelli di un server solo. Il numero era
+giusto, la lettura no: era una deduzione da un conteggio, presentata come
+accertamento.*
+
+### 27c) Lo spegnimento del server
+
+Fatto con i tre riscontri: zero processi, zero in ascolto sulla porta, e la
+chiamata a `localhost:3000` che **prima dava 200 e poi non risponde più**. *È il
+terzo che chiude la questione: senza, "non trovo processi" è una sonda che non
+ha trovato, non una prova che non ci sia niente.*
+
+⚠️ **Il sistema segnala il comando in background come "fallito", codice 144,
+mentre lo spegnimento è riuscito.** È il guscio della shell che muore, e non
+misura niente. *Chi non lo sa crede che lo spegnimento non sia riuscito e prova
+a rifarlo. Registrato il 09/08 perché è già la seconda volta che quel segnale
+inganna.*
+
+### 27d) Una lezione
+
+**cl. ⚠️ Quando una frase vive in più copie, correggerne una sola è peggio che
+non correggerne nessuna.** La stessa affermazione — che i `fontFamily` fossero
+sparsi nel codice — stava in **tre** posti: due commenti nel CSS e la spec.
+Corretta in uno solo, gli altri due non sarebbero diventati "vecchi": sarebbero
+diventati **una contraddizione**, e chi legge non ha modo di sapere quale delle
+tre versioni è quella vera. *È la stessa ragione per cui i valori non si
+scrivono due volte — ma vale per le frasi, non solo per i numeri.*
