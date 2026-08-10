@@ -1,6 +1,6 @@
 # KM DIRECT — MASTER SPECIFICATION
 
-**Versione 67** — sostituisce la v66.
+**Versione 68** — sostituisce la v67.
 
 Documento di riferimento definitivo per lo sviluppo. Le decisioni qui
 contenute sono approvate: non vanno reinterpretate senza un motivo concreto
@@ -22,19 +22,29 @@ versione corrente**. I precedenti vivono in `git log`, che è fatto per quello.
 del documento prima che cominciasse a parlare del progetto — e dentro c'erano
 istruzioni rovesciate che nessuno rileggeva.*
 
-**Novità della v67** (vincolanti, dal lavoro del 09/08/2026, sera):
+**Novità della v68** (vincolanti, dalle decisioni del 10/08/2026):
 
-1. §6b — ✅ **I DICIASSETTE `fontFamily: "inherit"` NON ESISTONO PIÙ.** Tolti
-   col commit `f3422b3`: diciassette righe tolte, **zero aggiunte**. Li
-   sostituisce la sola regola in `app/globals.css`.
-2. §6b — ✅ **e i due commenti che li nominavano sono stati corretti**
-   (`f1955af`), perché dicevano al presente una cosa non più vera.
-3. §6b — ⚠️ **la garanzia di quella pulizia NON è che il progetto compili.**
-   Nessuna prova guarda lo schermo. Regge perché si è verificato, **una per
-   una**, che ogni riga tolta stesse su un elemento coperto dalla regola —
-   seguendo per gli stili condivisi **ogni consumatore**, non il primo.
-4. ✅ **Entrambi i lavori piccoli registrati in v64 sono chiusi**: le costanti
-   dello sconto (v66) e i font (v67).
+1. §14 — ⚠️ **GIVEMEFIVE SPARISCE DAL SITO.** Niente banner in home, niente
+   progressione della soglia nel carrello, nessun pulsante "Applica". Al suo
+   posto, nel checkout, un campo **"Hai un codice sconto?"** dove il cliente
+   scrive il codice. Il codice si comunica **fuori dal sito**.
+2. §14 — ✅ **è il cliente a chiedere, quindi gli si può rispondere.** È questo
+   che scioglie il nodo su cui la v65 si era fermata: uno sconto che compare da
+   solo, se la verifica si guasta, o tace o promette il falso; un campo può dire
+   *"riprova"*. **Le sei risposte del campo sono fissate parola per parola.**
+3. §14 — ⚠️ **IL PEDAGGIO RESTA, ED È LA STESSA DIFESA DELLA v65.** Il campo non
+   toglie il pericolo, lo sposta su un gesto volontario: la verifica risponde
+   **solo a checkout compilato e carrello sopra soglia**, mai al solo numero di
+   telefono. La difesa sta o cade sul **ricalcolo della soglia lato server**.
+4. §14 — **le due risposte restano distinte**, e questo ha un prezzo scritto:
+   *"hai già utilizzato questo codice sconto"*, detta a un numero, dice che quel
+   numero ha già ordinato. **È un baratto scelto, non una svista.**
+5. §14 — **la rotta nuova non tocca `app/api/checkout/route.js`** (strada B): si
+   ricalcola il subtotale per conto suo riusando `lib/checkout-resolve.js`. **I
+   sei lavori del punto 16 dell'handoff restano aperti dove sono.**
+6. §2, §6, §36-40, §41-45 — le zone che nominavano il banner e il pulsante sono
+   allineate qui dentro, **nello stesso giro**: una decisione scritta in un solo
+   punto lascia le altre a mentire con l'autorità del documento.
 
 *Il conteggio delle condizioni di apertura non cambia: **quattro chiuse, cinque
 aperte**. Il lavoro pre-go-live che resta è la **Fase 4**, lo **spostamento di
@@ -56,8 +66,9 @@ crescere (multi-store, account cliente, automazioni) senza essere rifatta.
 
 Cliente: entra → sceglie Delivery/Ritiro → (se Delivery) indirizzo e
 copertura → sceglie il momento (Delivery: ASAP o programmata, §12; Ritiro:
-sempre giorno e orario, §12b) → compone ordine → eventuale GIVEMEFIVE →
-dati cliente → paga online → conferma → ordine nel pannello staff. Lo staff
+sempre giorno e orario, §12b) → compone ordine → dati cliente →
+**eventuale codice sconto, dentro il checkout e a dati completi** (§14, v68) →
+paga online → conferma → ordine nel pannello staff. Lo staff
 inserisce manualmente la consegna su Glovo On-Demand.
 
 ## 3. Nome e dominio
@@ -81,8 +92,13 @@ al cliente finché esiste un solo store.
 ## 6. Home/Menu — struttura
 
 La home coincide col menu, mobile-first: header → stato servizio → "ORDINA
-ORA" → tab Delivery/Ritiro → dati operativi → banner GIVEMEFIVE → categorie
+ORA" → tab Delivery/Ritiro → dati operativi → categorie
 sticky → menu → carrello sticky (quando non vuoto).
+
+⚠️ **Il banner GIVEMEFIVE non c'è più (v68).** Stava fra i dati operativi e le
+categorie. Lo sconto si chiede nel checkout, scrivendo il codice (§14). *Chi
+arriva sul sito senza aver visto il codice altrove non sa che esiste: è la
+conseguenza voluta della scelta, non un effetto collaterale.*
 
 ## 6b. Font e tipografia (aggiunta in v64, vincolante)
 
@@ -691,7 +707,7 @@ all'annullamento, entrambi ancora dentro le rispettive rotte senza cuore in
 difesa vera resta il vincolo `unique (promo_code, customer_id)` del database,
 che nessuna prova automatica tocca ma che nessun errore di codice può aggirare.
 
-### Lo spostamento nel checkout — DECISO e SBLOCCATO, non ancora realizzato (v65)
+### Lo spostamento nel checkout — RIDISEGNATO in v68, non ancora realizzato
 
 **Il difetto da cui nasce.** Il carrello mostra e scala i 5 € **prima di sapere
 chi è il cliente**. Chi ha già usato GIVEMEFIVE lo applica, vede il totale
@@ -700,27 +716,73 @@ spieghi. Il server ha ragione — controlla e toglie — ma il cliente non lo sa
 *È lo stesso scollamento della finestra del pagamento registrata in v63: il
 sito promette prima di poter sapere a chi sta promettendo.*
 
-**Le decisioni di Andrea (08/08/2026), tutte prese:**
+**⚠️ LE DECISIONI DELL'08/08 SONO STATE SUPERATE IL 10/08/2026.** Fino alla v67
+lo sconto doveva **comparire da solo** nel checkout, e il carrello doveva
+conservare due messaggi su GIVEMEFIVE — *"ti mancano X €"* sotto soglia e
+*"GIVEMEFIVE sbloccato … Conferma al checkout"* sopra. Nessuna di quelle frasi
+va più scritta. *Restano leggibili in `git log`, versione v65: non si
+ricostruiscono a memoria.*
 
-* sotto soglia resta il messaggio "ti mancano X €", **con la condizione
-  scritta**: valido per il **primo ordine**;
-* sopra soglia **sparisce il pulsante "Applica"**, e resta la frase esatta
-  *"GIVEMEFIVE sbloccato — 5 € di benvenuto validi sul primo ordine. Conferma
-  al checkout"*;
-* **il totale del carrello non scala più i 5 €** e sparisce la riga dello
-  sconto dal carrello;
-* nel checkout lo sconto compare **solo a dati obbligatori completi**, non
-  appena si scrive il telefono, e **solo a chi ne ha diritto**: a chi non
-  spetta non compare nulla, perché non gli è stato promesso nulla;
-* ⚠️ **la rotta che dice se lo sconto spetta NON risponde su un numero di
-  telefono**: risponde **solo a un checkout compilato** — dati obbligatori
-  completi e carrello sopra soglia — e restituisce **solo un booleano**
-  sull'eleggibilità, **mai** dati del cliente. *Questa decisione è cambiata la
-  sera dell'08/08: fino ad allora la rotta rispondeva a chiunque scrivesse un
-  numero, ed è ciò che teneva bloccato tutto il lavoro.*
-* un **campo per i codici promozionali**, che per ora accetta il solo
-  GIVEMEFIVE. ⚠️ *Non è un sistema di codici: quello è un lavoro a sé e Andrea
-  non ha ancora deciso che codici vuole.*
+**Le decisioni di Andrea (10/08/2026), tutte prese:**
+
+* **DAL SITO GIVEMEFIVE SPARISCE.** Niente banner in home (§6), niente
+  progressione della soglia né pulsante "Applica" nel carrello (§36-40),
+  nessuna riga di sconto e nessun totale scalato prima del checkout. Il codice
+  si comunica **fuori dal sito** — volantino, negozio, social.
+* **Nel checkout c'è un campo "Hai un codice sconto?"**, dove il cliente
+  scrive. Per ora accetta il solo GIVEMEFIVE.
+* ✅ **È il cliente a chiedere, e questo è il motivo vero della scelta**, più
+  del lavoro risparmiato. Uno sconto che compare da solo, quando la verifica si
+  guasta, può solo tacere (e chi ne aveva diritto perde 5 € **senza saperlo**)
+  o mostrarsi lo stesso (e allora su Stripe si trova 5 € in più, cioè
+  esattamente il difetto che questa sezione sta chiudendo). **A un gesto si può
+  rispondere "riprova".** *La scelta fra il verso prudente e quello generoso —
+  la domanda su cui la v67 si era fermata — non va più fatta: il campo la
+  dissolve.*
+* ⚠️ **IL PEDAGGIO RESTA, INTATTO.** Il campo **non toglie** il pericolo
+  descritto qui sotto, lo sposta su un gesto volontario: chi cerca l'elenco dei
+  clienti scrive GIVEMEFIVE e prova i numeri. Quindi la verifica risponde
+  **solo a checkout compilato e carrello sopra soglia** — tutti i dati
+  obbligatori, **non il solo numero di telefono** — e restituisce **solo un
+  esito**, mai dati del cliente. *Chiedere il telefono per rispondere, se manca,
+  riaprirebbe il distributore automatico che l'08/08 era stato chiuso.*
+* **Le due risposte restano distinte, ed è un baratto consapevole**: a chi ha
+  già riscosso si dice *"hai già utilizzato questo codice sconto"*, a un codice
+  inesistente *"questo codice non è valido"*. ⚠️ **Quella prima frase, detta a
+  un numero di telefono, dice che quel numero ha già ordinato.** Il pedaggio
+  regge da solo; Andrea ha scelto di non aggiungerci sopra anche l'ambiguità
+  delle risposte, in cambio di un cliente onesto che capisce cosa gli succede.
+  *Scritto come baratto e non come dettaglio, perché una decisione senza il suo
+  motivo viene disfatta dal primo che passa credendo di correggere una svista.*
+
+**Le sei risposte del campo, parola per parola (10/08/2026):**
+
+| quando | frase |
+| --- | --- |
+| dati obbligatori incompleti (il server **non** viene interrogato) | *"Completa i dati dell'ordine per applicare il codice."* |
+| carrello sotto i 25 € (il server **non** viene interrogato) | *"Ti mancano X € per usare questo codice."* |
+| codice inesistente | *"Questo codice non è valido."* |
+| già riscosso da questo cliente | *"Hai già utilizzato questo codice sconto."* |
+| lettura fallita | *"Non siamo riusciti a verificare il codice. Riprova fra qualche istante."* |
+| applicato | riga nel riepilogo: `GIVEMEFIVE −5,00 €` |
+
+⚠️ **E la settima situazione, che non è una risposta ma un ritiro: lo sconto
+applicato DECADE se il carrello scende sotto soglia** — *"Il carrello è sceso
+sotto i 25 €: il codice non è più applicato."* È la regola v39 di questa stessa
+sezione — la soglia si riverifica a ogni ricalcolo e lo sconto **evapora da
+solo** — portata dal carrello al checkout. *Non è un caso di fantasia: applicare
+a 30 €, tornare indietro, togliere un panino.*
+
+⚠️ **Il campo NON è un sistema di codici.** Quello è un lavoro a sé, con le
+domande ancora aperte annotate il 30/07 (chi crea i codici, se scadono, fisso o
+percentuale, soglia, una volta per cliente o in assoluto, **cumulabilità con
+GIVEMEFIVE**) e con la tabella `coupons` già esistente e vuota. **Si costruisce
+oggi la facciata definitiva e solo la regola cablata dietro**: il giorno dei
+codici veri cambia **chi risponde**, non il campo, il gesto, il pedaggio né le
+frasi. *I tre esempi di Andrea non sono la stessa cosa: 5 € fissi è ciò che il
+sistema fa già, una percentuale apre il caso "lo sconto supera il prezzo" (§46
+v37), e un omaggio non è uno sconto ma **una riga in più nell'ordine**, che
+tocca carrello, staff e Stripe.*
 
 #### Il freno: deciso che NON si costruisce (Andrea, 08/08/2026, sera)
 
@@ -764,14 +826,55 @@ aggiungere **sopra** questa scelta. Il contrario — tornare indietro da
 un'informativa riaperta — è più difficile: è questo, e non la robustezza, il
 motivo dell'ordine.*
 
+#### Come si costruisce (Andrea, 10/08/2026 — "strada B")
+
+⚠️ **LA ROTTA NUOVA NON TOCCA `app/api/checkout/route.js`.** Si ricalcola il
+subtotale per conto suo, importando `resolveProduct` e `resolveCombo` da
+`lib/checkout-resolve.js` — **gli stessi** che usa il pagamento — e rifacendo il
+giro corto: risolvi la riga, moltiplica per la quantità, somma, arrotonda.
+
+*Il motivo è una regola di Andrea, non una preferenza tecnica: il **punto 16
+dell'handoff** dice che quel file non si riapre per una cosa sola, e chi lo
+riapre si porta dietro sei lavori in sospeso. Estrarre il ciclo avrebbe fatto
+scattare quel pacchetto sopra al lavoro dello sconto, nel punto in cui si
+incassa il denaro. **I sei lavori restano aperti dove sono**: rimandati per
+scelta, non dimenticati.*
+
+⚠️ **IL DEBITO CHE QUESTA SCELTA ACCETTA, E LA CONDIZIONE CHE LO FA SCADERE.**
+Due cicli invece di uno. Regge finché quel ciclo resta *chiama, moltiplica,
+somma* — le decisioni vere (prezzo, proteina, extra carne, disponibilità,
+combo) stanno **dentro i resolver, che restano condivisi**, ed è da lì che
+passerebbe la divergenza pericolosa. **Il giorno che uno dei due cicli
+decidesse qualcosa che l'altro non decide, o servisse un terzo posto che
+calcola il subtotale, il debito è scaduto e il ciclo va estratto davvero.**
+
+⚠️ **E IL CLIENTE SI CERCA IN SOLA LETTURA, MAI SCRIVENDOLO.** Oggi la rotta
+del pagamento, per sapere chi è il cliente, fa un `upsert` su `customers` —
+nome, cognome, email, marketing e `privacy_accepted_at` — e **solo dopo** può
+chiedere a `promo_redemptions` se ha già riscosso. La rotta nuova non può fare
+così: riempirebbe il database di clienti che non hanno mai ordinato, ognuno con
+una privacy segnata come accettata **per un gesto che accettazione non è**.
+Cerca il telefono in `customers` in sola lettura; se non lo trova, l'esito è
+"spetta" **senza scrivere una riga da nessuna parte** — chi non esiste non può
+aver già riscosso. *Il telefono va cercato nella stessa forma in cui il
+pagamento lo salva, ripulito dagli spazi: se le due forme divergessero, chi ha
+già usato il codice risulterebbe sconosciuto e la difesa si aprirebbe da sola.*
+
 ⚠️ **E l'ordine dei lavori non è libero, ma ha un anello in meno.** L'unico
 interruttore che accende lo sconto in tutto il progetto è **il pulsante del
 carrello**. Togliere il pulsante prima che il suo sostituto esista
 **spegnerebbe GIVEMEFIVE in silenzio**: nessuno lo prenderebbe più, e nessun
 errore comparirebbe da nessuna parte. Caduto il freno come lavoro a sé, la
-catena obbligata è: **sconto nel checkout → il carrello smette di applicarlo**.
-*Un comando che chiedeva l'ordine inverso è stato fermato prima di essere
-eseguito.*
+catena obbligata è: **prima il ricalcolo della soglia lato server, poi il campo
+nel checkout, poi il carrello smette di nominarlo**. *Un comando che chiedeva
+l'ordine inverso è stato fermato prima di essere eseguito.*
+
+⚠️ **DA DECIDERE quando si costruiranno le analytics (§65), non prima**: due
+degli undici eventi ammessi nascono dal carrello che oggi sparisce —
+`soglia_25_raggiunta` e `givemefive_applicato`. Il secondo cambia solo momento
+e luogo (ora è il checkout); il primo perde la schermata che gli dava senso.
+**L'elenco degli eventi è un vincolo chiuso nel database**, quindi la decisione
+non è libera e va presa lì, non qui.
 
 ## 15. Categorie menu (ordine fisso)
 
@@ -1382,10 +1485,22 @@ delle immagini è un lavoro autonomo, non ancora affrontato (§63-64).
 ## 36-40. Carrello
 
 Barra sticky quando non vuoto ("N articoli · totale €" + "Vedi carrello").
-Nel carrello: progressione ordine minimo (Delivery, 15 €) e GIVEMEFIVE (25
-€) con CTA "Applica GIVEMEFIVE" a un tap. Upsell max 3-4 suggerimenti con
-regole semplici (no AI): Roll senza fritto → suggerisci fritto; fritto senza
-salsa → suggerisci salsa; vicino ai 25 € → suggerisci per raggiungere soglia.
+Nel carrello: progressione ordine minimo (Delivery, 15 €). Upsell max 3-4
+suggerimenti con regole semplici (no AI): Roll senza fritto → suggerisci
+fritto; fritto senza salsa → suggerisci salsa; vicino ai 25 € → suggerisci per
+raggiungere soglia.
+
+⚠️ **Dalla v68 il carrello non nomina più GIVEMEFIVE**: via la progressione
+della soglia dei 25 €, via il pulsante "Applica GIVEMEFIVE", via la riga dello
+sconto, e il totale non scala nulla. Lo sconto vive solo nel checkout (§14).
+
+⚠️ **DA DECIDERE, e non deciso qui**: l'ultimo suggerimento dell'upsell —
+*vicino ai 25 € → suggerisci per raggiungere soglia* — è rimasto scritto tale e
+quale, ma **i 25 € erano la soglia di GIVEMEFIVE**, che il carrello ora non
+nomina più. Va deciso se quel suggerimento sparisce, se resta con un'altra
+ragione, o se resta così. *Lasciato in evidenza invece che risolto d'ufficio:
+una riga che perde il suo motivo e nessuno se ne accorge è esattamente il tipo
+di residuo che questi documenti hanno già prodotto tre volte.*
 
 **Persistenza del carrello per la durata della visita (v33, vincolante)**
 
@@ -1442,7 +1557,10 @@ Si conservano quindi anche i dati del checkout, sotto una regola sola:
   scelti il cliente; citofono, piano, scala e note; nome, **cognome**, telefono
   ed email; la scelta fra **"prima possibile" e "orario programmato"**; giorno
   e orario richiesti; **se l'orario di ritiro è stato scelto dal cliente o
-  soltanto preselezionato**; la richiesta di GIVEMEFIVE.
+  soltanto preselezionato**; **il codice sconto scritto dal cliente** (v68:
+  era "la richiesta di GIVEMEFIVE", quando lo sconto si chiedeva dal carrello).
+  ⚠️ Si salva **il codice scritto, mai lo sconto ottenuto**: al rientro va
+  riverificato dal vivo, come già impone la regola di §14 sull'intenzione.
   *Il cognome mancava da questo elenco fino alla v39, pur essendo un dato
   obbligatorio in §41-45: aggiunto in v40, perché è proprio questo elenco a
   guidare il modulo di persistenza. Le due voci sul momento dell'ordine sono
@@ -1634,7 +1752,7 @@ il cliente.*
 Una sola pagina (mai suddivisa in step): fulfillment → momento dell'ordine
 (Delivery: ASAP o slot programmato, §12; Ritiro: giorno e slot, sempre
 obbligatori, §12b) → dati delivery (se serve) → dati cliente → privacy → marketing → maggiore età (se serve) →
-riepilogo → CTA pagamento. Dati cliente obbligatori: nome, cognome,
+**campo codice sconto** (v68, §14) → riepilogo → CTA pagamento. Dati cliente obbligatori: nome, cognome,
 telefono (email facoltativa). Dati delivery separati in campi distinti:
 indirizzo, civico, citofono, piano/interno, edificio/scala, note rider,
 coordinate — mai un unico campo disordinato. Privacy: checkbox obbligatoria,
