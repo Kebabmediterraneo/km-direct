@@ -23,10 +23,12 @@ nessuno se ne ricorda.*
 ## 2) Stato git
 
 - Branch **`main`**, working tree **pulita**, allineata a `origin/main`.
-- HEAD: **`ec84ea5`** — la spec v67 e l'handoff (09/08/2026).
+- HEAD: **`319feff`** — la spec v68 (10/08/2026).
 - Ultimi commit (dal più recente):
 
 ```
+319feff docs: v68 — GIVEMEFIVE sparisce dal sito e si chiede scrivendo il codice nel checkout, con la verifica che risponde solo a un ordine compilato sopra soglia e le sei risposte del campo fissate parola per parola
+972389e docs: l'handoff dichiarava la spec alla v64 mentre era alla v67, numero tolto invece che aggiornato perche' una copia da tenere in pari diverge sempre
 ec84ea5 docs: v67 e handoff — i diciassette fontFamily tolti e i commenti del CSS allineati, con la ragione per cui quella pulizia e' sicura senza che nessuna prova guardi lo schermo
 f1955af css: i due commenti dicevano che i fontFamily sono sparsi nel codice, ma da f3422b3 nel codice non ce n'e' piu' nessuno
 f3422b3 font: via i diciassette fontFamily inherit riga per riga, resi inutili dalla regola in globals.css che riporta tutti i moduli nell'eredita'
@@ -72,6 +74,11 @@ spec — la regola "prima la spec, poi l'handoff" la mette in mezzo per
 costruzione. *Rilevato da Code il 05/08 confrontando `git log` con questo
 blocco: l'HEAD dichiarato era giusto, era la spiegazione a non coprire il caso
 normale della coppia spec+handoff.*
+
+*Caso di oggi (10/08/2026): la distanza è di **uno**, e va bene così. Fra lo
+stato fotografato e questo documento passa la sola spec `319feff`, perché la
+giornata non ha prodotto commit di codice: le decisioni della v68 sono arrivate
+prima che si scrivesse una riga. **Non è da correggere.***
 
 ---
 
@@ -379,8 +386,11 @@ riceve l'elenco di ciò che **deve restare**, non solo di ciò che deve sparire.
   moduli nell'eredità. Racconto al punto **24**.
 - **Il cuore dello sconto** (§14, §46) — *08/08/2026*: la validazione e il
   calcolo del totale escono dalla rotta in un modulo provabile. ⚠️ *Lo
-  **spostamento** di GIVEMEFIVE nel checkout è invece deciso e NON fatto:
-  vedi il punto 24 e §14.*
+  **spostamento** di GIVEMEFIVE nel checkout è invece deciso e NON fatto —
+  e il disegno è **cambiato il 10/08/2026**: niente più sconto che compare da
+  solo, ma un **campo dove il cliente scrive il codice**. Le decisioni valide
+  sono quelle di **spec §14 v68**; il racconto è al punto **28**. Il punto 24 e
+  la v65 restano leggibili ma sono **superati**.*
 - **"Togli dal menu"** (§63-64) — *chiuso il 07/08/2026, sei pezzi, provato dal
   vivo*: terzo stato accanto a disponibile ed esaurito, colonna `is_in_menu`,
   pulsante occhio in coda alla riga, stato spento visibile anche sul telefono,
@@ -842,7 +852,19 @@ l'unica che richieda di scrivere codice": era imprecisa, ed è la seconda volta
 che questo punto viene scritto male — fino alla v42 diceva "le prime due sono
 lavoro di codice", in contraddizione con la frase successiva.*
 
-**I lavori pre-go-live, nell'ordine deciso da Andrea il 06/08/2026:**
+**I lavori pre-go-live, nell'ordine deciso da Andrea il 06/08/2026** (⚠️ *la
+prima voce è stata aggiunta il 10/08/2026: mancava da questo elenco pur essendo
+il lavoro in corso — chi avesse letto solo qui sarebbe ripartito dalla Fase 4*):
+
+- ⬜ **GIVEMEFIVE nel checkout — È QUESTO IL LAVORO IN CORSO.** Decisioni per
+  intero in **spec §14 v68**, racconto al punto **28**. ⚠️ **La catena è
+  obbligata e non è cambiata con il ridisegno**: prima il campo del checkout
+  funziona, **poi** il carrello smette di nominare lo sconto. Il pulsante del
+  carrello è oggi l'**unico interruttore** che accende GIVEMEFIVE: toglierlo
+  prima che il sostituto esista lo spegnerebbe **in silenzio**, senza che
+  nessun errore compaia. **Primo mattone: il ricalcolo della soglia lato
+  server**, perché è lì che sta tutta la difesa.
+
 
 - ✅ **"Togli dal menu" — FATTO il 07/08/2026**, sei pezzi, provato dal vivo da
   Andrea in ogni sua parte. Colonna **`is_in_menu`**. Esito e prove in **spec
@@ -941,6 +963,17 @@ una volta per cliente o una volta in assoluto.
 liberi accanto a uno sconto fisso, il caso "lo sconto supera il prezzo" smette
 di essere teorico. Va verificato dove agisce lo sconto — oggi sul **totale del
 carrello**, non sulla riga.
+
+✅ **Aggiornamento del 10/08/2026 — la FACCIATA è decisa, il SISTEMA no.** Il
+campo *"Hai un codice sconto?"* nel checkout si costruisce adesso, ma dietro
+c'è la sola regola cablata di GIVEMEFIVE (spec §14 v68). Il giorno dei codici
+veri cambia **chi risponde**, non il campo, il gesto, il pedaggio né le frasi:
+è per questo che si può partire senza aver deciso il resto. ⚠️ **Le domande
+elencate qui sopra restano tutte aperte**, cumulabilità compresa. *E i tre
+esempi fatti da Andrea non sono la stessa cosa: 5 € fissi è ciò che il sistema
+fa già, una percentuale apre il caso "lo sconto supera il prezzo" qui sopra, e
+**un omaggio non è uno sconto** ma una riga in più nell'ordine — tocca
+carrello, documento per lo staff e Stripe, ed è un lavoro a sé.*
 
 ### Residui minori aperti
 
@@ -1768,6 +1801,13 @@ giro che esce verso l'esterno, perché ripubblica il sito.
 * **La frase del preordine**, scritta e pubblicata ma **mai vista dal vivo**:
   compare solo in Delivery a semaforo non verde.
 
+⚠️ **Questo elenco è la fotografia dell'08/08 e da allora si è mosso** (nota del
+10/08/2026, per non farlo mentire con l'autorità del documento): le **due copie
+delle costanti** sono chiuse dalla v66 (punto 26), i **17 `fontFamily`** dalla
+v67 (punto 27), e lo **spostamento di GIVEMEFIVE** è stato **ridisegnato** il
+10/08 — resta da costruire, ma non nella forma scritta qui (spec §14 v68, punto
+28). Le altre voci sono ancora vere.
+
 ### 24f) Quattro lezioni
 
 **ca. ⚠️ Un elenco di lavori da fare non è un ordine di esecuzione.** Un
@@ -2070,3 +2110,131 @@ sonda che conta i `PASS` — sa dire "non c'è di più", non sa dire "non manca
 niente". Quando si aggiorna un documento, alle zone attese va affiancata almeno
 una domanda dell'altro tipo: cosa, in questo file, DOVEVA muoversi e non si è
 mosso?*
+
+---
+
+## 28) GIVEMEFIVE ridisegnato: il campo del codice sconto (10/08/2026)
+
+Giornata di **sole decisioni**: nessun commit di codice, una sola spec
+(`319feff`). Il lavoro è partito per costruire lo spostamento deciso in v65 ed
+è finito per **ridisegnarlo**, su proposta di Andrea, in una forma più semplice
+e più difendibile.
+
+### 28a) Lo stato ritrovato, e un commit che nessun documento nominava
+
+La sessione è cominciata con `origin/main = 972389e`, un commit che **non
+compariva né in spec né in handoff**: il registro in cima a questo documento si
+fermava a `ec84ea5`, il cui messaggio annunciava già *"v67 e handoff"*. Non è
+stato dedotto: è stato **eseguito**. `git show --stat` ha detto che `972389e`
+tocca **un solo file**, `handoff/HANDOFF.md`, +27/−3 — è la correzione della
+riga che dichiarava la spec alla v64 (punto 27e), fatta trentanove minuti dopo
+`ec84ea5` rileggendo. *Nessun lavoro nascosto: il documento in mano era già
+quello giusto, e lo si è verificato dal suo contenuto — il punto 27e esiste solo
+dopo `972389e` — non dal nome del file.*
+
+### 28b) Cosa c'era davvero nel codice, prima di decidere
+
+Tre referti di sola lettura, e due sorprese, una per verso.
+
+* ✅ **La parte pesante era già fuori dalla rotta.** `resolveProduct` e
+  `resolveCombo` — le letture dei prezzi veri, la disponibilità, il menu, i
+  combo — vivono in **`lib/checkout-resolve.js`** dalla v37/v46. Dentro
+  `app/api/checkout/route.js` è rimasto **solo il ciclo** che le chiama,
+  moltiplica per la quantità e somma.
+* ⚠️ **Ma un ricalcolo riusabile NON esiste.** Quel ciclo è saldato dentro
+  `POST` (righe 101-414, una delle **due sole** funzioni del file, verificato
+  con una sonda che vede anche le funzioni freccia). E
+  `resolveDiscountAndTotal` **il subtotale non lo calcola**: se lo fa dare — il
+  suo stesso commento dice che *non ha modo di sapere da dove arriva il numero
+  che riceve*.
+* ⚠️ **`lib/checkout-resolve.js` usa `supabaseAdmin` preso dall'alto**, non
+  ricevuto come parametro (`await supabaseAdmin.from("products")`, visibile nel
+  corpo). Per la regola scritta in cima a `checkout-discount.js`, un modulo che
+  importi `supabase-admin` non è avviabile da una prova. *Questa conseguenza è
+  dedotta dalla regola scritta, non eseguita: se un domani conterà, si accerta.*
+
+### 28c) Perché la strada B, e cosa NON risolve
+
+Tirare fuori il ciclo significa **riaprire `app/api/checkout/route.js`**, e per
+la regola del punto 16 chi riapre quel file si porta dietro **sei lavori**
+insieme. Il primo mattone di GIVEMEFIVE trascinava un pacchetto molto più
+grosso di sé.
+
+Andrea ha scelto la **strada B**: la rotta nuova **non tocca** quel file e
+rifà per conto suo il giro corto — risolvi ogni riga con gli **stessi**
+`resolveProduct` e `resolveCombo`, moltiplica, somma, arrotonda.
+
+⚠️ **I sei lavori del punto 16 NON sono stati rimandati di nascosto: restano
+aperti dove sono**, e si faranno quando quel file si riaprirà per un motivo suo.
+
+**Il debito accettato, con la condizione che lo fa scadere**: due cicli invece
+di uno. Regge finché quel ciclo resta *chiama, moltiplica, somma* — cioè finché
+non prende decisioni proprie. *Il giorno che uno dei due decidesse qualcosa che
+l'altro non decide, o servisse un terzo posto che calcola il subtotale, il
+debito è scaduto e il ciclo va estratto sul serio.* Le decisioni pericolose —
+prezzo, proteina, extra carne, disponibilità, combo — **restano in un posto
+solo**, ed è questo che rende la copia sopportabile: non è la copia delle
+costanti dello sconto, dove il valore era riscritto a mano.
+
+### 28d) Il ridisegno: le decisioni sono in spec §14 v68, non qui
+
+Non si ricostruiscono a memoria. In sintesi, solo per sapere di cosa si parla:
+**dal sito GIVEMEFIVE sparisce** (niente banner, niente progressione, niente
+pulsante) e nel checkout compare un campo **"Hai un codice sconto?"**; **il
+pedaggio resta intatto** — la verifica risponde solo a checkout compilato e
+carrello sopra soglia, mai al solo numero di telefono; **le sei risposte del
+campo sono fissate parola per parola**; le due risposte *"non è valido"* e
+*"hai già utilizzato"* restano distinte, **come baratto consapevole** e non per
+distrazione.
+
+⚠️ **Ciò che il campo NON cambia**: il ricalcolo della soglia lato server resta
+il primo mattone e resta tutta la difesa; il **consumo** nel webhook e il
+**rilascio** all'annullamento restano dove sono, senza cuore e senza prove.
+
+### 28e) Cosa questo giro NON ha chiuso
+
+* ⚠️ **L'upsell dei 25 € nel carrello** (§36-40): *vicino ai 25 € → suggerisci
+  per raggiungere soglia* è rimasto scritto tale e quale, ma **quei 25 € erano
+  la soglia di GIVEMEFIVE**, che il carrello ora non nomina più. Va deciso se
+  sparisce, se resta con un'altra ragione, o se resta così. **Lasciato in
+  evidenza invece che risolto d'ufficio.**
+* ⚠️ **Due eventi delle statistiche** (§65) nascevano dal banner:
+  `soglia_25_raggiunta` e `givemefive_applicato`. L'elenco dei tipi di evento è
+  un **vincolo dentro il database**, quindi cambiarlo è DDL — lavoro di Andrea
+  nell'editor SQL, non di Code. *Non toccato: le statistiche non sono ancora
+  costruite e non era il momento.*
+* **Il sistema di codici** resta un lavoro a sé, con le domande del 30/07 tutte
+  aperte.
+
+### 28f) Tre lezioni
+
+**cn. ⚠️ Una difesa non si toglie spostandola su un gesto volontario.** Il campo
+del codice sembrava eliminare il pericolo della fuga di informazioni sui
+clienti: non lo elimina, lo sposta — chi cerca l'elenco scrive GIVEMEFIVE e
+prova i numeri, invece di limitarsi a digitarli. *La proposta iniziale prevedeva
+di chiedere il telefono se mancava: sarebbe stato il distributore automatico
+chiuso l'08/08, riaperto due giorni dopo da una porta diversa. Il pedaggio va
+riaffermato ogni volta che cambia la facciata, perché la facciata sembra
+innocua e la difesa non sta lì.*
+
+**co. Una domanda senza risposta buona a volte si scioglie cambiando chi fa la
+domanda.** *Prudente o generoso* — se la verifica si guasta, tacere e far
+perdere 5 € a chi ne aveva diritto, oppure mostrare uno sconto che su Stripe
+sparisce — era una scelta fra due danni, e ci si era arenati sopra. Il campo la
+dissolve: **a un gesto si può rispondere *"riprova"***. *La domanda non è stata
+risolta, è diventata inutile. Vale la pena accorgersene prima di scegliere il
+meno peggio.*
+
+**cp. ⚠️ I messaggi di una sessione possono sparire; il file no.** A metà
+giornata la conversazione ha perso i propri messaggi e la spec v68 sembrava mai
+generata. **Era sul disco**, prodotta alle 17:17, e a dirlo è stata
+**l'impronta**, non il ricordo di nessuno. *Ed è la terza volta che la trappola
+del nome scatta: il file buono era `..._r1_1.md`, quello col nome semplice era
+il vecchio. Decide sempre lo sha256.*
+
+*Seconda occorrenza della lezione del punto 27b* — **un numero che non torna si
+chiude cambiando strumento**: il conteggio delle righe cambiate diceva 212 da
+una parte e 214 dall'altra. Rifatto con lo stesso metro di `git`, **166 aggiunte
+e 48 tolte** da entrambe le parti. Non era il file: era lo strumento. *Riferito
+invece che lasciato cadere, perché uno scarto di due non guardato torna come
+dubbio tre giorni dopo.*
