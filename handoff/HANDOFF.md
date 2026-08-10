@@ -11,18 +11,23 @@ motivazione stanno in `MASTER_SPEC.md`; la storia dei tentativi sta nei commit.
 Web app per ordini **delivery e ritiro** di **FAME Srl / KM Kebab Mediterraneo**
 (Bologna, store `san-mamolo`). Stack **Next.js 14 + Supabase + Stripe (sandbox)**.
 Repo: **github.com/Kebabmediterraneo/km-direct** (branch `main`, push via SSH).
-La fonte di verità di tutte le decisioni è **`MASTER_SPEC.md`** — versione attuale
-**v64** (leggila sempre dall'intestazione, riga 3).
+La fonte di verità di tutte le decisioni è **`MASTER_SPEC.md`**. ⚠️ **La
+versione si legge SEMPRE dalla riga 3 della spec, e non è scritta qui.** *Fino
+al 09/08/2026 questa riga ne portava una copia: era rimasta a v64 mentre la
+spec era alla v67, tre versioni indietro. Il numero è stato tolto invece che
+aggiornato — una copia che va tenuta in pari diverge sempre, perché prima o poi
+nessuno se ne ricorda.*
 
 ---
 
 ## 2) Stato git
 
 - Branch **`main`**, working tree **pulita**, allineata a `origin/main`.
-- HEAD: **`f1955af`** — i due commenti del CSS allineati alla pulizia dei font (09/08/2026).
+- HEAD: **`ec84ea5`** — la spec v67 e l'handoff (09/08/2026).
 - Ultimi commit (dal più recente):
 
 ```
+ec84ea5 docs: v67 e handoff — i diciassette fontFamily tolti e i commenti del CSS allineati, con la ragione per cui quella pulizia e' sicura senza che nessuna prova guardi lo schermo
 f1955af css: i due commenti dicevano che i fontFamily sono sparsi nel codice, ma da f3422b3 nel codice non ce n'e' piu' nessuno
 f3422b3 font: via i diciassette fontFamily inherit riga per riga, resi inutili dalla regola in globals.css che riporta tutti i moduli nell'eredita'
 7a0f0be docs: v66 e handoff — le costanti dello sconto in un modulo unico con la prova che le sorveglia, e la sezione nuova sulle tre cose fuori dal codice da fare prima di incassare
@@ -2046,3 +2051,22 @@ Corretta in uno solo, gli altri due non sarebbero diventati "vecchi": sarebbero
 diventati **una contraddizione**, e chi legge non ha modo di sapere quale delle
 tre versioni è quella vera. *È la stessa ragione per cui i valori non si
 scrivono due volte — ma vale per le frasi, non solo per i numeri.*
+
+
+### 27e) La riga che nessun controllo poteva trovare
+
+⚠️ **L'intestazione di questo handoff dichiarava la spec alla v64 mentre era
+alla v67.** Ricostruito da git commit per commit: la copia ha smesso di essere
+aggiornata dopo `efabb37`, ed è rimasta falsa per tre versioni. *Il danno era
+contenuto solo perché la riga stessa rimandava all'intestazione della spec.*
+Corretta il 09/08/2026 **togliendo il numero**, non aggiornandolo.
+
+**cm. ⚠️ Un controllo che confronta con una lista trova solo ciò che la lista
+nomina.** Ogni verifica di questa giornata chiedeva: *le zone attese ci sono, e
+non ce n'è una in più?* Tre volte la risposta è stata sì, ed era vera. Ma una
+zona che **doveva** cambiare e non è cambiata **non compare in nessun diff**: è
+invisibile per costruzione a quel tipo di verifica. *È lo stesso buco della
+sonda che conta i `PASS` — sa dire "non c'è di più", non sa dire "non manca
+niente". Quando si aggiorna un documento, alle zone attese va affiancata almeno
+una domanda dell'altro tipo: cosa, in questo file, DOVEVA muoversi e non si è
+mosso?*
