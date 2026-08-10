@@ -23,9 +23,9 @@ html, body {
   /* Termina, da Adobe Fonts — collegata il 07/08/2026, il foglio di stile
      sta nel <head> di app/layout.js (web project `jth6flt`).
      ⚠️ QUESTO È IL PUNTO UNICO da cui tutto il sito eredita la famiglia:
-     nessun'altra regola ne sceglie una, e i `fontFamily: "inherit"` sparsi
-     nel codice non sono definizioni alternative — riportano dentro questa
-     eredità i campi e i pulsanti, che altrimenti il browser escluderebbe.
+     nessun'altra regola ne sceglie una. I campi, i pulsanti e le tendine il
+     browser li tiene FUORI da questa eredità, e a riportarceli è la regola
+     qui sotto — una sola, valida per tutti.
      ⚠️ I pesi disponibili sono QUATTRO: 400, 600, 700, 800. Un peso diverso
      non esiste come file e verrebbe fabbricato dal browser.
      `sans-serif` resta come rete: se Adobe Fonts non risponde il sito si
@@ -43,9 +43,11 @@ html, body {
    contati il 07/08/2026 in tutto `app/` — restano col carattere di sistema, e
    a schermo si vede un miscuglio.
 
-   I `fontFamily: "inherit"` sparsi nel codice fanno la stessa cosa un punto
-   alla volta, e coprono solo i 47 punti che qualcuno si è ricordato di
-   scrivere. Questa regola li copre tutti, compresi quelli che verranno.
+   ⚠️ NEL CODICE NON C'È PIÙ NESSUN `fontFamily: "inherit"` scritto riga per
+   riga: erano diciassette, coprivano 47 punti su 121 — solo quelli che
+   qualcuno si era ricordato di scrivere — e sono stati tolti il 09/08/2026
+   (commit `f3422b3`) perché questa regola li rendeva inutili. Da allora c'è
+   questa e basta, e copre anche i punti che verranno.
 
    ⚠️ `option` è incluso di proposito: sono 10 e nessun `fontFamily` li
    toccava. Su alcuni sistemi le tendine sono disegnate dal sistema operativo
