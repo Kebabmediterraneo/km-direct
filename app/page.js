@@ -613,7 +613,6 @@ function CategoryTabs({ activeCategory, onSelect }) {
               fontWeight: 600,
               fontSize: 13,
               whiteSpace: "nowrap",
-              fontFamily: "inherit",
               cursor: isToggleable ? "pointer" : "default",
             }}
           >
@@ -1769,7 +1768,6 @@ function ScheduledSlotPicker({ slots, day, time, onDayChange, onTimeChange, radi
             background: "var(--surface-white)",
             color: "var(--navy)",
             fontSize: 14,
-            fontFamily: "inherit",
           }}
         >
           {allowEmpty && time == null && (
@@ -1912,7 +1910,6 @@ function FulfillmentSelector({
       color: isActive ? "var(--bg-warm)" : "var(--brand-orange)",
       fontWeight: 600,
       fontSize: 13,
-      fontFamily: "inherit",
       cursor: "pointer",
     };
   }
@@ -2006,7 +2003,6 @@ function FulfillmentSelector({
                 background: "var(--surface-white)",
                 color: "var(--navy)",
                 fontSize: 14,
-                fontFamily: "inherit",
               }}
             />
 
@@ -2043,7 +2039,6 @@ function FulfillmentSelector({
                       fontSize: 14,
                       color: "var(--navy)",
                       cursor: "pointer",
-                      fontFamily: "inherit",
                     }}
                   >
                     {suggestion.placePrediction?.text?.text}
@@ -2755,7 +2750,6 @@ function CheckoutScreen({
     background: "var(--surface-white)",
     color: "var(--navy)",
     fontSize: 14,
-    fontFamily: "inherit",
   };
   const checkboxLabelStyle = {
     display: "flex",

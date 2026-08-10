@@ -38,7 +38,6 @@ export default function StaffLoginPage() {
     background: "var(--surface-white)",
     color: "var(--navy)",
     fontSize: 14,
-    fontFamily: "inherit",
   };
 
   return (

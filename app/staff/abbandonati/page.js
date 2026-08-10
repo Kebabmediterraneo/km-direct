@@ -169,7 +169,6 @@ export default function AbandonedCartsPage() {
                 color: isActive ? "var(--bg-warm)" : "var(--brand-orange)",
                 fontWeight: 600,
                 fontSize: 13,
-                fontFamily: "inherit",
                 cursor: "pointer",
               }}
             >

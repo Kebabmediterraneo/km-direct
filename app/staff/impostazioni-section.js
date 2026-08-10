@@ -74,7 +74,6 @@ const primaryButton = {
   padding: "8px 16px",
   fontWeight: 600,
   fontSize: 13,
-  fontFamily: "inherit",
   cursor: "pointer",
 };
 
@@ -86,7 +85,6 @@ const secondaryButton = {
   padding: "8px 16px",
   fontWeight: 600,
   fontSize: 13,
-  fontFamily: "inherit",
   cursor: "pointer",
 };
 
@@ -98,7 +96,6 @@ const dangerButton = {
   padding: "8px 16px",
   fontWeight: 600,
   fontSize: 13,
-  fontFamily: "inherit",
   cursor: "pointer",
 };
 
@@ -109,7 +106,6 @@ const inputStyle = {
   background: "var(--surface-white)",
   color: "var(--navy)",
   fontSize: 14,
-  fontFamily: "inherit",
   width: "100%",
   boxSizing: "border-box",
 };

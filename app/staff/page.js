@@ -208,7 +208,6 @@ function ReasonForm({ label, placeholder, isSubmitting, onSubmit, onCancel }) {
           background: "var(--surface-white)",
           color: "var(--navy)",
           fontSize: 13,
-          fontFamily: "inherit",
           resize: "vertical",
         }}
       />
@@ -380,7 +379,6 @@ function GlovoDeliverySection({ order, onSaveExternalDeliveryId }) {
             background: "var(--surface-white)",
             color: "var(--navy)",
             fontSize: 13,
-            fontFamily: "inherit",
           }}
         />
         <button
@@ -960,7 +958,6 @@ function ProductEditForm({ product, onSaved, onCancel }) {
     background: "var(--surface-white)",
     color: "var(--navy)",
     fontSize: 13,
-    fontFamily: "inherit",
   };
 
   return (
@@ -1540,7 +1537,6 @@ function ProductCreateForm({ products, allergensCatalog, onCreated, onCancel }) 
     background: "var(--surface-white)",
     color: "var(--navy)",
     fontSize: 13,
-    fontFamily: "inherit",
   };
 
   return (
@@ -2285,7 +2281,6 @@ export default function StaffDashboardPage() {
                 color: isActive ? "var(--bg-warm)" : "var(--brand-orange)",
                 fontWeight: 600,
                 fontSize: 13,
-                fontFamily: "inherit",
                 cursor: "pointer",
               }}
             >
