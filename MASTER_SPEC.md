@@ -1,6 +1,6 @@
 # KM DIRECT — MASTER SPECIFICATION
 
-**Versione 69** — sostituisce la v68.
+**Versione 70** — sostituisce la v69.
 
 Documento di riferimento definitivo per lo sviluppo. Le decisioni qui
 contenute sono approvate: non vanno reinterpretate senza un motivo concreto
@@ -22,37 +22,37 @@ versione corrente**. I precedenti vivono in `git log`, che è fatto per quello.
 del documento prima che cominciasse a parlare del progetto — e dentro c'erano
 istruzioni rovesciate che nessuno rileggeva.*
 
-**Novità della v69** (vincolanti, dal lavoro del 10-11/08/2026):
+**Novità della v70** (vincolanti, dal lavoro dell'11/08/2026, sera):
 
-1. §14 — ✅ **LO SPOSTAMENTO DI GIVEMEFIVE È FATTO**, tutti e quattro gli anelli
-   nell'ordine obbligato: il cuore (`c164b3b`), la rotta (`e03bb4c`), il campo
-   nel checkout (`b6f6434`), la sopravvivenza alla riapertura (`d2ebc41`) e
-   infine il carrello che smette di nominarlo (`8df6018`). **Provato dal vivo da
-   Andrea**, pagamento in sandbox compreso.
-2. §14 — ⚠️ **IL CAMPO DEL CHECKOUT È ORA L'UNICO INTERRUTTORE** dello sconto in
-   tutto il progetto. Il pulsante del carrello non esiste più.
-3. §14 — **il guasto di lettura NON concede lo sconto**, all'opposto di
-   `lib/checkout-discount.js` dove lo regala. Le due regole convivono di
-   proposito: la differenza non è fra due file, è fra uno sconto che si offre da
-   sé e uno che il cliente ha chiesto.
-4. §14 — **lo sconto non guarda gli orari** (decisione del 10/08): locale chiuso
-   e slot scaduto li ferma il pagamento, non il campo.
-5. §14, §36-40 — **il codice scritto sopravvive alla riapertura, ma riverificato
-   dal server** quando i dati tornano completi, mai all'apertura: i tre consensi
-   si azzerano a ogni giro, quindi una verifica fatta lì risponderebbe sempre
-   *"dati incompleti"*.
-6. §36-40 — **il suggerimento fra i 20 e i 25 € resta e scatta alla stessa
-   soglia**, con un testo che non nomina più lo sconto: la domanda lasciata
-   aperta in v68 è **chiusa**.
-7. §14 — ⚠️ **il pedaggio costa meno di come lo si era immaginato**, ed è
-   scritto com'è e non come si sperava: col **Ritiro** non serve alcun
-   indirizzo. Il biglietto vero è **comporre un carrello risolvibile sopra i
-   25 €**, non i dati anagrafici.
+1. §41-45 — ✅ **IL TELEFONO ORA SI CONTROLLA.** Fino a oggi bastava che il
+   campo non fosse vuoto: `"ciao"` passava, e arrivava al rider come
+   `+39ciao`. Ora una regola unica in `lib/customer-phone.js`, **importata dal
+   server e dal sito**, mai copiata.
+2. §41-45 — le decisioni di Andrea: **9 o 10 cifre per l'Italia**, ⚠️ **nessuna
+   regola speciale per i cellulari**, prima cifra **0 o 3**, spazi e trattini
+   **tolti dal sito** invece che rifiutati, **una frase sola** per qualunque
+   rifiuto, e il **pulsante Paga resta premibile**.
+3. §41-45 — la casella privacy dice **(OBBLIGATORIO)**: il cliente non capiva
+   che il consenso fosse necessario per proseguire. *Non cambia ciò che
+   dichiara: l'informativa non è stata riaperta.*
+4. §57-61 — ⚠️ **il file che va al rider era completamente scoperto** e ora ha
+   39 prove. **La scoperta più importante della giornata è là dentro** (§57-61,
+   "il fuso che si vede solo in produzione").
+5. §41-45 — ⚠️ **il telefono è la chiave con cui un cliente viene riconosciuto**
+   — `onConflict: "phone"` al pagamento, e la ricerca dello sconto in §14 — e
+   questo lavoro lo dice ad alta voce dove serve.
 
 *Il conteggio delle condizioni di apertura non cambia: **quattro chiuse, cinque
 aperte**. Il lavoro pre-go-live che resta è la **Fase 4**, il **viewport**, le
 tre verifiche registrate in v63 e le **tre voci di §6c**: lo **spostamento di
 GIVEMEFIVE esce da questo elenco**, è fatto.*
+
+⚠️ *Due lavori chiesti da Andrea l'11/08 restano **da fare**, e non sono in
+quell'elenco perché non sono condizioni di apertura: il **prefisso
+internazionale** nel campo del telefono (menu a tendina con tutti i paesi e la
+bandiera, preselezionato Italia) e l'**indirizzo di consegna nella scheda
+ordine** del pannello staff, che oggi mostra solo nome, cognome e telefono. Il
+terreno per il primo è già pronto — vedi §41-45.*
 
 ## 1. Visione del progetto
 
@@ -1857,6 +1857,78 @@ con le parole "informativa privacy" rese collegamento alla pagina `/privacy`
 (v53). Marketing: checkbox facoltativa, non preselezionata, salvando sì/no +
 timestamp + versione testo.
 
+### ✅ Il controllo del telefono (v70, 11/08/2026)
+
+⚠️ **PRIMA DI OGGI IL TELEFONO NON ERA CONTROLLATO.** `lib/checkout-validation.js`
+verificava soltanto che il campo non fosse **vuoto**: `"ciao"` passava, `"111"`
+passava, e arrivavano fino al file del rider come `+39ciao`. *Il difetto era
+registrato da un'osservazione di Andrea dell'08/08 e fotografato dalle prove di
+`be068f9` prima di essere chiuso.*
+
+⚠️ **E il telefono non è un dato di contatto: è LA CHIAVE con cui un cliente
+viene riconosciuto.** Il pagamento salva con `onConflict: "phone"` — stesso
+telefono, stesso cliente — e §14 cerca **esattamente quella stringa** per sapere
+se lo sconto è già stato riscosso. *Due forme diverse dello stesso numero sono
+due clienti diversi, e lo stesso ordinante potrebbe riprendere GIVEMEFIVE.*
+
+**La regola vive in `lib/customer-phone.js`, modulo puro**, ed è **importata**
+dal server (`checkout-validation.js`, dov'è la difesa) e dal sito
+(`app/page.js`, dov'è la cortesia). ⚠️ *Mai copiata: la controprova l'ha
+dimostrato eseguendo — sporcando il modulo cade anche una prova del validatore,
+che quindi lo usa davvero.*
+
+**Le decisioni di Andrea (11/08/2026), tutte prese:**
+
+* **Italia: 9 o 10 cifre.** ⚠️ **NESSUNA REGOLA SPECIALE PER I CELLULARI.** Una
+  prima stesura pretendeva 10 cifre dai numeri che iniziano per 3; **Andrea l'ha
+  corretta dalla conoscenza dei clienti veri** — esistono cellulari italiani a 9
+  cifre, e quella regola li avrebbe rifiutati. *Non reintrodurla: sembra una
+  svista e non lo è.*
+* **Italia: la prima cifra è 0 o 3.** Sono le uniche esistenti — fissi e
+  cellulari — quindi la regola **non rifiuta nessun numero italiano vero**.
+  Scelto il **rifiuto** e non un avviso ignorabile: *"un avviso si legge
+  distrattamente e il prezzo lo paga il rider"*.
+* ⚠️ **Fuori dall'Italia nessuna delle due vale**: 6-15 cifre e basta. **Non
+  esiste una tabella dei paesi del mondo** — sarebbe la seconda copia che questo
+  progetto ha già pagato tre volte, e il giorno che un paese cambia numerazione
+  rifiuterebbe clienti veri in silenzio. *Chi scrive il numero col `+` iniziale
+  dichiara lui il paese e imbocca la regola larga.*
+* **Spazi, punti, trattini e parentesi si TOLGONO, non si rifiutano**: il
+  cliente scrive `333 123 4567` e il sistema salva `3331234567`, senza che se ne
+  accorga. *Ogni rifiuto in più è un carrello abbandonato.*
+* **Una frase sola per qualunque rifiuto**, importata e non riscritta:
+  *"Controlla il numero, è l'unico modo che abbiamo per contattarti per la
+  consegna"*. ⚠️ *Al cliente non serve sapere QUALE regola ha violato: gli serve
+  sapere perché quel numero è necessario.* Il messaggio del **campo vuoto**
+  resta quello di prima: è un caso diverso.
+* **Il pulsante Paga resta premibile** anche con un numero rifiutato. *La difesa
+  è nel server e scatta prima che venga creato qualsiasi ordine e prima di
+  Stripe; un pulsante che si accende e si spegne mentre il cliente digita è
+  peggio di un avviso scritto.*
+
+⚠️ **Il paese è un PARAMETRO, anche se oggi può valere solo Italia.** Scritto
+così perché il menu dei prefissi, quando arriverà, **non dovrà riaprire questo
+modulo**: cambierà solo chi gli dice il paese.
+
+⚠️ **Ciò che questo lavoro NON chiude**: i numeri **già salvati** nel database
+non sono toccati, e `lib/generate-glovo-xlsx.js` continua ad attaccare `+39` a
+ciò che trova — ora però riceve solo numeri che hanno passato il controllo.
+
+### La casella privacy dice (OBBLIGATORIO) (v70, 11/08/2026)
+
+Il testo è ora *"Dichiaro di aver letto l'informativa privacy. (OBBLIGATORIO)"*.
+**Andrea: non si capiva che il consenso fosse necessario per proseguire.**
+⚠️ *La parola aggiunta dice che il campo è necessario, **non modifica ciò che il
+cliente dichiara**: l'informativa pubblicata non è stata toccata e
+`MARKETING_TEXT_VERSION` non è stata alzata.*
+
+⚠️ **E quella frase non era sorvegliata da niente** fino a `2ea4a8e`: le prove
+che nominavano la privacy riguardavano il messaggio del **server**, un'altra
+frase in un altro file. Ora una suite veglia il testo, il collegamento
+all'informativa e — la più importante — lo `stopPropagation`, **senza il quale
+aprire l'informativa spunterebbe da solo il consenso**, cioè un atto raccolto
+senza atto.
+
 **Selettore orario modificabile nel checkout (aggiunto in v18, vincolante)**:
 per entrambe le modalità, quando è attiva una selezione di orario (Ritiro
 sempre; Delivery quando `timingType="scheduled"`), il selettore dell'orario è
@@ -3021,7 +3093,7 @@ Colonne del template Glovo e relativa origine dei dati:
 | Colonna | Origine | Note |
 |---|---|---|
 | `recipient_name` | nome + cognome cliente | obbligatorio |
-| `recipient_phone_number` | telefono cliente | obbligatorio, con prefisso `+39` |
+| `recipient_phone_number` | telefono cliente | obbligatorio, con prefisso `+39` (v70: se il numero non comincia già con `+`) |
 | `latitude` / `longitude` | `delivery_latitude`/`delivery_longitude` | obbligatorio |
 | `recipient_address` | indirizzo + civico | obbligatorio |
 | `recipient_notes` | citofono, piano/interno, edificio/scala, note rider uniti | opzionale, max 2048 caratteri |
@@ -3061,6 +3133,46 @@ deve essere univoco lato Glovo (Glovo rifiuta identificativi duplicati).
   — mai vuota.
 - **Nessun campo nuovo in database** (`external_delivery_id` esiste già
   nello schema) e **nessun backfill** dei dati esistenti.
+
+### ✅ Il modulo è sotto rete, e la controprova ha trovato più della suite (v70, 11/08/2026)
+
+⚠️ **Fino all'11/08 `lib/generate-glovo-xlsx.js` non aveva NESSUNA prova**, ed è
+l'unico pezzo del progetto che produce **un documento che esce e va a una
+persona vera**. Una delle cinque funzioni di formattazione poteva sbagliare e
+lo si sarebbe scoperto dalla telefonata di un cliente. Ora ha **39 prove**
+(`be068f9`), che generano il file vero e lo rileggono — le funzioni non sono
+esportate, quindi riscriverle nella prova avrebbe provato la copia e non il
+codice che gira.
+
+⚠️⚠️ **IL FUSO CHE SI VEDE SOLO IN PRODUZIONE — la scoperta più importante
+della giornata.** Togliendo `timeZone: "Europe/Rome"` dal modulo, **nessuna
+prova diventava rossa**. Non era una sporcatura fallita: senza fuso dichiarato
+il codice eredita quello di sistema, e **la macchina di sviluppo è già su ora
+italiana**. Ma **il sito gira su Vercel, dove l'orologio di sistema è UTC**: là
+il file per il rider porterebbe l'orario sbagliato — un'ora d'inverno, due
+d'estate — e in locale tutto resterebbe verde. *Un preordine per le 20:00
+arriverebbe a Glovo come le 18:00.*
+
+**La difesa aggiunta**: una sonda che legge il modulo **come testo** e pretende
+che il fuso sia dichiarato — l'unica che, su una macchina italiana, sa dire di
+no.
+
+⚠️ **E la lezione vale ben oltre questo file**: *una prova che gira su una
+macchina configurata come la produzione non distingue ciò che è **dichiarato**
+da ciò che è **ereditato**.* Ogni volta che il codice dipende da una
+configurazione dell'ambiente — fuso, lingua, formato dei numeri — la prova che
+la verifica va scritta guardando **il testo del codice**, non il suo risultato.
+
+**Due difetti fotografati e NON corretti** (registrati nei commenti delle
+prove): un telefono malformato usciva alterato — chiuso poi da `a8402e4`, che
+impedisce a monte che arrivi fin qui — e la colonna del codice per Glovo **può**
+uscire vuota, mentre il commento del modulo la dichiara «Mai vuota»: oggi non
+capita perché `pickup_code` è sempre generato, ma è una promessa che regge per
+costruzione altrove, non per un controllo lì.
+
+⚠️ *Ciò che queste prove **non** dicono: che il file sia accettato da Glovo.
+Provano la forma che il modulo produce, non che il fornitore la digerisca —
+verifica che si fa una volta sola, caricando un file vero.*
 
 ## 62b. Gestione Problema/Annullamento ordini (aggiunta dopo l'MVP iniziale)
 
