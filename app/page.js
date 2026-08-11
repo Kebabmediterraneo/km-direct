@@ -17,6 +17,16 @@ import { prepareCheckout, restoreCheckout } from "../lib/checkout-persistence";
 // girare mai. `givemefive` è di sole costanti, senza import e senza funzioni,
 // ed è sicuro da entrambe le parti.
 import { GIVEMEFIVE_THRESHOLD, GIVEMEFIVE_DISCOUNT } from "../lib/givemefive";
+// §41-45 (11/08/2026): la forma del telefono, dallo STESSO modulo che usa il
+// server. ⚠️ Qui è cortesia — far vedere il problema mentre si scrive invece
+// che al pagamento — mentre la difesa vera sta in `lib/checkout-validation.js`.
+// Importarlo invece di riscriverlo è ciò che impedisce ai due di divergere: se
+// il sito accettasse ciò che il server rifiuta, il cliente arriverebbe fino in
+// fondo per sentirsi dire di no.
+// ⚠️ Si importa anche la FRASE, non solo il controllo: è la stessa che dice il
+// server, e riscriverla qui creerebbe due copie che divergono senza che nulla
+// lo segnali (lezione `cl`).
+import { isPhoneValid, PHONE_INVALID_MESSAGE } from "../lib/customer-phone";
 import PrivacyFooter from "./privacy-footer";
 
 const CATEGORIES = [
@@ -3123,6 +3133,14 @@ function CheckoutScreen({
             onChange={(event) => updateCustomerField("phone", event.target.value)}
             style={fieldStyle}
           />
+          {/* §41-45 (11/08/2026): l'avviso compare solo se il cliente ha
+              scritto qualcosa e quel qualcosa non ha la forma di un numero.
+              ⚠️ Mai a campo vuoto: chi non ha ancora scritto non ha sbagliato
+              niente, e un rosso che appare prima di digitare accusa il cliente
+              di un errore che non ha commesso. */}
+          {customerDetails.phone.trim() !== "" && !isPhoneValid(customerDetails.phone) && (
+            <div style={{ fontSize: 13, color: "var(--navy)" }}>{PHONE_INVALID_MESSAGE}</div>
+          )}
           <input
             type="email"
             placeholder="Email (facoltativa)"

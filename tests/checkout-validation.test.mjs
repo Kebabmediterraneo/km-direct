@@ -18,6 +18,10 @@ import {
   validateResolvedOrder,
   DELIVERY_MINIMUM_ORDER,
 } from "../lib/checkout-validation.js";
+// §41-45 (11/08/2026): la frase del telefono storto si importa da dove vive,
+// come fa il codice. Una prova che ne tenesse una copia confronterebbe il testo
+// vecchio con sé stesso e resterebbe verde mentre il cliente legge altro.
+import { PHONE_INVALID_MESSAGE } from "../lib/customer-phone.js";
 
 let failures = 0;
 function assert(cond, msg) {
@@ -129,6 +133,87 @@ const err = (res) => res?.body?.error;
     err(validateCheckoutRequest(delivery({ customer: undefined }), OPZ)) === atteso,
     "d5) cliente assente → rifiuto, non un errore di lettura"
   );
+}
+
+// d-bis) §41-45 (11/08/2026) — LA FORMA DEL TELEFONO, ED È QUI CHE STA LA
+// DIFESA. Il sito mostra lo stesso avviso mentre il cliente scrive, ma quella è
+// cortesia: una richiesta costruita a mano passa solo di qui.
+//
+// ⚠️ La regola vive in `lib/customer-phone.js` e questa suite non la riscrive:
+// prova che il validatore la CHIAMI e traduca il rifiuto. I casi della regola —
+// nove cifre, paesi, spazi — stanno in `tests/customer-phone.test.mjs`.
+{
+  // ⚠️ La frase si IMPORTA dal modulo, non si ribatte qui: se questa suite ne
+  // tenesse una copia, il giorno che la frase cambia le prove resterebbero
+  // verdi confrontando il testo vecchio con sé stesso.
+  const attesoForma = PHONE_INVALID_MESSAGE;
+  const attesoVuoto = "Controlla di aver compilato nome, cognome e telefono.";
+  const conTelefono = (phone) => validateCheckoutRequest(delivery({ customer: { ...CLIENTE, phone } }), OPZ);
+
+  assert(
+    err(conTelefono("ciao")) === attesoForma,
+    '⚠️ d6) "ciao" → RIFIUTATO dal server: prima di oggi passava e arrivava al file del rider come "+39ciao"'
+  );
+  assert(err(conTelefono("345iii909")) === attesoForma, "d7) lettere in mezzo alle cifre → rifiutato");
+  assert(err(conTelefono("111")) === attesoForma, "d8) tre cifre → rifiutato");
+  assert(err(conTelefono("33312345678")) === attesoForma, "d9) undici cifre → rifiutato");
+
+  // ⚠️ I NUMERI VERI DEVONO PASSARE, ed è la metà che conta di più: un controllo
+  // troppo stretto non fa rumore, fa perdere clienti.
+  assert(conTelefono("3331234567").ok === true, "d10) dieci cifre → passa");
+  assert(conTelefono("333123456").ok === true, "⚠️ d11) NOVE cifre che iniziano per 3 → passano (correzione di Andrea dell'11/08)");
+  assert(conTelefono("051123456").ok === true, "d12) un fisso di nove cifre → passa");
+  assert(conTelefono("333 123 4567").ok === true, "d13) e un numero scritto con gli spazi passa: si ripuliscono, non si rifiutano");
+
+  // ⚠️ Il messaggio del campo vuoto NON è cambiato: chi non ha scritto niente
+  // si sente dire di compilare, non di controllare quello che non ha scritto.
+  assert(err(conTelefono("")) === attesoVuoto, "d14) il campo vuoto dà ancora il messaggio di sempre, non quello nuovo");
+  assert(err(conTelefono("   ")) === attesoVuoto, "d15) e così i soli spazi");
+
+  // CONTROPROVA: le due frasi sono davvero diverse? Se coincidessero, d6-d9 e
+  // d14 direbbero di sì qualunque cosa succeda.
+  assert(attesoForma !== attesoVuoto, "d16) CONTROPROVA: i due messaggi sono distinti, quindi le prove qui sopra distinguono davvero i due casi");
+
+  // -------------------------------------------------------------------------
+  // §41-45 (11/08/2026) — IL NUMERO CHE NON PUÒ ESISTERE IN ITALIA.
+  //
+  // La regola sta in `lib/customer-phone.js` e arriva fin qui **da sé**, perché
+  // questo file importa quel modulo: il numero viene rifiutato senza che il
+  // validatore sia stato toccato.
+  //
+  // ⚠️ **d19 È STATA CAPOVOLTA, NON CANCELLATA.** Fino a poche ore fa
+  // fotografava un difetto: il numero veniva rifiutato ma il cliente riceveva
+  // un messaggio generico invece della frase decisa da Andrea. Ora quella frase
+  // arriva, e la stessa prova veglia il verso opposto — che nessuno rimetta il
+  // testo vecchio. *Una prova che documenta un difetto non si butta quando il
+  // difetto è chiuso: si gira, e continua a lavorare.*
+  // -------------------------------------------------------------------------
+  assert(conTelefono("1331234567").ok === false, "d17) un numero italiano che inizia per 1 → rifiutato dal server, e la regola è arrivata qui da sé");
+  assert(conTelefono("4331234567").ok === false, "d18) come uno che inizia per 4");
+  // ⚠️ QUI la frase è scritta per esteso APPOSTA, ed è l'unico punto del
+  // progetto in cui lo è oltre alla costante. Confrontarla con
+  // `PHONE_INVALID_MESSAGE` — come fa `attesoForma` qui sopra, che verifica
+  // un'altra cosa — significherebbe paragonare la costante a sé stessa: la
+  // prova resterebbe verde anche se qualcuno riscrivesse il testo deciso da
+  // Andrea. *È lo stesso motivo per cui la versione del formato, nella
+  // persistenza, si scrive col numero letterale e non con la costante.*
+  assert(
+    err(conTelefono("1331234567")) ===
+      "Controlla il numero, è l'unico modo che abbiamo per contattarti per la consegna",
+    "⚠️ d19) e il cliente riceve la frase DECISA, parola per parola — non più il testo generico"
+  );
+  assert(
+    err(conTelefono("ciao")) === err(conTelefono("1331234567")) &&
+      err(conTelefono("33312345678")) === err(conTelefono("1331234567")),
+    "d19b) ed è la STESSA frase per ogni motivo di rifiuto: lettere, lunghezza, prima cifra"
+  );
+  // ⚠️ Il testo vecchio non deve sopravvivere da nessuna parte.
+  assert(
+    err(conTelefono("1331234567")) !== "Controlla il numero di telefono: non sembra un numero valido.",
+    "d19c) CONTROPROVA: il messaggio vecchio non torna indietro, e la sonda saprebbe riconoscerlo"
+  );
+  assert(conTelefono("0511234567").ok === true, "d20) mentre un fisso che inizia per 0 passa, come deve");
+  assert(conTelefono("333123456").ok === true, "d21) e il cellulare di nove cifre pure");
 }
 
 // e) privacy (route 357-359) — §36-40: è un atto, si rifà a ogni ordine
