@@ -23,10 +23,15 @@ nessuno se ne ricorda.*
 ## 2) Stato git
 
 - Branch **`main`**, working tree **pulita**, allineata a `origin/main`.
-- HEAD: **`e3c7611`** — la spec v69 (11/08/2026).
+- HEAD: **`76f9838`** — la spec v70 (11/08/2026, sera).
 - Ultimi commit (dal più recente):
 
 ```
+76f9838 docs: v70 — il telefono ora si controlla, con le sette decisioni di Andrea e il perche' di ciascuna, e la scoperta che un fuso ereditato invece che dichiarato si vede solo in produzione
+a8402e4 telefono: un modulo unico decide se il numero e' valido, importato dal server e dal sito, con l'Italia a 9 o 10 cifre che iniziano per 0 o 3 e una frase sola che dice al cliente perche' quel numero serve
+be068f9 prove: il file che va al rider era completamente scoperto, e la controprova ha trovato che senza il fuso dichiarato l'orario sarebbe sbagliato solo su Vercel mentre in locale tutto resterebbe verde
+2ea4a8e privacy: la casella dice (OBBLIGATORIO) perche' non si capiva che il consenso fosse necessario, e una suite nuova veglia quella frase e lo stopPropagation che impediva di spuntarla aprendo l'informativa
+d8fe6b7 handoff: stato all'11/08 — GIVEMEFIVE spostato davvero in cinque commit e provato dal vivo, con cio' che la costruzione ha insegnato e che le decisioni non sapevano
 e3c7611 docs: v69 — lo spostamento di GIVEMEFIVE e' fatto e provato dal vivo, col guasto che non concede lo sconto, il codice che sopravvive alla riapertura ma riverificato, e il pedaggio scritto per quel che costa davvero
 8df6018 sconto: il carrello smette di nominare GIVEMEFIVE e il campo del checkout resta l'unico interruttore, con le prove capovolte a sorvegliare che nessuno lo rimetta
 d2ebc41 sconto: il codice scritto sopravvive alla riapertura ma il server lo riverifica quando i dati tornano completi, mai dato per buono e mai verificato all'apertura quando i consensi sono ancora da rifare
@@ -82,7 +87,11 @@ costruzione. *Rilevato da Code il 05/08 confrontando `git log` con questo
 blocco: l'HEAD dichiarato era giusto, era la spiegazione a non coprire il caso
 normale della coppia spec+handoff.*
 
-*Caso dell'11/08/2026: di nuovo distanza **uno**, e per la stessa ragione — fra
+*Caso dell'11/08/2026 sera: distanza **uno** anche stavolta — fra lo stato
+fotografato e questo documento passa la sola spec `76f9838`, e i tre commit di
+codice della serata sono tutti prima di lei.*
+
+*Caso dell'11/08/2026 mattina: di nuovo distanza **uno**, e per la stessa ragione — fra
 lo stato fotografato e questo documento passa la sola spec `e3c7611`. I cinque
 commit di codice della tappa sono tutti PRIMA della spec, non in mezzo.*
 
@@ -653,7 +662,14 @@ dalle prove fatte e dai test del modulo.
 
 ### Come si eseguono le prove
 
-**Diciotto suite** in `tests/`, tutte con estensione **`.mjs`** e non `.js`,
+⚠️ **Il numero di suite qui sotto è stato trovato FERMO A DICIOTTO l'11/08/2026
+sera, mentre erano 24**: nessun confronto di zone attese poteva vederlo, perché
+non è una zona che il lavoro del giorno prevedeva di toccare (lezione `cm`).
+*Chi aggiorna questo documento riguardi SEMPRE questo blocco: è il posto dove
+qualcuno va a leggere quante prove ci sono, quindi un numero vecchio qui mente
+con l'autorità del documento (lezione `aj`).*
+
+**Ventiquattro suite** in `tests/`, tutte con estensione **`.mjs`** e non `.js`,
 perché vanno eseguite da Node fuori da Next. In `package.json` **non esiste uno
 script `test`**: si lanciano una per una con `node tests/<nome>.test.mjs`, o
 tutte con
@@ -663,7 +679,8 @@ di lettura reale puntando il client a una porta chiusa, e il client impiega quel
 tempo ad arrendersi. Non è un blocco.
 
 ⚠️ **Com'è fatto un fallimento** (letto dal codice delle prove l'08/08/2026,
-non supposto): tutte e diciassette le suite usano la stessa funzione `assert`,
+non supposto, e **ricontato l'11/08**): tutte le suite usano la stessa funzione
+`assert`,
 che stampa `PASS — <testo>` oppure **`FAIL — <testo>`**. In fondo a ogni suite
 compare `TUTTI I TEST PASSATI` oppure `<n> TEST FALLITI`, e in quel caso il
 codice di uscita diventa **1**. *Serve saperlo perché è ciò che rende
@@ -867,6 +884,13 @@ lavoro di codice", in contraddizione con la frase successiva.*
 prima voce è stata aggiunta il 10/08/2026: mancava da questo elenco pur essendo
 il lavoro in corso — chi avesse letto solo qui sarebbe ripartito dalla Fase 4*):
 
+- ⬜ **DUE LAVORI CHIESTI DA ANDREA l'11/08, ANCORA DA FARE** (racconto al
+  punto **30**): il **prefisso internazionale** nel campo del telefono — menu a
+  tendina con tutti i paesi e la bandiera, preselezionato Italia — e
+  l'**indirizzo di consegna nella scheda ordine** del pannello staff, che oggi
+  mostra solo nome, cognome e telefono. ⚠️ *Non sono condizioni di apertura e
+  non stanno nell'elenco qui sotto: sono richieste sue.* Il terreno per il primo
+  è già pronto (spec §41-45: il paese è già un parametro).
 - ✅ **GIVEMEFIVE nel checkout — CHIUSO l'11/08/2026**, cinque commit, provato
   dal vivo da Andrea. Racconto al punto **29**. *Il testo qui sotto è quello di
   ieri e si legge come storia, non come lavoro da fare.*
@@ -2361,3 +2385,103 @@ senza poter più fallire.
 Registrata già come lezione `co` il 10/08 e **confermata dalla costruzione**: il
 nodo *prudente o generoso* non è stato risolto, è diventato inutile. Un guasto,
 a chi ha chiesto, si racconta.
+
+---
+
+## 30) Il telefono, la privacy e la rete su Glovo (11/08/2026, sera)
+
+Tre commit di codice dopo la chiusura di GIVEMEFIVE, e **le prove salgono da
+862 a 999**. Le decisioni per intero stanno in **spec §41-45 e §57-61**: qui c'è
+come ci si è arrivati.
+
+⚠️ **Due lavori chiesti da Andrea restano aperti**, ed è il primo posto dove
+cercarli: il **prefisso internazionale** e l'**indirizzo nella scheda ordine**.
+
+### 30a) L'ordine è cambiato in corsa, e per un motivo
+
+Andrea aveva chiesto **prima il prefisso**. È finito per ultimo, e non per
+dimenticanza: leggendo, `lib/generate-glovo-xlsx.js` — l'unico pezzo del
+progetto che produce **un documento che va a una persona vera** — è risultato
+**senza una sola prova**, e la funzione da modificare per il prefisso è proprio
+lì dentro. *Modificarla a mano libera avrebbe voluto dire cambiare il file che
+parla ai rider senza che nulla potesse diventare rosso.* Da qui l'ordine
+effettivo: **rete su Glovo → controllo del telefono → prefisso**.
+
+### 30b) Cosa la lettura ha trovato, che nessuno sapeva
+
+* ⚠️ **Il telefono non era controllato affatto**: solo "non vuoto". `"ciao"`
+  passava e arrivava al rider come `+39ciao`, perché `formatPhone` attacca
+  `+39` a **qualunque cosa** non cominci con `+`.
+* ⚠️ **E il telefono è la CHIAVE del cliente** — `onConflict: "phone"` al
+  pagamento, e §14 che cerca esattamente quella stringa. *Due forme dello stesso
+  numero sono due clienti, e lo stesso ordinante potrebbe riprendere GIVEMEFIVE.*
+* ✅ **La frase della casella privacy non era sorvegliata da niente.** Le prove
+  che nominavano la privacy guardavano il messaggio del **server**, un'altra
+  frase in un altro file: chi avesse riscritto quella a schermo non avrebbe
+  rotto nulla. Ora una suite veglia anche lo `stopPropagation`, **senza il quale
+  aprire l'informativa spunterebbe da solo il consenso**.
+
+### 30c) Le correzioni di Andrea, che il codice non poteva sapere
+
+⚠️ **La regola sui cellulari era sbagliata, e l'ha corretta lui.** La prima
+stesura pretendeva **10 cifre** dai numeri che iniziano per 3. Andrea: *ci sono
+anche cellulari italiani a 9 cifre*. Vero, e quella regola avrebbe rifiutato
+clienti esistenti — un difetto che nessuna prova può trovare, perché il codice
+sarebbe stato coerente con sé stesso. *È scritta in spec col motivo e con
+l'avvertenza che sembra una svista e non lo è.*
+
+E la sua frase — *"Controlla il numero, è l'unico modo che abbiamo per
+contattarti per la consegna"* — è stata scelta da lui e poi **estesa a qualunque
+rifiuto**: al cliente non serve sapere quale regola ha violato, gli serve sapere
+perché quel numero è necessario.
+
+### 30d) Quattro lezioni
+
+**cu. ⚠️⚠️ UNA PROVA CHE GIRA SU UNA MACCHINA CONFIGURATA COME LA PRODUZIONE
+NON DISTINGUE CIÒ CHE È DICHIARATO DA CIÒ CHE È EREDITATO.** Tolto
+`timeZone: "Europe/Rome"` dal modulo di Glovo, **nessuna prova cadeva** — perché
+il Mac è già su ora italiana. Ma **Vercel è UTC**: là il file per il rider
+porterebbe l'orario sbagliato, un'ora d'inverno e due d'estate, e in locale
+tutto resterebbe verde. *Chiusa con una sonda che legge il modulo **come
+testo** e pretende il fuso dichiarato. La lezione vale per ogni dipendenza
+dall'ambiente — fuso, lingua, formato dei numeri: quella prova si scrive
+guardando il testo del codice, non il suo risultato.*
+
+**cv. Una sporcatura che non sporca somiglia moltissimo a una sonda cieca.**
+Successo **tre volte in due giorni**, e ogni volta risolto verificando invece
+che concludendo: una sostituzione che cercava una stringa inesistente nel file,
+un `--include=*.js` mangiato dalla shell, una riga sporcata nel blocco
+sbagliato. *Quando un controllo non reagisce, il sospettato è anche lo
+strumento — e la differenza si vede solo guardando se il file è cambiato
+davvero.*
+
+**cw. ⚠️ Un confronto di testo può dire "non c'è" su un testo identico.** La
+frase mostrata al cliente esiste sia nel codice sia in spec; nel documento
+**va a capo in mezzo**, quindi un `grep` ingenuo l'avrebbe dichiarata assente.
+Verificata **eseguendo**, ricomponendo l'a capo da entrambe le parti, con la
+controprova di una versione storpiata che infatti non viene trovata.
+
+**cx. Chi legge il documento non è chi l'ha scritto.** Prima del commit della
+v70, Code ha proposto — **non richiesto** — di verificare che le sette decisioni
+di Andrea fossero davvero nel testo, citandole una per una. *Chi genera il file
+può dire solo cosa crede di averci scritto; il testo lo legge chi ce l'ha
+davanti. Da ripetere ogni volta che un documento raccoglie decisioni prese a
+voce.*
+
+*Riferito da Code e registrato qui perché non si perda: un `next build` lanciato
+col server di sviluppo acceso ha danneggiato la cartella `.next`. Da evitare —
+prima si spegne il server, poi si costruisce.*
+
+### 30e) Cosa questi lavori NON chiudono
+
+* **I numeri già salvati** in database non sono toccati: chi avesse un numero
+  storto da prima resta com'è. Da guardare alla pulizia pre-apertura.
+* **`lib/generate-glovo-xlsx.js` continua ad attaccare `+39`** a ciò che trova.
+  Oggi riceve solo numeri che hanno passato il controllo, ma **quella riga andrà
+  disinnescata quando arriverà il prefisso**: con la tendina, un numero che il
+  cliente ha dichiarato francese non deve prendersi un `+39` davanti.
+* **La colonna del codice per Glovo può uscire vuota** mentre il commento la
+  dichiara «Mai vuota»: regge per costruzione altrove, non per un controllo lì.
+* ⚠️ **Nessuna prova dice che il file sia accettato da Glovo**: provano la forma
+  prodotta, non che il fornitore la digerisca. Verifica da fare **una volta
+  sola**, caricando un file vero.
