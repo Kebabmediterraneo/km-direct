@@ -3139,7 +3139,18 @@ function CheckoutScreen({
               checked={privacyAccepted}
               onChange={() => setPrivacyAccepted((prev) => !prev)}
             />
-            {/* Il testo della casella non cambia: cambia solo il fatto che
+            {/* ⚠️ «(OBBLIGATORIO)» aggiunto l'11/08/2026, decisione di Andrea:
+                il cliente non capiva che senza la spunta non si prosegue, e si
+                fermava davanti a un pulsante spento senza sapere perché.
+
+                ⚠️ **Quella parola dice che il CAMPO è necessario, non cambia
+                ciò che il cliente DICHIARA.** La dichiarazione è sempre la
+                stessa — di aver letto l'informativa — quindi l'informativa
+                pubblicata non si tocca e la versione del testo di marketing non
+                si alza. Se un domani cambiasse ciò che si dichiara, quella
+                sarebbe un'altra cosa e andrebbe versionata.
+
+                Il testo della casella non cambia: cambia solo il fatto che
                 "informativa privacy" ora porta al documento.
 
                 ⚠️ Si apre in una NUOVA SCHEDA: restando nella stessa il cliente
@@ -3168,7 +3179,7 @@ function CheckoutScreen({
               >
                 informativa privacy
               </a>
-              .
+              . (OBBLIGATORIO)
             </span>
           </label>
 
