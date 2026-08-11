@@ -1,0 +1,273 @@
+// §14 (spec v68) — la sonda sul campo del codice sconto dentro `app/page.js`.
+// Esegui con: node tests/checkout-discount-field.test.mjs   (exit code 0 = tutti PASS)
+//
+// ⚠️ **NON IMPORTA `app/page.js`**: senza React non parte. Lo **legge come
+// testo**, come fa già `tests/givemefive.test.mjs`.
+//
+// ⚠️ **LA PROVA PIÙ IMPORTANTE È LA PRIMA, E NON RIGUARDA IL LAVORO NUOVO.**
+// L'interruttore del carrello — il pulsante "Applica GIVEMEFIVE", il suo stato
+// e la riga che lo accende — è **l'unico** interruttore acceso del progetto
+// (§14). Si spegne in un lavoro successivo, e nell'ordine giusto: se sparisse
+// adesso, GIVEMEFIVE si spegnerebbe **in silenzio**, senza un errore da nessuna
+// parte, e nessuno lo prenderebbe più. Questa suite esiste soprattutto per
+// accorgersene.
+//
+// ⚠️ **Cosa NON può dire**: che il campo funzioni a schermo. Nessuna prova di
+// questo progetto guarda lo schermo. Sorveglia che i pezzi ci siano, che
+// chiamino la rotta giusta e che le frasi non siano state duplicate.
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
+
+let failures = 0;
+function assert(cond, msg) {
+  console.log(`${cond ? "PASS" : "FAIL"} — ${msg}`);
+  if (!cond) failures++;
+}
+
+const QUI = path.dirname(fileURLToPath(import.meta.url));
+const RADICE = path.join(QUI, "..");
+const PERCORSO_PAGINA = path.join(RADICE, "app", "page.js");
+
+const sorgente = fs.readFileSync(PERCORSO_PAGINA, "utf8");
+
+// Le sonde lavorano sulle sole righe di codice: il file spiega nei commenti
+// anche ciò che NON fa, e una sonda che leggesse i commenti troverebbe le
+// parole che il commento esiste per escludere.
+function righeDiCodice(testo) {
+  const righe = [];
+  let dentroBlocco = false;
+  for (const grezza of testo.split("\n")) {
+    const r = grezza.trim();
+    if (dentroBlocco) {
+      if (r.includes("*/")) dentroBlocco = false;
+      continue;
+    }
+    if (r.startsWith("/*") || r.startsWith("{/*")) {
+      if (!r.includes("*/")) dentroBlocco = true;
+      continue;
+    }
+    if (r === "" || r.startsWith("//") || r.startsWith("*")) continue;
+    righe.push(r);
+  }
+  return righe;
+}
+
+const codice = righeDiCodice(sorgente);
+const codiceUnito = codice.join("\n");
+
+// ---------------------------------------------------------------------------
+// a) ⚠️ L'INTERRUTTORE DEL CARRELLO È ANCORA AL SUO POSTO.
+// Tre pezzi, e servono tutti e tre: lo stato che lo tiene, la riga che lo
+// accende al clic, e il pulsante che il cliente vede. Togliendone uno solo lo
+// sconto smetterebbe di essere accendibile dal carrello senza alcun errore.
+// ---------------------------------------------------------------------------
+{
+  const PEZZI = [
+    ["lo stato", "const [giveMeFiveApplied, setGiveMeFiveApplied] = useState(false);"],
+    ["la riga che lo accende", "onApplyGiveMeFive={() => setGiveMeFiveApplied(true)}"],
+    ["il pulsante che il cliente vede", "Applica GIVEMEFIVE"],
+  ];
+
+  for (const [nome, pezzo] of PEZZI) {
+    assert(
+      codiceUnito.includes(pezzo),
+      `a) l'interruttore del carrello ha ancora ${nome}: \`${pezzo}\``
+    );
+  }
+
+  // E il carrello continua a scalare i 5 € come prima: la riga del suo calcolo
+  // è rimasta quella di sempre, senza il codice del checkout dentro.
+  assert(
+    codiceUnito.includes("giveMeFiveApplied && qualifiesForGiveMeFive ? GIVEMEFIVE_DISCOUNT : 0;"),
+    "a4) e il calcolo dello sconto NEL CARRELLO è invariato (non vi è entrato lo stato del checkout)"
+  );
+
+  // ⚠️ CONTROPROVA: su un testo a cui l'interruttore MANCA, la sonda se ne
+  // accorge? Senza questa riga, le prove qui sopra potrebbero passare per il
+  // motivo sbagliato — per esempio se `codiceUnito` fosse vuoto.
+  const finto = [
+    "const [qualcosAltro, setQualcosAltro] = useState(false);",
+    "<button onClick={onPaga}>Paga ora</button>",
+  ].join("\n");
+  const fintoUnito = righeDiCodice(finto).join("\n");
+  const mancanti = PEZZI.filter(([, pezzo]) => !fintoUnito.includes(pezzo));
+  assert(
+    mancanti.length === 3,
+    `a5) CONTROPROVA: su un testo finto senza interruttore, la sonda trova mancanti tutti e tre i pezzi (ne trova ${mancanti.length})`
+  );
+
+  // E la seconda metà: la sonda li riconosce quando ci sono davvero.
+  const finto2 = "onApplyGiveMeFive={() => setGiveMeFiveApplied(true)}";
+  assert(
+    righeDiCodice(finto2).join("\n").includes(PEZZI[1][1]),
+    "a6) e li riconosce su un testo finto che invece li contiene"
+  );
+}
+
+// ---------------------------------------------------------------------------
+// b) IL CAMPO NUOVO CHIAMA LA ROTTA GIUSTA.
+// ---------------------------------------------------------------------------
+{
+  assert(
+    codiceUnito.includes('fetch("/api/checkout/discount"'),
+    "b1) il campo del codice chiama /api/checkout/discount"
+  );
+
+  // E il pagamento continua a chiamare la sua, che è un'altra: se le due si
+  // confondessero, un tentativo di codice creerebbe un ordine.
+  assert(
+    codiceUnito.includes('fetch("/api/checkout"'),
+    "b2) e il pagamento continua a chiamare /api/checkout, che resta una rotta diversa"
+  );
+
+  const chiamate = (codiceUnito.match(/fetch\("\/api\/checkout(\/discount)?"/g) || []);
+  assert(
+    chiamate.length === 2,
+    `b3) le chiamate a quelle due rotte sono esattamente due, una per ciascuna (trovate ${chiamate.length})`
+  );
+
+  // Il pedaggio: il campo si appoggia a `canPay`, la regola del pagamento, e
+  // non a un metro suo. ⚠️ Un secondo metro renderebbe il pedaggio finto.
+  assert(
+    /if\s*\(!canPay\)/.test(codiceUnito),
+    "b4) e prima di chiamare il server controlla canPay, la regola esistente, invece di riscriverne una"
+  );
+
+  // Lo sconto chiesto dal campo deve arrivare al pagamento, altrimenti il
+  // cliente lo vede applicato e poi non gli viene concesso.
+  assert(
+    codiceUnito.includes("giveMeFiveRequested: giveMeFiveApplied || codiceApplicato,"),
+    "b5) e handlePay manda giveMeFiveRequested vero anche quando lo sconto arriva dal campo"
+  );
+}
+
+// ---------------------------------------------------------------------------
+// c) LE FRASI DELLA ROTTA NON SONO RISCRITTE QUI.
+// Vivono in `app/api/checkout/discount/route.js` e il sito mostra quella che
+// arriva. Due copie della stessa frase divergono, e chi legge non ha modo di
+// sapere quale sia quella vera (lezione `cl`).
+//
+// ⚠️ UNA SOLA ECCEZIONE, ed è dichiarata da §14: la frase dei dati incompleti.
+// Quel caso è l'unico in cui **il server non viene interrogato**, quindi la
+// frase non può che essere del sito. Le altre cinque non devono comparire.
+// ---------------------------------------------------------------------------
+{
+  const FRASI_DELLA_ROTTA = [
+    "Questo codice non è valido.",
+    "Hai già utilizzato questo codice sconto.",
+    "Non siamo riusciti a verificare il codice. Riprova fra qualche istante.",
+    "per usare questo codice.",
+  ];
+
+  for (const frase of FRASI_DELLA_ROTTA) {
+    assert(
+      !sorgente.includes(frase),
+      `c) la frase «${frase}» NON è riscritta nel sito: arriva dalla rotta`
+    );
+  }
+
+  // ⚠️ LA QUINTA FRASE È UN CASO A SÉ, e la prima stesura di questa suite l'ha
+  // sbagliato. «Un articolo del carrello non è più disponibile.» **era già in
+  // `app/page.js` prima di questo lavoro**, come `ITEM_UNAVAILABLE_MESSAGE`
+  // (riga 107): è una seconda copia dichiarata, che serve a `handlePay` per
+  // riconoscere dal TESTO il rifiuto del pagamento — §46, "il rifiuto si
+  // riconosce dal testo, non dallo status" — ed è già tenuta allineata da
+  // `tests/checkout-messages.test.mjs`. Chiederne l'assenza avrebbe preteso di
+  // cancellare una difesa esistente.
+  //
+  // Quello che va verificato è un'altra cosa, più stretta: che quella frase
+  // esista **una volta sola**, come costante, e non sia stata ricopiata dentro
+  // il campo del codice.
+  const occorrenze = (sorgente.match(/Un articolo del carrello non è più disponibile\./g) || []);
+  assert(
+    occorrenze.length === 1,
+    `c5) «Un articolo del carrello…» compare una volta sola, la costante preesistente (trovate ${occorrenze.length})`
+  );
+  assert(
+    codiceUnito.includes('const ITEM_UNAVAILABLE_MESSAGE = "Un articolo del carrello non è più disponibile.";'),
+    "c5b) e quell'unica occorrenza è proprio la costante che il pagamento usa per riconoscere il rifiuto"
+  );
+
+  // E la verifica che copre tutte e cinque insieme: dentro la funzione del
+  // campo del codice non c'è NESSUNA frase della rotta scritta a mano.
+  const inizio = sorgente.indexOf("async function handleApplyCode()");
+  const fine = sorgente.indexOf("const sectionTitleStyle", inizio);
+  const corpoDelCampo = inizio >= 0 && fine > inizio ? sorgente.slice(inizio, fine) : "";
+  assert(corpoDelCampo !== "", "c5c) la funzione del campo si trova nel file (senza, la prova qui sotto sarebbe vacua)");
+  const frasiDentro = [...FRASI_DELLA_ROTTA, "Un articolo del carrello non è più disponibile."].filter(
+    (f) => corpoDelCampo.includes(f)
+  );
+  assert(
+    frasiDentro.length === 0,
+    `c5d) e dentro quella funzione non è scritta a mano nessuna frase della rotta${frasiDentro.length ? ` (trovata: ${frasiDentro[0]})` : ""}`
+  );
+
+  // L'eccezione, che invece DEVE esserci: senza, alla pressione a dati
+  // incompleti il cliente non riceverebbe alcuna risposta.
+  assert(
+    sorgente.includes("Completa i dati dell'ordine per applicare il codice."),
+    "c6) l'unica frase che il sito dice da sé è quella dei dati incompleti, e c'è (§14: lì il server non si interroga)"
+  );
+
+  // La settima situazione di §14: non è una risposta del server ma un ritiro,
+  // quindi vive per forza nel sito — nessun server sa che il carrello è sceso.
+  assert(
+    sorgente.includes("Il carrello è sceso sotto i 25 €: il codice non è più applicato."),
+    "c7) e c'è la frase della decadenza sotto soglia, che nessuna rotta può dire"
+  );
+
+  // Il messaggio della rotta viene mostrato così com'è arrivato.
+  assert(
+    /setCodiceMessaggio\(data\?\.message/.test(codiceUnito),
+    "c8) e la risposta del server si mostra così com'è arrivata, senza essere riscritta"
+  );
+
+  // ⚠️ CONTROPROVA: la sonda delle frasi sa dire di sì quando la frase c'è
+  // davvero? Senza, i cinque «non c'è» qui sopra potrebbero essere cecità.
+  assert(
+    sorgente.includes("Hai sbloccato GIVEMEFIVE"),
+    "c9) CONTROPROVA: la stessa sonda trova una frase che nel file c'è di sicuro"
+  );
+}
+
+// ---------------------------------------------------------------------------
+// d) LE RIGHE `items` HANNO LA STESSA FORMA NELLE DUE CHIAMATE.
+// ⚠️ Se divergessero, il server non risolverebbe le righe e direbbe al cliente
+// che un articolo non è disponibile mentre è tutto a posto — un rifiuto che
+// nessuno saprebbe spiegare, perché il carrello sarebbe corretto.
+// ---------------------------------------------------------------------------
+{
+  const blocchi = sorgente.match(/items:\s*items\.map\(\(item\)\s*=>\s*\(\{[\s\S]*?\}\)\),/g) || [];
+  assert(
+    blocchi.length === 2,
+    `d1) i punti che costruiscono le righe da mandare al server sono due — pagamento e codice (trovati ${blocchi.length})`
+  );
+
+  if (blocchi.length === 2) {
+    for (const campo of ["ref: item.ref", "quantity: item.quantity"]) {
+      const inEntrambi = blocchi.every((b) => b.includes(campo));
+      assert(inEntrambi, `d) entrambe le chiamate costruiscono la riga con \`${campo}\``);
+    }
+
+    // Il prezzo mostrato viaggia SOLO verso il pagamento, che lo confronta
+    // (§46). La rotta dello sconto ricalcola tutto e non lo guarda: mandarglielo
+    // suggerirebbe che serva.
+    const conPrezzo = blocchi.filter((b) => b.includes("unitPriceShown"));
+    assert(
+      conPrezzo.length === 1,
+      `d4) e il prezzo mostrato viaggia verso una sola delle due, il pagamento (blocchi che lo contengono: ${conPrezzo.length})`
+    );
+  }
+
+  // ⚠️ CONTROPROVA: la sonda si accorgerebbe di una forma diversa?
+  const finto = "items: items.map((item) => ({ riga: item.ref, pezzi: item.quantity })),";
+  const blocchiFinti = finto.match(/items:\s*items\.map\(\(item\)\s*=>\s*\(\{[\s\S]*?\}\)\),/g) || [];
+  assert(
+    blocchiFinti.length === 1 && !blocchiFinti[0].includes("ref: item.ref"),
+    "d5) CONTROPROVA: su un blocco finto con nomi di campo diversi, la sonda vede che la forma non combacia"
+  );
+}
+
+console.log(failures === 0 ? "\nTUTTI I TEST PASSATI" : `\n${failures} TEST FALLITI`);
+process.exitCode = failures === 0 ? 0 : 1;

@@ -2588,6 +2588,21 @@ function CheckoutScreen({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [payError, setPayError] = useState(null);
 
+  // §14 (v68) — IL CAMPO DEL CODICE SCONTO. Quattro stati locali, e locali
+  // apposta: come i consensi, ciò che riguarda questa apertura del checkout non
+  // deve sopravviverle. Un codice applicato che tornasse da solo alla
+  // riapertura prometterebbe uno sconto che il server potrebbe non concedere —
+  // esattamente il difetto che tutto questo lavoro chiude.
+  //
+  // ⚠️ `codiceApplicato` NON sostituisce `giveMeFiveApplied`, che arriva dal
+  // carrello e resta l'interruttore di oggi: finché il carrello ha il suo
+  // pulsante (§14, il carrello smette di applicarlo in un lavoro successivo) i
+  // due convivono, e lo sconto vale se lo accende **uno qualunque dei due**.
+  const [codiceScritto, setCodiceScritto] = useState("");
+  const [codiceApplicato, setCodiceApplicato] = useState(false);
+  const [codiceInCorso, setCodiceInCorso] = useState(false);
+  const [codiceMessaggio, setCodiceMessaggio] = useState(null);
+
   const updateDeliveryField = onDeliveryFieldChange;
   const updateCustomerField = onCustomerFieldChange;
 
@@ -2596,10 +2611,32 @@ function CheckoutScreen({
     0
   );
   const qualifiesForGiveMeFive = subtotal >= GIVEMEFIVE_THRESHOLD;
+  // §14 (v68): lo sconto vale se lo ha acceso il carrello (interruttore di
+  // oggi) **oppure** il campo del codice qui sotto. La soglia resta la stessa
+  // condizione di prima e continua a valere per entrambi.
   const giveMeFiveDiscount =
-    giveMeFiveApplied && qualifiesForGiveMeFive ? GIVEMEFIVE_DISCOUNT : 0;
+    (giveMeFiveApplied || codiceApplicato) && qualifiesForGiveMeFive
+      ? GIVEMEFIVE_DISCOUNT
+      : 0;
   const deliveryFee = isDelivery ? DELIVERY_FEE : 0;
   const total = subtotal - giveMeFiveDiscount + deliveryFee;
+
+  // §14 v39, portata dal carrello al checkout: LO SCONTO DECADE SE IL CARRELLO
+  // SCENDE SOTTO SOGLIA. Non è un caso di fantasia — applicare a 30 €, tornare
+  // indietro, togliere un panino — ed è la stessa regola per cui nel carrello
+  // lo sconto "evapora da solo": qui però il cliente lo aveva **chiesto**, e
+  // una cosa che sparisce senza una parola è peggio di un rifiuto.
+  //
+  // ⚠️ Il totale non aspetta questo effetto: `giveMeFiveDiscount` qui sopra
+  // guarda già `qualifiesForGiveMeFive`, quindi i conti sono giusti comunque.
+  // Questo serve a spegnere il flag e a dirlo — cioè a non mandare al pagamento
+  // una richiesta di sconto che il server rifiuterebbe in silenzio.
+  useEffect(() => {
+    if (codiceApplicato && !qualifiesForGiveMeFive) {
+      setCodiceApplicato(false);
+      setCodiceMessaggio("Il carrello è sceso sotto i 25 €: il codice non è più applicato.");
+    }
+  }, [codiceApplicato, qualifiesForGiveMeFive]);
 
   // §68.4: unico caso in cui il checkout è bloccato in base allo stato del
   // servizio — quando non c'è né ASAP né alcuno slot programmato nei prossimi
@@ -2688,7 +2725,11 @@ function CheckoutScreen({
           privacyAccepted,
           marketingOptIn,
           ageConfirmed,
-          giveMeFiveRequested: giveMeFiveApplied,
+          // §14 (v68): lo sconto si chiede al pagamento se lo ha acceso il
+          // carrello **o** il campo del codice. Senza questo `||` un codice
+          // applicato nel checkout verrebbe mostrato al cliente e poi non
+          // concesso dal server: il difetto, rovesciato, che §14 chiude.
+          giveMeFiveRequested: giveMeFiveApplied || codiceApplicato,
         }),
       });
 
@@ -2735,6 +2776,92 @@ function CheckoutScreen({
     } catch (err) {
       setPayError(err.message);
       setIsSubmitting(false);
+    }
+  }
+
+  // §14 (v68) — LA VERIFICA DEL CODICE SCONTO.
+  //
+  // ⚠️ IL PEDAGGIO PASSA DA `canPay`, la regola qui sopra, usata TALE E QUALE.
+  // Decisione di Andrea del 10/08: un metro solo. Copiarne un pezzo — "basta il
+  // telefono" — riaprirebbe il distributore automatico di risposte che §14 ha
+  // chiuso: chi cerca l'elenco di chi ha già ordinato scriverebbe GIVEMEFIVE e
+  // proverebbe numeri. Con `canPay` deve comporre un ordine intero.
+  //
+  // ⚠️ E se `canPay` è falso NON si chiama il server: la frase dei dati
+  // incompleti è l'unica che il sito dice da sé, perché è l'unico caso in cui
+  // §14 stabilisce che il server non venga nemmeno interrogato.
+  async function handleApplyCode() {
+    if (!canPay) {
+      setCodiceMessaggio("Completa i dati dell'ordine per applicare il codice.");
+      return;
+    }
+
+    setCodiceMessaggio(null);
+    setCodiceInCorso(true);
+    try {
+      const response = await fetch("/api/checkout/discount", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          // ⚠️ STESSA FORMA delle righe che `handlePay` manda al pagamento:
+          // `ref` e `quantity`, presi dagli stessi campi della riga di
+          // carrello. Se le due forme divergessero, il server non risolverebbe
+          // le righe e direbbe al cliente che un articolo non è disponibile
+          // mentre è tutto a posto — un rifiuto che nessuno saprebbe spiegare.
+          // *`unitPriceShown` qui non viaggia: questa rotta ricalcola il
+          // subtotale dai dati vivi e il prezzo del browser non lo guarda
+          // nemmeno. Mandarlo suggerirebbe che serva.*
+          items: items.map((item) => ({
+            ref: item.ref,
+            quantity: item.quantity,
+          })),
+          fulfillment: fulfillmentMode,
+          delivery: isDelivery
+            ? {
+                address,
+                houseNumber: civico,
+                latitude: coords?.lat,
+                longitude: coords?.lng,
+                intercom: deliveryDetails.intercom,
+                floorInterior: deliveryDetails.floorInterior,
+                buildingStaircase: deliveryDetails.buildingStaircase,
+                riderNotes: deliveryDetails.riderNotes,
+                timingType,
+                scheduledDay,
+                scheduledTime,
+              }
+            : null,
+          pickup: isDelivery ? null : { scheduledDay: pickupDay, scheduledTime: pickupTime },
+          customer: customerDetails,
+          privacyAccepted,
+          code: codiceScritto,
+        }),
+      });
+
+      const data = await response.json();
+
+      // ⚠️ La frase si mostra COM'È ARRIVATA. I testi di §14 vivono nella rotta
+      // e non si riscrivono qui: due copie della stessa frase divergono, e chi
+      // legge non ha modo di sapere quale sia quella vera (lezione `cl`).
+      if (data?.applied) {
+        setCodiceApplicato(true);
+        setCodiceMessaggio(null);
+      } else {
+        setCodiceApplicato(false);
+        setCodiceMessaggio(data?.message ?? null);
+      }
+    } catch {
+      // ⚠️ Caso DIVERSO dal guasto del server, e per questo con parole sue: qui
+      // la richiesta non è mai arrivata a destinazione. La frase di §14 sulla
+      // lettura fallita vive nella rotta e **non si ricopia qui** — se un
+      // giorno cambiasse, due copie direbbero cose diverse e nessuno saprebbe
+      // quale è quella vera (lezione `cl`).
+      // Mai concedere lo sconto su una richiesta che non è tornata: sarebbe una
+      // promessa che il pagamento non manterrebbe.
+      setCodiceApplicato(false);
+      setCodiceMessaggio("Non siamo riusciti a contattare il server. Riprova fra qualche istante.");
+    } finally {
+      setCodiceInCorso(false);
     }
   }
 
@@ -3052,6 +3179,58 @@ function CheckoutScreen({
           )}
         </div>
 
+        {/* §14 (v68) — IL CAMPO DEL CODICE SCONTO. Sta qui, sotto i dati e
+            sopra il riepilogo, perché è l'ultimo gesto prima dei conti: il
+            cliente scrive il codice e vede il totale cambiare due righe più
+            sotto.
+
+            ⚠️ Sparisce quando lo sconto è applicato — non resta a invitare a
+            riscriverlo — e resta invece dopo un rifiuto, così il cliente può
+            correggere quello che ha scritto. */}
+        {!codiceApplicato && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            <span style={sectionTitleStyle}>Hai un codice sconto?</span>
+            <div style={{ display: "flex", gap: 8, alignItems: "stretch" }}>
+              <input
+                type="text"
+                placeholder="Scrivi il codice"
+                value={codiceScritto}
+                onChange={(event) => setCodiceScritto(event.target.value)}
+                style={{ ...fieldStyle, flex: 1, textTransform: "uppercase" }}
+              />
+              {/* ⚠️ Il pulsante è spento solo mentre la richiesta è in corso e
+                  a campo vuoto. NON è spento quando mancano i dati: se lo
+                  fosse, il cliente vedrebbe un tasto morto senza sapere
+                  perché. Premendolo si sente dire cosa manca — è la stessa
+                  ragione per cui la frase dei dati incompleti esiste. */}
+              <button
+                onClick={handleApplyCode}
+                disabled={codiceInCorso || codiceScritto.trim() === ""}
+                style={{
+                  background:
+                    codiceInCorso || codiceScritto.trim() === ""
+                      ? "var(--card-border)"
+                      : "var(--brand-orange)",
+                  color: "var(--bg-warm)",
+                  border: "none",
+                  borderRadius: 8,
+                  padding: "0 16px",
+                  fontWeight: 600,
+                  fontSize: 14,
+                  cursor:
+                    codiceInCorso || codiceScritto.trim() === "" ? "not-allowed" : "pointer",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {codiceInCorso ? "Verifica…" : "Applica"}
+              </button>
+            </div>
+            {codiceMessaggio && (
+              <div style={{ fontSize: 13, color: "var(--navy)" }}>{codiceMessaggio}</div>
+            )}
+          </div>
+        )}
+
         <div
           style={{
             display: "flex",
@@ -3067,7 +3246,31 @@ function CheckoutScreen({
           </div>
           {giveMeFiveDiscount > 0 && (
             <div style={summaryRowStyle}>
-              <span>GIVEMEFIVE</span>
+              <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                GIVEMEFIVE
+                {/* Il modo per toglierlo, e solo per lo sconto chiesto QUI:
+                    quello acceso dal carrello si toglie dal carrello, e questo
+                    lavoro non cambia il suo comportamento. */}
+                {codiceApplicato && (
+                  <button
+                    onClick={() => {
+                      setCodiceApplicato(false);
+                      setCodiceMessaggio(null);
+                    }}
+                    style={{
+                      background: "none",
+                      border: "none",
+                      color: "var(--brand-orange)",
+                      textDecoration: "underline",
+                      fontSize: 13,
+                      cursor: "pointer",
+                      padding: 0,
+                    }}
+                  >
+                    togli
+                  </button>
+                )}
+              </span>
               <span>{`-${formatPrice(giveMeFiveDiscount)}`}</span>
             </div>
           )}
