@@ -269,5 +269,95 @@ const codiceUnito = codice.join("\n");
   );
 }
 
+// ---------------------------------------------------------------------------
+// e) §14 (v68) — LA RIVERIFICA DEL CODICE RIPRISTINATO.
+//
+// ⚠️ Il punto che fa fallire tutto se sbagliato: la chiamata **non** deve
+// partire alla comparsa del checkout. I tre consensi non si conservano, quindi
+// all'apertura la privacy non è spuntata, `canPay` è falso e la rotta
+// risponderebbe SEMPRE "Completa i dati dell'ordine" — un avviso a ogni
+// riapertura, per sempre, senza che il cliente abbia sbagliato niente.
+// ---------------------------------------------------------------------------
+{
+  // L'effetto della riverifica, isolato dal resto del file.
+  const inizio = sorgente.indexOf("useEffect(() => {\n    if (!canPay) return;");
+  assert(
+    inizio >= 0,
+    "e1) esiste un effetto che si ferma subito se canPay è falso (senza, le prove qui sotto sarebbero vacue)"
+  );
+
+  const effetto = inizio >= 0 ? sorgente.slice(inizio, inizio + 700) : "";
+
+  assert(
+    /if\s*\(riverificaFatta\)\s*return;/.test(effetto),
+    "e2) e non riparte una seconda volta: c'è la guardia che lo ferma se è già stato fatto"
+  );
+  assert(
+    /if\s*\(codiceDaRiverificare === ""\)\s*return;/.test(effetto),
+    "e3) e non parte affatto se non c'era nessun codice ripristinato"
+  );
+  assert(
+    effetto.indexOf("setRiverificaFatta(true);") < effetto.indexOf("handleApplyCode();"),
+    "e4) la guardia si alza PRIMA della chiamata, non dopo: fra le due un ridisegno ne farebbe partire un'altra"
+  );
+  assert(
+    /handleApplyCode\(\);/.test(effetto),
+    "e5) e l'esito passa dalla stessa funzione del pulsante: nessun percorso parallelo che possa divergere"
+  );
+
+  // Il codice ripristinato si congela al primo disegno: un codice appena
+  // battuto dal cliente passa dal pulsante, non da questo effetto.
+  assert(
+    /const \[codiceDaRiverificare\] = useState\(\(\) =>/.test(codiceUnito),
+    "e6) il codice da riverificare è quello del PRIMO disegno, non quello che il cliente sta battendo ora"
+  );
+
+  // ⚠️ CONTROPROVA: la sonda si accorgerebbe se la guardia sparisse?
+  const fintoSenzaGuardia = 'useEffect(() => {\n    handleApplyCode();\n  }, []);';
+  assert(
+    fintoSenzaGuardia.indexOf("if (!canPay) return;") === -1,
+    "e7) CONTROPROVA: su un effetto finto che chiama subito senza guardare canPay, la sonda NON trova la guardia"
+  );
+}
+
+// ---------------------------------------------------------------------------
+// f) §14 (v68) — IL CODICE SOPRAVVIVE ALLA RIAPERTURA, L'ESITO NO.
+// ---------------------------------------------------------------------------
+{
+  // Il codice scritto è salito in Home, come gli altri campi scritti, e viaggia
+  // fino al modulo di persistenza.
+  assert(
+    codiceUnito.includes('const [codiceScritto, setCodiceScritto] = useState("");'),
+    "f1) il codice scritto è stato di Home, non del checkout: è ciò che gli permette di sopravvivere alla chiusura"
+  );
+  assert(
+    /codiceScritto=\{codiceScritto\}/.test(codiceUnito) &&
+      /onCodiceScrittoChange=\{setCodiceScritto\}/.test(codiceUnito),
+    "f2) e arriva al checkout come prop, con il modo per aggiornarlo"
+  );
+  assert(
+    codiceUnito.includes("if (fields.codiceScritto !== undefined) setCodiceScritto(fields.codiceScritto);"),
+    "f3) al ritorno sulla pagina il codice torna nella casella"
+  );
+
+  // ⚠️ E le tre conclusioni NON salgono: restano locali al checkout, dove si
+  // azzerano a ogni apertura come i consensi.
+  for (const conclusione of ["codiceApplicato", "codiceInCorso", "codiceMessaggio"]) {
+    const salito =
+      new RegExp(`${conclusione}=\\{`).test(codiceUnito) ||
+      new RegExp(`\\bconst \\[${conclusione}[^\\]]*\\] = useState`).test(
+        codiceUnito.slice(codiceUnito.indexOf("function Home"))
+      );
+    assert(!salito, `f) «${conclusione}» resta una conclusione locale del checkout, non sale a Home né viaggia come prop`);
+  }
+
+  // ⚠️ CONTROPROVA: la sonda che cerca le conclusioni salite sa riconoscerne
+  // una? Le si dà il nome di un campo che invece è davvero salito.
+  assert(
+    /codiceScritto=\{/.test(codiceUnito),
+    "f7) CONTROPROVA: la stessa forma di ricerca trova un campo che invece è davvero passato come prop"
+  );
+}
+
 console.log(failures === 0 ? "\nTUTTI I TEST PASSATI" : `\n${failures} TEST FALLITI`);
 process.exitCode = failures === 0 ? 0 : 1;

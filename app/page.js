@@ -2565,6 +2565,8 @@ function CheckoutScreen({
   customerDetails,
   onDeliveryFieldChange,
   onCustomerFieldChange,
+  codiceScritto,
+  onCodiceScrittoChange,
   onBack,
   onChangeAddress,
   onMenuRejection,
@@ -2598,10 +2600,27 @@ function CheckoutScreen({
   // carrello e resta l'interruttore di oggi: finché il carrello ha il suo
   // pulsante (§14, il carrello smette di applicarlo in un lavoro successivo) i
   // due convivono, e lo sconto vale se lo accende **uno qualunque dei due**.
-  const [codiceScritto, setCodiceScritto] = useState("");
+  //
+  // ⚠️ `codiceScritto` NON è più stato locale: è salito in `Home` insieme agli
+  // altri campi SCRITTI, perché sopravviva alla chiusura del checkout
+  // (decisione di Andrea del 11/08, §36-40). Qui restano le tre CONCLUSIONI —
+  // applicato, in corso, messaggio — che invece devono azzerarsi a ogni
+  // apertura, come i consensi: un "applicato" ripristinato sarebbe uno sconto
+  // promesso senza che nessuno l'abbia appena verificato.
   const [codiceApplicato, setCodiceApplicato] = useState(false);
   const [codiceInCorso, setCodiceInCorso] = useState(false);
   const [codiceMessaggio, setCodiceMessaggio] = useState(null);
+
+  // §14 (v68) — LA RIVERIFICA DEL CODICE RIPRISTINATO.
+  //
+  // `codiceDaRiverificare` congela, al primo disegno, il codice che è tornato
+  // dalla memoria della visita. Se la casella era vuota resta vuoto per sempre,
+  // e la riverifica non parte mai: un codice appena battuto dal cliente passa
+  // dal pulsante, non da qui.
+  const [codiceDaRiverificare] = useState(() =>
+    typeof codiceScritto === "string" ? codiceScritto.trim() : ""
+  );
+  const [riverificaFatta, setRiverificaFatta] = useState(false);
 
   const updateDeliveryField = onDeliveryFieldChange;
   const updateCustomerField = onCustomerFieldChange;
@@ -2673,6 +2692,30 @@ function CheckoutScreen({
     (!isDelivery || deliverySlotValid) &&
     (!hasBeer || ageConfirmed) &&
     !checkoutBlocked;
+
+  // §14 (v68) — QUANDO PARTE LA RIVERIFICA, ed è il punto su cui tutto questo
+  // pezzo sta o cade.
+  //
+  // ⚠️ **NON all'apertura della schermata.** I tre consensi non si conservano —
+  // sono atti e si azzerano a ogni giro (§36-40 v39) — quindi appena il
+  // checkout compare la privacy NON è spuntata e `canPay` è falso. Una chiamata
+  // fatta lì riceverebbe **sempre** "Completa i dati dell'ordine per applicare
+  // il codice", e il cliente vedrebbe quell'avviso a ogni singola riapertura,
+  // per sempre, senza aver fatto niente di sbagliato.
+  //
+  // Parte invece nel momento in cui `canPay` diventa vero — cioè quando il
+  // cliente ha rimesso la spunta e i dati sono di nuovo completi — e **una
+  // volta sola**: `riverificaFatta` si alza prima della chiamata, così un
+  // ridisegno della schermata non ne fa partire una seconda.
+  useEffect(() => {
+    if (!canPay) return;
+    if (riverificaFatta) return;
+    if (codiceDaRiverificare === "") return;
+    setRiverificaFatta(true);
+    // L'esito si tratta esattamente come quello del pulsante: stessa funzione,
+    // stesse frasi, nessun percorso parallelo che possa divergere.
+    handleApplyCode();
+  }, [canPay, riverificaFatta, codiceDaRiverificare]);
 
   async function handlePay() {
     setPayError(null);
@@ -3195,7 +3238,7 @@ function CheckoutScreen({
                 type="text"
                 placeholder="Scrivi il codice"
                 value={codiceScritto}
-                onChange={(event) => setCodiceScritto(event.target.value)}
+                onChange={(event) => onCodiceScrittoChange(event.target.value)}
                 style={{ ...fieldStyle, flex: 1, textTransform: "uppercase" }}
               />
               {/* ⚠️ Il pulsante è spento solo mentre la richiesta è in corso e
@@ -3388,6 +3431,14 @@ export default function Home() {
     phone: "",
     email: "",
   });
+  // §14 (v68) — il codice sconto BATTUTO nella casella del checkout. Sta qui e
+  // non dentro `CheckoutScreen` per la stessa ragione dei contatti: è un dato
+  // SCRITTO dal cliente, quindi sopravvive alla chiusura e alla riapertura
+  // (decisione di Andrea del 11/08). ⚠️ L'esito della verifica invece **non**
+  // sale qui e resta locale al checkout: è una conclusione del server, e una
+  // conclusione ripristinata prometterebbe uno sconto che nessuno ha appena
+  // verificato.
+  const [codiceScritto, setCodiceScritto] = useState("");
   const [timingType, setTimingType] = useState("asap");
   const [scheduledDay, setScheduledDay] = useState("today");
   const [scheduledTime, setScheduledTime] = useState(null);
@@ -3551,6 +3602,10 @@ export default function Home() {
     if (fields.pickupTime !== undefined) setPickupTime(fields.pickupTime);
     if (fields.pickupTimeExplicit !== undefined) setPickupTimeExplicit(fields.pickupTimeExplicit);
     if (fields.giveMeFiveApplied !== undefined) setGiveMeFiveApplied(fields.giveMeFiveApplied);
+    // §14 (v68): torna il codice SCRITTO, non lo sconto applicato. Chi lo
+    // rimette nella casella non sta ripristinando uno sconto: sta ridando al
+    // cliente ciò che aveva battuto, e la verifica ricomincia da capo.
+    if (fields.codiceScritto !== undefined) setCodiceScritto(fields.codiceScritto);
   }, []);
 
   // §36-40 (v42): SALVATAGGIO DEI DATI DEL CHECKOUT. La guardia impedisce che
@@ -3575,6 +3630,7 @@ export default function Home() {
         pickupTime,
         pickupTimeExplicit,
         giveMeFiveApplied,
+        codiceScritto,
       })
     );
   }, [
@@ -3591,6 +3647,7 @@ export default function Home() {
     pickupTime,
     pickupTimeExplicit,
     giveMeFiveApplied,
+    codiceScritto,
   ]);
 
   // §36-40 (v36): SALVATAGGIO. A ogni cambiamento del carrello si riscrive la
@@ -4049,6 +4106,8 @@ export default function Home() {
           customerDetails={customerDetails}
           onDeliveryFieldChange={updateDeliveryField}
           onCustomerFieldChange={updateCustomerField}
+          codiceScritto={codiceScritto}
+          onCodiceScrittoChange={setCodiceScritto}
           onBack={() => {
             setCheckoutOpen(false);
             setCartOpen(true);

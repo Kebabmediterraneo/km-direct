@@ -360,5 +360,89 @@ const hasDrop = (dropped, field) => dropOf(dropped, field) !== undefined;
   }
 }
 
+// ---------------------------------------------------------------------------
+// l) §14 (v68) — IL CODICE SCONTO SCRITTO NELLA CASELLA.
+//
+// Si conserva ciò che il cliente ha BATTUTO. L'esito della verifica no: è una
+// conclusione, e questo modulo dichiara di non conservarne mai.
+// ---------------------------------------------------------------------------
+{
+  // ⚠️ LA PROVA CHE PROTEGGE CHI STA ORDINANDO IN QUESTO MOMENTO: una struttura
+  // conservata PRIMA della v68 non ha la chiave nuova. Deve ripristinarsi
+  // intera e senza scarti — se `FORMAT_VERSION` fosse stata alzata, o se
+  // l'assenza contasse come errore, il checkout di chi ha la pagina aperta
+  // verrebbe buttato via: indirizzo, contatti e orario, per una chiave in più.
+  // ⚠️ La versione si scrive col NUMERO LETTERALE, non con la costante
+  // importata: usando la costante questa prova seguirebbe qualunque cambio e
+  // non potrebbe più fallire — direbbe sempre di sì. È **1** che sta scritto
+  // nelle strutture conservate dai clienti che hanno la pagina aperta adesso.
+  assert(
+    FORMAT_VERSION === 1,
+    `l0) FORMAT_VERSION vale ancora 1: alzarla butterebbe via il checkout già conservato di chi sta ordinando (vale ${FORMAT_VERSION})`
+  );
+
+  const vecchia = prepareCheckout(STATO_PIENO);
+  delete vecchia.codiceScritto;
+  vecchia.v = 1;
+  assert(
+    vecchia.codiceScritto === undefined,
+    "l1) la struttura 'vecchia' è davvero senza la chiave nuova (senza, le prove qui sotto non proverebbero niente)"
+  );
+
+  const ripristinata = restoreCheckout(vecchia);
+  assert(ripristinata.dropped.length === 0, `l2) struttura conservata prima della v68 → ZERO scarti (ne ha ${ripristinata.dropped.length})`);
+  assert(ripristinata.fields.codiceScritto === undefined, "l3) e il codice semplicemente non si ripristina: l'assenza non è un errore");
+  assert(
+    ripristinata.fields.deliveryAddress === STATO_PIENO.deliveryAddress &&
+      ripristinata.fields.customerDetails.phone === STATO_PIENO.customerDetails.phone &&
+      ripristinata.fields.scheduledTime === "20:15",
+    "l4) mentre tutto il resto torna intero: indirizzo, telefono e orario"
+  );
+
+  // Il giro normale: si conserva e si ritrova.
+  const conCodice = prepareCheckout({ ...STATO_PIENO, codiceScritto: "GIVEMEFIVE" });
+  assert(conCodice.codiceScritto === "GIVEMEFIVE", "l5) il codice scritto si conserva");
+  assert(restoreCheckout(conCodice).fields.codiceScritto === "GIVEMEFIVE", "l6) e si ripristina identico");
+
+  // ⚠️ L'ESITO NON PASSA. `codiceApplicato` non è nella lista chiusa, quindi non
+  // attraversa il modulo nemmeno se glielo si passa esplicitamente — è la
+  // stessa difesa per costruzione dei tre consensi.
+  const conEsito = prepareCheckout({
+    ...STATO_PIENO,
+    codiceScritto: "GIVEMEFIVE",
+    codiceApplicato: true,
+  });
+  assert(conEsito.codiceApplicato === undefined, "l7) 'codiceApplicato' NON si conserva: è una conclusione, non un dato scritto");
+  assert(conEsito.codiceScritto === "GIVEMEFIVE", "l8) e nello stesso giro il codice scritto invece c'è: la lista chiusa distingue i due");
+  assert(restoreCheckout(conEsito).fields.codiceApplicato === undefined, "l9) e non ricompare nemmeno al ripristino");
+
+  // Non stringa → scartato col suo motivo, e la casella resta vuota.
+  const sbagliato = restoreCheckout({ v: FORMAT_VERSION, codiceScritto: 5 });
+  assert(sbagliato.fields.codiceScritto === undefined, "l10) codice non stringa → non si ripristina");
+  assert(
+    dropOf(sbagliato.dropped, "codiceScritto")?.reason === DROP_INVALID,
+    `l11) e viene registrato fra gli scartati col motivo giusto (${dropOf(sbagliato.dropped, "codiceScritto")?.reason})`
+  );
+  assert(
+    restoreCheckout({ v: FORMAT_VERSION, codiceScritto: { testo: "GIVEMEFIVE" } }).fields.codiceScritto === undefined,
+    "l12) e nemmeno una struttura al posto del testo passa"
+  );
+
+  // La casella vuota è un valore vero, non un errore: il cliente ha cancellato
+  // quello che aveva scritto.
+  const vuoto = restoreCheckout({ v: FORMAT_VERSION, codiceScritto: "" });
+  assert(vuoto.fields.codiceScritto === "" && vuoto.dropped.length === 0, "l13) casella svuotata dal cliente → si conserva vuota, senza scarti");
+
+  // ⚠️ CONTROPROVA: queste sonde sanno dire di no? Si sporca di proposito il
+  // valore atteso e si verifica che il confronto cambi esito. Senza, "zero
+  // scarti" e "il codice torna" potrebbero essere veri per caso.
+  const controprova1 = restoreCheckout({ v: FORMAT_VERSION, codiceScritto: 5 }).dropped.length;
+  assert(controprova1 > 0, `l14) CONTROPROVA: su un valore illeggibile la sonda degli scarti NON dice zero (dice ${controprova1})`);
+  assert(
+    restoreCheckout(conCodice).fields.codiceScritto !== "SCONTO10",
+    "l15) CONTROPROVA: la sonda del ripristino confronta il valore vero, non passa con un codice qualunque"
+  );
+}
+
 console.log(failures === 0 ? "\nTUTTI I TEST PASSATI" : `\n${failures} TEST FALLITI`);
 process.exitCode = failures === 0 ? 0 : 1;
