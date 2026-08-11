@@ -213,6 +213,47 @@ const err = (res) => res?.body?.error;
     "d19c) CONTROPROVA: il messaggio vecchio non torna indietro, e la sonda saprebbe riconoscerlo"
   );
   assert(conTelefono("0511234567").ok === true, "d20) mentre un fisso che inizia per 0 passa, come deve");
+
+  // -------------------------------------------------------------------------
+  // §41-45 (11/08/2026, secondo giro) — ⚠️ IL PAESE ARRIVA DAL CORPO DELLA
+  // RICHIESTA, ed è `customer.country`.
+  //
+  // Il sito non lo manda ancora — la tendina dei prefissi è il passo
+  // successivo — quindi qui si prova la cosa che conta di più: che l'assenza
+  // del paese **non cambi niente**, e che un paese scritto storto non apra una
+  // porta invece di chiuderla.
+  // -------------------------------------------------------------------------
+  const conPaese = (phone, country) =>
+    validateCheckoutRequest(delivery({ customer: { ...CLIENTE, phone, country } }), OPZ);
+
+  assert(conPaese("+393331234567", "IT").ok === true, "p1) un numero italiano già composto col prefisso, dichiarato italiano → passa");
+  assert(
+    err(conPaese("+391331234567", "IT")) === attesoForma,
+    "⚠️ p2) mentre lo stesso numero che inizia per 1 → RIFIUTATO anche col +39 davanti: prima il prefisso faceva saltare la regola"
+  );
+  assert(conPaese("+41791234567", "CH").ok === true, "p3) un numero svizzero dichiarato svizzero → passa");
+  assert(
+    err(conPaese("+41791234567", "IT")) === attesoForma,
+    "p4) lo stesso numero svizzero dichiarato italiano → rifiutato: il prefisso non è quello del paese ricevuto"
+  );
+
+  // ⚠️ IL RIPIEGO. Un paese mancante o mai visto vale ITALIA, e la regola
+  // italiana arriva fin qui: è ciò che accade oggi e non deve rompersi per una
+  // richiesta vecchia.
+  assert(conPaese("3331234567", undefined).ok === true, "p5) senza paese, un numero italiano vero passa esattamente come prima");
+  assert(
+    err(conPaese("791234567", "XX")) === attesoForma,
+    "⚠️ p6) con un paese SCONOSCIUTO vale l'Italia, quindi un numero che inizia per 7 viene rifiutato — un country storto non scavalca il controllo"
+  );
+  assert(conPaese("3331234567", "it").ok === true, "p7) e il codice del paese scritto minuscolo funziona: arriva così da più di un posto");
+
+  // ⚠️ CONTROPROVA: il paese sta davvero arrivando al modulo, o queste prove
+  // passerebbero anche se il validatore lo buttasse via? Se lo ignorasse,
+  // varrebbe sempre l'Italia — e questo numero svizzero verrebbe rifiutato.
+  assert(
+    conPaese("+41791234567", "CH").ok === true && err(conPaese("+41791234567", undefined)) === attesoForma,
+    "p8) CONTROPROVA: LO STESSO numero passa con paese CH e viene rifiutato senza paese — quindi il paese arriva al modulo, non viene ignorato"
+  );
   assert(conTelefono("333123456").ok === true, "d21) e il cellulare di nove cifre pure");
 }
 

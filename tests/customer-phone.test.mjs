@@ -17,6 +17,8 @@ import {
   PHONE_TOO_SHORT,
   PHONE_TOO_LONG,
   PHONE_IT_BAD_PREFIX,
+  PHONE_WRONG_COUNTRY_PREFIX,
+  PHONE_PLUS_NOT_ALLOWED,
   PHONE_INVALID_MESSAGE,
   DEFAULT_COUNTRY,
 } from "../lib/customer-phone.js";
@@ -124,31 +126,72 @@ function assert(cond, msg) {
   assert(checkPhone("1".repeat(15), "CH").outcome === PHONE_OK, "d5) quindici cifre → accettate: il limite alto è largo");
   assert(checkPhone("1".repeat(16), "CH").outcome === PHONE_TOO_LONG, "d6) sedici → troppo lungo");
 
-  // ⚠️ Nessuna tabella dei paesi: un paese mai visto non fa esplodere niente e
-  // segue la regola larga. È il comportamento voluto — una tabella rifiuterebbe
-  // clienti veri in silenzio il giorno che un paese cambia numerazione.
+  // ⚠️ **d7 È STATA CAPOVOLTA L'11/08 (secondo giro), NON CANCELLATA.**
+  // Fino a poche ore fa un paese sconosciuto seguiva la regola LARGA, e questa
+  // prova lo sorvegliava. Ora vale l'Italia — decisione del comando del
+  // prefisso: *se il paese manca o non è riconosciuto, vale l'Italia*, che è
+  // ciò che accade oggi e non deve rompersi per una richiesta vecchia.
+  //
+  // ⚠️ Il verso nuovo protegge una cosa in più del verso vecchio: una richiesta
+  // costruita a mano con `country: "XX"` **scavalcava tutte le regole
+  // italiane** e nessuno l'avrebbe fermata. Cadendo sull'Italia, un codice
+  // sbagliato porta al controllo più severo, non al più lasco.
+  const sconosciuto = checkPhone("791234567", "PAESE-CHE-NON-ESISTE");
   assert(
-    checkPhone("791234567", "PAESE-CHE-NON-ESISTE").outcome === PHONE_OK,
-    "d7) un paese sconosciuto segue la regola larga invece di far cadere tutto"
+    sconosciuto.outcome === PHONE_IT_BAD_PREFIX,
+    `d7) un paese sconosciuto vale ITALIA, e "791234567" (inizia per 7) viene rifiutato dalla regola italiana (esito ${sconosciuto.outcome})`
+  );
+  assert(
+    checkPhone("791234567", "PAESE-CHE-NON-ESISTE").outcome === checkPhone("791234567", "IT").outcome &&
+      checkPhone("791234567", "PAESE-CHE-NON-ESISTE").outcome !== checkPhone("791234567", "CH").outcome,
+    "d7b) e lo stesso numero con paese sconosciuto si comporta come con l'Italia, non come con la Svizzera: è il ripiego, e si vede"
+  );
+  assert(
+    checkPhone("3331234567", "PAESE-CHE-NON-ESISTE").outcome === PHONE_OK,
+    "d7c) mentre un numero italiano vero, con un paese sconosciuto, passa: il ripiego non rompe niente"
   );
 }
 
 // ---------------------------------------------------------------------------
 // e) IL NUMERO SCRITTO IN FORMA INTERNAZIONALE.
-// ⚠️ Scelta dell'11/08 da confermare: chi scrive il `+` sta dichiarando lui il
-// paese, quindi la regola italiana non gli si applica e vale quella larga.
-// Rifiutarlo butterebbe fuori chi scrive il numero nel modo più corretto che
-// conosce.
+//
+// ⚠️⚠️ **QUESTO BLOCCO È STATO CAPOVOLTO L'11/08 (secondo giro), decisione (P)
+// di Andrea: COMANDA IL PAESE SCELTO NELLA TENDINA, SEMPRE.** Fino a poche ore
+// fa il `+` dichiarava il paese e portava il numero sulla regola larga; queste
+// prove sorvegliavano quel comportamento. Ora il `+` non dichiara più niente: è
+// solo il segno che il prefisso è già davanti al numero, e **deve essere il
+// prefisso del paese ricevuto**.
+//
+// *Le prove non sono state cancellate: dicono il contrario di prima e coprono
+// più casi di prima (lezione `cr`).*
 // ---------------------------------------------------------------------------
 {
+  // Senza paese vale l'Italia, quindi "+39…" è coerente e passa: la parte
+  // nazionale è "3331234567", dieci cifre che iniziano per 3.
   const it = checkPhone("+393331234567");
   assert(it.outcome === PHONE_OK, `e1) "+393331234567" → accettato (esito ${it.outcome}, cifre ${it.digits})`);
   assert(it.phone === "+393331234567", `e2) e il + resta nel numero ripulito ("${it.phone}")`);
-
-  const estero = checkPhone("+41 79 123 45 67");
   assert(
-    estero.outcome === PHONE_OK && estero.phone === "+41791234567",
-    `e3) un numero svizzero con spazi → accettato e ripulito ("${estero.phone}")`
+    it.digits === 10 && it.national === "3331234567",
+    `e2b) ⚠️ e le cifre contate sono le DIECI della parte nazionale, non le dodici col prefisso (cifre ${it.digits}, nazionale "${it.national}")`
+  );
+
+  // ⚠️ CAPOVOLTA. Un numero svizzero **senza dire che è svizzero** ora viene
+  // rifiutato: col paese predefinito Italia, "+41" è il prefisso di un altro
+  // paese. *Non è una durezza gratuita — è ciò che rende impossibile che un
+  // numero scavalchi la regola italiana scrivendosi un prefisso davanti.*
+  const esteroSenzaPaese = checkPhone("+41 79 123 45 67");
+  assert(
+    esteroSenzaPaese.outcome !== PHONE_OK,
+    `e3) un numero svizzero SENZA il paese → rifiutato, perché senza paese vale l'Italia (esito ${esteroSenzaPaese.outcome})`
+  );
+
+  // ...e con il paese giusto passa. È la coppia che dimostra che il rifiuto di
+  // e3 riguarda il paese e non il numero.
+  const esteroConPaese = checkPhone("+41791234567", "CH");
+  assert(
+    esteroConPaese.outcome === PHONE_OK && esteroConPaese.national === "791234567",
+    `e3b) LO STESSO numero dichiarato svizzero → accettato, parte nazionale "${esteroConPaese.national}" (esito ${esteroConPaese.outcome})`
   );
 
   // Il `+` vale solo in testa: in mezzo è un simbolo come gli altri.
@@ -245,10 +288,24 @@ function assert(cond, msg) {
     `i14) LO STESSO numero con paese diverso dall'Italia → ACCETTATO: le prime cifre altrui non le conosciamo (esito ${altrove.outcome})`
   );
 
+  // ⚠️ **i15 È STATA CAPOVOLTA L'11/08 (secondo giro), decisione (P).** Diceva:
+  // "col + iniziale è accettato, perché chi lo scrive dichiara lui il paese".
+  // Ora il + non dichiara niente, e "+1331234567" con l'Italia selezionata è il
+  // prefisso di un altro paese: rifiutato.
+  //
+  // ⚠️ *Questa è la prova che vale più di tutte in questo giro*: prima bastava
+  // scrivere un + davanti a un numero impossibile per farlo passare.
   const conPiu = checkPhone("+1331234567");
   assert(
-    conPiu.outcome === PHONE_OK,
-    `i15) e col + iniziale → accettato, per la stessa ragione: chi lo scrive dichiara lui il paese (esito ${conPiu.outcome})`
+    conPiu.outcome === PHONE_WRONG_COUNTRY_PREFIX,
+    `i15) col + di un ALTRO paese → RIFIUTATO: il + non dichiara più il paese, lo dichiara la tendina (esito ${conPiu.outcome})`
+  );
+  // E lo stesso numero italiano impossibile, col prefisso italiano davanti,
+  // cade sulla regola delle prime cifre invece di scavalcarla.
+  const conPiu39 = checkPhone("+391331234567");
+  assert(
+    conPiu39.outcome === PHONE_IT_BAD_PREFIX,
+    `i15b) ⚠️ e "+391331234567" cade sulla regola dello 0 e del 3, che prima il prefisso faceva SALTARE (esito ${conPiu39.outcome})`
   );
 
   assert(
@@ -287,6 +344,198 @@ function assert(cond, msg) {
   assert(
     fintoTroppoStretto("3331234567").outcome !== checkPhone("3331234567").outcome,
     "i20) e una regola che rifiutasse anche i cellulari darebbe un esito diverso dal modulo vero: le prove distinguono i due casi"
+  );
+}
+
+// ---------------------------------------------------------------------------
+// j) ⚠️⚠️ IL PREFISSO DAVANTI AL NUMERO — decisione (P) di Andrea dell'11/08:
+// COMANDA IL PAESE SCELTO NELLA TENDINA, SEMPRE.
+//
+// **Il difetto che questo blocco esiste per chiudere.** Con la tendina dei
+// prefissi TUTTI i numeri arriveranno col `+` davanti. Prima di oggi il `+`
+// portava il numero sulla regola larga (6-15 cifre) e faceva saltare **le due
+// decisioni dell'11/08 mattina**: 9 o 10 cifre, e prima cifra 0 o 3. Si
+// sarebbero spente **tutte insieme e in silenzio**, senza che una prova
+// diventasse rossa, perché il codice sarebbe rimasto coerente con sé stesso.
+// ---------------------------------------------------------------------------
+{
+  // I nove casi chiesti da Andrea, uno per uno e nell'ordine in cui li ha
+  // scritti.
+  const j1 = checkPhone("+393331234567", "IT");
+  assert(j1.outcome === PHONE_OK, `j1) "+393331234567" con paese IT → accettato (esito ${j1.outcome}, nazionale "${j1.national}")`);
+
+  const j2 = checkPhone("+391331234567", "IT");
+  assert(
+    j2.outcome === PHONE_IT_BAD_PREFIX,
+    `j2) ⚠️ "+391331234567" con paese IT → RIFIUTATO: la parte nazionale inizia per 1 (esito ${j2.outcome})`
+  );
+
+  const j3 = checkPhone("+39333123456", "IT");
+  assert(
+    j3.outcome === PHONE_OK,
+    `j3) "+39333123456" (NOVE cifre) con paese IT → accettato: la correzione di Andrea vale anche col prefisso davanti (esito ${j3.outcome})`
+  );
+
+  const j4 = checkPhone("+3933312345", "IT");
+  assert(j4.outcome === PHONE_TOO_SHORT, `j4) "+3933312345" (otto cifre) con paese IT → rifiutato (esito ${j4.outcome})`);
+
+  const j5 = checkPhone("+41791234567", "CH");
+  assert(j5.outcome === PHONE_OK, `j5) "+41791234567" con paese CH → accettato (esito ${j5.outcome}, nazionale "${j5.national}")`);
+
+  const j6 = checkPhone("+393331234567", "CH");
+  assert(
+    j6.outcome === PHONE_WRONG_COUNTRY_PREFIX,
+    `j6) un numero italiano dichiarato svizzero → RIFIUTATO: il prefisso non è quello del paese ricevuto (esito ${j6.outcome})`
+  );
+  const j6b = checkPhone("+41791234567", "IT");
+  assert(
+    j6b.outcome === PHONE_WRONG_COUNTRY_PREFIX,
+    `j6b) e il verso opposto, un numero svizzero dichiarato italiano (esito ${j6b.outcome})`
+  );
+
+  const j7 = checkPhone("3331234567");
+  assert(j7.outcome === PHONE_OK, `j7) "3331234567" SENZA paese → accettato come oggi (esito ${j7.outcome})`);
+
+  const j8 = checkPhone("1331234567");
+  assert(j8.outcome === PHONE_IT_BAD_PREFIX, `j8) "1331234567" SENZA paese → rifiutato come oggi (esito ${j8.outcome})`);
+
+  const j9 = checkPhone("+39 333 123 4567", "IT");
+  assert(
+    j9.outcome === PHONE_PLUS_NOT_ALLOWED,
+    `j9) ⚠️ "+39 333 123 4567" — il + battuto a mano nel campo, staccato dal numero → RIFIUTATO (esito ${j9.outcome})`
+  );
+
+  // Tutti i rifiuti portano la frase, che è una sola.
+  for (const [nome, esito] of [["prefisso di un altro paese", j6], ["+ scritto a mano", j9], ["prima cifra impossibile", j2]]) {
+    assert(
+      esito.message === PHONE_INVALID_MESSAGE,
+      `j10) il rifiuto per ${nome} porta la frase decisa da Andrea, che è una sola ("${esito.message}")`
+    );
+  }
+
+  // ⚠️ E COSA DEVE ANCORA PASSARE: quello che la tendina produrrà davvero.
+  // Il campo compone `+39` e poi ci attacca ciò che il cliente ha scritto —
+  // spazi compresi, perché gli spazi si TOLGONO e non si rifiutano (decisione
+  // D). Se questa prova cadesse, la tendina rifiuterebbe chi scrive col
+  // telefono in mano, cioè quasi tutti.
+  const j11 = checkPhone("+39333 123 4567", "IT");
+  assert(
+    j11.outcome === PHONE_OK && j11.phone === "+393331234567",
+    `j11) "+39333 123 4567" — come lo comporrà la tendina se il cliente scrive con gli spazi → accettato e ripulito ("${j11.phone}", esito ${j11.outcome})`
+  );
+
+  // ⚠️⚠️ LA PROVA CHE AVREBBE FERMATO IL DIFETTO, ed è la più importante del
+  // blocco: per OGNI numero, col prefisso davanti o senza, l'esito deve essere
+  // LO STESSO. Se un domani qualcuno rimettesse il `+` sulla regola larga,
+  // queste sei righe diventerebbero rosse tutte insieme.
+  const nazionali = [
+    ["3331234567", "un cellulare di dieci cifre"],
+    ["333123456", "un cellulare di NOVE cifre"],
+    ["051123456", "un fisso di nove cifre"],
+    ["1331234567", "un numero che inizia per 1, impossibile in Italia"],
+    ["33312345", "otto cifre, troppo corto"],
+    ["33312345678", "undici cifre, troppo lungo"],
+  ];
+  for (const [numero, che] of nazionali) {
+    const senza = checkPhone(numero, "IT");
+    const con = checkPhone(`+39${numero}`, "IT");
+    assert(
+      senza.outcome === con.outcome,
+      `j12) ${che}: "${numero}" e "+39${numero}" danno lo STESSO esito (${senza.outcome} = ${con.outcome})`
+    );
+  }
+
+  // ⚠️ CONTROPROVA — QUESTE PROVE SAPREBBERO DIVENTARE ROSSE?
+  // Si ricostruisce la REGOLA VECCHIA, quella di stamattina: col `+` davanti,
+  // 6-15 cifre e nessun controllo sulle prime. Se il modulo si comportasse
+  // ancora così, j2 e j12 direbbero di sì — quindi la differenza fra le due
+  // funzioni è esattamente ciò che questo blocco misura.
+  const regolaVecchia = (raw) => {
+    const pulito = String(raw).replace(/[\s.\-–—()]/g, "");
+    const internazionale = pulito.startsWith("+");
+    const corpo = internazionale ? pulito.slice(1) : pulito;
+    if (!/^[0-9]+$/.test(corpo)) return PHONE_NOT_A_NUMBER;
+    const min = internazionale ? 6 : 9;
+    const max = internazionale ? 15 : 10;
+    if (corpo.length < min) return PHONE_TOO_SHORT;
+    if (corpo.length > max) return PHONE_TOO_LONG;
+    if (!internazionale && corpo[0] !== "0" && corpo[0] !== "3") return PHONE_IT_BAD_PREFIX;
+    return PHONE_OK;
+  };
+
+  assert(
+    regolaVecchia("+391331234567") === PHONE_OK,
+    "j13) CONTROPROVA: con la regola di stamattina un numero italiano IMPOSSIBILE col +39 davanti passava"
+  );
+  assert(
+    checkPhone("+391331234567", "IT").outcome !== regolaVecchia("+391331234567"),
+    "j14) e il modulo di adesso dà un esito diverso da quella regola: la prova distingue i due comportamenti"
+  );
+  const spenteInSilenzio = nazionali.filter(
+    ([n]) => regolaVecchia(`+39${n}`) !== regolaVecchia(n)
+  );
+  // ⚠️ Il numero è TRE, e va scritto per esteso invece di essere ricavato: è la
+  // misura del difetto, e se cambiasse vorrebbe dire che è cambiata la regola
+  // vecchia ricostruita qui sopra, cioè che il confronto non confronta più
+  // quello che crede. *Una prima stesura diceva quattro — sbagliato, contato a
+  // occhio — e questa riga è diventata rossa. È il motivo per cui c'è.*
+  assert(
+    spenteInSilenzio.length === 3,
+    `j15) ⚠️ CONTROPROVA del difetto: con la regola vecchia, ${spenteInSilenzio.length} dei sei numeri cambiavano esito solo per avere il +39 davanti (${spenteInSilenzio.map(([n]) => n).join(", ")}) — è la misura di quanto si sarebbe spento in silenzio`
+  );
+}
+
+// ---------------------------------------------------------------------------
+// k) ⚠️ SENZA PAESE, NIENTE DEVE CAMBIARE.
+//
+// Oggi né il sito né il server passano il paese, e finché la tendina non c'è
+// tutto deve funzionare **esattamente come prima di questo cambio**. Gli esiti
+// qui sotto sono scritti a mano, uno per uno: non derivati da una chiamata al
+// modulo, che li confronterebbe con sé stessi.
+//
+// ⚠️ **Una cosa SENZA paese è cambiata, ed è dichiarata invece che nascosta**:
+// un numero che comincia col `+` di un ALTRO paese (`"+41…"`, `"+1…"`) prima
+// passava e ora viene rifiutato — è la decisione (P), ed è il punto di tutto il
+// lavoro. Vedi i blocchi e) e i).
+// ---------------------------------------------------------------------------
+{
+  const attesi = [
+    ["3331234567", PHONE_OK, "dieci cifre che iniziano per 3"],
+    ["333123456", PHONE_OK, "NOVE cifre che iniziano per 3 — la correzione di Andrea"],
+    ["051123456", PHONE_OK, "un fisso di nove cifre"],
+    ["0511234567", PHONE_OK, "un fisso di dieci cifre"],
+    ["333 123 4567", PHONE_OK, "un numero scritto con gli spazi"],
+    ["1331234567", PHONE_IT_BAD_PREFIX, "dieci cifre che iniziano per 1"],
+    ["4331234567", PHONE_IT_BAD_PREFIX, "dieci cifre che iniziano per 4"],
+    ["33312345", PHONE_TOO_SHORT, "otto cifre"],
+    ["33312345678", PHONE_TOO_LONG, "undici cifre"],
+    ["ciao", PHONE_NOT_A_NUMBER, "una parola"],
+    ["", PHONE_EMPTY, "il campo vuoto"],
+    ["   ", PHONE_EMPTY, "soli spazi"],
+  ];
+
+  for (const [numero, atteso, che] of attesi) {
+    const { outcome } = checkPhone(numero);
+    assert(
+      outcome === atteso,
+      `k) senza paese, ${che} → "${atteso}" come prima del cambio (esito "${outcome}")`
+    );
+  }
+
+  // E il numero ripulito resta quello di prima: è ciò che finisce in database,
+  // dove il telefono è la CHIAVE con cui un cliente viene riconosciuto.
+  assert(
+    checkPhone("333 123 4567").phone === "3331234567",
+    `k13) ⚠️ e senza paese il numero salvato non ha il prefisso davanti, come oggi ("${checkPhone("333 123 4567").phone}") — il telefono è la chiave del cliente e la sua forma non è cambiata`
+  );
+
+  // CONTROPROVA: se il ripiego sull'Italia non ci fosse — cioè se un paese
+  // mancante prendesse la regola larga, com'era ieri — questi due numeri
+  // passerebbero entrambi. È il verso in cui la fissità si romperebbe.
+  assert(
+    checkPhone("1331234567").outcome !== checkPhone("1331234567", "CH").outcome &&
+      checkPhone("33312345").outcome !== checkPhone("33312345", "CH").outcome,
+    "k14) CONTROPROVA: gli stessi due numeri con un paese estero danno esiti diversi, quindi senza paese si sta davvero applicando la regola italiana e non quella larga"
   );
 }
 
