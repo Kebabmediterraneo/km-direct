@@ -1,6 +1,6 @@
 # KM DIRECT — MASTER SPECIFICATION
 
-**Versione 68** — sostituisce la v67.
+**Versione 69** — sostituisce la v68.
 
 Documento di riferimento definitivo per lo sviluppo. Le decisioni qui
 contenute sono approvate: non vanno reinterpretate senza un motivo concreto
@@ -22,34 +22,37 @@ versione corrente**. I precedenti vivono in `git log`, che è fatto per quello.
 del documento prima che cominciasse a parlare del progetto — e dentro c'erano
 istruzioni rovesciate che nessuno rileggeva.*
 
-**Novità della v68** (vincolanti, dalle decisioni del 10/08/2026):
+**Novità della v69** (vincolanti, dal lavoro del 10-11/08/2026):
 
-1. §14 — ⚠️ **GIVEMEFIVE SPARISCE DAL SITO.** Niente banner in home, niente
-   progressione della soglia nel carrello, nessun pulsante "Applica". Al suo
-   posto, nel checkout, un campo **"Hai un codice sconto?"** dove il cliente
-   scrive il codice. Il codice si comunica **fuori dal sito**.
-2. §14 — ✅ **è il cliente a chiedere, quindi gli si può rispondere.** È questo
-   che scioglie il nodo su cui la v65 si era fermata: uno sconto che compare da
-   solo, se la verifica si guasta, o tace o promette il falso; un campo può dire
-   *"riprova"*. **Le sei risposte del campo sono fissate parola per parola.**
-3. §14 — ⚠️ **IL PEDAGGIO RESTA, ED È LA STESSA DIFESA DELLA v65.** Il campo non
-   toglie il pericolo, lo sposta su un gesto volontario: la verifica risponde
-   **solo a checkout compilato e carrello sopra soglia**, mai al solo numero di
-   telefono. La difesa sta o cade sul **ricalcolo della soglia lato server**.
-4. §14 — **le due risposte restano distinte**, e questo ha un prezzo scritto:
-   *"hai già utilizzato questo codice sconto"*, detta a un numero, dice che quel
-   numero ha già ordinato. **È un baratto scelto, non una svista.**
-5. §14 — **la rotta nuova non tocca `app/api/checkout/route.js`** (strada B): si
-   ricalcola il subtotale per conto suo riusando `lib/checkout-resolve.js`. **I
-   sei lavori del punto 16 dell'handoff restano aperti dove sono.**
-6. §2, §6, §36-40, §41-45 — le zone che nominavano il banner e il pulsante sono
-   allineate qui dentro, **nello stesso giro**: una decisione scritta in un solo
-   punto lascia le altre a mentire con l'autorità del documento.
+1. §14 — ✅ **LO SPOSTAMENTO DI GIVEMEFIVE È FATTO**, tutti e quattro gli anelli
+   nell'ordine obbligato: il cuore (`c164b3b`), la rotta (`e03bb4c`), il campo
+   nel checkout (`b6f6434`), la sopravvivenza alla riapertura (`d2ebc41`) e
+   infine il carrello che smette di nominarlo (`8df6018`). **Provato dal vivo da
+   Andrea**, pagamento in sandbox compreso.
+2. §14 — ⚠️ **IL CAMPO DEL CHECKOUT È ORA L'UNICO INTERRUTTORE** dello sconto in
+   tutto il progetto. Il pulsante del carrello non esiste più.
+3. §14 — **il guasto di lettura NON concede lo sconto**, all'opposto di
+   `lib/checkout-discount.js` dove lo regala. Le due regole convivono di
+   proposito: la differenza non è fra due file, è fra uno sconto che si offre da
+   sé e uno che il cliente ha chiesto.
+4. §14 — **lo sconto non guarda gli orari** (decisione del 10/08): locale chiuso
+   e slot scaduto li ferma il pagamento, non il campo.
+5. §14, §36-40 — **il codice scritto sopravvive alla riapertura, ma riverificato
+   dal server** quando i dati tornano completi, mai all'apertura: i tre consensi
+   si azzerano a ogni giro, quindi una verifica fatta lì risponderebbe sempre
+   *"dati incompleti"*.
+6. §36-40 — **il suggerimento fra i 20 e i 25 € resta e scatta alla stessa
+   soglia**, con un testo che non nomina più lo sconto: la domanda lasciata
+   aperta in v68 è **chiusa**.
+7. §14 — ⚠️ **il pedaggio costa meno di come lo si era immaginato**, ed è
+   scritto com'è e non come si sperava: col **Ritiro** non serve alcun
+   indirizzo. Il biglietto vero è **comporre un carrello risolvibile sopra i
+   25 €**, non i dati anagrafici.
 
 *Il conteggio delle condizioni di apertura non cambia: **quattro chiuse, cinque
-aperte**. Il lavoro pre-go-live che resta è la **Fase 4**, lo **spostamento di
-GIVEMEFIVE**, il **viewport**, le tre verifiche registrate in v63 e le **tre
-voci di §6c**.*
+aperte**. Il lavoro pre-go-live che resta è la **Fase 4**, il **viewport**, le
+tre verifiche registrate in v63 e le **tre voci di §6c**: lo **spostamento di
+GIVEMEFIVE esce da questo elenco**, è fatto.*
 
 ## 1. Visione del progetto
 
@@ -707,7 +710,7 @@ all'annullamento, entrambi ancora dentro le rispettive rotte senza cuore in
 difesa vera resta il vincolo `unique (promo_code, customer_id)` del database,
 che nessuna prova automatica tocca ma che nessun errore di codice può aggirare.
 
-### Lo spostamento nel checkout — RIDISEGNATO in v68, non ancora realizzato
+### Lo spostamento nel checkout — RIDISEGNATO in v68, ✅ REALIZZATO in v69
 
 **Il difetto da cui nasce.** Il carrello mostra e scala i 5 € **prima di sapere
 chi è il cliente**. Chi ha già usato GIVEMEFIVE lo applica, vede il totale
@@ -783,6 +786,94 @@ frasi. *I tre esempi di Andrea non sono la stessa cosa: 5 € fissi è ciò che 
 sistema fa già, una percentuale apre il caso "lo sconto supera il prezzo" (§46
 v37), e un omaggio non è uno sconto ma **una riga in più nell'ordine**, che
 tocca carrello, staff e Stripe.*
+
+#### ✅ COM'È FATTO OGGI (11/08/2026) — cinque commit, provato dal vivo
+
+**I pezzi, e chi fa cosa.** `lib/discount-eligibility.js` è **il cuore**: riceve
+i lettori come parametri, ricalcola il subtotale riga per riga, controlla la
+soglia su quel numero, cerca il cliente in sola lettura e restituisce **uno di
+sei esiti**, mai un testo e mai un dato del cliente (53 prove).
+`app/api/checkout/discount/route.js` è **la rotta**: applica il pedaggio,
+traduce l'esito in una delle sette frasi, e non scrive nulla da nessuna parte.
+Il **campo** vive in `CheckoutScreen` dentro `app/page.js`. *La rotta del
+pagamento non è stata toccata: riceve `giveMeFiveRequested` come ha sempre
+fatto, ora alimentato dal solo `codiceApplicato`.*
+
+⚠️ **IL GUASTO DI LETTURA NON CONCEDE LO SCONTO**, ed è la decisione **opposta**
+a quella di `lib/checkout-discount.js`, dove una lettura fallita di
+`promo_redemptions` fa **concedere** perché il nulla si legge come "nessun
+riscatto". Là è comportamento vecchio conservato alla lettera in un riordino, e
+una prova lo fissa; qui è codice nuovo. *Le due regole convivono di proposito e
+non vanno "uniformate" da chi passa: la differenza non è fra due file, è fra uno
+sconto che si offre da sé e uno che il cliente ha chiesto — e a un gesto si può
+rispondere "riprova".*
+
+⚠️ **LO SCONTO NON GUARDA GLI ORARI** (Andrea, 10/08/2026). Locale chiuso o slot
+scaduto non riguardano il codice: a fermarli è il pagamento, che ha già il suo
+guard (`lib/checkout-timing.js`), e duplicarlo qui creerebbe due copie della
+stessa regola. *Distinzione da non perdere: `validateCheckoutRequest` controlla
+che giorno e ora **ci siano** — è un dato obbligatorio come il cognome — e quel
+controllo la rotta dello sconto lo usa. Ciò che non usa è il giudizio su
+apertura e scadenza.*
+
+**Il pedaggio si verifica dove serve, due volte e per due motivi diversi.** Nel
+sito il pulsante si appoggia a `canPay` (Andrea, 10/08: **un metro solo**, non
+una seconda regola accanto alla prima), che decide solo *quando il pulsante è
+premibile* e **non è una difesa**. La difesa è nella rotta, che ricontrolla con
+`validateCheckoutRequest` **intero** invece di credere al sito. *Conseguenza
+accettata di `canPay`: se lo slot scade mentre il cliente compila, il campo dice
+"completa i dati" pur avendoli lui compilati — caso raro in cui comunque tutta la
+schermata gli chiede di risistemare l'orario.*
+
+⚠️ **QUANTO COSTA DAVVERO IL BIGLIETTO, scritto com'è e non come si sperava.**
+Col **Ritiro non serve alcun indirizzo**: bastano carrello, nome, cognome,
+telefono, privacy e un orario. E una coordinata vuota vale zero, che è un numero
+finito e supera il controllo di forma (difetto noto dal 31/07, deliberatamente
+non corretto). **Il pedaggio è quindi il carrello, non i dati**: chi cerca
+l'elenco dei clienti deve comporre ogni volta un carrello vero e risolvibile
+sopra i 25 €. *Resta coerente con la scelta dell'08/08 — "un pedaggio, non un
+muro" — ma il prezzo è più basso di come lo si era immaginato.*
+
+**La settima frase** (Andrea, 11/08): a una riga non più risolvibile — articolo
+esaurito o tolto dal menu mentre il cliente compilava — il campo risponde con la
+frase che il pagamento ha **già**, *"Un articolo del carrello non è più
+disponibile."* **Non ne nasce una nuova.** *Quella stringa vive già in
+`app/page.js` come seconda copia dichiarata e sorvegliata: una prova che ne
+pretendeva l'assenza è diventata rossa e aveva ragione lei.*
+
+**La sopravvivenza alla riapertura** (Andrea, 11/08 — "C3"): si conserva **il
+codice scritto**, mai lo sconto ottenuto — è la dottrina di §36-40, *l'intenzione
+sì, la conclusione no* — e alla riapertura il server **lo riverifica**.
+⚠️ **La riverifica NON parte alla comparsa della schermata**: i tre consensi non
+si conservano, quindi lì la privacy non è spuntata, `canPay` è falso e la
+risposta sarebbe sempre *"Completa i dati dell'ordine"* — un errore a ogni
+apertura, per sempre. Parte **quando `canPay` torna vero**, una volta sola.
+*`FORMAT_VERSION` non è stata alzata: alzarla avrebbe buttato via il checkout
+conservato di chi stava ordinando in quel momento.*
+
+⚠️ **UN CASO RESTA SCOPERTO, PER DECISIONE DI ANDREA (11/08).** La frase *"Il
+carrello è sceso sotto i 25 €…"* compare solo per la caduta che avviene **mentre
+il checkout è aperto**. Se il cliente torna al carrello, scende sotto soglia e
+**rientra**, lo sconto non c'è più e **nessuna frase glielo spiega**: la
+schermata si riapre da zero. *È una scelta, non una dimenticanza — il cliente
+quel panino l'ha tolto lui, e il carrello glielo ha già detto. Scritto qui
+perché chi leggesse la sola tabella delle frasi proverebbe il rientro, non
+vedrebbe niente e lo chiamerebbe difetto.*
+
+**Provato dal vivo da Andrea** (10-11/08), e non solo dalle suite: dati
+incompleti, codice inesistente, applicazione col totale che scala di 5 €,
+caduta sotto soglia, **rifiuto a un telefono che aveva già riscosso**,
+sopravvivenza alla riapertura **e la sua controprova** (senza rimettere la
+privacy lo sconto non torna), e infine **un pagamento vero in sandbox** col
+totale scontato arrivato fino a Stripe. *Nessuna prova automatica di questo
+progetto guarda lo schermo: le prove che contano su questa sezione le ha fatte
+Andrea con gli occhi, e sono elencate qui perché altrove non risultano.*
+
+⚠️ **`promo_redemptions` contiene ancora i riscatti delle prove**, quindi quei
+numeri di telefono continuano a sentirsi rispondere *"Hai già utilizzato questo
+codice sconto."* finché quelle righe non vengono cancellate — **cancellazione
+che è DDL e spetta ad Andrea nel SQL editor**, non a Code. *Registrato perché,
+non scritto, sembrerebbe un difetto della rotta appena costruita.*
 
 #### Il freno: deciso che NON si costruisce (Andrea, 08/08/2026, sera)
 
@@ -860,9 +951,11 @@ aver già riscosso. *Il telefono va cercato nella stessa forma in cui il
 pagamento lo salva, ripulito dagli spazi: se le due forme divergessero, chi ha
 già usato il codice risulterebbe sconosciuto e la difesa si aprirebbe da sola.*
 
-⚠️ **E l'ordine dei lavori non è libero, ma ha un anello in meno.** L'unico
-interruttore che accende lo sconto in tutto il progetto è **il pulsante del
-carrello**. Togliere il pulsante prima che il suo sostituto esista
+⚠️ **E l'ordine dei lavori non è stato libero** *(scritto prima di costruire, e
+rispettato: oggi l'unico interruttore è il campo del checkout, il pulsante del
+carrello non esiste più).* Fino all'11/08 l'unico interruttore che accendeva lo
+sconto era **il pulsante del carrello**. Toglierlo prima che il suo sostituto
+esistesse
 **spegnerebbe GIVEMEFIVE in silenzio**: nessuno lo prenderebbe più, e nessun
 errore comparirebbe da nessuna parte. Caduto il freno come lavoro a sé, la
 catena obbligata è: **prima il ricalcolo della soglia lato server, poi il campo
@@ -1494,13 +1587,12 @@ raggiungere soglia.
 della soglia dei 25 €, via il pulsante "Applica GIVEMEFIVE", via la riga dello
 sconto, e il totale non scala nulla. Lo sconto vive solo nel checkout (§14).
 
-⚠️ **DA DECIDERE, e non deciso qui**: l'ultimo suggerimento dell'upsell —
-*vicino ai 25 € → suggerisci per raggiungere soglia* — è rimasto scritto tale e
-quale, ma **i 25 € erano la soglia di GIVEMEFIVE**, che il carrello ora non
-nomina più. Va deciso se quel suggerimento sparisce, se resta con un'altra
-ragione, o se resta così. *Lasciato in evidenza invece che risolto d'ufficio:
-una riga che perde il suo motivo e nessuno se ne accorge è esattamente il tipo
-di residuo che questi documenti hanno già prodotto tre volte.*
+✅ **DECISO in v69 (Andrea, 11/08)**: l'ultimo suggerimento dell'upsell —
+*vicino ai 25 €* — **resta e scatta alla stessa soglia**, ma il suo testo non
+nomina più lo sconto: *"Aggiungi qualcosa al tuo ordine"*. La costante della
+soglia resta importata nel sito **per questa sola regola**. *Quella regola
+vendeva anche prima che GIVEMEFIVE le desse un pretesto: è spinta a salire di
+scontrino, non promozione.*
 
 **Persistenza del carrello per la durata della visita (v33, vincolante)**
 
@@ -1561,6 +1653,11 @@ Si conservano quindi anche i dati del checkout, sotto una regola sola:
   era "la richiesta di GIVEMEFIVE", quando lo sconto si chiedeva dal carrello).
   ⚠️ Si salva **il codice scritto, mai lo sconto ottenuto**: al rientro va
   riverificato dal vivo, come già impone la regola di §14 sull'intenzione.
+  ✅ *Realizzato in v69: `giveMeFiveApplied` è uscito dalle chiavi conservate —
+  non lo accende più nessuno — e `codiceScritto` ne ha preso il posto.
+  `FORMAT_VERSION` è rimasta **1**: una chiave in più in una struttura vecchia
+  viene ignorata, mentre alzarla avrebbe buttato via il checkout conservato di
+  chi stava ordinando in quel momento.*
   *Il cognome mancava da questo elenco fino alla v39, pur essendo un dato
   obbligatorio in §41-45: aggiunto in v40, perché è proprio questo elenco a
   guidare il modulo di persistenza. Le due voci sul momento dell'ordine sono
