@@ -214,8 +214,13 @@ function getItemCategory(item, categoryProducts) {
 
 // §40: upsell "no AI", 3 regole semplici in ordine di priorità (Roll
 // senza fritto è l'occasione più grande, poi fritto senza salsa, poi la
-// spinta verso la soglia GIVEMEFIVE) — al massimo 4 prodotti suggeriti in
+// spinta verso i 25 €) — al massimo 4 prodotti suggeriti in
 // tutto, ripartiti tra le regole che scattano rispettando l'ordine.
+//
+// ⚠️ La terza regola usa ancora la soglia di GIVEMEFIVE come confine, e
+// **scatta esattamente dov'è sempre scattata** (decisione di Andrea, v68), ma
+// il testo che mostra non nomina più né il codice né lo sconto: dal sito
+// GIVEMEFIVE è sparito e si chiede scrivendolo nel checkout.
 // Solo prodotti semplici (senza config): sono gli unici con un tap unico
 // "+ Aggiungi" già esistente, richiesto per il suggerimento.
 //
@@ -240,7 +245,7 @@ function buildUpsellGroups(items, categoryProducts, categoryProductsInMenu, subt
   const candidateGroups = [];
   // Evita di ripetere lo stesso prodotto in due regole diverse
   // contemporaneamente (es. una salsa già suggerita per accompagnare il
-  // fritto non va riproposta anche per la soglia GIVEMEFIVE).
+  // fritto non va riproposta anche per la spinta verso i 25 €).
   const alreadySuggested = new Set(items.map((item) => item.key));
 
   if (hasRollOrBowl && !hasFritti) {
@@ -285,9 +290,13 @@ function buildUpsellGroups(items, categoryProducts, categoryProductsInMenu, subt
     if (options.length > 0) {
       candidateGroups.push({
         key: "soglia",
-        message: `Ti mancano ${formatPrice(
-          GIVEMEFIVE_THRESHOLD - subtotal
-        )} per sbloccare GIVEMEFIVE, aggiungi:`,
+        // §14 (v68): ⚠️ LA REGOLA RESTA E SCATTA ALLA STESSA SOGLIA — decisione
+        // di Andrea — ma il testo non nomina più né il codice né lo sconto: dal
+        // sito GIVEMEFIVE è sparito, e un invito che lo nominasse sarebbe
+        // l'unico posto in cui il cliente ne verrebbe a conoscenza.
+        // *La costante della soglia continua a servire proprio a questa regola:
+        // è il motivo per cui resta importata anche dopo la sparizione.*
+        message: "Aggiungi qualcosa al tuo ordine",
         products: options,
       });
       options.forEach((p) => alreadySuggested.add(p.id));
@@ -2333,17 +2342,25 @@ function UpsellSuggestions({ groups, onQuickAdd }) {
   );
 }
 
+// §14 (v68) — ⚠️ IL CARRELLO NON NOMINA PIÙ GIVEMEFIVE, ed è l'ultimo anello
+// dello spostamento: lo sconto si chiede scrivendo il codice nel checkout, e il
+// codice si comunica fuori dal sito. Qui non c'è più né il pulsante che lo
+// accendeva, né i due messaggi sulla soglia, né la riga dello sconto nel
+// riepilogo: il totale del carrello è di nuovo solo subtotale più consegna.
+//
+// *Questo pezzo è stato tolto per ultimo, e non è stato un dettaglio d'ordine:
+// finché il sostituto non esisteva, quel pulsante era l'unico interruttore che
+// accendesse lo sconto in tutto il progetto — toglierlo prima avrebbe spento
+// GIVEMEFIVE in silenzio, senza un errore da nessuna parte.*
 function CartScreen({
   items,
   fulfillmentMode,
-  giveMeFiveApplied,
   // Spec v62 ("togli dal menu"): il carrello riceve ENTRAMBE le mappe — la piena
   // per classificare le righe che ha già, la filtrata per suggerire.
   categoryProducts,
   categoryProductsInMenu,
   onUpdateQuantity,
   onRemove,
-  onApplyGiveMeFive,
   onQuickAdd,
   onClose,
   onGoToCheckout,
@@ -2354,11 +2371,8 @@ function CartScreen({
     0
   );
   const meetsMinimum = !isDelivery || subtotal >= DELIVERY_MINIMUM_ORDER;
-  const qualifiesForGiveMeFive = subtotal >= GIVEMEFIVE_THRESHOLD;
-  const giveMeFiveDiscount =
-    giveMeFiveApplied && qualifiesForGiveMeFive ? GIVEMEFIVE_DISCOUNT : 0;
   const deliveryFee = isDelivery ? DELIVERY_FEE : 0;
-  const total = subtotal - giveMeFiveDiscount + deliveryFee;
+  const total = subtotal + deliveryFee;
   const canCheckout = items.length > 0 && meetsMinimum;
   const upsellGroups =
     items.length > 0
@@ -2438,43 +2452,6 @@ function CartScreen({
           </div>
         )}
 
-        {qualifiesForGiveMeFive ? (
-          <div
-            style={{
-              ...progressMessageStyle,
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              gap: 8,
-            }}
-          >
-            <span>Hai sbloccato GIVEMEFIVE</span>
-            {!giveMeFiveApplied && (
-              <button
-                onClick={onApplyGiveMeFive}
-                style={{
-                  background: "var(--brand-orange)",
-                  color: "var(--bg-warm)",
-                  border: "none",
-                  borderRadius: 8,
-                  padding: "8px 14px",
-                  fontWeight: 600,
-                  fontSize: 13,
-                  cursor: "pointer",
-                  whiteSpace: "nowrap",
-                }}
-              >
-                Applica GIVEMEFIVE
-              </button>
-            )}
-          </div>
-        ) : (
-          <div style={progressMessageStyle}>
-            {`Ti mancano ${formatPrice(
-              GIVEMEFIVE_THRESHOLD - subtotal
-            )} per sbloccare GIVEMEFIVE e avere 5 € di benvenuto`}
-          </div>
-        )}
       </div>
 
       <div
@@ -2491,12 +2468,6 @@ function CartScreen({
           <span>Subtotale</span>
           <span>{formatPrice(subtotal)}</span>
         </div>
-        {giveMeFiveDiscount > 0 && (
-          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 14, color: "var(--text-on-dark)" }}>
-            <span>GIVEMEFIVE</span>
-            <span>{`-${formatPrice(giveMeFiveDiscount)}`}</span>
-          </div>
-        )}
         {isDelivery && (
           <div style={{ display: "flex", justifyContent: "space-between", fontSize: 14, color: "var(--text-on-dark)" }}>
             <span>Spese di consegna</span>
@@ -2559,7 +2530,6 @@ function CheckoutScreen({
   onPickupTimeChange,
   pickupSlotExpired,
   serviceStatus,
-  giveMeFiveApplied,
   birreProducts,
   deliveryDetails,
   customerDetails,
@@ -2596,10 +2566,12 @@ function CheckoutScreen({
   // riapertura prometterebbe uno sconto che il server potrebbe non concedere —
   // esattamente il difetto che tutto questo lavoro chiude.
   //
-  // ⚠️ `codiceApplicato` NON sostituisce `giveMeFiveApplied`, che arriva dal
-  // carrello e resta l'interruttore di oggi: finché il carrello ha il suo
-  // pulsante (§14, il carrello smette di applicarlo in un lavoro successivo) i
-  // due convivono, e lo sconto vale se lo accende **uno qualunque dei due**.
+  // ⚠️ `codiceApplicato` è ORA L'UNICO INTERRUTTORE dello sconto in tutto il
+  // sito: il pulsante del carrello non esiste più (§14, ultimo anello dello
+  // spostamento). Chi tocca questo stato sta toccando l'unica strada per cui un
+  // cliente può ottenere i 5 €. *Fino all'11/08 ne esisteva un secondo,
+  // `giveMeFiveApplied`, che arrivava dal carrello: è stato tolto per ultimo,
+  // quando questo era già in piedi e provato.*
   //
   // ⚠️ `codiceScritto` NON è più stato locale: è salito in `Home` insieme agli
   // altri campi SCRITTI, perché sopravviva alla chiusura del checkout
@@ -2630,13 +2602,12 @@ function CheckoutScreen({
     0
   );
   const qualifiesForGiveMeFive = subtotal >= GIVEMEFIVE_THRESHOLD;
-  // §14 (v68): lo sconto vale se lo ha acceso il carrello (interruttore di
-  // oggi) **oppure** il campo del codice qui sotto. La soglia resta la stessa
-  // condizione di prima e continua a valere per entrambi.
+  // §14 (v68): lo sconto lo accende **solo** il campo del codice qui sotto —
+  // il pulsante del carrello non esiste più. La soglia resta la condizione di
+  // sempre e continua a valere: sotto i 25 € lo sconto non c'è, chiunque
+  // l'abbia chiesto.
   const giveMeFiveDiscount =
-    (giveMeFiveApplied || codiceApplicato) && qualifiesForGiveMeFive
-      ? GIVEMEFIVE_DISCOUNT
-      : 0;
+    codiceApplicato && qualifiesForGiveMeFive ? GIVEMEFIVE_DISCOUNT : 0;
   const deliveryFee = isDelivery ? DELIVERY_FEE : 0;
   const total = subtotal - giveMeFiveDiscount + deliveryFee;
 
@@ -2768,11 +2739,12 @@ function CheckoutScreen({
           privacyAccepted,
           marketingOptIn,
           ageConfirmed,
-          // §14 (v68): lo sconto si chiede al pagamento se lo ha acceso il
-          // carrello **o** il campo del codice. Senza questo `||` un codice
-          // applicato nel checkout verrebbe mostrato al cliente e poi non
-          // concesso dal server: il difetto, rovesciato, che §14 chiude.
-          giveMeFiveRequested: giveMeFiveApplied || codiceApplicato,
+          // §14 (v68): ⚠️ QUESTO CAMPO RESTA, e ora lo alimenta il solo campo
+          // del codice. È l'unico modo perché il pagamento conceda davvero i
+          // 5 €: il server li toglie a chi non li chiede. Il nome resta quello
+          // che la rotta del pagamento si aspetta — cambiarlo qui, senza
+          // toccare il server, spegnerebbe lo sconto in silenzio.
+          giveMeFiveRequested: codiceApplicato,
         }),
       });
 
@@ -3456,7 +3428,6 @@ export default function Home() {
   const [pickupSlotExpired, setPickupSlotExpired] = useState(false);
   const [cartOpen, setCartOpen] = useState(false);
   const [checkoutOpen, setCheckoutOpen] = useState(false);
-  const [giveMeFiveApplied, setGiveMeFiveApplied] = useState(false);
   const [menuData, setMenuData] = useState(null);
   const [geofence, setGeofence] = useState(null);
   const [serviceStatus, setServiceStatus] = useState(null);
@@ -3601,7 +3572,6 @@ export default function Home() {
     if (fields.pickupDay !== undefined) setPickupDay(fields.pickupDay);
     if (fields.pickupTime !== undefined) setPickupTime(fields.pickupTime);
     if (fields.pickupTimeExplicit !== undefined) setPickupTimeExplicit(fields.pickupTimeExplicit);
-    if (fields.giveMeFiveApplied !== undefined) setGiveMeFiveApplied(fields.giveMeFiveApplied);
     // §14 (v68): torna il codice SCRITTO, non lo sconto applicato. Chi lo
     // rimette nella casella non sta ripristinando uno sconto: sta ridando al
     // cliente ciò che aveva battuto, e la verifica ricomincia da capo.
@@ -3629,7 +3599,6 @@ export default function Home() {
         pickupDay,
         pickupTime,
         pickupTimeExplicit,
-        giveMeFiveApplied,
         codiceScritto,
       })
     );
@@ -3646,7 +3615,6 @@ export default function Home() {
     pickupDay,
     pickupTime,
     pickupTimeExplicit,
-    giveMeFiveApplied,
     codiceScritto,
   ]);
 
@@ -4092,7 +4060,6 @@ export default function Home() {
           onPickupTimeChange={handlePickupTimeChange}
           pickupSlotExpired={pickupSlotExpired}
           serviceStatus={serviceStatus}
-          giveMeFiveApplied={giveMeFiveApplied}
           /* ⚠️ Spec v62 ("togli dal menu"): qui va la lista PIENA, NON la
              filtrata. `birreProducts` non mostra nulla: serve solo a riconoscere
              se nel carrello c'è una birra, e da quel riconoscimento dipendono la
@@ -4122,12 +4089,10 @@ export default function Home() {
         <CartScreen
           items={cartItems}
           fulfillmentMode={fulfillmentMode}
-          giveMeFiveApplied={giveMeFiveApplied}
           categoryProducts={menuData.categoryProducts}
           categoryProductsInMenu={menuData.categoryProductsInMenu}
           onUpdateQuantity={updateQuantity}
           onRemove={removeItem}
-          onApplyGiveMeFive={() => setGiveMeFiveApplied(true)}
           onQuickAdd={quickAddToCart}
           onClose={() => setCartOpen(false)}
           onGoToCheckout={() => {

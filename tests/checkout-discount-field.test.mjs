@@ -63,45 +63,46 @@ const codiceUnito = codice.join("\n");
 // sconto smetterebbe di essere accendibile dal carrello senza alcun errore.
 // ---------------------------------------------------------------------------
 {
+  // ⚠️ QUESTO BLOCCO È STATO CAPOVOLTO l'11/08/2026, e non cancellato.
+  // Fino all'ultimo anello di §14 vegliava che l'interruttore del carrello
+  // fosse ANCORA AL SUO POSTO: era l'unico modo di accendere lo sconto, e
+  // toglierlo prima che il campo del checkout esistesse l'avrebbe spento in
+  // silenzio. Ora quel campo esiste, il carrello è stato ripulito, e la stessa
+  // sonda veglia il contrario: che nessuno lo rimetta.
   const PEZZI = [
     ["lo stato", "const [giveMeFiveApplied, setGiveMeFiveApplied] = useState(false);"],
-    ["la riga che lo accende", "onApplyGiveMeFive={() => setGiveMeFiveApplied(true)}"],
-    ["il pulsante che il cliente vede", "Applica GIVEMEFIVE"],
+    ["la riga che lo accendeva", "onApplyGiveMeFive={() => setGiveMeFiveApplied(true)}"],
+    ["il pulsante", "Applica GIVEMEFIVE"],
+    ["il messaggio della soglia", "Hai sbloccato GIVEMEFIVE"],
+    ["l'invito sotto soglia", "per sbloccare GIVEMEFIVE e avere 5 € di benvenuto"],
   ];
 
   for (const [nome, pezzo] of PEZZI) {
     assert(
-      codiceUnito.includes(pezzo),
-      `a) l'interruttore del carrello ha ancora ${nome}: \`${pezzo}\``
+      !sorgente.includes(pezzo),
+      `a) il carrello non ha più ${nome}: \`${pezzo.slice(0, 46)}…\``
     );
   }
 
-  // E il carrello continua a scalare i 5 € come prima: la riga del suo calcolo
-  // è rimasta quella di sempre, senza il codice del checkout dentro.
+  // Il calcolo dello sconto NEL CARRELLO non esiste più: il suo totale è di
+  // nuovo subtotale più consegna.
   assert(
-    codiceUnito.includes("giveMeFiveApplied && qualifiesForGiveMeFive ? GIVEMEFIVE_DISCOUNT : 0;"),
-    "a4) e il calcolo dello sconto NEL CARRELLO è invariato (non vi è entrato lo stato del checkout)"
+    !codiceUnito.includes("giveMeFiveApplied && qualifiesForGiveMeFive ? GIVEMEFIVE_DISCOUNT : 0;"),
+    "a6) e nemmeno il calcolo dello sconto del carrello"
+  );
+  assert(
+    codiceUnito.includes("const total = subtotal + deliveryFee;"),
+    "a7) il totale del carrello è tornato subtotale + consegna, senza sconti"
   );
 
-  // ⚠️ CONTROPROVA: su un testo a cui l'interruttore MANCA, la sonda se ne
-  // accorge? Senza questa riga, le prove qui sopra potrebbero passare per il
-  // motivo sbagliato — per esempio se `codiceUnito` fosse vuoto.
-  const finto = [
-    "const [qualcosAltro, setQualcosAltro] = useState(false);",
-    "<button onClick={onPaga}>Paga ora</button>",
-  ].join("\n");
-  const fintoUnito = righeDiCodice(finto).join("\n");
-  const mancanti = PEZZI.filter(([, pezzo]) => !fintoUnito.includes(pezzo));
+  // ⚠️ CONTROPROVA: questa sonda sa dire di sì? Un elenco di "non c'è" può
+  // essere cecità — per esempio se leggesse un file vuoto. Le si danno gli
+  // stessi pezzi su un testo che invece li contiene.
+  const fintoConInterruttore = PEZZI.map(([, pezzo]) => pezzo).join("\n");
+  const trovatiNelFinto = PEZZI.filter(([, pezzo]) => fintoConInterruttore.includes(pezzo));
   assert(
-    mancanti.length === 3,
-    `a5) CONTROPROVA: su un testo finto senza interruttore, la sonda trova mancanti tutti e tre i pezzi (ne trova ${mancanti.length})`
-  );
-
-  // E la seconda metà: la sonda li riconosce quando ci sono davvero.
-  const finto2 = "onApplyGiveMeFive={() => setGiveMeFiveApplied(true)}";
-  assert(
-    righeDiCodice(finto2).join("\n").includes(PEZZI[1][1]),
-    "a6) e li riconosce su un testo finto che invece li contiene"
+    trovatiNelFinto.length === PEZZI.length,
+    `a8) CONTROPROVA: su un testo che contiene l'interruttore, la stessa sonda lo trova tutto (${trovatiNelFinto.length}/${PEZZI.length})`
   );
 }
 
@@ -136,9 +137,21 @@ const codiceUnito = codice.join("\n");
 
   // Lo sconto chiesto dal campo deve arrivare al pagamento, altrimenti il
   // cliente lo vede applicato e poi non gli viene concesso.
+  // ⚠️ LA RIGA CHE FA ARRIVARE LO SCONTO AL PAGAMENTO. Se sparisse, il cliente
+  // vedrebbe i 5 € nel riepilogo e non li avrebbe su Stripe: il server toglie
+  // lo sconto a chi non lo chiede, e nessun errore comparirebbe da nessuna
+  // parte. È la riga più fragile di tutto lo spostamento.
   assert(
-    codiceUnito.includes("giveMeFiveRequested: giveMeFiveApplied || codiceApplicato,"),
-    "b5) e handlePay manda giveMeFiveRequested vero anche quando lo sconto arriva dal campo"
+    codiceUnito.includes("giveMeFiveRequested: codiceApplicato,"),
+    "b5) handlePay chiede ancora lo sconto al pagamento, ora dal solo campo del codice"
+  );
+  assert(
+    !/giveMeFiveRequested:\s*giveMeFiveApplied/.test(codiceUnito),
+    "b6) e non lo chiede più dallo stato del carrello, che non esiste"
+  );
+  assert(
+    codiceUnito.includes("codiceApplicato && qualifiesForGiveMeFive ? GIVEMEFIVE_DISCOUNT : 0;"),
+    "b7) e la riga dello sconto nel riepilogo DEL CHECKOUT resta, alimentata dal campo"
   );
 }
 
@@ -226,7 +239,7 @@ const codiceUnito = codice.join("\n");
   // ⚠️ CONTROPROVA: la sonda delle frasi sa dire di sì quando la frase c'è
   // davvero? Senza, i cinque «non c'è» qui sopra potrebbero essere cecità.
   assert(
-    sorgente.includes("Hai sbloccato GIVEMEFIVE"),
+    sorgente.includes("Il carrello è sceso sotto i 25 €: il codice non è più applicato."),
     "c9) CONTROPROVA: la stessa sonda trova una frase che nel file c'è di sicuro"
   );
 }
@@ -356,6 +369,54 @@ const codiceUnito = codice.join("\n");
   assert(
     /codiceScritto=\{/.test(codiceUnito),
     "f7) CONTROPROVA: la stessa forma di ricerca trova un campo che invece è davvero passato come prop"
+  );
+}
+
+// ---------------------------------------------------------------------------
+// g) §14 (v68) — IL SUGGERIMENTO FRA I 20 E I 25 € RESTA E SCATTA DOV'È SEMPRE
+//    SCATTATO, ma non nomina più né il codice né lo sconto.
+//
+// ⚠️ È un lavoro che TOGLIE, e la parte pericolosa non è ciò che ha tolto: è
+// che qualcuno, ripulendo i nomi, spenga anche la regola. Un invito che smette
+// di comparire non fa rumore — nessuno riceve un errore, semplicemente il
+// carrello medio scende.
+// ---------------------------------------------------------------------------
+{
+  // La condizione, riga per riga com'è scritta: stessa soglia di prima.
+  assert(
+    codiceUnito.includes("if (subtotal >= 20 && subtotal < GIVEMEFIVE_THRESHOLD) {"),
+    "g1) la regola dei 20-25 € c'è ancora e usa la stessa identica soglia"
+  );
+  assert(
+    codiceUnito.includes('import { GIVEMEFIVE_THRESHOLD, GIVEMEFIVE_DISCOUNT } from "../lib/givemefive";'),
+    "g2) e la costante della soglia resta importata dal modulo unico: serve a questa regola"
+  );
+
+  // Il testo nuovo c'è, quello vecchio no.
+  assert(
+    codiceUnito.includes('message: "Aggiungi qualcosa al tuo ordine",'),
+    "g3) il testo del suggerimento non nomina più né il codice né lo sconto"
+  );
+  assert(
+    !sorgente.includes("per sbloccare GIVEMEFIVE, aggiungi:"),
+    "g4) e il vecchio testo, che lo nominava, è sparito"
+  );
+
+  // ⚠️ Il gruppo deve ancora essere COSTRUITO, non solo la condizione esistere:
+  // una regola che entra in un `if` e non aggiunge niente sarebbe spenta senza
+  // che nulla lo dica.
+  const inizio = codiceUnito.indexOf("if (subtotal >= 20 && subtotal < GIVEMEFIVE_THRESHOLD) {");
+  const blocco = inizio >= 0 ? codiceUnito.slice(inizio, inizio + 900) : "";
+  assert(
+    /candidateGroups\.push\(\{/.test(blocco) && /key: "soglia"/.test(blocco),
+    "g5) e dentro quel ramo il suggerimento viene ancora aggiunto all'elenco, non solo calcolato"
+  );
+
+  // ⚠️ CONTROPROVA: la sonda si accorgerebbe se la regola sparisse?
+  const fintoSenzaRegola = 'const candidateGroups = [];\nreturn candidateGroups;';
+  assert(
+    !fintoSenzaRegola.includes("if (subtotal >= 20 && subtotal < GIVEMEFIVE_THRESHOLD) {"),
+    "g6) CONTROPROVA: su un testo finto in cui la regola non c'è, la sonda non la trova"
   );
 }
 

@@ -40,7 +40,12 @@ const STATO_PIENO = {
   pickupDay: "today",
   pickupTime: null,
   pickupTimeExplicit: false,
+  // ⚠️ `giveMeFiveApplied` è rimasto qui APPOSTA dopo la v68, benché il modulo
+  // non lo conservi più: è ciò che rende questo stato uguale a quello di un
+  // cliente che ha la pagina aperta da prima della rimozione. Toglierlo
+  // renderebbe le prove più pulite e più cieche.
   giveMeFiveApplied: true,
+  codiceScritto: "GIVEMEFIVE",
 };
 
 const dropOf = (dropped, field) => dropped.find((d) => d.field === field);
@@ -67,7 +72,11 @@ const hasDrop = (dropped, field) => dropOf(dropped, field) !== undefined;
   assert(fields.timingType === "scheduled" && fields.scheduledDay === "tomorrow" && fields.scheduledTime === "20:15", "a9) momento dell'ordine ritrovato");
   assert(fields.pickupDay === "today" && fields.pickupTime === null, "a10) stato Ritiro ritrovato, orario nullo compreso");
   assert(fields.pickupTimeExplicit === false, "a11) il `false` salvato si ripristina com'è (il ripiego vale solo se manca)");
-  assert(fields.giveMeFiveApplied === true, "a12) l'intenzione di sconto si ripristina");
+  // §14 (v68): `giveMeFiveApplied` non si conserva più — il pulsante del
+  // carrello che lo accendeva non esiste. Lo `STATO_PIENO` lo porta ancora
+  // apposta, per esercitare il caso di chi ha la pagina aperta da prima.
+  assert(fields.giveMeFiveApplied === undefined, "a12) il vecchio sì/no dello sconto NON si ripristina più: il pulsante che lo accendeva non c'è");
+  assert(fields.codiceScritto === "GIVEMEFIVE", "a13) al suo posto torna il codice SCRITTO, che il server riverificherà");
 }
 
 // b) NIENTE CONCLUSIONI, NIENTE IMPORTI, NIENTE CHIAVI ESTRANEE.
@@ -96,7 +105,7 @@ const hasDrop = (dropped, field) => dropOf(dropped, field) !== undefined;
     "pickupDay",
     "pickupTime",
     "pickupTimeExplicit",
-    "giveMeFiveApplied",
+    "codiceScritto",
     "deliveryAddressDetails",
     "deliveryDetails",
     "customerDetails",
@@ -108,7 +117,13 @@ const hasDrop = (dropped, field) => dropOf(dropped, field) !== undefined;
     "b1) la struttura conservata ha esattamente le chiavi dichiarate, nessuna in più"
   );
   assert(saved.subtotal === undefined && saved.total === undefined && saved.deliveryFee === undefined && saved.discountAmount === undefined, "b2) nessun prezzo, nessuna fee, nessun totale (§36-40)");
-  assert(saved.discountAmount === undefined && saved.giveMeFiveApplied === true, "b3) si conserva l'INTENZIONE di sconto, mai l'importo");
+  // §14 (v68): l'intenzione di sconto non è più un sì/no ma il TESTO battuto
+  // dal cliente, e l'importo non si è mai conservato né mai si conserverà.
+  assert(
+    saved.discountAmount === undefined && saved.giveMeFiveApplied === undefined,
+    "b3) né l'importo né il vecchio sì/no dello sconto attraversano il modulo"
+  );
+  assert(saved.codiceScritto === "GIVEMEFIVE", "b3b) mentre il codice SCRITTO sì: è un dato, non una conclusione");
   assert(saved.geofenceStatus === undefined && saved.pickupSlotExpired === undefined && saved.canPay === undefined, "b4) nessuna conclusione: zona, scadenza slot, pagabilità");
   assert(saved.qualcosaDiNonPrevisto === undefined, "b5) una chiave non dichiarata non attraversa il modulo, nemmeno passandogli l'intera schermata");
 }
@@ -303,17 +318,34 @@ const hasDrop = (dropped, field) => dropOf(dropped, field) !== undefined;
   assert(nullo.dropped.length === 0, "g10) null non è uno scarto");
 }
 
-// h) REGOLA 6 — giveMeFiveApplied: nel dubbio non si regala nulla
+// h) §14 (v68) — LA CHIAVE VECCHIA DELLO SCONTO VIENE IGNORATA, NON SCARTATA.
+//
+// ⚠️ Qui c'erano sei prove sul ripiego prudente di `giveMeFiveApplied`. Non
+// sono state cancellate perché "non servivano più": sono state **capovolte**,
+// perché la cosa da sorvegliare è cambiata. Prima si vegliava che nel dubbio
+// non si regalasse uno sconto; ora si veglia che una chiave rimasta nelle
+// strutture già conservate non faccia danni a chi ha la pagina aperta.
 {
-  assert(restoreCheckout({ v: FORMAT_VERSION }).fields.giveMeFiveApplied === false, "h1) assente → false");
-  assert(!hasDrop(restoreCheckout({ v: FORMAT_VERSION }).dropped, "giveMeFiveApplied"), "h2) assente non è uno scarto");
+  const vecchia = { v: 1, giveMeFiveApplied: true, pickupTimeExplicit: false };
+  const { fields, dropped } = restoreCheckout(vecchia);
 
-  const sbagliato = restoreCheckout({ v: FORMAT_VERSION, giveMeFiveApplied: "true" });
-  assert(sbagliato.fields.giveMeFiveApplied === false, "h3) non booleano → false, mai uno sconto indovinato");
-  assert(hasDrop(sbagliato.dropped, "giveMeFiveApplied"), "h4) non booleano → registrato fra gli scartati");
+  assert(fields.giveMeFiveApplied === undefined, "h1) la chiave vecchia non si ripristina: il pulsante che l'accendeva non esiste più");
+  assert(!hasDrop(dropped, "giveMeFiveApplied"), "h2) e non viene nemmeno registrata fra gli scarti: è ignorata, non rifiutata");
+  assert(dropped.length === 0, `h3) una struttura vecchia con quella chiave dentro non produce ALCUNO scarto (ne ha ${dropped.length})`);
+  assert(fields.pickupTimeExplicit === false, "h4) e tutto il resto della struttura vecchia si ripristina normalmente");
 
-  assert(restoreCheckout({ v: FORMAT_VERSION, giveMeFiveApplied: 1 }).fields.giveMeFiveApplied === false, "h5) 1 non è true: ripiego a false");
-  assert(restoreCheckout({ v: FORMAT_VERSION, giveMeFiveApplied: true }).fields.giveMeFiveApplied === true, "h6) true salvato → true");
+  // Nemmeno un valore malformato la fa rientrare da una porta di servizio.
+  const malformata = restoreCheckout({ v: 1, giveMeFiveApplied: "true" });
+  assert(malformata.fields.giveMeFiveApplied === undefined, "h5) e nemmeno un valore sbagliato la fa ricomparire");
+  assert(malformata.dropped.length === 0, "h6) né la fa contare come errore");
+
+  // ⚠️ CONTROPROVA: la sonda degli scarti sa ancora dire di sì? Se non lo
+  // facesse, h3) e h6) sarebbero due zeri che non hanno guardato niente.
+  const conErroreVero = restoreCheckout({ v: 1, pickupDay: "lunedì" });
+  assert(
+    conErroreVero.dropped.length === 1,
+    `h7) CONTROPROVA: su un campo davvero illeggibile la stessa sonda conta uno scarto (ne conta ${conErroreVero.dropped.length})`
+  );
 }
 
 // i) il modulo non tocca ciò che riceve né restituisce riferimenti condivisi
