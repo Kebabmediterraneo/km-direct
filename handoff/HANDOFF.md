@@ -23,10 +23,17 @@ nessuno se ne ricorda.*
 ## 2) Stato git
 
 - Branch **`main`**, working tree **pulita**, allineata a `origin/main`.
-- HEAD: **`319feff`** — la spec v68 (10/08/2026).
+- HEAD: **`e3c7611`** — la spec v69 (11/08/2026).
 - Ultimi commit (dal più recente):
 
 ```
+e3c7611 docs: v69 — lo spostamento di GIVEMEFIVE e' fatto e provato dal vivo, col guasto che non concede lo sconto, il codice che sopravvive alla riapertura ma riverificato, e il pedaggio scritto per quel che costa davvero
+8df6018 sconto: il carrello smette di nominare GIVEMEFIVE e il campo del checkout resta l'unico interruttore, con le prove capovolte a sorvegliare che nessuno lo rimetta
+d2ebc41 sconto: il codice scritto sopravvive alla riapertura ma il server lo riverifica quando i dati tornano completi, mai dato per buono e mai verificato all'apertura quando i consensi sono ancora da rifare
+b6f6434 sconto: il campo del codice nel checkout, che chiede alla rotta e mostra la frase che riceve, col carrello lasciato acceso perche' si spegne solo dopo
+e03bb4c sconto: la rotta che risponde se GIVEMEFIVE spetta, col pedaggio affidato al validatore del pagamento intero, senza guardare gli orari e senza scrivere una riga da nessuna parte
+c164b3b sconto: il cuore che dice se GIVEMEFIVE spetta, col subtotale ricalcolato dai lettori ricevuti come parametri e il guasto di lettura che NON concede lo sconto, all'opposto della rotta del pagamento
+5b61976 handoff: stato al 10/08 — GIVEMEFIVE ridisegnato col campo del codice sconto nel checkout, la strada B che non riapre la rotta del pagamento, e le due cose lasciate aperte apposta
 319feff docs: v68 — GIVEMEFIVE sparisce dal sito e si chiede scrivendo il codice nel checkout, con la verifica che risponde solo a un ordine compilato sopra soglia e le sei risposte del campo fissate parola per parola
 972389e docs: l'handoff dichiarava la spec alla v64 mentre era alla v67, numero tolto invece che aggiornato perche' una copia da tenere in pari diverge sempre
 ec84ea5 docs: v67 e handoff — i diciassette fontFamily tolti e i commenti del CSS allineati, con la ragione per cui quella pulizia e' sicura senza che nessuna prova guardi lo schermo
@@ -75,7 +82,11 @@ costruzione. *Rilevato da Code il 05/08 confrontando `git log` con questo
 blocco: l'HEAD dichiarato era giusto, era la spiegazione a non coprire il caso
 normale della coppia spec+handoff.*
 
-*Caso di oggi (10/08/2026): la distanza è di **uno**, e va bene così. Fra lo
+*Caso dell'11/08/2026: di nuovo distanza **uno**, e per la stessa ragione — fra
+lo stato fotografato e questo documento passa la sola spec `e3c7611`. I cinque
+commit di codice della tappa sono tutti PRIMA della spec, non in mezzo.*
+
+*Caso del 10/08/2026: la distanza è di **uno**, e va bene così. Fra lo
 stato fotografato e questo documento passa la sola spec `319feff`, perché la
 giornata non ha prodotto commit di codice: le decisioni della v68 sono arrivate
 prima che si scrivesse una riga. **Non è da correggere.***
@@ -856,7 +867,10 @@ lavoro di codice", in contraddizione con la frase successiva.*
 prima voce è stata aggiunta il 10/08/2026: mancava da questo elenco pur essendo
 il lavoro in corso — chi avesse letto solo qui sarebbe ripartito dalla Fase 4*):
 
-- ⬜ **GIVEMEFIVE nel checkout — È QUESTO IL LAVORO IN CORSO.** Decisioni per
+- ✅ **GIVEMEFIVE nel checkout — CHIUSO l'11/08/2026**, cinque commit, provato
+  dal vivo da Andrea. Racconto al punto **29**. *Il testo qui sotto è quello di
+  ieri e si legge come storia, non come lavoro da fare.*
+- ⬜ *(chiuso, testo storico)* **GIVEMEFIVE nel checkout.** Decisioni per
   intero in **spec §14 v68**, racconto al punto **28**. ⚠️ **La catena è
   obbligata e non è cambiata con il ridisegno**: prima il campo del checkout
   funziona, **poi** il carrello smette di nominare lo sconto. Il pulsante del
@@ -2238,3 +2252,112 @@ una parte e 214 dall'altra. Rifatto con lo stesso metro di `git`, **166 aggiunte
 e 48 tolte** da entrambe le parti. Non era il file: era lo strumento. *Riferito
 invece che lasciato cadere, perché uno scarto di due non guardato torna come
 dubbio tre giorni dopo.*
+
+---
+
+## 29) GIVEMEFIVE spostato davvero: cinque commit e le prove con gli occhi (10-11/08/2026)
+
+La catena di §14 è **chiusa**, nell'ordine obbligato e senza saltare anelli:
+`c164b3b` il cuore, `e03bb4c` la rotta, `b6f6434` il campo nel checkout,
+`d2ebc41` la sopravvivenza alla riapertura, `8df6018` il carrello che smette di
+nominarlo. Le decisioni per intero stanno in **spec §14 v69**: qui c'è come si è
+arrivati, che è ciò che la spec non racconta.
+
+**Le prove sono passate da 714 a 862, le suite da 18 a 21.** Ogni pezzo è stato
+committato solo dopo una controprova fatta **sporcando il codice vero** e
+rimettendolo dalla copia con l'impronta riverificata — mai una dichiarazione di
+aver ripristinato.
+
+### 29a) Cosa la costruzione ha insegnato, che la decisione non sapeva
+
+* ⚠️ **Un ricalcolo riusabile del subtotale non esisteva.** I lettori pesanti
+  (`resolveProduct`, `resolveCombo`) erano già in `lib/checkout-resolve.js`, ma
+  il ciclo che li chiama e somma era **saldato dentro `POST`**, e
+  `resolveDiscountAndTotal` il subtotale non lo calcola: se lo fa dare. Estrarlo
+  avrebbe riaperto il file del pagamento e fatto scattare i **sei lavori del
+  punto 16** — da qui la **strada B**.
+* ⚠️ **`checkout-resolve.js` prende `supabaseAdmin` dall'alto**, quindi nessuna
+  prova può importarlo. Il cuore nuovo **riceve i lettori come parametri**: è
+  l'unica ragione per cui 53 prove possono verificarlo per davvero.
+* ✅ **`canPay` esisteva già** (`app/page.js`): la regola "il cliente ha
+  compilato tutto" non è stata costruita, è stata **riusata**. Decisione di
+  Andrea (11/08): **un metro solo**, anche al prezzo di una frase imprecisa se
+  lo slot scade.
+* ⚠️ **La sentinella del guasto si riconosce PER FORMA, non per identità.**
+  Importarla avrebbe trascinato dentro il database. La rete larga — *tutto ciò
+  che non è `null` e non è un oggetto con `unitPrice` numerico finito è un
+  guasto* — cattura il `Symbol` **e anche una sentinella cambiata un domani**, e
+  scarta il non-numero **prima** che entri nella somma: la conseguenza vera del
+  difetto vecchio (un `NaN` che scavalca ordine minimo e controllo dei 18 anni)
+  qui non può prodursi.
+* ⚠️ **`giveMeFiveApplied` era conservato, `codiceApplicato` no.** Spegnere il
+  carrello senza accorgersene avrebbe fatto sparire **in silenzio** la
+  sopravvivenza dello sconto alla riapertura. È il motivo per cui `d2ebc41`
+  viene **prima** di `8df6018`, e non è scritto in nessuna decisione precedente:
+  è emerso leggendo.
+
+### 29b) Le prove dal vivo — le uniche che contano qui
+
+⚠️ **Nessuna prova automatica di questo progetto guarda lo schermo**, e i referti
+di Code dichiarano *"non l'ha visto nessuno con gli occhi"* **due volte**: è
+vero dal suo punto di vista, perché **le prove le fa Andrea e le riferisce nella
+chat del ragionamento**, non a Code. *Chi legge i soli referti crederebbe che
+questi pezzi non siano mai stati provati. Non è così.*
+
+Verificate da Andrea, una per una: dati incompleti → la frase, **senza
+interrogare il server**; codice inesistente → la sua frase; GIVEMEFIVE sopra
+soglia → campo che sparisce, riga nel riepilogo, **totale che scala di 5 €**;
+carrello sceso sotto soglia → sconto che cade; ⚠️ **telefono che aveva già
+riscosso → rifiuto col suo messaggio** (è questa a dimostrare che la rotta legge
+davvero `promo_redemptions` e non dice sì a chiunque); riapertura del checkout →
+codice nella casella e sconto che torna da solo **rimessa la privacy**, ⚠️ **e la
+controprova: senza rimetterla non torna**; carrello spento → nessuna traccia
+dello sconto lì, suggerimento 20-25 € ancora presente col testo nuovo; e infine
+⚠️ **un pagamento vero in sandbox col totale scontato arrivato fino a Stripe** —
+l'unico modo per sapere che l'intenzione arriva a destinazione ora che il
+carrello non la accende più.
+
+### 29c) Cosa resta aperto
+
+* ⚠️ **`promo_redemptions` contiene ancora i riscatti di prova**: quei telefoni
+  continuano a sentirsi dire *"Hai già utilizzato questo codice sconto."*
+  Cancellarli è **DDL, quindi di Andrea nel SQL editor**, con la migrazione in
+  `sql/`.
+* ⚠️ **Il caso del rientro sotto soglia resta scoperto per scelta** (§14 v69):
+  chi torna al carrello, scende sotto i 25 € e rientra non vede alcuna
+  spiegazione. **Deciso di non coprirlo.**
+* **I due eventi delle statistiche** legati al carrello sparito (§65) e **i sei
+  lavori del punto 16**, tutti dove erano.
+* **La Fase 4** resta l'ultimo lavoro pre-go-live.
+
+### 29d) Quattro lezioni
+
+**cq. ⚠️ UN DIVIETO SCRITTO IN CIMA NON SI VEDE DAL PUNTO CHE LO CONTRADDICE.**
+In sei comandi ci sono state **quattro sviste di chi li scrive**: una regoletta
+sbagliata sul nome del file scaricato, un *"non eseguire le prove"* in cima a un
+comando il cui punto 3 le eseguiva, un pulsante *"premibile solo se canPay"* che
+alla pressione doveva parlare, e una prova impossibile da eseguire (*"restando
+nel checkout, torna al carrello"*). Tutte e quattro viste da Code o da Andrea.
+**Il rimedio adottato: il divieto sta attaccato al punto a cui si riferisce, mai
+in un preambolo generale.** *E le regolette comode sui nomi dei file non si
+scrivono affatto: "il file buono è quello col `_1`" si è smentita al primo giro
+utile, in silenzio.*
+
+**cr. ⚠️ Una prova che sorveglia una cosa da togliere si CAPOVOLGE, non si
+cancella.** Le nove prove che verificavano l'esistenza dell'interruttore del
+carrello ora verificano che **nessuno lo rimetta**, e coprono cinque pezzi
+invece di tre. *Cancellarle sarebbe stato legittimo e avrebbe lasciato un buco
+silenzioso al posto di una difesa.*
+
+**cs. Quando una sonda non reagisce, il sospettato è anche lo strumento.** Tre
+volte in due giorni: una sporcatura che non aveva toccato il file (e la sonda
+sembrava cieca), un `--include=*.js` mangiato dalla shell, una prova sulla
+versione del formato costruita con la funzione che ci scrive **sempre** la
+versione corrente — sarebbe stata verde per sempre. Chiusa scrivendo il numero
+**letterale**: con la costante, quella prova avrebbe seguito qualunque cambio
+senza poter più fallire.
+
+**ct. Una domanda senza risposta buona può sciogliersi cambiando chi la fa.**
+Registrata già come lezione `co` il 10/08 e **confermata dalla costruzione**: il
+nodo *prudente o generoso* non è stato risolto, è diventato inutile. Un guasto,
+a chi ha chiesto, si racconta.
