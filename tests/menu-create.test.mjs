@@ -900,5 +900,182 @@ const righeDi = (scritture, tabella) =>
   );
 }
 
+// ===========================================================================
+// i) §63-64 (Fase 4, 12/08/2026, "YY") — IL TITOLO DEL GRUPPO DI SCELTA.
+//
+// ⚠️ **Il predefinito del DATABASE è `'Proteina'`, e non è quello che i clienti
+// leggono**: i Roll di oggi portano *"Come preferisci il tuo kebab?"* (§19 v20).
+// Senza il predefinito nostro, un Roll creato dal pannello mostrerebbe un titolo
+// diverso da tutti gli altri prodotti del menu — e la differenza si vedrebbe
+// solo aprendo quella card, cioè quasi mai.
+// ===========================================================================
+const TITOLO_ATTESO = "Come preferisci il tuo kebab?";
+const rollConProteine = (extra = {}, proteine = [{ key: "adana", price_delta: "4.50" }]) =>
+  corpo({
+    category: "roll",
+    name: "Il Titolato",
+    base_price: "8.00",
+    options: { proteins: proteine },
+    ...extra,
+  });
+
+// ---------------------------------------------------------------------------
+// i1) IL TITOLO ARRIVA FINO ALLA RIGA SCRITTA.
+// ---------------------------------------------------------------------------
+{
+  const scritto = "Come lo vuoi?";
+  const { esito, scritture } = await creaConOpzioni(
+    rollConProteine({}, [
+      { key: "adana", price_delta: "4.50", choice_label: scritto },
+      { key: "planted", price_delta: 0, choice_label: scritto },
+    ])
+  );
+  assert(esito.status === 201, `i1) un Roll col titolo scritto → creato (status ${esito.status}, ${esito.body?.error ?? ""})`);
+
+  const righe = righeDi(scritture, "product_choice_options");
+  assert(
+    righe.length === 2 && righe.every((r) => r.choice_label === scritto),
+    `i2) ⚠️ e il titolo arriva su TUTTE le righe scritte (${JSON.stringify(righe.map((r) => r.choice_label))})`
+  );
+  assert(
+    righe.every((r) => "choice_label" in r),
+    "i3) il campo c'è davvero nella riga: se mancasse, il database ci metterebbe 'Proteina'"
+  );
+}
+
+// ---------------------------------------------------------------------------
+// i4) ⚠️ TITOLO ASSENTE → vale "Come preferisci il tuo kebab?", NON "Proteina".
+// ---------------------------------------------------------------------------
+{
+  const { esito, scritture } = await creaConOpzioni(rollConProteine());
+  assert(esito.status === 201, `i4) un Roll senza titolo → creato (status ${esito.status})`);
+
+  const riga = righeDi(scritture, "product_choice_options")[0];
+  assert(
+    riga.choice_label === TITOLO_ATTESO,
+    `i5) ⚠️ e il titolo vale "${TITOLO_ATTESO}" (è "${riga.choice_label}")`
+  );
+  assert(
+    riga.choice_label !== "Proteina",
+    "i6) ⚠️ e NON 'Proteina', che è il predefinito del database e mostrerebbe al cliente una parola diversa da tutti gli altri prodotti"
+  );
+
+  // ⚠️ La frase è scritta per esteso APPOSTA, non importata dal modulo:
+  // confrontarla con la costante che la produce vorrebbe dire paragonarla a sé
+  // stessa, e la prova resterebbe verde anche se qualcuno la riscrivesse. È lo
+  // stesso motivo per cui la versione del formato, nella persistenza, si scrive
+  // col numero letterale.
+  assert(
+    riga.choice_label === "Come preferisci il tuo kebab?",
+    `i7) e la frase è quella, parola per parola e col punto di domanda ("${riga.choice_label}")`
+  );
+}
+
+// ---------------------------------------------------------------------------
+// i8) ⚠️ DUE RIGHE DELLO STESSO GRUPPO CON TITOLI DIVERSI → RIFIUTATE.
+// Il sito legge il titolo della PRIMA riga (`app/page.js`:
+// `choiceLabel: choices[0]?.choice_label`), quindi due titoli non darebbero due
+// domande: darebbero quella che capita per prima.
+// ---------------------------------------------------------------------------
+{
+  const { esito, scritture } = await creaConOpzioni(
+    rollConProteine({}, [
+      { key: "adana", price_delta: "4.50", choice_label: "Come lo vuoi?" },
+      { key: "planted", price_delta: 0, choice_label: "Che proteina?" },
+    ])
+  );
+  assert(esito.status === 400, `i8) ⚠️ due titoli diversi nello stesso gruppo → RIFIUTATI (status ${esito.status})`);
+  assert(
+    String(esito.body?.error ?? "").includes("uno solo per tutto il gruppo"),
+    `i9) col messaggio che spiega perché ("${esito.body?.error}")`
+  );
+  assert(
+    String(esito.body?.error ?? "").includes("Come lo vuoi?") && String(esito.body?.error ?? "").includes("Che proteina?"),
+    "i10) e che nomina i due titoli arrivati, così chi compila sa quale correggere"
+  );
+  assert(scritture.length === 0, `i11) ⚠️ e NESSUNA scrittura: il rifiuto arriva prima che l'articolo esista (${scritture.length})`);
+
+  // ⚠️ Titolo su una riga e assente sull'altra NON è un conflitto: chi omette
+  // non sta proponendo un titolo diverso.
+  const parziale = await creaConOpzioni(
+    rollConProteine({}, [
+      { key: "adana", price_delta: "4.50", choice_label: "Come lo vuoi?" },
+      { key: "planted", price_delta: 0 },
+    ])
+  );
+  assert(parziale.esito.status === 201, `i12) titolo su una riga sola e assente sull'altra → accettato (${parziale.esito.body?.error ?? ""})`);
+  assert(
+    righeDi(parziale.scritture, "product_choice_options").every((r) => r.choice_label === "Come lo vuoi?"),
+    "i13) e quello scritto vale per tutto il gruppo, anche per la riga che non lo portava"
+  );
+
+  // Le forme storte.
+  assert(
+    (await creaConOpzioni(rollConProteine({}, [{ key: "adana", price_delta: 0, choice_label: "x".repeat(61) }]))).esito.status === 400,
+    "i14) un titolo più lungo del limite → rifiutato"
+  );
+  assert(
+    (await creaConOpzioni(rollConProteine({}, [{ key: "adana", price_delta: 0, choice_label: 42 }]))).esito.status === 400,
+    "i15) un titolo che non è testo → rifiutato"
+  );
+  assert(
+    (await creaConOpzioni(rollConProteine({}, [{ key: "adana", price_delta: 0, choice_label: "   " }]))).esito.status === 400,
+    "i16) e uno di soli spazi → rifiutato, non accettato come titolo vuoto"
+  );
+}
+
+// ---------------------------------------------------------------------------
+// i17) ⚠️ UN ARTICOLO SENZA OPZIONI SI COMPORTA ANCORA ESATTAMENTE COME OGGI:
+// nessun titolo, nessuna riga, nessuna delle quattro tabelle.
+// ---------------------------------------------------------------------------
+{
+  const { esito, scritture } = await creaConOpzioni(corpo());
+  assert(esito.status === 201, `i17) un articolo senza opzioni → creato come oggi (status ${esito.status})`);
+  assert(
+    TABELLE_OPZIONI.every((t) => !scritture.some((s) => s.tabella === t)),
+    "i18) nessuna delle quattro tabelle toccata"
+  );
+  assert(
+    !JSON.stringify(scritture).includes("choice_label"),
+    "i19) ⚠️ e la parola `choice_label` non compare in NESSUNA scrittura: il titolo esiste solo dove esistono le proteine"
+  );
+  assert(
+    !JSON.stringify(scritture).includes(TITOLO_ATTESO),
+    "i20) né la frase predefinita finisce da qualche parte per sbaglio"
+  );
+}
+
+// ---------------------------------------------------------------------------
+// i21) ⚠️ CONTROPROVA — QUESTE SONDE SANNO DIRE DI NO?
+// ---------------------------------------------------------------------------
+{
+  // 1) La sonda del predefinito (i5-i6) distingue le due frasi? Se le
+  // confrontasse con sé stesse direbbe sempre di sì.
+  assert(
+    TITOLO_ATTESO !== "Proteina" && TITOLO_ATTESO.endsWith("?"),
+    "i21) CONTROPROVA: le due frasi sono diverse, quindi i5 e i6 non possono essere vere entrambe per caso"
+  );
+
+  // 2) La sonda del conflitto (i8) accetta il caso buono? Se rifiutasse sempre,
+  // i1 e i12 sarebbero rosse — e infatti passano.
+  const stessoTitolo = await creaConOpzioni(
+    rollConProteine({}, [
+      { key: "adana", price_delta: "4.50", choice_label: "Come lo vuoi?" },
+      { key: "planted", price_delta: 0, choice_label: "Come lo vuoi?" },
+    ])
+  );
+  assert(
+    stessoTitolo.esito.status === 201,
+    `i22) ⚠️ CONTROPROVA: due righe con lo STESSO titolo passano (status ${stessoTitolo.esito.status}) — quindi i8 rifiuta la differenza, non la presenza di due righe`
+  );
+
+  // 3) E la sonda di i19 troverebbe un titolo scritto dove non deve? Le si dà
+  // l'elenco di un articolo che ne ha uno.
+  assert(
+    JSON.stringify(stessoTitolo.scritture).includes("choice_label"),
+    "i23) CONTROPROVA: su un articolo con proteine la sonda di i19 trova `choice_label` — quindi quando dice «non c'è» sta guardando"
+  );
+}
+
 console.log(failures === 0 ? "\nTUTTI I TEST PASSATI" : `\n${failures} TEST FALLITI`);
 process.exitCode = failures === 0 ? 0 : 1;
