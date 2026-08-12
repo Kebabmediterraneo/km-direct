@@ -417,6 +417,59 @@ function OrderCard({ order, onChangeStatus, onReportProblem, onResolve, onCancel
   // già segnalato — da "problema" si passa a Risolvi/Annulla, non di nuovo qui.
   const canReportProblem = ["nuovo", "in_preparazione", "pronto"].includes(order.status);
 
+  // §52-56 + §41-45 (12/08/2026) — DOVE SI CONSEGNA, che nella scheda non c'era.
+  //
+  // ⚠️ **UNA RIGA VUOTA NON SI MOSTRA** (decisione di Andrea del 12/08): se il
+  // cliente non ha scritto il citofono, quella riga non compare. La scheda
+  // cresce solo quando c'è qualcosa da dire — chi è al banco legge righe che
+  // contengono un'informazione, non un elenco di campi per lo più vuoti in cui
+  // cercare quello pieno.
+  //
+  // ⚠️ **SUL RITIRO NON COMPARE NIENTE.** L'indirizzo esiste solo per la
+  // Delivery, e su un ordine di ritiro quei campi sono vuoti: non c'è un caso
+  // da spiegare con un messaggio, semplicemente non si disegna nulla.
+  //
+  // ⚠️ Le etichette sono **le stesse parole di `formatNotes` in
+  // `lib/generate-glovo-xlsx.js`**, che è ciò che finisce sul file del rider:
+  // lo staff deve leggere la stessa cosa nei due posti, altrimenti sono due
+  // dati diversi che si somigliano. *"Indirizzo" invece è scelto qui: nel file
+  // per Glovo quella voce non ha etichetta, perché va in una colonna sua.*
+  //
+  // ---------------------------------------------------------------------------
+  // ⚠️⚠️ QUI NON C'È LA RIGA "Civico:", ED È UNA DECISIONE — NON RIMETTERLA.
+  // ---------------------------------------------------------------------------
+  // Decisione di Andrea del 12/08/2026, presa **guardando le due righe dal
+  // vivo**: è ridondante. `delivery_address` è l'indirizzo completo restituito
+  // da Google Places (`formattedAddress`) e **il civico c'è già dentro** — è la
+  // stessa ragione per cui `formatAddress`, nel file per il rider, non lo
+  // riaccoda: lo scriverebbe due volte, *"Via Roma, 5, …Bologna BO, 5"*.
+  //
+  // ⚠️ **E il caso "indirizzo senza civico" NON è da temere**, che è il pensiero
+  // per cui qualcuno rimetterebbe questa riga credendo di chiudere un buco:
+  //
+  //  * il **sito** non lascia premere Paga senza civico — `canPay` in
+  //    `app/page.js` pretende `civico.trim() !== ""` per la Delivery;
+  //  * il **server** rifiuta la richiesta lo stesso, con *"Manca qualche dato
+  //    dell'indirizzo. Controlla e riprova."* (`lib/checkout-validation.js`,
+  //    §46b), e quello è il controllo che conta perché vale anche per una
+  //    richiesta costruita a mano.
+  //
+  // Quindi un ordine Delivery **senza civico non arriva in questa scheda**, e
+  // questa riga non era l'ultima salvaguardia di niente: era una ripetizione.
+  // ⚠️ *`delivery_civico` resta nel `select` della rotta e resta in database: è
+  // il dato che il cliente ha scritto a mano e serve altrove (la verifica del
+  // perimetro, §9-10). Qui si è deciso soltanto di non MOSTRARLO due volte.*
+  const righeConsegna =
+    order.fulfillment === "delivery"
+      ? [
+          ["Indirizzo", order.delivery_address],
+          ["Citofono", order.delivery_citofono],
+          ["Piano/interno", order.delivery_piano_interno],
+          ["Edificio/scala", order.delivery_edificio_scala],
+          ["Note rider", order.delivery_note_rider],
+        ].filter(([, valore]) => valore != null && String(valore).trim() !== "")
+      : [];
+
   async function handleChange(status) {
     setIsUpdating(true);
     await onChangeStatus(order.id, status);
@@ -491,6 +544,19 @@ function OrderCard({ order, onChangeStatus, onReportProblem, onResolve, onCancel
         <div style={{ fontWeight: 700 }}>{customerName}</div>
         <div>{customer?.phone ?? "—"}</div>
       </div>
+
+      {/* §52-56 (12/08/2026): dove si consegna. L'intero riquadro non esiste se
+          non c'è niente da mostrare — sul Ritiro, o su una Delivery in cui il
+          cliente non ha compilato nessun dettaglio oltre all'indirizzo. */}
+      {righeConsegna.length > 0 && (
+        <div style={{ fontSize: 14, color: "var(--navy)", display: "flex", flexDirection: "column", gap: 2 }}>
+          {righeConsegna.map(([etichetta, valore]) => (
+            <div key={etichetta}>
+              <span style={{ color: "var(--text-on-dark)" }}>{etichetta}:</span> {valore}
+            </div>
+          ))}
+        </div>
+      )}
 
       <div style={{ display: "flex", flexDirection: "column", gap: 8, paddingTop: 6, borderTop: "1px solid var(--card-border)" }}>
         {(order.order_items ?? []).map((item, index) => (

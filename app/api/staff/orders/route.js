@@ -40,8 +40,22 @@ export async function GET(request) {
   // non un ordine "mai pagato" da nascondere insieme a pending/failed.
   let query = supabaseAdmin
     .from("orders")
+    // §52-56 (12/08/2026) — ⚠️ I CAMPI DELL'INDIRIZZO, che questa query non
+    // chiedeva: la scheda ordine mostrava nome, cognome e telefono, e chi era
+    // al banco non poteva vedere dove si consegna senza scaricare il file per
+    // il rider. I nomi sono **copiati dal select della rotta che genera quel
+    // file** (`app/api/staff/orders/[id]/glovo-xlsx/route.js`), che li legge da
+    // sempre: non riscritti a memoria, perché un nome sbagliato qui non
+    // solleverebbe niente — arriverebbe `undefined` e la riga semplicemente non
+    // comparirebbe, cioè il difetto si nasconderebbe da solo.
+    //
+    // ⚠️ **Latitudine e longitudine NON si chiedono.** Nella scheda non si
+    // mostrano, e un dato che non serve non si manda al browser: la posizione
+    // esatta di casa di un cliente è la cosa più delicata che questo ordine
+    // contenga (§66, §69). Chi ne ha bisogno è la rotta del file per Glovo, che
+    // se le legge per conto suo lato server.
     .select(
-      "id, pickup_code, status, fulfillment, total, payment_status, coupon_code, created_at, delivery_timing, scheduled_delivery_at, external_delivery_id, customers(first_name, last_name, phone), order_items(product_name_snapshot, category_snapshot, quantity, unit_price_snapshot, line_total, is_combo, configuration), stores(glovo_outlet_id)"
+      "id, pickup_code, status, fulfillment, total, payment_status, coupon_code, created_at, delivery_timing, scheduled_delivery_at, external_delivery_id, delivery_address, delivery_civico, delivery_citofono, delivery_piano_interno, delivery_edificio_scala, delivery_note_rider, customers(first_name, last_name, phone), order_items(product_name_snapshot, category_snapshot, quantity, unit_price_snapshot, line_total, is_combo, configuration), stores(glovo_outlet_id)"
     )
     .in("status", config.statuses)
     .in("payment_status", ["succeeded", "refunded"])
