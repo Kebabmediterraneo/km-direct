@@ -742,10 +742,25 @@ function ProteinOptionLabel({ protein }) {
 
 function ProductConfigurator({ productKey, productId, config, onAddToCart }) {
   const hasProteins = config.proteins && config.proteins.length > 0;
+  // ⚠️⚠️ §17 (decisione di Andrea del 12/08/2026) — **NIENTE RIPIEGO SULLA
+  // PRIMA.** Qui c'era `?? config.proteins[0].id`: se nessuna proteina era
+  // marcata come preselezionata, il sito sceglieva **la prima dell'elenco**.
+  //
+  // *Perché è stato tolto: dal pannello (Fase 4) l'ordine delle proteine lo
+  // decide chi crea l'articolo, quindi "la prima" può benissimo essere una
+  // proteina **con sovrapprezzo** — e il cliente si troverebbe preselezionata
+  // una scelta che costa, senza averla fatta. Il totale sarebbe giusto e
+  // nessuno se ne accorgerebbe.*
+  //
+  // ⚠️ **Oggi questo cambio non tocca nessun prodotto esistente**: tutti i Roll
+  // e le Bowl hanno già Pollo e tacchino preselezionata (verificato da Andrea).
+  // Disarma una trappola che sta per essere costruita, non ne ripara una scattata.
+  //
+  // ⚠️ E va insieme alle due difese, mai da solo: senza di esse renderebbe
+  // raggiungibile lo stato "nessuna proteina" e in cucina arriverebbe un Roll
+  // senza proteina, che non si distingue da un dato perso.
   const [proteinId, setProteinId] = useState(() =>
-    hasProteins
-      ? config.proteins.find((p) => p.included)?.id ?? config.proteins[0].id
-      : null
+    hasProteins ? config.proteins.find((p) => p.included)?.id ?? null : null
   );
   const [removals, setRemovals] = useState(() => new Set());
   const [accompanimentId, setAccompanimentId] = useState(null);
@@ -782,6 +797,19 @@ function ProductConfigurator({ productKey, productId, config, onAddToCart }) {
   // prodotto non è aggiungibile al carrello.
   const missingAccompaniment = !!config.accompaniments && accompanimentId === null;
 
+  // ⚠️ §17 (decisione di Andrea del 12/08/2026, "RR"): se il prodotto HA delle
+  // proteine, sceglierne una è OBBLIGATORIO — chi non vuole carne sceglie
+  // "nessuna", che è una scelta esplicita. Finché non è scelta, il prodotto non
+  // è aggiungibile al carrello, **esattamente come per l'accompagnamento qui
+  // sopra**: stessa forma, così i due si leggono insieme.
+  //
+  // ⚠️ Questa è **cortesia, non difesa**: la difesa sta nel server
+  // (`lib/checkout-resolve.js`), che rifiuta la riga se il prodotto ha proteine
+  // e non ne arriva una. Qui si evita al cliente di arrivare fino al pagamento
+  // per sentirsi dire di no.
+  const missingProtein = hasProteins && proteinId === null;
+  const cannotAdd = missingAccompaniment || missingProtein;
+
   function toggleRemoval(label) {
     setRemovals((prev) => {
       const next = new Set(prev);
@@ -798,6 +826,11 @@ function ProductConfigurator({ productKey, productId, config, onAddToCart }) {
     // §21: difesa ridondante al pulsante disabilitato — mai aggiungere una Bowl
     // (prodotto con accompagnamenti) senza un accompagnamento scelto.
     if (config.accompaniments && !accompanimentId) return;
+    // §17 (12/08/2026, "RR"): stessa difesa ridondante per la proteina, che da
+    // oggi è obbligatoria sui prodotti che ne hanno. ⚠️ Ridondante non vuol dire
+    // superflua: il pulsante spento è una proprietà dell'interfaccia, questa
+    // riga è ciò che regge se un domani quel `disabled` viene tolto per sbaglio.
+    if (hasProteins && !proteinId) return;
     const sortedRemovals = Array.from(removals).sort();
     onAddToCart({
       key: JSON.stringify({
@@ -959,16 +992,16 @@ function ProductConfigurator({ productKey, productId, config, onAddToCart }) {
         </span>
         <button
           onClick={handleAddToCart}
-          disabled={missingAccompaniment}
+          disabled={cannotAdd}
           style={{
-            background: missingAccompaniment ? "var(--card-border)" : "var(--brand-orange)",
-            color: missingAccompaniment ? "var(--text-on-dark)" : "var(--bg-warm)",
+            background: cannotAdd ? "var(--card-border)" : "var(--brand-orange)",
+            color: cannotAdd ? "var(--text-on-dark)" : "var(--bg-warm)",
             border: "none",
             borderRadius: 8,
             padding: "10px 20px",
             fontWeight: 600,
             fontSize: 14,
-            cursor: missingAccompaniment ? "not-allowed" : "pointer",
+            cursor: cannotAdd ? "not-allowed" : "pointer",
           }}
         >
           Aggiungi al carrello
@@ -1332,11 +1365,10 @@ function ComboBuilder({
   const rollHasProteins =
     selectedRoll.config.proteins && selectedRoll.config.proteins.length > 0;
 
+  // ⚠️ §17 (12/08/2026) — niente ripiego sulla prima, come sul prodotto singolo:
+  // qui c'era `?? selectedRoll.config.proteins[0].id`.
   const [proteinId, setProteinId] = useState(() =>
-    rollHasProteins
-      ? selectedRoll.config.proteins.find((p) => p.included)?.id ??
-        selectedRoll.config.proteins[0].id
-      : null
+    rollHasProteins ? selectedRoll.config.proteins.find((p) => p.included)?.id ?? null : null
   );
   const [removals, setRemovals] = useState(() => new Set());
   const [sideId, setSideId] = useState(
@@ -1348,12 +1380,13 @@ function ComboBuilder({
     const roll = rollProducts.find((r) => r.name === name);
     const hasProteins = roll.config.proteins && roll.config.proteins.length > 0;
     setRollName(name);
-    setProteinId(
-      hasProteins
-        ? roll.config.proteins.find((p) => p.included)?.id ??
-          roll.config.proteins[0].id
-        : null
-    );
+    // ⚠️ IL TERZO PUNTO, che è il più facile da dimenticare: cambiando Roll
+    // dentro il builder la proteina si rifà da capo, e qui c'era lo stesso
+    // ripiego sulla prima. Lasciarlo avrebbe voluto dire che aprendo il combo
+    // nessuna proteina è scelta — giusto — ma cambiando Roll ne compare una
+    // scelta da sola: la trappola sarebbe restata armata a metà, nel percorso
+    // che nessuno guarda perché "l'ho già sistemato sopra".
+    setProteinId(hasProteins ? roll.config.proteins.find((p) => p.included)?.id ?? null : null);
     setRemovals(new Set());
   }
 
@@ -1406,7 +1439,16 @@ function ComboBuilder({
     drinkSurcharge: selectedDrink.priceDelta,
   }).price;
 
+  // ⚠️ §17 (12/08/2026, "RR") — anche nel builder del combo la proteina del Roll
+  // scelto è obbligatoria. ⚠️ *Qui non c'era NESSUNA delle due difese: né il
+  // pulsante spento né la guardia nella funzione. Il buco era più largo che sul
+  // prodotto singolo, e meno visibile, perché il combo non ha accompagnamenti e
+  // quindi non aveva nemmeno un precedente da imitare.*
+  const missingProtein = rollHasProteins && proteinId === null;
+
   function handleAddToCart() {
+    // Difesa ridondante al pulsante disabilitato, come sul prodotto singolo.
+    if (rollHasProteins && !proteinId) return;
     const sortedRemovals = Array.from(removals).sort();
     onAdd({
       key: JSON.stringify({
@@ -1610,15 +1652,16 @@ function ComboBuilder({
           </span>
           <button
             onClick={handleAddToCart}
+            disabled={missingProtein}
             style={{
-              background: "var(--brand-orange)",
-              color: "var(--bg-warm)",
+              background: missingProtein ? "var(--card-border)" : "var(--brand-orange)",
+              color: missingProtein ? "var(--text-on-dark)" : "var(--bg-warm)",
               border: "none",
               borderRadius: 8,
               padding: "10px 20px",
               fontWeight: 600,
               fontSize: 14,
-              cursor: "pointer",
+              cursor: missingProtein ? "not-allowed" : "pointer",
             }}
           >
             Aggiungi al carrello
