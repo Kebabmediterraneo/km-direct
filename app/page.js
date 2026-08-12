@@ -26,7 +26,13 @@ import { GIVEMEFIVE_THRESHOLD, GIVEMEFIVE_DISCOUNT } from "../lib/givemefive";
 // ⚠️ Si importa anche la FRASE, non solo il controllo: è la stessa che dice il
 // server, e riscriverla qui creerebbe due copie che divergono senza che nulla
 // lo segnali (lezione `cl`).
-import { isPhoneValid, PHONE_INVALID_MESSAGE } from "../lib/customer-phone";
+import { PHONE_INVALID_MESSAGE, DEFAULT_COUNTRY } from "../lib/customer-phone";
+// §41-45 (11/08/2026, secondo passo): la tendina dei prefissi e la composizione
+// del numero che parte. ⚠️ Il giudizio NON si rifà qui: `lib/phone-field.js`
+// mette insieme prefisso e numero e gira la domanda a `lib/customer-phone.js`,
+// che resta l'unico posto dove la forma del numero viene decisa.
+import { isPhoneFieldValid, phoneForServer } from "../lib/phone-field";
+import { PHONE_COUNTRIES } from "../lib/phone-countries";
 import PrivacyFooter from "./privacy-footer";
 
 const CATEGORIES = [
@@ -2745,7 +2751,22 @@ function CheckoutScreen({
           // §12b Task C: orario di ritiro (giorno+slot già in stato pickupDay/
           // pickupTime) — il timestamp reale è ricalcolato server-side (§46).
           pickup: isDelivery ? null : { scheduledDay: pickupDay, scheduledTime: pickupTime },
-          customer: customerDetails,
+          // §41-45 (11/08/2026, decisioni P e R) — ⚠️ QUI PARTE IL NUMERO COL
+          // PREFISSO DAVANTI: "+393331234567", non "3331234567", e il paese
+          // scelto viaggia accanto come `country`.
+          //
+          // ⚠️ **È la chiave con cui il cliente viene riconosciuto** — il
+          // pagamento salva con `onConflict: "phone"` e §14 cerca esattamente
+          // questa stringa per sapere se lo sconto è già stato riscosso. Una
+          // forma sola per tutti, italiani compresi: due forme dello stesso
+          // numero sarebbero due clienti diversi.
+          //
+          // ⚠️ Ciò che il cliente ha battuto **non viene toccato**: si compone
+          // una stringa a parte, e nella casella resta quello che ha scritto.
+          customer: {
+            ...customerDetails,
+            phone: phoneForServer(customerDetails.phone, customerDetails.country),
+          },
           privacyAccepted,
           marketingOptIn,
           ageConfirmed,
@@ -2857,7 +2878,16 @@ function CheckoutScreen({
               }
             : null,
           pickup: isDelivery ? null : { scheduledDay: pickupDay, scheduledTime: pickupTime },
-          customer: customerDetails,
+          // §14 + §41-45 — ⚠️ LO STESSO NUMERO CHE PARTIRÀ AL PAGAMENTO, nella
+          // stessa forma. La rotta dello sconto cerca in `promo_redemptions`
+          // proprio questa stringa: se qui partisse "3331234567" e al pagamento
+          // "+393331234567", chi ha già riscosso GIVEMEFIVE se lo sentirebbe
+          // concedere una seconda volta — e nessuno se ne accorgerebbe finché
+          // non arriva il conto.
+          customer: {
+            ...customerDetails,
+            phone: phoneForServer(customerDetails.phone, customerDetails.country),
+          },
           privacyAccepted,
           code: codiceScritto,
         }),
@@ -3126,21 +3156,48 @@ function CheckoutScreen({
             onChange={(event) => updateCustomerField("lastName", event.target.value)}
             style={fieldStyle}
           />
-          <input
-            type="tel"
-            placeholder="Telefono *"
-            value={customerDetails.phone}
-            onChange={(event) => updateCustomerField("phone", event.target.value)}
-            style={fieldStyle}
-          />
+          {/* §41-45 (11/08/2026, decisione P) — LA TENDINA DEI PREFISSI E IL
+              CAMPO, affiancati perché sono una cosa sola: insieme fanno un
+              numero. ⚠️ Nella casella il cliente scrive SOLO il numero; il `+`
+              e il prefisso li mette il sistema, e chi li battesse a mano si
+              vede rifiutare il numero (il `+` in mezzo cade come una lettera).
+              ⚠️ La tendina non si restringe: `minWidth: 0` le impedisce di
+              schiacciare il campo del numero sugli schermi stretti, dove
+              altrimenti il numero non si leggerebbe mentre lo si scrive. */}
+          <div style={{ display: "flex", gap: 8 }}>
+            <select
+              aria-label="Prefisso internazionale"
+              value={customerDetails.country}
+              onChange={(event) => updateCustomerField("country", event.target.value)}
+              style={{ ...fieldStyle, flex: "0 0 auto", maxWidth: "45%" }}
+            >
+              {PHONE_COUNTRIES.map((paese) => (
+                <option key={paese.iso} value={paese.iso}>
+                  {`${paese.bandiera} ${paese.nome} ${paese.prefisso}`}
+                </option>
+              ))}
+            </select>
+            <input
+              type="tel"
+              placeholder="Telefono *"
+              value={customerDetails.phone}
+              onChange={(event) => updateCustomerField("phone", event.target.value)}
+              style={{ ...fieldStyle, flex: 1, minWidth: 0 }}
+            />
+          </div>
           {/* §41-45 (11/08/2026): l'avviso compare solo se il cliente ha
               scritto qualcosa e quel qualcosa non ha la forma di un numero.
               ⚠️ Mai a campo vuoto: chi non ha ancora scritto non ha sbagliato
               niente, e un rosso che appare prima di digitare accusa il cliente
-              di un errore che non ha commesso. */}
-          {customerDetails.phone.trim() !== "" && !isPhoneValid(customerDetails.phone) && (
-            <div style={{ fontSize: 13, color: "var(--navy)" }}>{PHONE_INVALID_MESSAGE}</div>
-          )}
+              di un errore che non ha commesso.
+              ⚠️ Il giudizio si dà sul numero COMPOSTO col prefisso scelto: è lo
+              stesso che darà il server, chiesto in anticipo. Il testo nella
+              casella resta intatto — non si cancella e non si riscrive sotto le
+              dita di chi sta digitando. */}
+          {customerDetails.phone.trim() !== "" &&
+            !isPhoneFieldValid(customerDetails.phone, customerDetails.country) && (
+              <div style={{ fontSize: 13, color: "var(--navy)" }}>{PHONE_INVALID_MESSAGE}</div>
+            )}
           <input
             type="email"
             placeholder="Email (facoltativa)"
@@ -3431,6 +3488,14 @@ export default function Home() {
     lastName: "",
     phone: "",
     email: "",
+    // §41-45 (11/08/2026, decisione P): il paese scelto nella tendina dei
+    // prefissi. ⚠️ Sta QUI dentro, insieme agli altri dati del cliente, per due
+    // ragioni che si tengono: viaggia al server come `customer.country`, che è
+    // il nome che `lib/checkout-validation.js` già si aspetta, e si conserva
+    // insieme agli altri contatti senza aggiungere un secondo meccanismo.
+    // ⚠️ Preselezionata l'Italia: è il paese di quasi tutti i clienti, e chi non
+    // tocca la tendina deve poter ordinare come ha sempre fatto.
+    country: DEFAULT_COUNTRY,
   });
   // §14 (v68) — il codice sconto BATTUTO nella casella del checkout. Sta qui e
   // non dentro `CheckoutScreen` per la stessa ragione dei contatti: è un dato

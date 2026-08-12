@@ -556,19 +556,39 @@ function assert(cond, msg) {
 
   const validazione = leggi("lib", "checkout-validation.js");
   const sito = leggi("app", "page.js");
+  const campo = leggi("lib", "phone-field.js");
 
   assert(
     /import \{[^}]*checkPhone[^}]*\} from "\.\/customer-phone\.js"/.test(validazione),
     "h1) il server importa il modulo: è lì che il controllo è una difesa"
   );
+
+  // ⚠️ **h2 È STATA CAPOVOLTA L'11/08 (secondo passo), NON CANCELLATA.**
+  // Diceva: il sito importa `isPhoneValid` da `customer-phone`. Da quando c'è
+  // la tendina, il sito passa per `lib/phone-field.js`, che compone prefisso e
+  // numero — e QUELLO chiede il giudizio a `customer-phone`.
+  //
+  // ⚠️ La catena si prova a due anelli, non a uno: se si controllasse solo che
+  // il sito importi qualcosa da `phone-field`, un domani `phone-field` potrebbe
+  // riscriversi la regola in casa e la prova resterebbe verde.
   assert(
-    /import \{[^}]*isPhoneValid[^}]*\} from "\.\.\/lib\/customer-phone"/.test(sito),
-    "h2) e il sito importa lo stesso modulo, per mostrare il problema mentre si scrive"
+    /import \{[^}]*isPhoneFieldValid[^}]*\} from "\.\.\/lib\/phone-field"/.test(sito),
+    "h2) il sito chiede il giudizio al modulo del campo, che è chi conosce il prefisso scelto"
+  );
+  assert(
+    /import \{[^}]*checkPhone[^}]*\} from "\.\/customer-phone\.js"/.test(campo),
+    "h2b) ⚠️ e il modulo del campo gira la domanda a QUESTO modulo: la catena arriva alla regola, non si ferma a metà"
   );
 
-  // ⚠️ Nessuno dei due riscrive la regola: se un domani comparisse un conteggio
+  // ⚠️ Nessuno dei TRE riscrive la regola: se un domani comparisse un conteggio
   // di cifre in quei file, sarebbe la seconda copia.
-  for (const [nome, testo] of [["il server", validazione], ["il sito", sito]]) {
+  //
+  // ⚠️ *`lib/phone-field.js` è entrato in questa lista l'11/08 (secondo passo),
+  // ed è il posto più esposto di tutti: è nato per mettere insieme prefisso e
+  // numero, ed è lì che verrebbe naturale "controllare al volo quante cifre
+  // sono". La domanda da farsi dopo ogni verifica è cosa DOVEVA muoversi e non
+  // si è mosso (lezione `cm`) — questa lista è una delle cose che dovevano.*
+  for (const [nome, testo] of [["il server", validazione], ["il sito", sito], ["il modulo del campo", campo]]) {
     const righeDiCodice = testo
       .split("\n")
       .filter((r) => !r.trim().startsWith("//") && !r.trim().startsWith("*"))

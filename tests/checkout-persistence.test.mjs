@@ -33,6 +33,10 @@ const STATO_PIENO = {
     lastName: "Pastore",
     phone: "3331234567",
     email: "",
+    // §41-45 (11/08/2026): il paese scelto nella tendina dei prefissi. È qui
+    // perché questo stato deve somigliare a quello di un cliente vero, e da
+    // oggi un cliente vero ne ha uno.
+    country: "IT",
   },
   timingType: "scheduled",
   scheduledDay: "tomorrow",
@@ -473,6 +477,87 @@ const hasDrop = (dropped, field) => dropOf(dropped, field) !== undefined;
   assert(
     restoreCheckout(conCodice).fields.codiceScritto !== "SCONTO10",
     "l15) CONTROPROVA: la sonda del ripristino confronta il valore vero, non passa con un codice qualunque"
+  );
+}
+
+// ---------------------------------------------------------------------------
+// m) §41-45 (11/08/2026, secondo passo del prefisso) — IL PAESE DELLA TENDINA
+// SI CONSERVA COME GLI ALTRI CONTATTI.
+//
+// Chi riapre il checkout deve ritrovare **il suo prefisso**, non l'Italia
+// rimessa d'ufficio sopra la sua scelta: uno svizzero che torna indietro a
+// correggere il carrello e si ritrova il +39 non se ne accorge, e il numero
+// che parte è di un altro paese.
+//
+// ⚠️ E la parte che conta di più: **una struttura conservata PRIMA di oggi non
+// ha questa chiave**, e deve ripristinarsi intera lo stesso. `FORMAT_VERSION`
+// non è stata alzata apposta — alzarla butterebbe via indirizzo, contatti e
+// orario di chi ha la pagina aperta in questo momento, per una chiave in più.
+// ---------------------------------------------------------------------------
+{
+  // ⚠️ Anche qui la versione si scrive col NUMERO LETTERALE: con la costante,
+  // questa prova seguirebbe qualunque cambio e non potrebbe più fallire.
+  assert(
+    FORMAT_VERSION === 1,
+    `m0) FORMAT_VERSION vale ancora 1 dopo l'aggiunta del paese: la chiave nuova non ha buttato via niente (vale ${FORMAT_VERSION})`
+  );
+
+  const svizzero = prepareCheckout({
+    ...STATO_PIENO,
+    customerDetails: { ...STATO_PIENO.customerDetails, country: "CH", phone: "791234567" },
+  });
+  assert(svizzero.customerDetails.country === "CH", `m1) il paese scelto si conserva ("${svizzero.customerDetails.country}")`);
+  assert(
+    restoreCheckout(svizzero).fields.customerDetails.country === "CH",
+    "m2) e si ripristina identico: chi torna indietro ritrova il suo prefisso, non l'Italia"
+  );
+  assert(
+    restoreCheckout(svizzero).fields.customerDetails.phone === "791234567",
+    "m3) insieme al numero, che senza il suo paese vorrebbe dire un'altra cosa"
+  );
+
+  // ⚠️ LA STRUTTURA VECCHIA, quella di chi ha la pagina aperta da prima di oggi.
+  const vecchia = prepareCheckout(STATO_PIENO);
+  delete vecchia.customerDetails.country;
+  vecchia.v = 1;
+  assert(
+    vecchia.customerDetails.country === undefined,
+    "m4) la struttura 'vecchia' è davvero senza la chiave nuova (senza questo, le prove qui sotto non proverebbero niente)"
+  );
+
+  const ripristinataVecchia = restoreCheckout(vecchia);
+  assert(
+    ripristinataVecchia.dropped.length === 0,
+    `m5) ⚠️ una struttura senza il paese non produce ALCUNO scarto (ne ha ${ripristinataVecchia.dropped.length})`
+  );
+  assert(
+    ripristinataVecchia.fields.customerDetails.country === undefined,
+    "m6) il paese semplicemente non si ripristina: l'assenza non è un errore, e chi chiama tiene il suo valore iniziale, l'Italia"
+  );
+  assert(
+    ripristinataVecchia.fields.customerDetails.firstName === "Andrea" &&
+      ripristinataVecchia.fields.customerDetails.phone === "3331234567" &&
+      ripristinataVecchia.fields.deliveryAddress === STATO_PIENO.deliveryAddress &&
+      ripristinataVecchia.fields.scheduledTime === "20:15",
+    "m7) ⚠️ e tutto il resto torna intero: nome, telefono, indirizzo e orario — niente è stato buttato via per la chiave in più"
+  );
+
+  // ⚠️ CONTROPROVA — queste sonde sanno dire di no?
+  // 1) un paese illeggibile (non una stringa) deve essere SCARTATO, non
+  //    ripristinato in silenzio: se m5 dicesse zero anche qui, non guarderebbe
+  //    niente.
+  const storta = prepareCheckout(STATO_PIENO);
+  storta.customerDetails.country = 39;
+  const ripristinataStorta = restoreCheckout(storta);
+  assert(
+    ripristinataStorta.dropped.some((d) => d.field === "customerDetails.country"),
+    `m8) CONTROPROVA: un paese che non è una stringa viene registrato come scarto col suo nome (scarti: ${JSON.stringify(ripristinataStorta.dropped)})`
+  );
+  // 2) e il confronto del ripristino guarda il valore vero, non "una stringa
+  //    qualunque".
+  assert(
+    restoreCheckout(svizzero).fields.customerDetails.country !== "IT",
+    "m9) CONTROPROVA: la sonda del ripristino distingue CH da IT, quindi m2 non passerebbe con un paese qualsiasi"
   );
 }
 

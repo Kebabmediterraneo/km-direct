@@ -108,26 +108,31 @@ const PAGAMENTO = 6, IMPORTO = 7, DESCRIZIONE = 8, PREORDINE = 9, CODICE = 10;
 }
 
 // ---------------------------------------------------------------------------
-// b) IL TELEFONO — la funzione che decide un prefisso per conto suo.
+// b) IL TELEFONO — ⚠️⚠️ **QUESTO BLOCCO È STATO CAPOVOLTO L'11/08/2026 (secondo
+// passo del prefisso), NON CANCELLATO.**
 //
-// ⚠️ **QUI CI SONO DUE COMPORTAMENTI DA SAPERE, ENTRAMBI FOTOGRAFATI E NON
-// CORRETTI.** La regola è una sola riga: se non comincia per `+`, davanti va
-// `+39`, qualunque cosa sia il resto.
-//   1. gli SPAZI restano dentro il numero, e il prefisso ci si attacca davanti;
-//   2. un testo che non è un numero riceve `+39` come qualunque altra cosa —
-//      possibile perché a monte nessuno controlla la forma del telefono:
-//      `lib/checkout-validation.js` verifica solo che il campo non sia vuoto.
-// *Non è un difetto di questo file: è questo file che rende visibile un buco
-// che sta più a monte. Registrato, non sanato.*
+// Fotografava una riga che metteva `+39` davanti a qualunque cosa non
+// cominciasse per `+`: fu scritta quando il telefono non era controllato da
+// nessuno, e faceva uscire `"ciao"` verso il rider come `"+39ciao"`.
+//
+// **Ora il prefisso lo sceglie il cliente dalla tendina** (decisione P) e il
+// numero è salvato completo, in una forma sola per tutti (decisione R): qui non
+// c'è più niente da indovinare, e questo file **non aggiunge più nulla**.
+//
+// ⚠️ *Il verso nuovo protegge una cosa che il verso vecchio non poteva
+// proteggere: un cliente che ha dichiarato la Francia non si prende un `+39`
+// davanti al suo numero. Con la riga vecchia il rider avrebbe chiamato un
+// numero italiano che non esiste.*
 // ---------------------------------------------------------------------------
 {
   const casi = [
-    ["3331234567", "+393331234567", "numero italiano normale → prefisso aggiunto"],
-    ["+393331234567", "+393331234567", "numero che ha già il +39 → lasciato com'è"],
-    ["+41791234567", "+41791234567", "numero straniero col + → lasciato com'è"],
-    ["333 123 4567", "+39333 123 4567", "⚠️ con spazi dentro: restano, e il prefisso si attacca davanti"],
-    ["ciao", "+39ciao", "⚠️ un testo che non è un numero riceve +39 lo stesso"],
-    ["", "", "campo vuoto → cella vuota, nessun prefisso da solo"],
+    ["+393331234567", "+393331234567", "numero italiano completo → passa com'è"],
+    ["+41791234567", "+41791234567", "⚠️ numero svizzero → passa com'è, nessun +39 davanti"],
+    ["+33612345678", "+33612345678", "⚠️ numero francese → passa com'è: è il caso che la riga vecchia rovinava"],
+    ["3331234567", "3331234567", "⚠️ CAPOVOLTA: un numero senza prefisso NON si prende più un +39 a indovinare"],
+    ["333 123 4567", "333 123 4567", "⚠️ CAPOVOLTA: nemmeno con gli spazi dentro"],
+    ["ciao", "ciao", "⚠️ CAPOVOLTA: e un testo che non è un numero non riceve più un prefisso — ora è il checkout a non farlo passare"],
+    ["", "", "campo vuoto → cella vuota"],
   ];
 
   for (const [dato, atteso, descrizione] of casi) {
@@ -135,6 +140,30 @@ const PAGAMENTO = 6, IMPORTO = 7, DESCRIZIONE = 8, PREORDINE = 9, CODICE = 10;
     const letto = dati[TELEFONO] ?? "";
     assert(letto === atteso, `b) telefono "${dato}" → "${letto}" — ${descrizione}`);
   }
+
+  // ⚠️ LA PROVA CHE VALE PIÙ DI TUTTE QUI: **niente viene aggiunto**. Non si
+  // confronta con un valore atteso scritto a mano — che potrebbe essere
+  // sbagliato allo stesso modo — ma col dato di partenza: ciò che entra è ciò
+  // che esce, e un prefisso appiccicato da qualunque parte la farebbe cadere.
+  const numeriInteri = ["+393331234567", "+41791234567", "+33612345678", "+12125550123"];
+  for (const numero of numeriInteri) {
+    const { dati } = await righeDi(con({ customers: { ...ORDINE.customers, phone: numero } }));
+    assert(
+      (dati[TELEFONO] ?? "") === numero,
+      `b-bis) "${numero}" arriva al rider identico, senza che nessuno gli aggiunga niente ("${dati[TELEFONO] ?? ""}")`
+    );
+  }
+
+  // ⚠️ CONTROPROVA — questa sonda saprebbe accorgersi di un prefisso rimesso?
+  // Si ricostruisce la riga vecchia e le si danno gli stessi numeri: su quella,
+  // due dei quattro cambierebbero. Se il modulo si comportasse ancora così,
+  // b-bis diventerebbe rossa.
+  const rigaVecchia = (p) => (!p ? "" : p.startsWith("+") ? p : `+39${p}`);
+  const rovinatiDallaRigaVecchia = ["3331234567", "333 123 4567"].filter((n) => rigaVecchia(n) !== n);
+  assert(
+    rovinatiDallaRigaVecchia.length === 2 && numeriInteri.every((n) => rigaVecchia(n) === n),
+    `b-ter) CONTROPROVA: la riga vecchia cambiava ${rovinatiDallaRigaVecchia.length} numeri su due senza prefisso, e nessuno di quelli completi — è la differenza che b-bis misura`
+  );
 
   // Cliente assente del tutto: il modulo non esplode e la cella resta vuota.
   const senzaCliente = await righeDi(con({ customers: null }));
