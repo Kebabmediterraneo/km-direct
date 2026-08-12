@@ -23,10 +23,15 @@ nessuno se ne ricorda.*
 ## 2) Stato git
 
 - Branch **`main`**, working tree **pulita**, allineata a `origin/main`.
-- HEAD: **`76f9838`** — la spec v70 (11/08/2026, sera).
+- HEAD: **`f433d17`** — la spec v71 (12/08/2026).
 - Ultimi commit (dal più recente):
 
 ```
+f433d17 docs: v71 — il prefisso internazionale con la tendina che comanda, il numero salvato in una forma sola per tutti, e le due righe che erano diventate false corrette
+68ae852 pannello: la scheda ordine mostra l'indirizzo di consegna con citofono, piano, scala e note per il rider, saltando le righe che il cliente non ha compilato
+dcfdfd3 telefono: la tendina dei prefissi con la bandiera, il numero che parte col +39 davanti in una forma sola per tutti, e il file per il rider che smette di indovinare
+b9a1414 telefono: il paese comanda sulla forma del numero, e un +39 davanti non fa piu' saltare le regole italiane come sarebbe successo appena la tendina avesse composto i numeri
+ca2fe94 handoff: stato all'11/08 sera — il telefono controllato, la privacy obbligatoria e la rete sul file per il rider, col fuso che si vede solo in produzione e il conteggio delle suite che era rimasto fermo a diciotto
 76f9838 docs: v70 — il telefono ora si controlla, con le sette decisioni di Andrea e il perche' di ciascuna, e la scoperta che un fuso ereditato invece che dichiarato si vede solo in produzione
 a8402e4 telefono: un modulo unico decide se il numero e' valido, importato dal server e dal sito, con l'Italia a 9 o 10 cifre che iniziano per 0 o 3 e una frase sola che dice al cliente perche' quel numero serve
 be068f9 prove: il file che va al rider era completamente scoperto, e la controprova ha trovato che senza il fuso dichiarato l'orario sarebbe sbagliato solo su Vercel mentre in locale tutto resterebbe verde
@@ -86,6 +91,9 @@ spec — la regola "prima la spec, poi l'handoff" la mette in mezzo per
 costruzione. *Rilevato da Code il 05/08 confrontando `git log` con questo
 blocco: l'HEAD dichiarato era giusto, era la spiegazione a non coprire il caso
 normale della coppia spec+handoff.*
+
+*Caso del 12/08/2026: distanza **uno** ancora una volta — passa la sola spec
+`f433d17`, e i tre commit di codice della giornata sono tutti prima di lei.*
 
 *Caso dell'11/08/2026 sera: distanza **uno** anche stavolta — fra lo stato
 fotografato e questo documento passa la sola spec `76f9838`, e i tre commit di
@@ -669,7 +677,7 @@ non è una zona che il lavoro del giorno prevedeva di toccare (lezione `cm`).
 qualcuno va a leggere quante prove ci sono, quindi un numero vecchio qui mente
 con l'autorità del documento (lezione `aj`).*
 
-**Ventiquattro suite** in `tests/`, tutte con estensione **`.mjs`** e non `.js`,
+**Ventisette suite** in `tests/`, tutte con estensione **`.mjs`** e non `.js`,
 perché vanno eseguite da Node fuori da Next. In `package.json` **non esiste uno
 script `test`**: si lanciano una per una con `node tests/<nome>.test.mjs`, o
 tutte con
@@ -884,13 +892,10 @@ lavoro di codice", in contraddizione con la frase successiva.*
 prima voce è stata aggiunta il 10/08/2026: mancava da questo elenco pur essendo
 il lavoro in corso — chi avesse letto solo qui sarebbe ripartito dalla Fase 4*):
 
-- ⬜ **DUE LAVORI CHIESTI DA ANDREA l'11/08, ANCORA DA FARE** (racconto al
-  punto **30**): il **prefisso internazionale** nel campo del telefono — menu a
-  tendina con tutti i paesi e la bandiera, preselezionato Italia — e
-  l'**indirizzo di consegna nella scheda ordine** del pannello staff, che oggi
-  mostra solo nome, cognome e telefono. ⚠️ *Non sono condizioni di apertura e
-  non stanno nell'elenco qui sotto: sono richieste sue.* Il terreno per il primo
-  è già pronto (spec §41-45: il paese è già un parametro).
+- ✅ **I DUE LAVORI CHIESTI DA ANDREA l'11/08 SONO FATTI** il 12/08 e provati
+  dal vivo: il **prefisso internazionale** e l'**indirizzo nella scheda
+  ordine**. Racconto al punto **31**, decisioni in spec §41-45, §52-56 e
+  §57-61.
 - ✅ **GIVEMEFIVE nel checkout — CHIUSO l'11/08/2026**, cinque commit, provato
   dal vivo da Andrea. Racconto al punto **29**. *Il testo qui sotto è quello di
   ieri e si legge come storia, non come lavoro da fare.*
@@ -2485,3 +2490,112 @@ prima si spegne il server, poi si costruisce.*
 * ⚠️ **Nessuna prova dice che il file sia accettato da Glovo**: provano la forma
   prodotta, non che il fornitore la digerisca. Verifica da fare **una volta
   sola**, caricando un file vero.
+
+---
+
+## 31) Il prefisso internazionale e l'indirizzo in scheda (12/08/2026)
+
+Tre commit di codice, **prove da 1104 a 1220** e suite da 25 a 27. Con questi,
+**i tre lavori chiesti da Andrea l'11/08 sono tutti chiusi**: la casella
+`(OBBLIGATORIO)`, il prefisso, l'indirizzo in scheda. Le decisioni per intero
+stanno in **spec §41-45, §52-56 e §57-61**.
+
+### 31a) L'ordine è cambiato ancora, e ancora per un motivo
+
+Andrea aveva chiesto il prefisso **per primo**, ed è arrivato **per ultimo**.
+Fra la richiesta e l'esecuzione si sono infilati due lavori che erano sue
+premesse, scoperte leggendo: il **file per il rider senza una sola prova** e il
+**telefono senza alcun controllo**. *Il prefisso è poi atterrato su un campo
+protetto invece che scoperto, ed è il motivo per cui non ha rotto niente.*
+
+### 31b) Il difetto che si sarebbe aperto in silenzio
+
+⚠️ **La cosa più importante della giornata, trovata prima di scrivere codice.**
+Fino all'11/08 un numero che cominciava con `+` imboccava la regola larga e
+**saltava sia le 9-10 cifre sia il controllo 0/3**. Con la tendina *tutti* i
+numeri cominciano con `+`: **le decisioni del giorno prima si sarebbero spente
+da sole**, senza un errore, senza una prova rossa, con `+391331234567`
+accettato.
+
+*La riga che lo causava era stata scritta con una buona ragione — chi digita
+`+39` a mano dichiara lui il paese — e non era diventata sbagliata: era
+diventata **cieca**, perché con la tendina "avere il `+`" smette di significare
+"l'ha scritto il cliente". È il modo tipico in cui una difesa muore: non viene
+tolta, viene svuotata di senso da un cambiamento accanto.*
+
+### 31c) Le decisioni di Andrea del 12/08
+
+* **(P) Comanda la tendina, sempre.** Un `+` scritto a mano non dichiara più il
+  paese: il numero viene rifiutato. *Prezzo accettato: chi incolla il proprio
+  numero dalla rubrica con il `+39` davanti si vede un rifiuto.*
+* **(R) Il numero si salva col prefisso**, `+393331234567`, **una forma sola per
+  tutti**. ⚠️ *Si è potuto fare adesso perché **in database non ci sono clienti
+  reali** e verrà svuotato prima del go-live — cosa che Andrea ha dovuto
+  ripetere tre volte prima che finisse in spec, dove ora sta.*
+* **(X) Nella scheda ordine anche citofono, piano, scala e note rider**, con le
+  **righe vuote che non si mostrano**.
+* **(Y) Via la riga del civico**, decisa **guardando la scheda dal vivo**:
+  ridondante, perché l'indirizzo di Google contiene già il numero. *E il caso
+  "indirizzo senza civico" non esiste, perché il sito non lascia proseguire
+  senza — verificato nel codice prima di scriverlo nel commento.*
+* **Il salto dei numeri d'ordine** quando un cliente torna indietro da Stripe:
+  ⚠️ **guardato e lasciato com'è**, e Andrea ha chiesto esplicitamente **di non
+  scriverlo in spec** — non è cambiato nulla, quindi non c'è nulla da scrivere.
+  *Registrato qui solo perché non venga riaperto come se fosse una scoperta.*
+
+### 31d) La tabella dei paesi: un divieto che andava distinto, non aggirato
+
+`lib/phone-countries.js` esiste, con 245 paesi, prefissi e bandiere **emoji**
+(nessuna immagine, nessuna libreria). Ma la spec vietava in maiuscolo *"una
+tabella dei paesi del mondo"*.
+
+⚠️ **Il divieto riguardava le LUNGHEZZE, non i prefissi**, e la differenza è nel
+modo in cui l'errore si manifesta: *una lunghezza sbagliata **rifiuta un cliente
+vero in silenzio** — le numerazioni cambiano senza avvisarci e chi non riesce a
+ordinare non scrive per dirlo, va altrove; un **prefisso** sbagliato **si vede
+subito nel menu**.* La distinzione è ora scritta in spec **e in cima al file**.
+
+✅ *E il commento di `customer-phone.js`, che portava il divieto generico, è
+stato corretto nello stesso giro: lasciandolo, il file nuovo sarebbe stato
+cancellato da qualcuno che citava la regola sbagliata.*
+
+### 31e) Due difetti trovati dalle PROVE, non dalle letture
+
+1. ⚠️ **`(333) 1234567` veniva rifiutato**, cioè un numero giusto scritto fra
+   parentesi — forma che la decisione (D) dice di **ripulire**, non di
+   rifiutare. Il prefisso veniva attaccato al testo **grezzo**, e la parentesi
+   finiva dove il codice si aspetta una cifra. *Nessuna prova del giro
+   precedente poteva vederlo: là il campo non esisteva.* Chiuso facendo
+   ripulire il testo **al modulo della regola** invece di riscriverne una copia.
+2. **Un conteggio scritto a occhio** in una prova (4 invece di 3): la prova è
+   diventata rossa e ha imposto il numero che il codice produce davvero.
+
+### 31f) Tre lezioni
+
+**cy. ⚠️ UNA DIFESA NON MUORE TOLTA, MUORE SVUOTATA DA UN CAMBIAMENTO ACCANTO.**
+Il caso del `+` (31b): la riga era giusta ieri e sarebbe stata cieca oggi, senza
+che nessuno la toccasse. *Ogni volta che si aggiunge un pezzo, la domanda non è
+solo "cosa rompe" ma **"quale condizione, altrove, smette di significare quello
+che significava"**.*
+
+**cz. Un divieto scritto in maiuscolo va DISTINTO, non aggirato né ignorato.**
+La tabella dei paesi sembrava vietata. La risposta giusta non era né
+rinunciarci né farla di nascosto, ma **capire cosa il divieto proteggeva** —
+l'errore silenzioso — e scrivere la distinzione dove il divieto viveva.
+
+**da. Chi guarda dal vivo vede cose che nessuna prova vede.** La riga del civico
+era ridondante e **1220 prove verdi non potevano dirlo**: l'ha visto Andrea
+guardando due righe una sotto l'altra. *Come la regola sui cellulari a 9 cifre
+dell'11/08: le prove verificano la coerenza del codice con sé stesso, non con il
+mondo.*
+
+### 31g) Cosa resta aperto
+
+* ⚠️ **La tendina non è mai stata vista su un telefono**: le bandiere e la
+  larghezza si giudicano lì, e in locale Andrea non può accedere da telefono.
+  Da guardare sul sito pubblicato.
+* **Lo Storico** (`HistoryRow`) non mostra l'indirizzo: non era chiesto.
+* **Gli ordini già in database** hanno il numero senza prefisso: ricaricandone
+  uno su Glovo uscirebbe senza `+39`. Sono di prova.
+* **La Fase 4** resta l'ultimo lavoro pre-go-live, e **le tre voci di §6c**
+  fuori dal codice.
