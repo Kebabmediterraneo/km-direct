@@ -1,6 +1,6 @@
 # KM DIRECT — MASTER SPECIFICATION
 
-**Versione 70** — sostituisce la v69.
+**Versione 71** — sostituisce la v70.
 
 Documento di riferimento definitivo per lo sviluppo. Le decisioni qui
 contenute sono approvate: non vanno reinterpretate senza un motivo concreto
@@ -22,37 +22,34 @@ versione corrente**. I precedenti vivono in `git log`, che è fatto per quello.
 del documento prima che cominciasse a parlare del progetto — e dentro c'erano
 istruzioni rovesciate che nessuno rileggeva.*
 
-**Novità della v70** (vincolanti, dal lavoro dell'11/08/2026, sera):
+**Novità della v71** (vincolanti, dal lavoro del 12/08/2026):
 
-1. §41-45 — ✅ **IL TELEFONO ORA SI CONTROLLA.** Fino a oggi bastava che il
-   campo non fosse vuoto: `"ciao"` passava, e arrivava al rider come
-   `+39ciao`. Ora una regola unica in `lib/customer-phone.js`, **importata dal
-   server e dal sito**, mai copiata.
-2. §41-45 — le decisioni di Andrea: **9 o 10 cifre per l'Italia**, ⚠️ **nessuna
-   regola speciale per i cellulari**, prima cifra **0 o 3**, spazi e trattini
-   **tolti dal sito** invece che rifiutati, **una frase sola** per qualunque
-   rifiuto, e il **pulsante Paga resta premibile**.
-3. §41-45 — la casella privacy dice **(OBBLIGATORIO)**: il cliente non capiva
-   che il consenso fosse necessario per proseguire. *Non cambia ciò che
-   dichiara: l'informativa non è stata riaperta.*
-4. §57-61 — ⚠️ **il file che va al rider era completamente scoperto** e ora ha
-   39 prove. **La scoperta più importante della giornata è là dentro** (§57-61,
-   "il fuso che si vede solo in produzione").
-5. §41-45 — ⚠️ **il telefono è la chiave con cui un cliente viene riconosciuto**
-   — `onConflict: "phone"` al pagamento, e la ricerca dello sconto in §14 — e
-   questo lavoro lo dice ad alta voce dove serve.
+1. §41-45 — ✅ **IL PREFISSO INTERNAZIONALE C'È.** Menu a tendina con tutti i
+   paesi, bandiera e prefisso, preselezionato Italia. **Comanda la tendina,
+   sempre** (decisione P): un `+` scritto a mano nel campo non dichiara più il
+   paese.
+2. §41-45 — ⚠️ **IL NUMERO SI SALVA COL PREFISSO** (decisione R):
+   `+393331234567`, **una forma sola per tutti**, italiani compresi. *Si poteva
+   fare adesso e non dopo perché in database non ci sono clienti reali.*
+3. §41-45 — ⚠️ **e le regole italiane NON si spengono più davanti a un `+`**:
+   era il difetto che si sarebbe aperto **in silenzio** appena la tendina avesse
+   composto i numeri.
+4. §57-61 — ✅ **il file per il rider non attacca più `+39` a niente**: riceve
+   numeri già completi e non deve più indovinare il paese.
+5. §52-56 — ✅ **la scheda ordine mostra l'indirizzo di consegna** con citofono,
+   piano, scala e note per il rider, **saltando le righe non compilate**.
+6. §41-45 — ⚠️ **una tabella dei paesi ORA ESISTE, ed è ammessa**: contiene
+   prefissi e bandiere, **non lunghezze**. La distinzione è scritta nel §41-45 e
+   nel file stesso, o qualcuno lo cancellerà citando la regola sbagliata.
 
 *Il conteggio delle condizioni di apertura non cambia: **quattro chiuse, cinque
 aperte**. Il lavoro pre-go-live che resta è la **Fase 4**, il **viewport**, le
 tre verifiche registrate in v63 e le **tre voci di §6c**: lo **spostamento di
 GIVEMEFIVE esce da questo elenco**, è fatto.*
 
-⚠️ *Due lavori chiesti da Andrea l'11/08 restano **da fare**, e non sono in
-quell'elenco perché non sono condizioni di apertura: il **prefisso
-internazionale** nel campo del telefono (menu a tendina con tutti i paesi e la
-bandiera, preselezionato Italia) e l'**indirizzo di consegna nella scheda
-ordine** del pannello staff, che oggi mostra solo nome, cognome e telefono. Il
-terreno per il primo è già pronto — vedi §41-45.*
+✅ *I due lavori chiesti da Andrea l'11/08 — il **prefisso internazionale** e
+l'**indirizzo nella scheda ordine** — sono **fatti** il 12/08 e provati dal vivo.
+Vedi §41-45 e §52-56.*
 
 ## 1. Visione del progetto
 
@@ -1891,8 +1888,11 @@ che quindi lo usa davvero.*
 * ⚠️ **Fuori dall'Italia nessuna delle due vale**: 6-15 cifre e basta. **Non
   esiste una tabella dei paesi del mondo** — sarebbe la seconda copia che questo
   progetto ha già pagato tre volte, e il giorno che un paese cambia numerazione
-  rifiuterebbe clienti veri in silenzio. *Chi scrive il numero col `+` iniziale
-  dichiara lui il paese e imbocca la regola larga.*
+  rifiuterebbe clienti veri in silenzio.
+  ⚠️ *Fino all'11/08 qui c'era scritto che chi scrive il `+` **dichiara lui il
+  paese** e imbocca la regola larga. **DAL 12/08 NON È PIÙ VERO** (decisione P):
+  comanda la tendina, e un `+` battuto a mano fa rifiutare il numero. La riga
+  vecchia è tolta e non va rimessa.*
 * **Spazi, punti, trattini e parentesi si TOLGONO, non si rifiutano**: il
   cliente scrive `333 123 4567` e il sistema salva `3331234567`, senza che se ne
   accorga. *Ogni rifiuto in più è un carrello abbandonato.*
@@ -1906,13 +1906,61 @@ che quindi lo usa davvero.*
   Stripe; un pulsante che si accende e si spegne mentre il cliente digita è
   peggio di un avviso scritto.*
 
-⚠️ **Il paese è un PARAMETRO, anche se oggi può valere solo Italia.** Scritto
-così perché il menu dei prefissi, quando arriverà, **non dovrà riaprire questo
-modulo**: cambierà solo chi gli dice il paese.
+✅ **Il paese è un PARAMETRO, e il 12/08 la scommessa ha pagato**: il menu dei
+prefissi è arrivato e **il modulo della regola non si è riaperto** — è cambiato
+solo chi gli dice il paese, più il trattamento del `+` qui sotto.
 
-⚠️ **Ciò che questo lavoro NON chiude**: i numeri **già salvati** nel database
-non sono toccati, e `lib/generate-glovo-xlsx.js` continua ad attaccare `+39` a
-ciò che trova — ora però riceve solo numeri che hanno passato il controllo.
+⚠️ **Ciò che questo lavoro non chiudeva**: i numeri **già salvati** nel database
+restano com'erano *(irrilevante: non ci sono clienti reali e il database viene
+svuotato prima del go-live)*, e `lib/generate-glovo-xlsx.js` continuava ad
+attaccare `+39` a ciò che trovava — ✅ **disinnescato il 12/08**, vedi §57-61.
+
+### ✅ Il prefisso internazionale (v71, 12/08/2026)
+
+Nel checkout, accanto al campo del telefono, un **menu a tendina** con tutti i
+paesi: **bandiera, nome, prefisso**, preselezionato Italia. Il cliente scrive
+solo il numero. *Le bandiere sono **caratteri emoji** ricavati dal codice del
+paese: nessuna immagine, nessuna libreria da mantenere.*
+
+⚠️ **COMANDA LA TENDINA, SEMPRE** (decisione di Andrea del 12/08, "P"). Un `+`
+scritto o incollato nel campo **non dichiara più il paese**: il `+` lo mette il
+sistema, quindi nel campo è un carattere che non ci va e il numero viene
+rifiutato. *Non è una regola nuova da mantenere, è una conseguenza: chi batte
+`+39…` con l'Italia scelta compone `+39+39…`, e il `+` in mezzo cade come una
+lettera.*
+
+⚠️ **IL NUMERO SI SALVA COL PREFISSO** (decisione "R"): al pagamento parte
+`+393331234567`, e **una forma sola vale per tutti**, italiani compresi. È la
+chiave con cui il cliente viene riconosciuto (`onConflict: "phone"`, §14): due
+forme diverse dello stesso numero sarebbero due clienti. *Si è potuto fare
+adesso perché **in database non ci sono clienti reali** e verrà svuotato prima
+del go-live; dopo il go-live avrebbe richiesto una conversione, cioè DDL.*
+
+⚠️ **E LE REGOLE ITALIANE NON SI SPENGONO PIÙ DAVANTI A UN `+`.** Fino all'11/08
+un numero che cominciava con `+` imboccava la regola larga e **saltava sia le
+9-10 cifre sia il controllo 0/3**. Con la tendina *tutti* i numeri cominciano
+con `+`: le decisioni del giorno prima si sarebbero spente **in silenzio**,
+senza un errore e senza una prova rossa. *Il modulo ora toglie il prefisso del
+paese ricevuto e applica le regole nazionali a ciò che resta.*
+
+**Una tabella dei paesi esiste, in `lib/phone-countries.js`, ed è AMMESSA.**
+⚠️ *Il divieto di §41-45 riguarda le **lunghezze** per paese, non i prefissi, e
+la differenza è il modo in cui l'errore si manifesta: una lunghezza sbagliata
+**rifiuta un cliente vero in silenzio** — le numerazioni cambiano senza
+avvisarci e chi non riesce a ordinare non scrive per dirlo, va altrove; un
+**prefisso** sbagliato **si vede subito nel menu**. La distinzione è scritta
+anche in cima al file, o qualcuno lo cancellerà citando la regola sbagliata.*
+
+**Provato dal vivo da Andrea** (12/08): tendina e bandiere, numero con spazi
+accettato, `+` scritto a mano rifiutato, `(333) 1234567` accettato, un numero
+straniero col suo paese accettato, e **un pagamento vero in sandbox** col numero
+che arriva nel pannello come `+39…`.
+
+⚠️ *Un difetto trovato **da una prova** e non da una lettura: alla prima stesura
+il prefisso veniva attaccato al testo **grezzo**, e chi scriveva `(333) 1234567`
+si vedeva rifiutare un numero giusto, perché la parentesi finiva attaccata al
+prefisso. Chiuso facendo ripulire il testo al modulo della regola invece di
+riscriverne una seconda.*
 
 ### La casella privacy dice (OBBLIGATORIO) (v70, 11/08/2026)
 
@@ -3057,6 +3105,31 @@ fra sei mesi come sorpresa.*
 solo a pagamento riuscito — quindi un carrello abbandonato **non brucia** lo
 sconto.*
 
+### ✅ L'indirizzo nella scheda ordine (v71, 12/08/2026)
+
+Fino al 12/08 la scheda mostrava **solo nome, cognome e telefono**: l'indirizzo
+esisteva in database ma **la rotta che alimenta il pannello non lo leggeva
+affatto** — a leggerlo era un'altra rotta, quella che genera il file per Glovo.
+Ora la scheda mostra, per i soli ordini **Delivery**: indirizzo, citofono,
+piano/interno, edificio/scala e note per il rider.
+
+⚠️ **Una riga vuota non si mostra**: la scheda cresce solo quando c'è qualcosa
+da dire, e su un ordine di **Ritiro** non compare nulla. *Le etichette sono le
+stesse parole che il file per il rider usa in `formatNotes`, così lo staff legge
+la stessa cosa nei due posti — e una prova le **estrae da quel file** invece di
+confrontarle con sé stesse.*
+
+⚠️ **La riga del civico NON c'è, ed è una decisione di Andrea del 12/08 presa
+guardando la scheda dal vivo**: `delivery_address` è l'indirizzo completo di
+Google e **il civico è già dentro**. *E il caso "indirizzo senza civico" non è
+da temere — che è il pensiero per cui qualcuno la rimetterebbe: il sito non
+lascia premere Paga senza civico e il server rifiuta comunque la richiesta.*
+⚠️ *Il campo `delivery_civico` resta però nel `select` della rotta: serve alla
+verifica del perimetro, e toglierlo "perché non si mostra più" romperebbe altro.
+Una prova lo sorveglia.*
+
+⚠️ *Lo **Storico** non è stato toccato e resta nella forma compatta di prima.*
+
 ## 57-61. Glovo On-Demand (fase 1, manuale)
 
 Sezione "Dati per la consegna" nel pannello con pulsanti copia singoli
@@ -3093,7 +3166,7 @@ Colonne del template Glovo e relativa origine dei dati:
 | Colonna | Origine | Note |
 |---|---|---|
 | `recipient_name` | nome + cognome cliente | obbligatorio |
-| `recipient_phone_number` | telefono cliente | obbligatorio, con prefisso `+39` (v70: se il numero non comincia già con `+`) |
+| `recipient_phone_number` | telefono cliente | obbligatorio, **il numero così com'è** (v71: arriva già col prefisso dal checkout, il modulo non aggiunge più nulla) |
 | `latitude` / `longitude` | `delivery_latitude`/`delivery_longitude` | obbligatorio |
 | `recipient_address` | indirizzo + civico | obbligatorio |
 | `recipient_notes` | citofono, piano/interno, edificio/scala, note rider uniti | opzionale, max 2048 caratteri |
@@ -3173,6 +3246,24 @@ costruzione altrove, non per un controllo lì.
 ⚠️ *Ciò che queste prove **non** dicono: che il file sia accettato da Glovo.
 Provano la forma che il modulo produce, non che il fornitore la digerisca —
 verifica che si fa una volta sola, caricando un file vero.*
+
+### ✅ Il `+39` che indovinava è stato disinnescato (v71, 12/08/2026)
+
+Fino al 12/08 `formatPhone` faceva: *se il numero non comincia con `+`,
+attaccagli `+39`*. Era una supposizione ragionevole finché il campo non offriva
+alternative. ⚠️ **Con la tendina sarebbe diventata una seconda regola che
+contraddice il cliente**: chi sceglie la Francia si sarebbe visto attaccare un
+`+39` davanti, e **il rider avrebbe chiamato un numero italiano inesistente**.
+
+Ora il modulo **restituisce il numero così com'è**: arriva già completo dal
+checkout (§41-45, decisione R) e qui non si indovina più niente. *Le prove che
+fotografavano il comportamento vecchio sono state **capovolte**, non cancellate:
+ora sorvegliano che nessuno rimetta quella riga, col caso francese che la
+vecchia rovinava.*
+
+⚠️ *Gli **ordini già in database** hanno il numero senza prefisso: ricaricando
+su Glovo uno di quelli, ora uscirebbe senza `+39`. Sono ordini di prova e
+spariranno con la pulizia pre-apertura.*
 
 ## 62b. Gestione Problema/Annullamento ordini (aggiunta dopo l'MVP iniziale)
 
