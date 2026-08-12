@@ -121,7 +121,7 @@ async function crea(payload, { seed = {}, storeId = STORE } = {}) {
 async function rifiuta(payload, statusAtteso, frammento, msg, opzioni = {}) {
   const { esito, scritture } = await crea(payload, opzioni);
   const okStatus = esito.status === statusAtteso;
-  const okMsg = typeof esito.body.error === "string" && esito.body.error.includes(frammento);
+  const okMsg = String(esito.body?.error ?? "").includes(frammento);
   const okNulla = scritture.length === 0;
   assert(
     okStatus && okMsg && okNulla,
@@ -173,7 +173,7 @@ assert(
 // ===========================================================================
 const respinge = (payload, frammento, msg) => {
   const r = validateCreatePayload(payload);
-  assert(r.ok === false && r.error.includes(frammento), `${msg} — ${r.ok ? "ACCETTATO ⚠️" : `"${r.error}"`}`);
+  assert(r.ok === false && String(r.error ?? "").includes(frammento), `${msg} — ${r.ok ? "ACCETTATO ⚠️" : `"${r.error}"`}`);
 };
 
 respinge(null, "Richiesta non valida", "b1) corpo assente");
@@ -323,7 +323,7 @@ await rifiuta(
   const db = fakeDb({ allergens: ALLERGENI, errori: { "products.insert": { code: "23505" } } });
   const esito = await createProductCore({ user: UTENTE, storeId: STORE, payload: corpo(), db, now: ORA });
   assert(
-    esito.status === 409 && esito.body.error.includes("Cambia il nome") && db.scritture.length === 0,
+    esito.status === 409 && String(esito.body?.error ?? "").includes("Cambia il nome") && db.scritture.length === 0,
     `c9) 23505 dal database → 409 col nostro messaggio, nessuna scrittura (status ${esito.status}, scritture ${db.scritture.length})`
   );
 }
@@ -498,7 +498,7 @@ await rifiuta(
   const db = fakeDb({ allergens: ALLERGENI, errori: { "product_allergens.insert": { code: "XX000" } } });
   const esito = await createProductCore({ user: UTENTE, storeId: STORE, payload: corpo(), db, now: ORA });
   assert(esito.status === 500, `g1) allergeni non salvati → 500 (status ${esito.status})`);
-  assert(esito.body.error.includes("mai verificato"), "g2) il messaggio dice com'è finita davvero");
+  assert(String(esito.body?.error ?? "").includes("mai verificato"), "g2) il messaggio dice com'è finita davvero");
   assert(
     db.scritture.length === 1 && db.scritture[0].tabella === "products",
     `g3) resta la sola riga articolo, senza data di verifica (scritture ${db.scritture.length})`
@@ -507,7 +507,7 @@ await rifiuta(
 {
   const db = fakeDb({ allergens: ALLERGENI, errori: { "products.update": { code: "XX000" } } });
   const esito = await createProductCore({ user: UTENTE, storeId: STORE, payload: corpo(), db, now: ORA });
-  assert(esito.status === 500 && esito.body.error.includes("mai verificato"), "g4) verifica non scritta → 500 e messaggio esplicito");
+  assert(esito.status === 500 && String(esito.body?.error ?? "").includes("mai verificato"), "g4) verifica non scritta → 500 e messaggio esplicito");
   assert(
     db.scritture.every((s) => s.tabella !== "staff_action_log"),
     "g5) niente riga di registro se la creazione non si è completata"
@@ -518,6 +518,386 @@ await rifiuta(
   const db = fakeDb({ allergens: ALLERGENI, errori: { "staff_action_log.insert": { code: "XX000" } } });
   const esito = await createProductCore({ user: UTENTE, storeId: STORE, payload: corpo(), db, now: ORA });
   assert(esito.status === 201, `g6) registro fallito → la creazione resta valida (status ${esito.status})`);
+}
+
+// ===========================================================================
+// h) §63-64 (Fase 4, passo 2, 12/08/2026) — LE OPZIONI SCRITTE INSIEME
+// ALL'ARTICOLO.
+//
+// ⚠️ Le regole sulle opzioni (zero valido, doppioni, tipo chiuso, Bowl senza
+// accompagnamenti) sono provate in `tests/menu-options.test.mjs`, che esercita
+// il modulo puro. **Qui si prova un'altra cosa**: che quel modulo venga
+// CHIAMATO, che le righe finiscano nelle tabelle giuste, e che un guasto lasci
+// l'articolo spento invece che ordinabile a metà.
+// ===========================================================================
+
+// Il catalogo delle proteine che esistono. Nella vita vera lo legge la rotta;
+// qui si scrive a mano perché è un parametro — ed è ciò che rende provabile la
+// difesa dell'etichetta.
+const CATALOGO = [
+  { key: "pollo_tacchino", label: "Pollo e tacchino" },
+  { key: "planted", label: "Planted" },
+  { key: "adana", label: "Adana" },
+];
+
+async function creaConOpzioni(payload, { seed = {}, catalogo = CATALOGO } = {}) {
+  const db = fakeDb({ allergens: ALLERGENI, ...seed });
+  const esito = await createProductCore({
+    user: UTENTE,
+    storeId: STORE,
+    payload,
+    db,
+    now: ORA,
+    proteinCatalog: catalogo,
+  });
+  return { esito, scritture: db.scritture };
+}
+
+const TABELLE_OPZIONI = [
+  "product_choice_options",
+  "product_removals",
+  "product_accompaniments",
+  "product_addons",
+];
+const righeDi = (scritture, tabella) =>
+  scritture.filter((s) => s.tabella === tabella && s.op === "insert").flatMap((s) => s.righe);
+
+// ---------------------------------------------------------------------------
+// h1) ⚠️ UN ARTICOLO SENZA OPZIONI SI COMPORTA ESATTAMENTE COME OGGI.
+// ---------------------------------------------------------------------------
+{
+  const { esito, scritture } = await creaConOpzioni(corpo());
+  assert(esito.status === 201, `h1) un articolo senza opzioni → creato come oggi (status ${esito.status})`);
+
+  const toccate = TABELLE_OPZIONI.filter((t) => scritture.some((s) => s.tabella === t));
+  assert(
+    toccate.length === 0,
+    `h2) ⚠️ e NESSUNA delle quattro tabelle delle opzioni viene toccata (toccate: ${toccate.join(", ") || "nessuna"})`
+  );
+
+  // ⚠️ E nasce ACCESO: la riga non porta `is_available`, quindi vale il valore
+  // predefinito del database, che è ciò che faceva la Fase 3.
+  const prodotto = righeDi(scritture, "products")[0];
+  assert(
+    prodotto !== undefined && !("is_available" in prodotto),
+    `h3) ⚠️ e la riga non nomina is_available: nasce acceso come prima (${JSON.stringify(prodotto?.is_available)})`
+  );
+  assert(
+    scritture.filter((s) => s.tabella === "products" && s.op === "update").length === 1,
+    "h4) e c'è un solo aggiornamento su products, quello degli allergeni: nessuna accensione in più"
+  );
+}
+
+// ---------------------------------------------------------------------------
+// h5) UN ROLL CON PROTEINE, RIMOZIONI ED EXTRA: le righe finiscono nelle
+// tabelle giuste.
+// ---------------------------------------------------------------------------
+{
+  const { esito, scritture } = await creaConOpzioni(
+    corpo({
+      category: "roll",
+      name: "Il Provvisorio",
+      base_price: "8.00",
+      options: {
+        proteins: [
+          { key: "pollo_tacchino", price_delta: 0, is_default: true, extra_dose_included: true },
+          { key: "adana", price_delta: "4.50" },
+        ],
+        removals: ["Senza hummus", "Senza cipolla"],
+        addons: [{ label: "+100 g di carne", price: "4.00", requires_protein: "pollo_tacchino", max_quantity: 3 }],
+      },
+    })
+  );
+
+  assert(esito.status === 201, `h5) un Roll con le sue opzioni → creato (status ${esito.status}, ${esito.body.error ?? ""})`);
+
+  const proteine = righeDi(scritture, "product_choice_options");
+  assert(proteine.length === 2, `h6) due righe di proteina scritte (${proteine.length})`);
+  assert(
+    proteine.every((p) => typeof p.product_id === "string" && p.product_id !== ""),
+    "h7) ognuna legata all'articolo appena creato"
+  );
+
+  // ⚠️ LO ZERO RESTA ZERO fino in fondo: è il valore che qualcuno ha deciso, e
+  // se diventasse "assente" il database ci metterebbe il suo predefinito.
+  const pollo = proteine.find((p) => p.choice_key === "pollo_tacchino");
+  assert(
+    pollo.price_delta === 0,
+    `h8) ⚠️ e il sovrapprezzo 0 ARRIVA ALLA SCRITTURA come 0 (${JSON.stringify(pollo.price_delta)})`
+  );
+  assert("price_delta" in pollo, "h9) il campo c'è davvero nella riga, non è stato saltato perché falso");
+  assert(
+    pollo.is_default === true && pollo.extra_dose_included === true,
+    "h10) preselezione e dose inclusa arrivano sulla riga giusta (§19)"
+  );
+  const adana = proteine.find((p) => p.choice_key === "adana");
+  assert(
+    adana.price_delta === 4.5 && adana.is_default === false && adana.extra_dose_included === false,
+    "h11) e l'altra proteina porta i suoi valori, distinti dai primi"
+  );
+  assert(
+    proteine[0].sort_order === 0 && proteine[1].sort_order === 1,
+    "h12) l'ordine di arrivo diventa `sort_order`: senza, sarebbero tutte a zero e l'ordine a schermo sarebbe casuale"
+  );
+
+  const rimozioni = righeDi(scritture, "product_removals");
+  assert(
+    rimozioni.length === 2 && rimozioni[0].label === "Senza hummus" && rimozioni[1].label === "Senza cipolla",
+    `h13) le due rimozioni scritte nel loro ordine (${rimozioni.map((r) => r.label).join(", ")})`
+  );
+
+  const extra = righeDi(scritture, "product_addons");
+  assert(
+    extra.length === 1 && extra[0].price === 4 && extra[0].requires_protein === "pollo_tacchino" && extra[0].max_quantity === 3,
+    `h14) l'extra col suo prezzo, il legame e il tetto (${JSON.stringify(extra[0])})`
+  );
+
+  assert(
+    righeDi(scritture, "product_accompaniments").length === 0,
+    "h15) e nessun accompagnamento: un gruppo vuoto non produce nessuna scrittura"
+  );
+
+  // ⚠️ NATO SPENTO E ACCESO ALLA FINE: l'accensione è l'ultimo atto prima del
+  // registro, e c'è.
+  const prodotto = righeDi(scritture, "products")[0];
+  assert(prodotto.is_available === false, `h16) ⚠️ l'articolo con opzioni NASCE SPENTO (${prodotto.is_available})`);
+  const accensione = scritture.find(
+    (s) => s.tabella === "products" && s.op === "update" && s.patch?.is_available === true
+  );
+  assert(accensione !== undefined, "h17) ⚠️ e viene acceso da un aggiornamento successivo");
+  assert(
+    esito.body.product.is_available === true,
+    `h18) e chi ha salvato riceve l'articolo già acceso (${esito.body.product.is_available})`
+  );
+
+  // L'ORDINE: le opzioni stanno DENTRO la sequenza, fra la verifica allergeni e
+  // il registro. ⚠️ Se il registro finisse prima, un guasto delle opzioni
+  // lascerebbe un log che dichiara un articolo che non esiste com'è scritto.
+  const indice = (predicato) => scritture.findIndex(predicato);
+  const iVerifica = indice((s) => s.tabella === "products" && s.op === "update" && s.patch?.allergens_verified_at);
+  const iOpzioni = indice((s) => s.tabella === "product_choice_options");
+  const iAccensione = indice((s) => s.tabella === "products" && s.op === "update" && s.patch?.is_available === true);
+  const iLog = indice((s) => s.tabella === "staff_action_log");
+  assert(
+    iVerifica < iOpzioni && iOpzioni < iAccensione && iAccensione < iLog,
+    `h19) ⚠️ l'ordine è verifica → opzioni → accensione → registro (indici ${iVerifica}, ${iOpzioni}, ${iAccensione}, ${iLog})`
+  );
+}
+
+// ---------------------------------------------------------------------------
+// h20) ⚠️ UNA BOWL SENZA ACCOMPAGNAMENTI È RIFIUTATA PRIMA DI SCRIVERE
+// QUALUNQUE COSA. È l'UNICA eccezione al "la Fase 3 non cambia".
+// ---------------------------------------------------------------------------
+{
+  const { esito, scritture } = await creaConOpzioni(
+    corpo({ category: "bowl", name: "Bowl Provvisoria", base_price: "10.00" })
+  );
+  assert(esito.status === 400, `h20) ⚠️ una Bowl senza accompagnamenti → RIFIUTATA (status ${esito.status})`);
+  assert(
+    String(esito.body?.error ?? "").includes("non sarebbe ordinabile"),
+    `h21) col messaggio che dice perché ("${esito.body.error}")`
+  );
+  assert(
+    scritture.length === 0,
+    `h22) ⚠️ e NESSUNA scrittura: il rifiuto arriva prima che l'articolo esista (${scritture.length})`
+  );
+
+  // La stessa Bowl con i suoi accompagnamenti passa: il rifiuto riguarda ciò che
+  // manca, non la categoria.
+  const conAccompagnamenti = await creaConOpzioni(
+    corpo({
+      category: "bowl",
+      name: "Bowl Provvisoria",
+      base_price: "10.00",
+      options: {
+        accompaniments: [
+          { label: "Bulgur", contains_gluten: true },
+          { label: "Riso integrale", contains_gluten: false },
+        ],
+      },
+    })
+  );
+  assert(conAccompagnamenti.esito.status === 201, `h23) la stessa Bowl con i suoi accompagnamenti → creata (${conAccompagnamenti.esito.body.error ?? ""})`);
+  const acc = righeDi(conAccompagnamenti.scritture, "product_accompaniments");
+  assert(
+    acc.length === 2 && acc[0].contains_gluten === true && acc[1].contains_gluten === false,
+    `h24) e il glutine arriva com'è stato dichiarato, voce per voce (${JSON.stringify(acc.map((a) => [a.label, a.contains_gluten]))})`
+  );
+}
+
+// ---------------------------------------------------------------------------
+// h25) ⚠️⚠️ UNA SCRITTURA DELLE OPZIONI CHE FALLISCE — decisione WW.
+// L'articolo esiste, è SPENTO, e chi ha salvato lo viene a sapere.
+// ---------------------------------------------------------------------------
+{
+  const conProteine = corpo({
+    category: "roll",
+    name: "Il Guasto",
+    base_price: "8.00",
+    options: { proteins: [{ key: "adana", price_delta: "4.50" }] },
+  });
+
+  const { esito, scritture } = await creaConOpzioni(conProteine, {
+    seed: { errori: { "product_choice_options.insert": { code: "XX000" } } },
+  });
+
+  assert(esito.status === 500, `h25) una scrittura delle opzioni fallita → 500 (status ${esito.status})`);
+  assert(
+    String(esito.body?.error ?? "").includes("SPENTO") && String(esito.body?.error ?? "").includes("Aprilo dal Menu"),
+    `h26) ⚠️ e chi ha salvato riceve un messaggio che dice com'è finita e cosa fare ("${esito.body.error}")`
+  );
+
+  // ⚠️ L'ARTICOLO ESISTE — non si cancella: una cancellazione che fallisse
+  // lascerebbe un articolo a metà che nessuno saprebbe.
+  const prodotti = righeDi(scritture, "products");
+  assert(prodotti.length === 1, `h27) ⚠️ l'articolo è stato creato e NON viene cancellato (${prodotti.length} riga)`);
+  assert(
+    scritture.every((s) => s.op !== "delete"),
+    "h28) e in tutta la sequenza non compare nessuna cancellazione"
+  );
+
+  // ⚠️ ED È SPENTO: nato spento e mai acceso.
+  assert(prodotti[0].is_available === false, `h29) ⚠️ è nato SPENTO (${prodotti[0].is_available})`);
+  const accensione = scritture.find(
+    (s) => s.tabella === "products" && s.op === "update" && s.patch?.is_available === true
+  );
+  assert(accensione === undefined, "h30) ⚠️ e non è mai stato acceso: il guasto lo lascia invisibile ai clienti");
+  assert(
+    scritture.every((s) => s.tabella !== "staff_action_log"),
+    "h31) niente riga di registro, come per gli altri guasti a metà sequenza"
+  );
+
+  // ⚠️ Vale per TUTTE E QUATTRO le tabelle, non solo per la prima: un guasto
+  // sull'ultima deve spegnere l'articolo come uno sulla prima.
+  for (const tabella of TABELLE_OPZIONI) {
+    const payload =
+      tabella === "product_accompaniments"
+        ? corpo({
+            category: "bowl",
+            name: "Bowl Guasta",
+            base_price: "10.00",
+            options: { accompaniments: [{ label: "Bulgur", contains_gluten: true }] },
+          })
+        : corpo({
+            category: "roll",
+            name: "Roll Guasto",
+            base_price: "8.00",
+            options: {
+              proteins: [{ key: "adana", price_delta: 0 }],
+              removals: ["Senza hummus"],
+              addons: [{ label: "+100 g", price: 4 }],
+            },
+          });
+    const r = await creaConOpzioni(payload, { seed: { errori: { [`${tabella}.insert`]: { code: "XX000" } } } });
+    const acceso = r.scritture.some(
+      (s) => s.tabella === "products" && s.op === "update" && s.patch?.is_available === true
+    );
+    assert(
+      r.esito.status === 500 && !acceso,
+      `h32) un guasto su ${tabella} → 500 e articolo spento (status ${r.esito.status}, acceso: ${acceso})`
+    );
+  }
+
+  // E il guasto della sola ACCENSIONE: l'articolo è completo, gli manca solo di
+  // essere acceso, e il messaggio lo dice.
+  const soloAccensione = await creaConOpzioni(conProteine, {
+    seed: { errori: { "products.update": { code: "XX000" } } },
+  });
+  assert(
+    soloAccensione.esito.status === 500 &&
+      String(soloAccensione.esito.body?.error ?? "").includes("mai verificato"),
+    `h33) ⚠️ e se cade il PRIMO aggiornamento — quello della verifica allergeni — il messaggio resta il suo, non quello dell'accensione ("${soloAccensione.esito.body.error}")`
+  );
+}
+
+// ---------------------------------------------------------------------------
+// h34) ⚠️ L'ETICHETTA DELLA PROTEINA ARRIVA DAL CATALOGO, NON DAL CORPO.
+// È la difesa contro il residuo label→id: il checkout cerca le proteine PER
+// NOME, quindi due nomi diversi per la stessa proteina sono due proteine.
+// ---------------------------------------------------------------------------
+{
+  const { esito, scritture } = await creaConOpzioni(
+    corpo({
+      category: "roll",
+      name: "Il Furbo",
+      base_price: "8.00",
+      options: {
+        proteins: [{ key: "pollo_tacchino", label: "Pollo & tacchino", price_delta: 0 }],
+      },
+    })
+  );
+  assert(esito.status === 201, `h34) creato (status ${esito.status})`);
+  const scritta = righeDi(scritture, "product_choice_options")[0];
+  assert(
+    scritta.label === "Pollo e tacchino",
+    `h35) ⚠️ l'etichetta scritta è quella del CATALOGO, non quella inviata ("${scritta.label}")`
+  );
+  assert(
+    scritta.label !== "Pollo & tacchino",
+    "h36) ⚠️ e in database NON finisce il nome storto: sarebbe una proteina che il checkout non troverebbe mai"
+  );
+
+  // Senza catalogo, le proteine non si possono validare e non si scrive nulla.
+  const senzaCatalogo = await creaConOpzioni(
+    corpo({ category: "roll", name: "Il Senza", base_price: "8.00", options: { proteins: [{ key: "adana", price_delta: 0 }] } }),
+    // ⚠️ `null`, non `undefined`: un valore predefinito di parametro scatta
+    // proprio su `undefined`, quindi con `undefined` il catalogo sarebbe stato
+    // passato lo stesso e questa prova non avrebbe provato niente. *Trovato da
+    // una prova rossa: diceva 201 invece di 400.*
+    { catalogo: null }
+  );
+  assert(
+    senzaCatalogo.esito.status === 400 && senzaCatalogo.scritture.length === 0,
+    `h37) senza catalogo una proteina non si può verificare → rifiuto e nessuna scrittura (status ${senzaCatalogo.esito.status}, scritture ${senzaCatalogo.scritture.length})`
+  );
+}
+
+// ---------------------------------------------------------------------------
+// h38) ⚠️ CONTROPROVA — QUESTE SONDE SANNO DIRE DI NO?
+// ---------------------------------------------------------------------------
+{
+  // 1) La sonda "nessuna tabella toccata" (h2) saprebbe accorgersi di una
+  // scrittura? Le si dà l'elenco di un articolo CON opzioni.
+  const conOpzioni = await creaConOpzioni(
+    corpo({ category: "roll", name: "Il Pieno", base_price: "8.00", options: { removals: ["Senza hummus"] } })
+  );
+  const toccateDavvero = TABELLE_OPZIONI.filter((t) => conOpzioni.scritture.some((s) => s.tabella === t));
+  assert(
+    toccateDavvero.length === 1 && toccateDavvero[0] === "product_removals",
+    `h38) CONTROPROVA: su un articolo CON opzioni la sonda delle tabelle ne trova una toccata (${toccateDavvero.join(", ")})`
+  );
+
+  // 2) La sonda dello zero (h8) distingue 0 da assente?
+  const zeroFinto = { price_delta: undefined };
+  assert(
+    zeroFinto.price_delta !== 0 && righeDi(conOpzioni.scritture, "product_removals")[0].sort_order === 0,
+    "h39) CONTROPROVA: `undefined` non è 0, quindi h8 non passerebbe con un campo saltato"
+  );
+
+  // 3) La sonda dell'accensione (h30) distingue "acceso" da "spento"?
+  const acceso = conOpzioni.scritture.some(
+    (s) => s.tabella === "products" && s.op === "update" && s.patch?.is_available === true
+  );
+  assert(
+    acceso === true,
+    "h40) ⚠️ CONTROPROVA: su una creazione riuscita la sonda dell'accensione la TROVA — quindi quando in h30 dice «non acceso» sta misurando qualcosa"
+  );
+
+  // 4) E il rifiuto della Bowl: senza `options` il modulo la rifiuta, con gli
+  // accompagnamenti no. Se rifiutasse sempre, h23 sarebbe rossa.
+  const bowlOk = await creaConOpzioni(
+    corpo({
+      category: "bowl",
+      name: "Bowl Controprova",
+      base_price: "10.00",
+      options: { accompaniments: [{ label: "Bulgur", contains_gluten: true }] },
+    })
+  );
+  const bowlNo = await creaConOpzioni(corpo({ category: "bowl", name: "Bowl Controprova 2", base_price: "10.00" }));
+  assert(
+    bowlOk.esito.status === 201 && bowlNo.esito.status === 400,
+    `h41) CONTROPROVA: la stessa Bowl passa con gli accompagnamenti e cade senza (${bowlOk.esito.status} / ${bowlNo.esito.status})`
+  );
 }
 
 console.log(failures === 0 ? "\nTUTTI I TEST PASSATI" : `\n${failures} TEST FALLITI`);
