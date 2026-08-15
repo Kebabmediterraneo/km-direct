@@ -1,6 +1,6 @@
 # KM DIRECT — MASTER SPECIFICATION
 
-**Versione 71** — sostituisce la v70.
+**Versione 72** — sostituisce la v71.
 
 Documento di riferimento definitivo per lo sviluppo. Le decisioni qui
 contenute sono approvate: non vanno reinterpretate senza un motivo concreto
@@ -22,30 +22,36 @@ versione corrente**. I precedenti vivono in `git log`, che è fatto per quello.
 del documento prima che cominciasse a parlare del progetto — e dentro c'erano
 istruzioni rovesciate che nessuno rileggeva.*
 
-**Novità della v71** (vincolanti, dal lavoro del 12/08/2026):
+**Novità della v72** (vincolanti, dal lavoro del 12/08/2026):
 
-1. §41-45 — ✅ **IL PREFISSO INTERNAZIONALE C'È.** Menu a tendina con tutti i
-   paesi, bandiera e prefisso, preselezionato Italia. **Comanda la tendina,
-   sempre** (decisione P): un `+` scritto a mano nel campo non dichiara più il
-   paese.
-2. §41-45 — ⚠️ **IL NUMERO SI SALVA COL PREFISSO** (decisione R):
-   `+393331234567`, **una forma sola per tutti**, italiani compresi. *Si poteva
-   fare adesso e non dopo perché in database non ci sono clienti reali.*
-3. §41-45 — ⚠️ **e le regole italiane NON si spengono più davanti a un `+`**:
-   era il difetto che si sarebbe aperto **in silenzio** appena la tendina avesse
-   composto i numeri.
-4. §57-61 — ✅ **il file per il rider non attacca più `+39` a niente**: riceve
-   numeri già completi e non deve più indovinare il paese.
-5. §52-56 — ✅ **la scheda ordine mostra l'indirizzo di consegna** con citofono,
-   piano, scala e note per il rider, **saltando le righe non compilate**.
-6. §41-45 — ⚠️ **una tabella dei paesi ORA ESISTE, ed è ammessa**: contiene
-   prefissi e bandiere, **non lunghezze**. La distinzione è scritta nel §41-45 e
-   nel file stesso, o qualcuno lo cancellerà citando la regola sbagliata.
+1. §63-64 — ✅ **LA FASE 4 È FATTA**, in sei commit: il pannello crea Roll e
+   Bowl **complete** di proteine col loro sovrapprezzo, rimozioni,
+   accompagnamento ed extra. **Era l'ultimo lavoro pre-go-live rimasto.**
+2. §17/§46b — ⚠️ **CHIUSO UN BUCO CHE C'ERA DA SEMPRE**: il server accettava un
+   ordine **senza proteina** su un prodotto che le ha. Non era un difetto nuovo
+   — era invisibile perché il sito preselezionava sempre qualcosa.
+3. §41-45 — ⚠️ **il sito non indovina più la proteina**: se nessuna è
+   preselezionata, nessuna risulta scelta. Erano **tre** i punti che
+   ripiegavano sulla prima, non due.
+4. §63-64 — **un articolo con opzioni nasce SPENTO e si accende come ultimo
+   atto**: un guasto lo lascia visibile nel pannello e irraggiungibile dai
+   clienti, senza che nessuna scrittura di rimedio debba riuscire.
+5. §63-64 — **il residuo label→id NON tocca la Fase 4**, accertato sul codice:
+   oggi **nessun punto scrive** `product_choice_options`. Vale finché il
+   pannello fa **scegliere** e non **rinominare**.
+6. §63-64 — ⚠️ **restano da fare la MODIFICA delle opzioni di un articolo
+   esistente** (chiesta da Andrea il 12/08) e la verifica del rifiuto lato
+   server, che le prove non possono dare.
 
 *Il conteggio delle condizioni di apertura non cambia: **quattro chiuse, cinque
-aperte**. Il lavoro pre-go-live che resta è la **Fase 4**, il **viewport**, le
-tre verifiche registrate in v63 e le **tre voci di §6c**: lo **spostamento di
-GIVEMEFIVE esce da questo elenco**, è fatto.*
+aperte**. ✅ **La Fase 4 esce da questo elenco: è fatta il 12/08.** Il lavoro
+pre-go-live che resta è il **viewport**, le tre verifiche registrate in v63 e le
+**tre voci di §6c**.*
+
+⚠️ *Fuori dall'elenco perché non è una condizione di apertura, ma **chiesto da
+Andrea il 12/08 e da fare**: la **modifica** delle opzioni di un articolo già
+creato. Oggi il pannello sa crearle e non correggerle — un prezzo di proteina
+sbagliato costringe a rifare l'articolo.*
 
 ✅ *I due lavori chiesti da Andrea l'11/08 — il **prefisso internazionale** e
 l'**indirizzo nella scheda ordine** — sono **fatti** il 12/08 e provati dal vivo.
@@ -987,6 +993,44 @@ prodotti, prezzi, disponibilità e articoli distinti.
 ## 17. Regola proteine
 
 Selezione singola, mai multipla (radio/select, non checkbox).
+
+
+### ✅ La proteina è obbligatoria, e prima non lo era (v72, 12/08/2026)
+
+⚠️ **Fino al 12/08 il server ACCETTAVA un ordine senza proteina** su un prodotto
+che le ha. Non era un difetto introdotto: c'era **da sempre**, ed era invisibile
+perché il sito preselezionava sempre qualcosa. Lo stesso server pretendeva
+l'accompagnamento — se manca, l'ordine è rifiutato — ma per la proteina quel
+controllo **non era mai stato scritto**. *È il buco gemello di uno già chiuso:
+la stessa regola applicata a una scelta e non all'altra.*
+
+**Decisione di Andrea (RR)**: se un prodotto ha proteine, sceglierne una è
+obbligatorio; chi non vuole carne sceglie **"nessuna"**.
+
+⚠️ **E il sito non indovina più.** Se nessuna proteina è preselezionata, nessuna
+risulta scelta. Erano **TRE** i punti che ripiegavano sulla prima, non due: il
+terzo è quello che rifà la scelta **quando si cambia Roll dentro il combo** —
+lasciarlo avrebbe significato che aprendo il combo nessuna proteina è scelta ma
+**cambiando Roll ne compariva una da sola**, cioè la trappola armata proprio nel
+percorso che nessuno riguarda.
+
+*Il pericolo non era teorico: dal pannello l'ordine delle proteine lo decide chi
+crea l'articolo, quindi "la prima" può essere una proteina **con
+sovrapprezzo**, e il cliente si troverebbe preselezionata una scelta che costa.*
+
+⚠️ **L'ordine dei tre lavori era obbligato**: prima la difesa del server, poi
+quella del sito, e **solo alla fine** il ripiego. *Invertirlo avrebbe reso
+raggiungibile lo stato "nessuna proteina" prima che esistessero le difese: in
+cucina sarebbe arrivato un Roll senza proteina, senza che nessuno vedesse un
+errore.* **Scambiare un difetto rumoroso con uno silenzioso è sempre un cattivo
+affare.**
+
+⚠️ *Il contorno del combo ha lo **stesso ripiego** e non è stato toccato: la
+decisione parlava di proteine. Da decidere a parte.*
+
+⚠️ *Il rifiuto lato server **non l'ha osservato nessuno**: `checkout-resolve.js`
+non è eseguibile senza database, quindi le prove leggono il testo del codice.
+La verifica naturale sarà il primo articolo creato senza preselezione.*
 
 ## 18. Regola rimozioni
 
@@ -3441,7 +3485,11 @@ separato. L'introduzione di ruoli/permessi admin distinti dallo staff è
   prezzo. Richiede **una colonna nuova** — DDL, quindi migrazione in `sql/` da
   eseguire nel SQL editor (§63-64) — e una modifica al percorso di lettura del
   menu cliente, che è la parte delicata;
-- **Fase 4** — creazione/editing di Roll/Bowl con le loro opzioni,
+- ✅ **Fase 4 — FATTA il 12/08/2026**, in sei commit. Il blocco completo sta
+  poco più sotto, "La Fase 4 com'è stata costruita". ⚠️ *Il testo qui sotto è
+  quello di prima e si legge come storia: il rapporto col residuo label→id
+  **è stato accertato** e non tocca la Fase 4.*
+- *(testo storico)* **Fase 4** — creazione/editing di Roll/Bowl con le loro opzioni,
   **scegliendo fra le proteine già esistenti** e senza crearne di nuove. ⚠️ *Il
   rapporto fra questo lavoro e il residuo label→id di §25 va **accertato sul
   codice come primo passo**: il residuo è pericoloso dove qualcuno può scrivere
@@ -3552,8 +3600,107 @@ cambio di prezzo, form inline nella sezione Menu del pannello staff
 (coerente con §34-35) e registrazione di ogni modifica in
 `staff_action_log`, esteso anche al toggle disponibile/esaurito.
 
-**Stato di avanzamento (aggiornato in v63)**: **Fase 1, Fase 2A, Fase 2B, Fase
-3 e "togli dal menu" sono complete e verificate dal vivo.** Prima del go-live
+### ✅ La Fase 4 com'è stata costruita (v72, 12/08/2026)
+
+**Sei commit**, e le prove passano da 1331 a **1497**. Il pannello crea ora Roll
+e Bowl **complete e ordinabili**; prima creava articoli senza opzioni, che
+nessun cliente poteva comprare.
+
+**Il primo passo obbligato, accertato sul codice invece che supposto.** I
+documenti dicevano *"verosimile che il residuo label→id non tocchi la Fase 4"*.
+La verità misurata è più netta: ⚠️ **oggi nessun punto del codice SCRIVE
+`product_choice_options`** — non un `insert`, non un `update`, non un `delete`.
+Il residuo è pericoloso solo dove si può **rinominare** un'etichetta, e quel
+potere non ce l'ha nessuno. **Vale finché la Fase 4 fa SCEGLIERE e non
+RINOMINARE**: il giorno che qualcuno desse quel potere, il residuo si sveglia e
+il danno sarebbe **rifiutare al pagamento i carrelli già composti**.
+
+**Le decisioni di Andrea (12/08/2026), tutte prese:**
+
+* **(GG) Tutti e quattro i gruppi insieme** — proteine, rimozioni,
+  accompagnamento, extra. *Senza l'accompagnamento una Bowl nascerebbe
+  impossibile da ordinare.*
+* **(CC) Le proteine col loro sovrapprezzo, che può essere ZERO** ed è
+  obbligatorio indicarlo. ⚠️ *Zero è un valore, non un campo mancante: un
+  modulo che lo trattasse come assente farebbe pagare un supplemento mai
+  deciso.*
+* **(DD) Le rimozioni si aggiungono e si tolgono, NON SI RINOMINANO.** ⚠️ *È la
+  regola che tiene chiuso il residuo: `checkout-resolve.js` cerca quelle
+  etichette PER NOME, quindi rinominarne una farebbe rifiutare al pagamento i
+  carrelli già composti. Chi sbaglia a scrivere toglie e riscrive.*
+* **(JJ) L'elenco delle rimozioni si costruisce da quelle già usate**, non da
+  una tabella nuova. *Un refuso sparisce dalla tendina appena nessuno lo usa
+  più: si autopulisce.* ⚠️ *E due etichette che differiscono per uno spazio
+  restano **due voci**: accorparle farebbe scegliere una rimozione credendo di
+  sceglierne un'altra.*
+* **(RR) Se un prodotto ha proteine, sceglierne una è OBBLIGATORIO.** Chi non
+  vuole carne sceglie **"nessuna"**, che è già fra i valori ammessi. ⚠️ *In
+  cucina un ordine senza proteina non si distingue da un dato perso; "nessuna"
+  si distingue.* *Nota: "nessuna" oggi non compare in nessuna riga — nessun
+  prodotto la offre ancora.*
+* **(WW) Se una scrittura delle opzioni fallisce, l'articolo nasce SPENTO.**
+  ⚠️ *Realizzato al contrario di come suona: l'articolo con opzioni **nasce
+  spento e si accende come ultimo atto**, invece di nascere acceso e venire
+  spento in caso di guasto — perché quello spegnimento sarebbe **una scrittura
+  in più che può fallire a sua volta**, lasciandolo acceso e incompleto. Il
+  guasto non ha bisogno che nulla riesca per essere innocuo.*
+* **(YY) Il titolo sopra le proteine si scrive**, precompilato con *"Come
+  preferisci il tuo kebab?"*. *Senza, il predefinito del database è "Proteina" e
+  un Roll nuovo mostrerebbe al cliente un titolo diverso da tutti gli altri.*
+  ⚠️ *Questa etichetta NON è come le rimozioni: il checkout la **copia** e non
+  la cerca mai, quindi rinominarla non rompe nessun carrello.*
+* **(A) Tutto in una schermata sola**; **(D) le proteine come caselle da
+  spuntare**, non righe da aggiungere — sono tre e fisse, ed è la forma che il
+  pannello usa già per i 14 allergeni.
+* **(b) I gruppi si mostrano su tutte le categorie tranne le bevande.** ⚠️ *Una
+  regola "solo roll e bowl" andrebbe aggiornata a mano il giorno che nasce una
+  categoria nuova, e chi la dimenticasse se ne accorgerebbe solo vedendo il
+  primo articolo nato senza proteine — cioè tardi. Prezzo accettato: creando una
+  salsa si vedono campi vuoti che non servono.*
+* **Le tre colonne prima escluse sono state incluse**: proteina preselezionata,
+  dose inclusa (§19) e dosi cumulabili (§22). *Senza, un KM Special ricreato dal
+  pannello non sarebbe uguale all'originale.* ⚠️ *`extra_dose_included` e
+  `max_quantity` oggi **non sono lette da nessuna riga di codice**: il pannello
+  le scrive, ma perché servano dovrà leggerle chi calcola il prezzo.*
+
+**Il catalogo delle proteine** si legge dal database filtrando sull'enum
+`protein_key`, che è la lista chiusa che il database già dichiara. ⚠️ **Si ferma
+con un errore se una chiave avesse due etichette diverse**: sceglierne una
+attaccherebbe al prodotto nuovo un nome che il checkout non ritroverebbe. *Al
+12/08 la lettura del database di Andrea ha dato **una sola etichetta per ogni
+chiave**, quindi il caso non si presenta — ma il codice non dipende dal fatto che
+oggi vada bene.* *Si legge **solo se l'articolo ha proteine**: leggendolo sempre,
+una divergenza bloccherebbe la creazione di una salsa o di una birra.*
+
+⚠️ **AGGIUNGERE UNA PROTEINA NUOVA: TRE PASSAGGI, TUTTI DA SQL EDITOR.** Non si
+fa dal pannello (decisione del 06/08: la Fase 4 sceglie fra le esistenti).
+1. **allargare l'enum `protein_key`** — è DDL;
+2. **aggiungere la proteina come riga su almeno un prodotto**, perché il
+   catalogo vede solo ciò che esiste: una chiave dichiarata e mai usata **non
+   compare** fra le caselle del pannello;
+3. **solo se serve legarci un extra**, un terzo intervento, perché anche
+   `requires_protein` usa lo stesso enum chiuso.
+*Scritto qui perché è una cosa che si fa una volta ogni sei mesi e che, non
+scritta, costa un pomeriggio a ricostruirla.*
+
+**Provata dal vivo da Andrea** (12/08): un Roll creato dal pannello con tre
+proteine, sovrapprezzi a zero e a 4,50, preselezione, due rimozioni — una dalla
+tendina e una scritta a mano — e **aperto dal lato cliente**, dove il titolo, le
+rimozioni e il prezzo con l'Adana risultano corretti. *Il Roll di prova è stato
+poi cancellato con la migrazione `sql/cancella_roll_prova_12ago2026.sql`,
+eseguita dopo aver verificato che nessun ordine lo contenesse.*
+
+⚠️ **Cosa NON è chiuso**: la **modifica** delle opzioni di un articolo esistente
+(chiesta da Andrea il 12/08), e la verifica del **rifiuto lato server** della
+proteina obbligatoria — le prove leggono il testo del codice, e osservarlo
+richiede la fotografia della route, che crea ordini veri.
+
+**Stato di avanzamento (aggiornato in v72)**: ✅ **Fase 1, 2A, 2B, 3, "togli dal
+menu" e FASE 4 sono complete e verificate dal vivo.** **Non resta più nessuna
+fase pre-go-live.** ⚠️ *Resta però la **modifica** delle opzioni di un articolo
+esistente, chiesta da Andrea il 12/08: il pannello sa crearle, non correggerle.*
+
+*(formulazione precedente, superata)*: Prima del go-live
 resta la sola **Fase 4**. *"Togli dal menu" è stato chiuso il 07/08/2026 in sei
 pezzi — esito e prove nel blocco dedicato più sotto. Fino alla v58 né esso né la
 Fase 4 erano pre-go-live.* *La formulazione precedente diceva che restava la
@@ -3692,7 +3839,7 @@ Precedute da una ricognizione di sola lettura su codice e database vivo. **I val
 
 **Riuso, non costruzione.** Il blocco allergeni del pannello contiene **già** le quattordici caselle, la casella "nessuno dei 14" e il selettore dietetico, e li salva in un colpo solo. La Fase 3 lo riusa intero: toglierne il selettore sarebbe lavoro in più, non in meno. ⚠️ *Del precedente di creazione che esiste nel pannello — le chiusure eccezionali di §68 — si riusa la **forma lato server**, non quella a schermo: quella apre una finestra sopra la pagina, mentre la sezione Menu impone il modulo **in linea, sotto la riga** (§63-64, §67, §34-35).*
 
-**La tendina delle categorie parte VUOTA** (decisione del 06/08/2026, scritto il codice). ⚠️ *Motivo: una preselezione su "Roll" renderebbe **naturale** creare un Roll privo di opzioni, che è esattamente ciò che la Fase 3 non sa fare. `roll` e `bowl` restano nell'elenco — toglierli renderebbe la tendina diversa dal menu vero — si toglie solo la preselezione.* **Non basta**: il 06/08 un Roll senza scelte è stato creato lo stesso, provando la Fase 3. La tendina vuota alza il costo dell'errore, non lo impedisce; a impedirlo sarà la Fase 4.
+**La tendina delle categorie parte VUOTA** (decisione del 06/08/2026, scritto il codice). ⚠️ *Motivo: una preselezione su "Roll" renderebbe **naturale** creare un Roll privo di opzioni, che è esattamente ciò che la Fase 3 non sa fare. `roll` e `bowl` restano nell'elenco — toglierli renderebbe la tendina diversa dal menu vero — si toglie solo la preselezione.* **Non basta**: il 06/08 un Roll senza scelte è stato creato lo stesso, provando la Fase 3. La tendina vuota alza il costo dell'errore, non lo impedisce; a impedirlo sarà la Fase 4. ✅ *E dal 12/08 lo impedisce davvero: una Bowl senza accompagnamenti non è più salvabile, e un Roll con proteine le pretende.*
 
 ⚠️ **Non esistono articoli in bozza, e non potrebbero esistere.** La decisione del 05/08 li esclude già — l'articolo nasce disponibile — ma va registrato che non sarebbero realizzabili nemmeno volendo: la regola di lettura pubblica su `products` è **senza condizioni** (§66), quindi una bozza sarebbe visibile al sito cliente dall'istante del salvataggio. Non per una svista del sito: perché il database dice di sì a tutto. Renderla possibile significherebbe **cambiare la regola sul database**, non il codice.
 
