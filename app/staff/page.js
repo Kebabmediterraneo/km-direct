@@ -1471,6 +1471,25 @@ function prossimoPosto(products, category) {
 //
 // Nessuna conferma sul prezzo: quella di §63-64 confronta valore precedente e
 // nuovo, e in una creazione un valore precedente non esiste.
+// §21 — LE TRE VOCI DI ACCOMPAGNAMENTO, proposte già pronte perché sono uguali
+// per tutte le Bowl (Andrea, 12/08/2026) e restano modificabili.
+//
+// ⚠️ I nomi e il glutine NON sono scritti a memoria: vengono dallo schema
+// (`km_direct_schema.sql`, `product_accompaniments`: «"Bulgur" | "Riso
+// integrale" | "No bulgur e no riso"») e da §21, che dice «Bulgur (contiene
+// glutine), Riso integrale, No bulgur e no riso».
+const ACCOMPAGNAMENTI_PROPOSTI = [
+  { label: "Bulgur", contains_gluten: true },
+  { label: "Riso integrale", contains_gluten: false },
+  { label: "No bulgur e no riso", contains_gluten: false },
+];
+
+// §63-64 (Fase 4) — il titolo del gruppo delle proteine, precompilato.
+// ⚠️ È la stessa frase che il sito mostra ai clienti (`app/page.js`) e che
+// `lib/menu-create.js` usa come predefinito: tre copie della stessa stringa, e
+// due di esse hanno una prova che le sorveglia.
+const TITOLO_SCELTA_PROPOSTO = "Come preferisci il tuo kebab?";
+
 function ProductCreateForm({ products, allergensCatalog, onCreated, onCancel }) {
   // ⚠️ La tendina parte VUOTA, senza preselezione (decisione del 06/08/2026).
   //
@@ -1499,8 +1518,67 @@ function ProductCreateForm({ products, allergensCatalog, onCreated, onCancel }) 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState(null);
 
+  // -------------------------------------------------------------------------
+  // §63-64 (Fase 4, passo 3) — LE OPZIONI, tutte in questa schermata (decisione
+  // "A" di Andrea del 12/08/2026: niente passaggi, niente "Avanti").
+  //
+  // ⚠️ I due elenchi si chiedono al server **all'apertura di questo modulo** e
+  // non al caricamento della sezione Menu (decisione "B"): servono di rado, e
+  // farli pagare a ogni apertura della sezione sarebbe stato un costo continuo
+  // per un uso occasionale.
+  // -------------------------------------------------------------------------
+  const [cataloghi, setCataloghi] = useState(null);
+  const [catalogError, setCatalogError] = useState(null);
+  // Proteine spuntate: chiave → { price_delta, is_default, extra_dose_included }.
+  // ⚠️ Stessa forma della selezione degli allergeni (un insieme rifatto a ogni
+  // cambiamento), perché è la forma che questo modulo già conosce.
+  const [proteine, setProteine] = useState(() => new Map());
+  const [titoloScelta, setTitoloScelta] = useState(TITOLO_SCELTA_PROPOSTO);
+  const [rimozioni, setRimozioni] = useState([]);
+  const [accompagnamenti, setAccompagnamenti] = useState([]);
+  const [extra, setExtra] = useState([]);
+
+  useEffect(() => {
+    let annullato = false;
+    (async () => {
+      try {
+        const response = await fetch("/api/staff/menu/options");
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "Errore nel caricamento delle opzioni.");
+        if (!annullato) setCataloghi({ proteins: data.proteins ?? [], removals: data.removals ?? [] });
+      } catch (err) {
+        // ⚠️ L'errore si MOSTRA. Senza, il blocco delle proteine comparirebbe
+        // con zero caselle e sembrerebbe che proteine non ce ne siano — che è
+        // esattamente ciò che chi guarda concluderebbe, sbagliando.
+        if (!annullato) setCatalogError(err.message);
+      }
+    })();
+    return () => {
+      annullato = true;
+    };
+  }, []);
+
   const categoriaScelta = category !== "";
   const bevanda = categoriaScelta && isBevanda(category);
+
+  // ⚠️⚠️ QUANDO SI DISEGNANO I QUATTRO GRUPPI (decisione "b" di Andrea del
+  // 12/08/2026): **su tutte le categorie tranne le bevande**, con
+  // l'accompagnamento che resta delle sole Bowl.
+  //
+  // *Perché non "solo roll e bowl", che sarebbe più stretto e più ordinato: una
+  // regola così andrebbe aggiornata a mano il giorno che nasce una categoria
+  // nuova, e chi se ne dimenticasse se ne accorgerebbe solo vedendo il primo
+  // articolo nato senza proteine — cioè tardi, e senza collegare le due cose.
+  // "Tutto tranne le bevande" non si dimentica.*
+  //
+  // ⚠️ Prezzo accettato: creando una salsa si vedono campi che non servono. È
+  // una seccatura visibile, e le seccature visibili si sistemano; un articolo
+  // nato monco no.
+  //
+  // ⚠️ La condizione riusa `isBevanda`, cioè `CATEGORIE_BEVANDA` di
+  // `lib/menu-categories.js`: nessun elenco nuovo di categorie in questo file.
+  const mostraOpzioni = categoriaScelta && !bevanda;
+  const mostraAccompagnamenti = category === "bowl";
 
   // Cambiare categoria rifà la proposta del posto — un numero calcolato su
   // un'altra categoria non vuol dire niente — e azzera ciò che su una bevanda
@@ -1512,8 +1590,66 @@ function ProductCreateForm({ products, allergensCatalog, onCreated, onCancel }) 
       setSelected(new Set());
       setNoAllergens(false);
       setDietary("");
+      // ⚠️ Le opzioni si azzerano per la stessa ragione degli allergeni: su una
+      // bevanda il server le rifiuterebbe, e lasciarle compilate e invisibili
+      // farebbe fallire il salvataggio con un messaggio che parla di campi che
+      // chi salva non vede più.
+      setProteine(new Map());
+      setRimozioni([]);
+      setAccompagnamenti([]);
+      setExtra([]);
+    }
+    // §21: le tre voci si propongono da sé quando la categoria diventa Bowl, e
+    // spariscono altrove — l'accompagnamento su un Roll il server lo rifiuta.
+    if (value === "bowl") {
+      setAccompagnamenti((prev) =>
+        prev.length > 0 ? prev : ACCOMPAGNAMENTI_PROPOSTI.map((a) => ({ ...a }))
+      );
+    } else {
+      setAccompagnamenti([]);
     }
   }
+
+  // --- proteine: caselle da spuntare, come i 14 allergeni ---
+  function toggleProteina(key) {
+    setProteine((prev) => {
+      const next = new Map(prev);
+      if (next.has(key)) next.delete(key);
+      // ⚠️ Il sovrapprezzo nasce VUOTO, non a zero: zero è un valore che si
+      // sceglie, e precompilarlo vorrebbe dire deciderlo al posto di chi salva.
+      else next.set(key, { price_delta: "", is_default: false, extra_dose_included: false });
+      return next;
+    });
+  }
+  function cambiaProteina(key, campo, valore) {
+    setProteine((prev) => {
+      const next = new Map(prev);
+      const voce = next.get(key);
+      if (!voce) return prev;
+      next.set(key, { ...voce, [campo]: valore });
+      return next;
+    });
+  }
+  // ⚠️ Al massimo UNA preselezionata: accendere questa spegne le altre. Il
+  // server rifiuterebbe due preselezioni, ma qui il punto è che il pallino si
+  // comporti come un pallino.
+  function preseleziona(key) {
+    setProteine((prev) => {
+      const next = new Map();
+      for (const [k, v] of prev) next.set(k, { ...v, is_default: k === key });
+      return next;
+    });
+  }
+
+  // --- righe che si aggiungono e si tolgono ---
+  // ⚠️ Nessuna di queste funzioni modifica un'etichetta ESISTENTE in database:
+  // aggiungono e tolgono righe di questo modulo, che al salvataggio diventano
+  // righe nuove del prodotto nuovo (decisione DD, "si aggiunge e si toglie, non
+  // si rinomina").
+  const aggiungi = (setter, vuoto) => () => setter((prev) => [...prev, vuoto]);
+  const togli = (setter) => (indice) => setter((prev) => prev.filter((_, i) => i !== indice));
+  const cambia = (setter) => (indice, valore) =>
+    setter((prev) => prev.map((riga, i) => (i === indice ? valore : riga)));
 
   // §67: mutua esclusione fra la selezione e "nessuno dei 14", identica alla
   // Fase 2A.
@@ -1544,7 +1680,35 @@ function ProductCreateForm({ products, allergensCatalog, onCreated, onCancel }) 
   // ancora se serva — quindi non lo si conta fra ciò che manca: manca la
   // categoria, ed è quella che va detta.
   const allergeniValidi = !categoriaScelta || bevanda || noAllergens || selected.size > 0;
-  const canSave = categoriaScelta && name.trim() !== "" && prezzoValido && ordineValido && allergeniValidi;
+
+  // ⚠️ UNA BOWL SENZA ACCOMPAGNAMENTI NON È SALVABILE, e non è una regola nuova
+  // di questo modulo: il server la rifiuta già (`lib/menu-options.js`), perché
+  // la scelta è obbligatoria per il cliente (§21) e una Bowl senza voci nasce
+  // **impossibile da ordinare**. Qui il pulsante si spegne per non far arrivare
+  // nessuno fino al rifiuto.
+  const accompagnamentiMancanti = mostraAccompagnamenti && accompagnamenti.length === 0;
+  // ⚠️ Zero è un valore valido: si guarda che il campo sia COMPILATO, non che
+  // sia diverso da zero. `!p.price_delta` avrebbe trattato lo 0 come vuoto.
+  const proteineSenzaPrezzo = [...proteine.values()].some(
+    (p) => String(p.price_delta ?? "").trim() === ""
+  );
+  const extraIncompleti = extra.some(
+    (e) => e.label.trim() === "" || String(e.price ?? "").trim() === ""
+  );
+  const rimozioniVuote = rimozioni.some((r) => r.trim() === "");
+  const accompagnamentiVuoti = accompagnamenti.some((a) => a.label.trim() === "");
+
+  const canSave =
+    categoriaScelta &&
+    name.trim() !== "" &&
+    prezzoValido &&
+    ordineValido &&
+    allergeniValidi &&
+    !accompagnamentiMancanti &&
+    !proteineSenzaPrezzo &&
+    !extraIncompleti &&
+    !rimozioniVuote &&
+    !accompagnamentiVuoti;
 
   // Che cosa manca, detto in chiaro: un pulsante spento senza spiegazione manda
   // a cercare l'errore nel posto sbagliato. Non è l'avviso sul tipo dietetico
@@ -1556,6 +1720,12 @@ function ProductCreateForm({ products, allergensCatalog, onCreated, onCancel }) 
     !prezzoValido && "un prezzo maggiore di zero",
     !ordineValido && "un ordinamento intero",
     !allergeniValidi && "gli allergeni, oppure la casella «nessuno dei 14»",
+    accompagnamentiMancanti &&
+      "almeno un accompagnamento: una Bowl senza non è ordinabile dal cliente",
+    proteineSenzaPrezzo && "il sovrapprezzo di ogni proteina scelta (scrivi 0 se non costa nulla)",
+    rimozioniVuote && "l'etichetta di ogni rimozione aggiunta",
+    accompagnamentiVuoti && "l'etichetta di ogni accompagnamento",
+    extraIncompleti && "etichetta e prezzo di ogni extra aggiunto",
   ].filter(Boolean);
 
   async function handleSubmit(event) {
@@ -1580,6 +1750,43 @@ function ProductCreateForm({ products, allergensCatalog, onCreated, onCancel }) 
         payload.allergenIds = noAllergens ? [] : [...selected];
         payload.noAllergens = noAllergens;
         if (dietary !== "") payload.dietary = dietary;
+
+        // §63-64 (Fase 4) — LE OPZIONI, nella forma che `lib/menu-create.js` si
+        // aspetta: un oggetto `options` con quattro elenchi, letta da lì e non
+        // indovinata.
+        //
+        // ⚠️⚠️ **`options` NON viene aggiunto se non c'è niente dentro**, ed è
+        // ciò che tiene identica la creazione di un articolo senza opzioni:
+        // un `options: {}` di troppo cambierebbe il corpo della richiesta di
+        // una creazione che oggi funziona.
+        const options = {};
+        if (proteine.size > 0) {
+          options.proteins = [...proteine].map(([key, voce]) => ({
+            key,
+            price_delta: voce.price_delta,
+            is_default: voce.is_default,
+            extra_dose_included: voce.extra_dose_included,
+            // Il titolo è UNO per il gruppo: la stessa stringa su ogni riga, che
+            // è ciò che il server pretende.
+            choice_label: titoloScelta,
+          }));
+        }
+        if (rimozioni.length > 0) options.removals = rimozioni;
+        if (mostraAccompagnamenti && accompagnamenti.length > 0) {
+          options.accompaniments = accompagnamenti;
+        }
+        if (extra.length > 0) {
+          options.addons = extra.map((e) => ({
+            label: e.label,
+            price: e.price,
+            // ⚠️ Stringa vuota = "vale sempre". Il modulo delle opzioni tratta
+            // vuoto, null e assente allo stesso modo, quindi non serve
+            // convertirlo qui — e convertirlo sarebbe una seconda regola.
+            requires_protein: e.requires_protein,
+            max_quantity: e.max_quantity,
+          }));
+        }
+        if (Object.keys(options).length > 0) payload.options = options;
       }
       const response = await fetch("/api/staff/menu/create", {
         method: "POST",
@@ -1758,6 +1965,230 @@ function ProductCreateForm({ products, allergensCatalog, onCreated, onCancel }) 
               </label>
             ))}
           </div>
+        </>
+      )}
+
+      {/* ===================================================================
+          §63-64 (Fase 4) — LE OPZIONI DELL'ARTICOLO, nella stessa schermata.
+          Si disegnano su tutte le categorie tranne le bevande; gli
+          accompagnamenti solo sulle Bowl.
+          =================================================================== */}
+      {mostraOpzioni && (
+        <>
+          <hr style={{ border: "none", borderTop: "1px solid var(--card-border)", margin: "4px 0" }} />
+
+          {/* --- 1) PROTEINE: caselle da spuntare, come i 14 allergeni --- */}
+          <span style={labelStyle}>Proteine (facoltative)</span>
+          {catalogError ? (
+            // ⚠️ L'errore si dice. Zero caselle senza spiegazione farebbero
+            // concludere che proteine non ce ne sono.
+            <p style={{ fontSize: 12, color: "#C0392B", margin: 0 }}>
+              Non è stato possibile leggere le proteine: {catalogError} Salva senza, oppure riapri il modulo.
+            </p>
+          ) : cataloghi === null ? (
+            <p style={{ fontSize: 12, color: "var(--text-on-dark)", margin: 0 }}>Caricamento delle proteine…</p>
+          ) : cataloghi.proteins.length === 0 ? (
+            <p style={{ fontSize: 12, color: "var(--text-on-dark)", margin: 0 }}>
+              Nessuna proteina in menu da cui scegliere: se ne aggiungono dal database, non da qui.
+            </p>
+          ) : (
+            <>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                {cataloghi.proteins.map((p) => {
+                  const scelta = proteine.get(p.key);
+                  return (
+                    <div key={p.key} style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                      <label
+                        style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, color: "var(--navy)" }}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={scelta !== undefined}
+                          onChange={() => toggleProteina(p.key)}
+                        />
+                        {p.label}
+                      </label>
+                      {scelta !== undefined && (
+                        <div
+                          style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", paddingLeft: 22 }}
+                        >
+                          <label style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12 }}>
+                            Sovrapprezzo €
+                            <input
+                              type="number"
+                              step="0.01"
+                              min="0"
+                              value={scelta.price_delta}
+                              onChange={(e) => cambiaProteina(p.key, "price_delta", e.target.value)}
+                              style={{ ...inputStyle, width: 90 }}
+                            />
+                          </label>
+                          <label style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12 }}>
+                            <input
+                              type="radio"
+                              name="proteina-preselezionata"
+                              checked={scelta.is_default}
+                              onChange={() => preseleziona(p.key)}
+                            />
+                            Preselezionata
+                          </label>
+                          <label style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12 }}>
+                            <input
+                              type="checkbox"
+                              checked={scelta.extra_dose_included}
+                              onChange={(e) => cambiaProteina(p.key, "extra_dose_included", e.target.checked)}
+                            />
+                            Dose extra inclusa
+                          </label>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+              {proteine.size > 0 && (
+                <label style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+                  <span style={labelStyle}>Titolo della scelta (lo legge il cliente)</span>
+                  <input
+                    type="text"
+                    value={titoloScelta}
+                    onChange={(e) => setTitoloScelta(e.target.value)}
+                    maxLength={60}
+                    style={inputStyle}
+                  />
+                </label>
+              )}
+            </>
+          )}
+
+          {/* --- 2) RIMOZIONI: righe che si aggiungono e si tolgono ---
+              ⚠️ La tendina delle già usate è un `datalist`: propone quelle
+              esistenti e lascia scriverne una nuova nello stesso campo. Non
+              esiste alcun modo di RINOMINARE una rimozione esistente (DD):
+              queste righe diventano righe nuove del prodotto nuovo. */}
+          <span style={labelStyle}>Rimozioni (facoltative)</span>
+          <datalist id="rimozioni-gia-usate">
+            {(cataloghi?.removals ?? []).map((label) => (
+              <option key={label} value={label} />
+            ))}
+          </datalist>
+          {rimozioni.map((label, i) => (
+            <div key={i} style={{ display: "flex", gap: 6 }}>
+              <input
+                type="text"
+                list="rimozioni-gia-usate"
+                value={label}
+                onChange={(e) => cambia(setRimozioni)(i, e.target.value)}
+                placeholder="Scegli o scrivi una rimozione…"
+                style={{ ...inputStyle, flex: 1 }}
+              />
+              <button type="button" onClick={() => togli(setRimozioni)(i)} style={secondaryBtn}>
+                Togli
+              </button>
+            </div>
+          ))}
+          <button type="button" onClick={aggiungi(setRimozioni, "")} style={secondaryBtn}>
+            + Aggiungi rimozione
+          </button>
+
+          {/* --- 3) ACCOMPAGNAMENTO: solo Bowl, proposto già pronto (§21) --- */}
+          {mostraAccompagnamenti && (
+            <>
+              <span style={labelStyle}>Accompagnamento (obbligatorio sulle Bowl)</span>
+              {accompagnamenti.map((voce, i) => (
+                <div key={i} style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                  <input
+                    type="text"
+                    value={voce.label}
+                    onChange={(e) => cambia(setAccompagnamenti)(i, { ...voce, label: e.target.value })}
+                    style={{ ...inputStyle, flex: 1 }}
+                  />
+                  <label style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12 }}>
+                    <input
+                      type="checkbox"
+                      checked={voce.contains_gluten}
+                      onChange={(e) =>
+                        cambia(setAccompagnamenti)(i, { ...voce, contains_gluten: e.target.checked })
+                      }
+                    />
+                    Glutine
+                  </label>
+                  <button type="button" onClick={() => togli(setAccompagnamenti)(i)} style={secondaryBtn}>
+                    Togli
+                  </button>
+                </div>
+              ))}
+              <button
+                type="button"
+                onClick={aggiungi(setAccompagnamenti, { label: "", contains_gluten: false })}
+                style={secondaryBtn}
+              >
+                + Aggiungi accompagnamento
+              </button>
+            </>
+          )}
+
+          {/* --- 4) EXTRA: righe che si aggiungono ---
+              ⚠️ Il legame con una proteina è una TENDINA CHIUSA, alimentata dal
+              catalogo: `requires_protein` è una colonna di tipo chiuso
+              (`protein_key`), e un campo libero manderebbe al database valori
+              che rifiuta con un errore che nessuno capisce. */}
+          <span style={labelStyle}>Extra (facoltativi)</span>
+          {extra.map((voce, i) => (
+            <div key={i} style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
+              <input
+                type="text"
+                value={voce.label}
+                onChange={(e) => cambia(setExtra)(i, { ...voce, label: e.target.value })}
+                placeholder="Es. +100 g di carne"
+                style={{ ...inputStyle, flex: 1, minWidth: 140 }}
+              />
+              <label style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12 }}>
+                €
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={voce.price}
+                  onChange={(e) => cambia(setExtra)(i, { ...voce, price: e.target.value })}
+                  style={{ ...inputStyle, width: 80 }}
+                />
+              </label>
+              <label style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 12 }}>
+                Max
+                <input
+                  type="number"
+                  step="1"
+                  min="1"
+                  value={voce.max_quantity}
+                  onChange={(e) => cambia(setExtra)(i, { ...voce, max_quantity: e.target.value })}
+                  style={{ ...inputStyle, width: 60 }}
+                />
+              </label>
+              <select
+                value={voce.requires_protein}
+                onChange={(e) => cambia(setExtra)(i, { ...voce, requires_protein: e.target.value })}
+                style={{ ...inputStyle, minWidth: 150 }}
+              >
+                <option value="">Sempre disponibile</option>
+                {(cataloghi?.proteins ?? []).map((p) => (
+                  <option key={p.key} value={p.key}>
+                    Solo con {p.label}
+                  </option>
+                ))}
+              </select>
+              <button type="button" onClick={() => togli(setExtra)(i)} style={secondaryBtn}>
+                Togli
+              </button>
+            </div>
+          ))}
+          <button
+            type="button"
+            onClick={aggiungi(setExtra, { label: "", price: "", requires_protein: "", max_quantity: "1" })}
+            style={secondaryBtn}
+          >
+            + Aggiungi extra
+          </button>
         </>
       )}
 
