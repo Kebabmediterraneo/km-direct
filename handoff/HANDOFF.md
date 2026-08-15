@@ -23,10 +23,19 @@ nessuno se ne ricorda.*
 ## 2) Stato git
 
 - Branch **`main`**, working tree **pulita**, allineata a `origin/main`.
-- HEAD: **`f433d17`** — la spec v71 (12/08/2026).
+- HEAD: **`59f5a20`** — la spec v72 (12/08/2026, sera).
 - Ultimi commit (dal più recente):
 
 ```
+59f5a20 docs: v72 — la Fase 4 e' fatta e non resta piu' nessuna fase pre-go-live, col buco della proteina che c'era da sempre e la procedura per aggiungerne una nuova
+3b461c9 menu: il pannello crea Roll e Bowl complete di proteine, rimozioni, accompagnamento ed extra, coi due elenchi letti dal database invece che scritti a mano
+772a09f sql: la cancellazione del Roll di prova della Fase 4, gia' eseguita da Andrea nel SQL editor con esito zero righe
+0a72be1 menu: il catalogo delle proteine si legge dal database e si ferma se una chiave avesse due etichette diverse, perche' sceglierne una attaccherebbe al prodotto nuovo un nome che gli ordini non ritroverebbero
+854a8ce menu: il titolo che il cliente legge sopra le proteine si scrive dal pannello, uno per gruppo, e senza vale la frase dei Roll di oggi invece del predefinito del database
+746e48b menu: la creazione scrive anche le opzioni, e un articolo che le ha nasce spento e si accende come ultimo atto, cosi' un guasto lo lascia visibile e irraggiungibile dai clienti
+4f86ce3 menu: il modulo che valida le opzioni di un articolo — proteine col sovrapprezzo anche zero, rimozioni, accompagnamento obbligatorio sulle bowl ed extra col loro tetto
+fb40ed6 proteina: se un prodotto ne ha, sceglierne una diventa obbligatorio, e il sito smette di preselezionare la prima quando nessuna e' indicata
+85216ea handoff: stato al 12/08 — il prefisso internazionale e l'indirizzo in scheda, col difetto che si sarebbe aperto in silenzio appena la tendina avesse composto i numeri
 f433d17 docs: v71 — il prefisso internazionale con la tendina che comanda, il numero salvato in una forma sola per tutti, e le due righe che erano diventate false corrette
 68ae852 pannello: la scheda ordine mostra l'indirizzo di consegna con citofono, piano, scala e note per il rider, saltando le righe che il cliente non ha compilato
 dcfdfd3 telefono: la tendina dei prefissi con la bandiera, il numero che parte col +39 davanti in una forma sola per tutti, e il file per il rider che smette di indovinare
@@ -92,7 +101,10 @@ costruzione. *Rilevato da Code il 05/08 confrontando `git log` con questo
 blocco: l'HEAD dichiarato era giusto, era la spiegazione a non coprire il caso
 normale della coppia spec+handoff.*
 
-*Caso del 12/08/2026: distanza **uno** ancora una volta — passa la sola spec
+*Caso del 12/08/2026 sera: distanza **uno**, e i sei commit della Fase 4 sono
+tutti prima della spec `59f5a20`.*
+
+*Caso del 12/08/2026 mattina: distanza **uno** ancora una volta — passa la sola spec
 `f433d17`, e i tre commit di codice della giornata sono tutti prima di lei.*
 
 *Caso dell'11/08/2026 sera: distanza **uno** anche stavolta — fra lo stato
@@ -677,7 +689,7 @@ non è una zona che il lavoro del giorno prevedeva di toccare (lezione `cm`).
 qualcuno va a leggere quante prove ci sono, quindi un numero vecchio qui mente
 con l'autorità del documento (lezione `aj`).*
 
-**Ventisette suite** in `tests/`, tutte con estensione **`.mjs`** e non `.js`,
+**Trentuno suite** in `tests/`, tutte con estensione **`.mjs`** e non `.js`,
 perché vanno eseguite da Node fuori da Next. In `package.json` **non esiste uno
 script `test`**: si lanciano una per una con `node tests/<nome>.test.mjs`, o
 tutte con
@@ -912,7 +924,11 @@ il lavoro in corso — chi avesse letto solo qui sarebbe ripartito dalla Fase 4*
 - ✅ **"Togli dal menu" — FATTO il 07/08/2026**, sei pezzi, provato dal vivo da
   Andrea in ogni sua parte. Colonna **`is_in_menu`**. Esito e prove in **spec
   §63-64 v63**; racconto della giornata al punto **23** di questo documento.
-- ⬜ **Fase 4 — creazione/editing di Roll e Bowl con le loro opzioni**,
+- ✅ **Fase 4 — FATTA il 12/08/2026**, in sei commit e provata dal vivo.
+  Racconto al punto **32**, decisioni in spec §63-64. ⚠️ **NON RESTA PIÙ NESSUNA
+  FASE PRE-GO-LIVE.** *Resta però la **modifica** delle opzioni di un articolo
+  esistente, chiesta da Andrea il 12/08: è il prossimo lavoro.*
+- ⬜ *(chiuso, testo storico)* **Fase 4 — creazione/editing di Roll e Bowl con le loro opzioni**,
   **scegliendo fra le proteine già esistenti**. ⚠️ **Spostata a prima del
   go-live il 06/08/2026** (Andrea): inserire e sospendere Roll è per lui
   attività **frequente**. *Fino alla v58 stava fra i lavori del dopo go-live, su
@@ -2599,3 +2615,121 @@ mondo.*
   uno su Glovo uscirebbe senza `+39`. Sono di prova.
 * **La Fase 4** resta l'ultimo lavoro pre-go-live, e **le tre voci di §6c**
   fuori dal codice.
+
+---
+
+## 32) La Fase 4: il pannello crea Roll e Bowl complete (12/08/2026, sera)
+
+**Sei commit**, prove da 1331 a **1497**, suite da 28 a 31. Era **l'ultimo
+lavoro pre-go-live**: da oggi non ne resta nessuno. Le decisioni per intero
+stanno in **spec §63-64 e §17**: qui c'è come ci si è arrivati.
+
+⚠️ **Il prossimo lavoro, chiesto da Andrea:** la **modifica** delle opzioni di
+un articolo esistente. Oggi il pannello sa crearle e non correggerle — un
+prezzo di proteina sbagliato costringe a rifare l'articolo.
+
+### 32a) Il primo passo era accertare, e l'accertamento ha detto più del previsto
+
+I documenti dicevano *"verosimile che il residuo label→id non tocchi la Fase 4,
+perché pesca da un elenco chiuso"*. ✅ **Misurato, è più netto: nessun punto del
+codice SCRIVE `product_choice_options`** — non un `insert`, non un `update`, non
+un `delete`. Il residuo è pericoloso solo dove si può **rinominare**, e quel
+potere non ce l'ha nessuno. *Vale finché il pannello fa **scegliere**.*
+
+### 32b) Il buco che c'era da sempre
+
+⚠️ **Il server accettava un ordine SENZA PROTEINA** su un prodotto che le ha.
+Non era un difetto nostro: c'era **da sempre**, invisibile perché il sito
+preselezionava sempre qualcosa. Lo stesso server pretendeva l'accompagnamento —
+per la proteina quel controllo non era mai stato scritto.
+
+**La Fase 4 stava per renderlo raggiungibile**: dal pannello l'ordine delle
+proteine lo decide chi crea l'articolo, quindi "la prima" può essere una
+proteina **con sovrapprezzo**.
+
+⚠️ **E i punti che ripiegavano sulla prima erano TRE, non due.** Il terzo è
+quello che rifà la scelta **cambiando Roll dentro il combo**: lasciarlo avrebbe
+significato che aprendo il combo nessuna proteina è scelta ma **cambiando Roll
+ne compariva una da sola** — la trappola armata proprio nel percorso che nessuno
+riguarda. *Trovato da Code, non era nel comando.*
+
+⚠️ **L'ordine dei tre lavori era obbligato**: server, poi sito, poi il ripiego.
+*Invertirlo avrebbe fatto arrivare in cucina un Roll senza proteina senza che
+nessuno vedesse un errore: **scambiare un difetto rumoroso con uno silenzioso è
+sempre un cattivo affare**.*
+
+### 32c) Due volte fermarsi ha evitato una decisione presa dal codice
+
+* **Il catalogo delle proteine non esisteva.** Le proteine vivono come righe
+  attaccate a ogni prodotto, **mescolate con i "Gusto" dei dolci**. Code si è
+  fermato: servivano due decisioni — come distinguerle, e **quale etichetta
+  vince se due prodotti la scrivono diversa**. ⚠️ *La seconda era la pericolosa:
+  scegliere "la prima che capita" avrebbe attaccato al prodotto nuovo un nome
+  che il checkout cerca PER NOME, cioè il residuo che rientra dalla porta di
+  servizio.* ✅ **Sciolto da una lettura del database fatta da Andrea**: ogni
+  chiave ha **una sola etichetta**, quindi la seconda decisione non serviva. *Il
+  codice però **si ferma con un errore** se un domani ne trovasse due: non
+  dipende dal fatto che oggi vada bene.*
+* **Non esisteva un modo di sapere quali categorie prevedono le opzioni**, né
+  un elenco delle rimozioni già usate raggiungibile dal pannello. Anche lì Code
+  si è fermato invece di inventarli.
+
+### 32d) Le decisioni di Andrea, dodici in una giornata
+
+GG (tutti e quattro i gruppi), CC (proteine col sovrapprezzo, anche zero), DD
+(si aggiunge e si toglie, non si rinomina), JJ (elenco costruito da ciò che
+esiste), RR (proteina obbligatoria, "nessuna" è una scelta), WW (l'articolo
+nasce spento), YY (il titolo si scrive), A (una schermata sola), D (proteine
+come caselle), B (lettura a sé) e b (tutte le categorie tranne le bevande) —
+più la scelta di **includere le tre colonne** prima escluse, cambiando idea
+quando è emerso che senza di esse un KM Special ricreato non sarebbe uguale
+all'originale.
+
+⚠️ **La più sottile è WW, realizzata al contrario di come suona.** "Se una
+scrittura fallisce l'articolo nasce spento" si farebbe creandolo acceso e
+spegnendolo in caso di guasto — ma **quello spegnimento è una scrittura in più
+che può fallire a sua volta**, lasciandolo acceso e incompleto. *Così nasce
+spento e si accende come ultimo atto: il guasto non ha bisogno che nulla
+riesca per essere innocuo.*
+
+### 32e) Tre lezioni
+
+**db. ⚠️ UNA SUITE CHE MUORE ALLA PRIMA PROVA ROSSA MENTE SUL NUMERO, E MENTE
+TRANQUILLIZZANDO.** Sporcando il codice cadeva **una** prova e sembravano sonde
+deboli: la suite si interrompeva e le altre **non venivano eseguite affatto**.
+Corretta, le stesse sporcature ne fanno cadere **diciassette**. *Il difetto si è
+ripresentato in un punto nuovo il giorno dopo, ed è stato chiuso in **tutte** le
+occorrenze del file, comprese quelle preesistenti che nessuno aveva visto.*
+
+**dc. Fermarsi è una risposta, e va data.** Due volte in una sessione Code non
+ha costruito ciò che il comando chiedeva, perché costruirlo era **decidere**:
+il catalogo delle proteine e la regola sulle categorie. *In entrambi i casi la
+decisione è poi arrivata da Andrea e in un caso — le etichette — da una lettura
+del **database**, che solo lui può fare.*
+
+**dd. ⚠️ Ciò che si assomiglia non sempre va accorpato.** Nelle rimozioni,
+`"Senza hummus"` e `"Senza  hummus"` (due spazi) restano **due voci** nella
+tendina: per il checkout, che cerca per nome, sono due rimozioni diverse, e
+accorparle farebbe **sceglierne una credendo di sceglierne un'altra**. *Una
+"pulizia" ovvia che sarebbe stata un difetto.*
+
+### 32f) Cosa resta aperto
+
+* ⚠️ **La MODIFICA delle opzioni di un articolo esistente** — chiesta da Andrea,
+  è il prossimo lavoro. *È anche il posto dove la regola DD verrà messa alla
+  prova: cosa succede a un carrello aperto se si toglie una proteina.*
+* ⚠️ **Il rifiuto lato server della proteina non l'ha osservato nessuno**: le
+  prove leggono il testo del codice, e `checkout-resolve.js` non è eseguibile
+  senza database. La verifica naturale sarà il primo articolo creato senza
+  preselezione.
+* **Il contorno del combo ha lo stesso ripiego** della proteina, non toccato: la
+  decisione parlava di proteine.
+* **`extra_dose_included` e `max_quantity` non sono lette da nessuna riga di
+  codice**: il pannello le scrive, ma perché servano dovrà leggerle chi calcola
+  il prezzo.
+* **Le CATEGORIE**, discusse e non aperte: crearne di nuove, spegnerle quando
+  sono vuote, ordinarle. ⚠️ *Sono **tre facce dello stesso lavoro** — tutte e
+  tre richiedono che le categorie escano dal codice e vivano in una tabella — e
+  la domanda difficile sarà come una categoria nuova sappia **che tipo di
+  categoria è**: le bevande sono esentate dagli allergeni, le Bowl pretendono
+  l'accompagnamento.*
