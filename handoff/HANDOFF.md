@@ -23,10 +23,15 @@ nessuno se ne ricorda.*
 ## 2) Stato git
 
 - Branch **`main`**, working tree **pulita**, allineata a `origin/main`.
-- HEAD: **`59f5a20`** — la spec v72 (12/08/2026, sera).
+- HEAD: **`1a54810`** — la spec v73 (13/08/2026).
 - Ultimi commit (dal più recente):
 
 ```
+1a54810 docs: v73 — la modifica delle opzioni col suo scudo, e la regola del reset notturno che era scritta da sei giorni e il 12/08 e' stata violata lo stesso
+e4ea910 menu: la rotta che espone l'aggiornamento delle opzioni, sottile come le altre e senza logica propria, col catalogo delle proteine letto solo quando servono
+d9bec2a menu: la creazione trattiene un articolo incompleto con is_in_menu e non con is_available, che il reset del mattino rimetterebbe in vendita da solo
+5cfa3bc menu: il cuore che aggiorna le opzioni di un articolo esistente, con l'articolo tolto dal menu prima di toccarlo e rimesso come ultimo atto
+8e44f3e handoff: stato al 12/08 sera — la Fase 4 chiusa in sei commit, il buco della proteina che c'era da sempre, e le dodici decisioni di una giornata sola
 59f5a20 docs: v72 — la Fase 4 e' fatta e non resta piu' nessuna fase pre-go-live, col buco della proteina che c'era da sempre e la procedura per aggiungerne una nuova
 3b461c9 menu: il pannello crea Roll e Bowl complete di proteine, rimozioni, accompagnamento ed extra, coi due elenchi letti dal database invece che scritti a mano
 772a09f sql: la cancellazione del Roll di prova della Fase 4, gia' eseguita da Andrea nel SQL editor con esito zero righe
@@ -100,6 +105,9 @@ spec — la regola "prima la spec, poi l'handoff" la mette in mezzo per
 costruzione. *Rilevato da Code il 05/08 confrontando `git log` con questo
 blocco: l'HEAD dichiarato era giusto, era la spiegazione a non coprire il caso
 normale della coppia spec+handoff.*
+
+*Caso del 13/08/2026: distanza **uno**, e i tre commit di codice della giornata
+sono tutti prima della spec `1a54810`.*
 
 *Caso del 12/08/2026 sera: distanza **uno**, e i sei commit della Fase 4 sono
 tutti prima della spec `59f5a20`.*
@@ -689,7 +697,7 @@ non è una zona che il lavoro del giorno prevedeva di toccare (lezione `cm`).
 qualcuno va a leggere quante prove ci sono, quindi un numero vecchio qui mente
 con l'autorità del documento (lezione `aj`).*
 
-**Trentuno suite** in `tests/`, tutte con estensione **`.mjs`** e non `.js`,
+**Trentatre suite** in `tests/`, tutte con estensione **`.mjs`** e non `.js`,
 perché vanno eseguite da Node fuori da Next. In `package.json` **non esiste uno
 script `test`**: si lanciano una per una con `node tests/<nome>.test.mjs`, o
 tutte con
@@ -2624,9 +2632,9 @@ mondo.*
 lavoro pre-go-live**: da oggi non ne resta nessuno. Le decisioni per intero
 stanno in **spec §63-64 e §17**: qui c'è come ci si è arrivati.
 
-⚠️ **Il prossimo lavoro, chiesto da Andrea:** la **modifica** delle opzioni di
-un articolo esistente. Oggi il pannello sa crearle e non correggerle — un
-prezzo di proteina sbagliato costringe a rifare l'articolo.
+✅ **Il lavoro chiesto da Andrea — la MODIFICA delle opzioni — è stato costruito
+il 13/08 per due terzi**: cuore e rotta. Manca la schermata. Racconto al punto
+**33**.
 
 ### 32a) Il primo passo era accertare, e l'accertamento ha detto più del previsto
 
@@ -2733,3 +2741,110 @@ accorparle farebbe **sceglierne una credendo di sceglierne un'altra**. *Una
   la domanda difficile sarà come una categoria nuova sappia **che tipo di
   categoria è**: le bevande sono esentate dagli allergeni, le Bowl pretendono
   l'accompagnamento.*
+
+---
+
+## 33) La modifica delle opzioni: cuore e rotta (13/08/2026)
+
+**Tre commit di codice**, prove da 1497 a **1599**, suite da 31 a 33. Il lavoro
+chiesto da Andrea il 12/08 è costruito per due terzi: manca la **schermata**,
+che è il passo rischioso — perché fondere modifica e creazione significa toccare
+la creazione, che funziona e che Andrea ha provato dal vivo il 12/08.
+
+### 33a) Metà del lavoro era già fatta, e l'abbiamo scoperto invece di supporlo
+
+⚠️ **Il carrello faceva già la cosa giusta.** Prima di costruire, la domanda era:
+*cosa succede a chi ha nel carrello un Roll con l'Adana, se togli l'Adana?*
+Andrea ha deciso — **via la riga intera, il combo intero se è un combo, mai la
+sola proteina** — e la lettura ha mostrato che `lib/cart-persistence.js` fa
+**esattamente** quello, per il prodotto singolo e per il combo, dal giorno che è
+stato scritto. *Non abbiamo toccato niente.*
+
+*La decisione di Andrea, per esteso: la proteina è **obbligatoria** (regola RR),
+quindi togliere la sola proteina lascerebbe una riga d'ordine incompleta — lo
+stato che il lavoro del 12/08 ha reso impossibile. Un piatto senza il suo pezzo
+non è un piatto con una scelta in meno: non è ordinabile.*
+
+### 33b) Lo scudo, e perché è la prima scrittura
+
+Fra il cancellare le opzioni vecchie e scrivere le nuove, un Roll sarebbe per un
+istante **senza proteine e in vendita**. L'articolo viene quindi **tolto dal menu
+prima di toccare qualunque riga** e rimesso come ultimo atto.
+
+⚠️ *È il ragionamento **opposto** a quello della creazione (regola WW), e per la
+stessa ragione: là spegnere alla fine sarebbe stata "una scrittura in più che può
+fallire"; qui, se lo scudo fallisce, **nessuna opzione è ancora stata toccata** e
+l'articolo resta intero e in vendita. Ogni volta la domanda è la stessa — **cosa
+resta se si spezza qui** — e la risposta cambia col contesto.*
+
+### 33c) ⚠️ IL DIFETTO DEL 12/08, E COSA INSEGNA
+
+Costruendo lo scudo è emerso che **la Fase 4, committata il giorno prima,
+trattiene un articolo incompleto con `is_available`** — e
+`app/api/cron/reset-availability` **ogni mattina rimette a true tutti i prodotti
+esauriti**. Un articolo lasciato a metà da un guasto sarebbe **tornato in vendita
+da solo l'indomani**, incompleto, senza che nessuno avesse fatto niente.
+
+⚠️⚠️ **E la regola era già scritta in §63-64 dal 07/08**, nel paragrafo che
+spiega perché `is_in_menu` esiste. *Non è stato un fatto ignoto: è stato un
+paragrafo non letto da chi ci stava lavorando sopra.*
+
+**Nessuna prova poteva vederlo: le prove non fanno passare la notte.** *È stato
+trovato **leggendo il cron** per costruire un'altra cosa. Una classe di difetti
+che nessuna suite intercetta — quelli che dipendono dal tempo che passa — e
+l'unica difesa è leggere cosa gira quando nessuno guarda.*
+
+### 33d) Due cose accertate che nessuno aveva mai guardato
+
+* ⚠️ **NESSUNA ROTTA DEL PANNELLO VERIFICA CHE L'ARTICOLO SIA DI QUESTO STORE.**
+  `create` è la sola che risolve lo store, e lo fa per **assegnarlo** a una riga
+  nuova. *Non è un problema con un negozio solo. Il giorno del secondo va chiuso
+  **per tutte e sette le porte insieme**: chiuderlo in un punto solo lascerebbe
+  le altre sei aperte e darebbe l'impressione che il problema sia risolto. Due
+  prove fissano lo stato accertato e diventano rosse se qualcuno lo chiude a
+  metà.*
+* ⚠️ **L'IDENTITÀ delle righe delle opzioni non serve a nessuno** — nessuna
+  chiave esterna, gli ordini copiano chiave, etichetta e prezzo, il carrello
+  riaggancia per etichetta, il pagamento cerca per nome. *Per questo si possono
+  sostituire per intero a ogni salvataggio: **sostituire non rinomina**, e la
+  regola DD resta la difesa.*
+
+### 33e) Tre lezioni
+
+**de. ⚠️⚠️ UNA REGOLA SCRITTA NON È UNA REGOLA LETTA.** Il difetto del 12/08 è
+stato commesso da chi aveva quel paragrafo davanti, nello stesso documento su
+cui stava lavorando. *Scrivere una regola è necessario e non è sufficiente: la
+sua unica difesa vera è che qualcosa diventi rosso quando la si viola. Le prove
+non potevano, perché il difetto scattava a otto ore di distanza.*
+
+**df. ⚠️ UNA SUITE MUORE IN DUE MODI, E IL SECONDO NON ERA COPERTO.** Su una
+prova rossa prosegue; su una prova che **esplode** si interrompe **senza stampare
+il conteggio**, e chi legge vede solo dei PASS e nessun totale. *E c'è un terzo
+caso: se l'errore avviene **prima** che le prove partano — un file che non
+esiste — nemmeno la protezione per-prova basta. Chiuso in **3 suite su 33** con
+una rete che stampa "il numero qui sopra NON è il totale". **Le altre 30 hanno
+ancora il difetto**: lavoro registrato, da fare.*
+
+**dg. Prima di costruire, chiedersi se sia già costruito.** Il carrello (33a) è
+il secondo caso in due giorni — dopo `canPay` dell'11/08 — in cui la cosa da fare
+esisteva già e bastava leggerla. *La domanda "come si fa" viene dopo la domanda
+"c'è già".*
+
+*E un fatto di metodo, riferito da Code: uno strumento di modifica automatica
+(`perl -0pi`) ha **rovinato la codifica** di un file di prove, storpiando tutti
+gli accenti. Riparato riga per riga e verificato. **Da non usare su questo
+progetto**: i commenti sono pieni di accenti e di ⚠️.*
+
+### 33f) Cosa resta aperto
+
+* ⚠️ **LA SCHERMATA** — fondere modifica e creazione in un modulo solo
+  (decisione BB di Andrea). *Il rischio non è la modifica: è la **creazione**,
+  che funziona. Se si rompe, il sintomo non è un errore ma un campo che smette
+  di arrivare, e si vede solo riprovando a creare un Roll intero.*
+* **La conferma esplicita sul sovrapprezzo di una proteina**, decisa e da
+  realizzare con la schermata.
+* ⚠️ **La rete sul conteggio in 30 suite su 33.**
+* **Lo store**, quando aprirà il secondo negozio.
+* **Le CATEGORIE**, discusse il 12/08 e non aperte.
+* ⚠️ **Nessuno ha provato dal vivo cuore e rotta**: le prove leggono il codice,
+  la prima chiamata vera sarà con la schermata.
