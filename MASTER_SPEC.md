@@ -1,6 +1,6 @@
 # KM DIRECT — MASTER SPECIFICATION
 
-**Versione 72** — sostituisce la v71.
+**Versione 73** — sostituisce la v72.
 
 Documento di riferimento definitivo per lo sviluppo. Le decisioni qui
 contenute sono approvate: non vanno reinterpretate senza un motivo concreto
@@ -22,26 +22,28 @@ versione corrente**. I precedenti vivono in `git log`, che è fatto per quello.
 del documento prima che cominciasse a parlare del progetto — e dentro c'erano
 istruzioni rovesciate che nessuno rileggeva.*
 
-**Novità della v72** (vincolanti, dal lavoro del 12/08/2026):
+**Novità della v73** (vincolanti, dal lavoro del 13/08/2026):
 
-1. §63-64 — ✅ **LA FASE 4 È FATTA**, in sei commit: il pannello crea Roll e
-   Bowl **complete** di proteine col loro sovrapprezzo, rimozioni,
-   accompagnamento ed extra. **Era l'ultimo lavoro pre-go-live rimasto.**
-2. §17/§46b — ⚠️ **CHIUSO UN BUCO CHE C'ERA DA SEMPRE**: il server accettava un
-   ordine **senza proteina** su un prodotto che le ha. Non era un difetto nuovo
-   — era invisibile perché il sito preselezionava sempre qualcosa.
-3. §41-45 — ⚠️ **il sito non indovina più la proteina**: se nessuna è
-   preselezionata, nessuna risulta scelta. Erano **tre** i punti che
-   ripiegavano sulla prima, non due.
-4. §63-64 — **un articolo con opzioni nasce SPENTO e si accende come ultimo
-   atto**: un guasto lo lascia visibile nel pannello e irraggiungibile dai
-   clienti, senza che nessuna scrittura di rimedio debba riuscire.
-5. §63-64 — **il residuo label→id NON tocca la Fase 4**, accertato sul codice:
-   oggi **nessun punto scrive** `product_choice_options`. Vale finché il
-   pannello fa **scegliere** e non **rinominare**.
-6. §63-64 — ⚠️ **restano da fare la MODIFICA delle opzioni di un articolo
-   esistente** (chiesta da Andrea il 12/08) e la verifica del rifiuto lato
-   server, che le prove non possono dare.
+1. §63-64 — ⚠️ **CORRETTO UN DIFETTO INTRODOTTO IL 12/08**: un articolo creato
+   a metà era trattenuto da `is_available`, che **il reset del mattino rimette a
+   true ogni giorno**. Sarebbe tornato in vendita da solo, incompleto. Ora è
+   `is_in_menu`, che il reset non tocca mai.
+   ⚠️ *§63-64 lo diceva dal 07/08 ed è il motivo per cui quella colonna esiste:
+   la regola era scritta e non è stata letta.*
+2. §63-64 — ✅ **il cuore che MODIFICA le opzioni di un articolo esistente**,
+   con **lo scudo**: l'articolo esce dal menu **prima** che si tocchi una riga e
+   ci rientra come ultimo atto.
+3. §63-64 — le regole di Andrea: **un articolo che ha proteine non può restare
+   senza**, una **Bowl non può restare senza accompagnamenti**, e il **titolo**
+   ripiega sulla frase della creazione invece di rifiutare.
+4. §36-40 — ✅ **il carrello faceva già la cosa giusta** e non è stato toccato:
+   se la proteina scelta non c'è più, toglie **la riga intera** — il combo
+   intero se è un combo. Verificato leggendo, non supposto.
+5. §63-64 — ⚠️ **NESSUNA ROTTA DEL PANNELLO VERIFICA CHE L'ARTICOLO SIA DI
+   QUESTO STORE.** Non è un problema con un negozio solo; il giorno del secondo
+   va chiuso **per tutte e sette insieme**.
+6. ⚠️ **Le suite di prove MUOIONO senza dirlo** quando una prova esplode: il
+   conteggio non arriva e sembra che sia andata. Chiuso in 3 suite su 33.
 
 *Il conteggio delle condizioni di apertura non cambia: **quattro chiuse, cinque
 aperte**. ✅ **La Fase 4 esce da questo elenco: è fatta il 12/08.** Il lavoro
@@ -3695,6 +3697,77 @@ eseguita dopo aver verificato che nessun ordine lo contenesse.*
 proteina obbligatoria — le prove leggono il testo del codice, e osservarlo
 richiede la fotografia della route, che crea ordini veri.
 
+### ✅ La MODIFICA delle opzioni — il cuore e la rotta (v73, 13/08/2026)
+
+La Fase 4 sapeva **creare** Roll e Bowl complete ma non **correggerle**: un
+prezzo di proteina sbagliato costringeva a rifare l'articolo. *Chiesto da Andrea
+il 12/08 e costruito in tre commit; la schermata è il passo che resta.*
+
+⚠️ **LO SCUDO, ed è il cuore della soluzione.** Fra il cancellare le opzioni
+vecchie e scrivere le nuove, un Roll sarebbe per un istante **senza proteine e
+in vendita** — lo stato che le regole di §17 esistono per impedire. L'articolo
+viene quindi **tolto dal menu PRIMA di toccare qualunque riga** e rimesso come
+**ultimo atto**.
+
+⚠️ *Perché lo scudo è la **prima** scrittura e non l'ultima: se fallisce,
+**nessuna opzione è ancora stata toccata**, quindi l'articolo resta intero e in
+vendita e il guasto costa zero. È l'unico ordine in cui il fallimento dello
+scudo non lascia macerie. E se la sequenza si spezza nel mezzo, **l'articolo
+resta fuori dal menu e non si tenta di rimettercelo**: rimettercelo è proprio la
+scrittura che può fallire.*
+
+**Le regole di Andrea (13/08/2026):**
+
+* ⚠️ **Un articolo che HA proteine non può restare senza.** *Guarda cosa
+  l'articolo ha oggi, non la sua categoria: un prodotto che nasce senza proteine
+  resta legittimo — l'Egiziano e il Cipriota non ne hanno.* Andrea: *"non
+  succederà mai che un Roll con scelta di carne diventi senza"* — ed è
+  precisamente per questo che il pannello lo impedisce.
+* **Una Bowl non può restare senza accompagnamenti**, come già in creazione:
+  senza, diventa **non ordinabile da nessun cliente**.
+* **Il titolo sopra le proteine RIPIEGA invece di rifiutare**, sulla stessa
+  frase della creazione — *esportata e non ricopiata*. ⚠️ *Mai sul predefinito
+  del database (`'Proteina'`), che è diverso da quello che i clienti leggono su
+  tutti gli altri articoli. Un titolo esistente si **conserva**: il ripiego vale
+  solo quando non c'è niente da conservare.*
+* **Il sovrapprezzo di una proteina avrà la conferma esplicita** come il prezzo
+  dell'articolo (da realizzare con la schermata).
+
+**Le opzioni si sostituiscono per intero a ogni salvataggio**, e non è una
+scelta di comodo: ⚠️ *accertato che l'**identità** di quelle righe non serva a
+nessuno — nessuna chiave esterna la usa, gli ordini copiano chiave, etichetta e
+prezzo, il carrello riaggancia per etichetta, il pagamento cerca per nome.
+Sostituire le righe **non rinomina niente**: un'etichetta uguale rinasce uguale,
+e la regola DD resta la difesa.*
+
+✅ **Il CARRELLO non è stato toccato, perché faceva già la cosa giusta**
+(verificato leggendo il 13/08): se la proteina scelta non è più fra quelle del
+prodotto, toglie **la riga intera** — e per un combo **il combo intero**, non il
+solo Roll — col motivo *"una scelta non è più disponibile"*. **Andrea ha deciso
+di lasciare quella frase invariata**: a differenza della bibita, che è una parte
+sostituibile, qui l'articolo va rifatto comunque, quindi sapere quale scelta è
+saltata non farebbe risparmiare niente.
+⚠️ *Tre casi finiscono lì, e il terzo non era previsto: **aggiungere** proteine a
+un articolo che non ne aveva svuota di quella riga i carrelli che lo contengono.
+È corretto — quella riga non è più valida — ma è un effetto dell'aggiunta, non
+della rimozione.*
+⚠️ *E il controllo gira **solo** quando il cliente rientra sul sito o dopo un
+rifiuto del listino: un carrello aperto in questo momento non riverifica nulla,
+e a fermarlo sarà il pagamento.*
+
+**La rotta si chiama `product-options`**, accanto a `product` come le opzioni
+stanno all'articolo. ⚠️ *Non è stata infilata dentro `options`, che è una GET e
+restituisce il catalogo per il modulo di creazione: sono due mestieri con
+permessi e conseguenze diverse, e una prova veglia che restino separati.*
+
+⚠️ **NESSUNA ROTTA DEL PANNELLO VERIFICA CHE L'ARTICOLO SIA DI QUESTO STORE**
+(accertato il 13/08 su tutte e sei le rotte e i quattro cuori: `create` è la
+sola che risolve lo store, e lo fa per **assegnarlo** a una riga nuova). *Non è
+un problema finché il negozio è uno solo. Il giorno del secondo va chiuso **per
+tutte e sette insieme**: chiuderlo in un punto solo lascerebbe le altre sei
+porte aperte e darebbe l'impressione che il problema sia risolto. Due prove
+fissano lo stato accertato e diventano rosse se qualcuno lo chiude a metà.*
+
 **Stato di avanzamento (aggiornato in v72)**: ✅ **Fase 1, 2A, 2B, 3, "togli dal
 menu" e FASE 4 sono complete e verificate dal vivo.** **Non resta più nessuna
 fase pre-go-live.** ⚠️ *Resta però la **modifica** delle opzioni di un articolo
@@ -3860,6 +3933,14 @@ Precedute da una ricognizione di sola lettura su codice e database vivo. **I val
 **Il carrello.** Un articolo tolto dal menu che si trovi in un carrello viene rimosso con il motivo **"non è più nel menu"** (Andrea, 06/08/2026) — non "non è più disponibile". *Sono due messaggi che il carrello già distingue, ed è la verità: l'articolo non è esaurito, è stato ritirato. È lo stesso meccanismo usato per la bibita del combo (§23-26), con l'altro motivo.*
 
 **Il database.** Serve una **colonna nuova** — è **`is_in_menu`**, boolean not null default true su `products`, migrazione eseguita da Andrea il 07/08/2026, commit `74a3b6b` — e non si può riusare `is_available`: ⚠️ *il reset notturno rimette **tutti** i prodotti disponibili ogni giorno, quindi un articolo "tolto dal menu" tornerebbe a menu da solo dopo poche ore.* È DDL: migrazione in `sql/`, eseguita da Andrea nel SQL editor (§63-64), non da Code.
+
+⚠️⚠️ **E QUESTA REGOLA È STATA VIOLATA IL 12/08, DA CHI AVEVA QUESTO PARAGRAFO
+DAVANTI.** La Fase 4 faceva nascere con `is_available: false` l'articolo le cui
+opzioni non erano state scritte tutte: sarebbe **tornato in vendita da solo la
+mattina dopo**, incompleto, senza che nessuno avesse fatto niente. *Corretto il
+13/08 usando `is_in_menu`. Il difetto è stato trovato **leggendo il cron** per
+costruire un'altra cosa, non da una prova: **le prove non fanno passare la
+notte**, e nessuna avrebbe potuto vederlo.*
 
 **Dove si applica il nascondere.** Nel browser, nel punto unico che legge il menu del cliente, dove già si nascondono l'upsell delle salse e i Roll non disponibili del combo. ⚠️ **Ma il pagamento va coperto lo stesso**, per la stessa ragione della bibita del combo: il browser è ciò che si vede, il server è ciò che vale.
 
