@@ -16,10 +16,36 @@ import { PRODUCT_CATEGORIES, isBevanda } from "../lib/menu-categories.js";
 import { DIETARY } from "../lib/menu-dietary.js";
 
 let failures = 0;
+let eseguite = 0;
 function assert(cond, msg) {
+  eseguite++;
   console.log(`${cond ? "PASS" : "FAIL"} — ${msg}`);
   if (!cond) failures++;
 }
+
+// ⚠️⚠️ RETE DI SICUREZZA SUL CONTEGGIO (13/08/2026, lezione `db`).
+//
+// Le prove di questo file stanno in blocchi `{ … }` di primo livello: una prova
+// che FALLISCE non ferma le altre — verificato — ma una prova che **ESPLODE**
+// (un `undefined` letto dove ci si aspettava un oggetto) interrompe il modulo, e
+// senza questo blocco **il riepilogo finale non verrebbe stampato affatto**.
+// *Misurato il 13/08/2026 sporcando `menu-create.js` in modo da far tornare un
+// errore a ogni creazione: la suite moriva con un TypeError e non diceva né
+// quante prove fossero passate né che si era fermata. È esattamente la lezione
+// `db` — una suite che si interrompe mente sul numero, e mente tranquillizzando
+// — riaperta in un punto nuovo.*
+//
+// `process.on("exit")` viene eseguito anche dopo un'eccezione, quindi il numero
+// arriva SEMPRE, e quando la suite non è arrivata in fondo lo dichiara invece di
+// far credere che quello sia il totale.
+let arrivataInFondo = false;
+process.on("exit", () => {
+  if (arrivataInFondo) return;
+  console.log(
+    `\n⚠️ SUITE INTERROTTA da un errore dopo ${eseguite} prove eseguite: ${failures} FALLITE finora, ` +
+      "e le prove successive NON sono state eseguite. Il numero qui sopra NON è il totale."
+  );
+});
 
 // ---------------------------------------------------------------------------
 // Finto client Supabase. Copre le sole catene che il modulo usa:
@@ -575,16 +601,20 @@ const righeDi = (scritture, tabella) =>
     `h2) ⚠️ e NESSUNA delle quattro tabelle delle opzioni viene toccata (toccate: ${toccate.join(", ") || "nessuna"})`
   );
 
-  // ⚠️ E nasce ACCESO: la riga non porta `is_available`, quindi vale il valore
-  // predefinito del database, che è ciò che faceva la Fase 3.
+  // ⚠️ E nasce ACCESO E IN MENU: la riga non porta né `is_available` né
+  // `is_in_menu`, quindi valgono i valori predefiniti del database, che è ciò
+  // che faceva la Fase 3. *La seconda colonna è entrata nella prova il
+  // 13/08/2026, quando lo scudo è passato da `is_available` a `is_in_menu`:
+  // senza, questa sonda avrebbe continuato a dire di sì guardando la colonna
+  // sbagliata.*
   const prodotto = righeDi(scritture, "products")[0];
   assert(
-    prodotto !== undefined && !("is_available" in prodotto),
-    `h3) ⚠️ e la riga non nomina is_available: nasce acceso come prima (${JSON.stringify(prodotto?.is_available)})`
+    prodotto !== undefined && !("is_available" in prodotto) && !("is_in_menu" in prodotto),
+    `h3) ⚠️ e la riga non nomina né is_available né is_in_menu: nasce acceso e in menu come prima (${JSON.stringify(prodotto?.is_available)}, ${JSON.stringify(prodotto?.is_in_menu)})`
   );
   assert(
     scritture.filter((s) => s.tabella === "products" && s.op === "update").length === 1,
-    "h4) e c'è un solo aggiornamento su products, quello degli allergeni: nessuna accensione in più"
+    "h4) e c'è un solo aggiornamento su products, quello degli allergeni: nessun rientro in menu in più"
   );
 }
 
@@ -657,17 +687,30 @@ const righeDi = (scritture, tabella) =>
     "h15) e nessun accompagnamento: un gruppo vuoto non produce nessuna scrittura"
   );
 
-  // ⚠️ NATO SPENTO E ACCESO ALLA FINE: l'accensione è l'ultimo atto prima del
-  // registro, e c'è.
+  // ⚠️ NATO FUORI DAL MENU E RIENTRATO ALLA FINE: il rientro è l'ultimo atto
+  // prima del registro, e c'è.
+  //
+  // ⚠️ Fino al 13/08/2026 questa prova guardava `is_available`, ed era la
+  // colonna sbagliata: il reset del mattino la rimette a `true` su tutti i
+  // prodotti esauriti, quindi un articolo lasciato a metà da un guasto sarebbe
+  // tornato in vendita da solo l'indomani. *Nessuna prova poteva vederlo: le
+  // prove non fanno passare la notte.*
   const prodotto = righeDi(scritture, "products")[0];
-  assert(prodotto.is_available === false, `h16) ⚠️ l'articolo con opzioni NASCE SPENTO (${prodotto.is_available})`);
-  const accensione = scritture.find(
-    (s) => s.tabella === "products" && s.op === "update" && s.patch?.is_available === true
-  );
-  assert(accensione !== undefined, "h17) ⚠️ e viene acceso da un aggiornamento successivo");
   assert(
-    esito.body.product.is_available === true,
-    `h18) e chi ha salvato riceve l'articolo già acceso (${esito.body.product.is_available})`
+    prodotto.is_in_menu === false,
+    `h16) ⚠️ l'articolo con opzioni NASCE FUORI DAL MENU (${prodotto.is_in_menu})`
+  );
+  assert(
+    !("is_available" in prodotto),
+    `h16b) ⚠️ e NON tocca is_available, che il reset del mattino rimetterebbe a true (${JSON.stringify(prodotto.is_available)})`
+  );
+  const rientro = scritture.find(
+    (s) => s.tabella === "products" && s.op === "update" && s.patch?.is_in_menu === true
+  );
+  assert(rientro !== undefined, "h17) ⚠️ e viene rimesso in menu da un aggiornamento successivo");
+  assert(
+    esito.body.product.is_in_menu === true,
+    `h18) e chi ha salvato riceve l'articolo già rientrato in menu (${esito.body.product.is_in_menu})`
   );
 
   // L'ORDINE: le opzioni stanno DENTRO la sequenza, fra la verifica allergeni e
@@ -676,11 +719,11 @@ const righeDi = (scritture, tabella) =>
   const indice = (predicato) => scritture.findIndex(predicato);
   const iVerifica = indice((s) => s.tabella === "products" && s.op === "update" && s.patch?.allergens_verified_at);
   const iOpzioni = indice((s) => s.tabella === "product_choice_options");
-  const iAccensione = indice((s) => s.tabella === "products" && s.op === "update" && s.patch?.is_available === true);
+  const iRientro = indice((s) => s.tabella === "products" && s.op === "update" && s.patch?.is_in_menu === true);
   const iLog = indice((s) => s.tabella === "staff_action_log");
   assert(
-    iVerifica < iOpzioni && iOpzioni < iAccensione && iAccensione < iLog,
-    `h19) ⚠️ l'ordine è verifica → opzioni → accensione → registro (indici ${iVerifica}, ${iOpzioni}, ${iAccensione}, ${iLog})`
+    iVerifica < iOpzioni && iOpzioni < iRientro && iRientro < iLog,
+    `h19) ⚠️ l'ordine è verifica → opzioni → rientro in menu → registro (indici ${iVerifica}, ${iOpzioni}, ${iRientro}, ${iLog})`
   );
 }
 
@@ -727,7 +770,8 @@ const righeDi = (scritture, tabella) =>
 
 // ---------------------------------------------------------------------------
 // h25) ⚠️⚠️ UNA SCRITTURA DELLE OPZIONI CHE FALLISCE — decisione WW.
-// L'articolo esiste, è SPENTO, e chi ha salvato lo viene a sapere.
+// L'articolo esiste, è FUORI DAL MENU, e chi ha salvato lo viene a sapere.
+// ⚠️ Dal 13/08/2026 la colonna è `is_in_menu`: vedi il commento di h16.
 // ---------------------------------------------------------------------------
 {
   const conProteine = corpo({
@@ -743,8 +787,14 @@ const righeDi = (scritture, tabella) =>
 
   assert(esito.status === 500, `h25) una scrittura delle opzioni fallita → 500 (status ${esito.status})`);
   assert(
-    String(esito.body?.error ?? "").includes("SPENTO") && String(esito.body?.error ?? "").includes("Aprilo dal Menu"),
+    String(esito.body?.error ?? "").includes("TOLTO DAL MENU") &&
+      String(esito.body?.error ?? "").includes("Aprilo dal Menu"),
     `h26) ⚠️ e chi ha salvato riceve un messaggio che dice com'è finita e cosa fare ("${esito.body.error}")`
+  );
+  assert(
+    !String(esito.body?.error ?? "").includes("SPENTO") &&
+      !String(esito.body?.error ?? "").includes("riaccendilo"),
+    `h26b) ⚠️ e NON dice più "spento" né "riaccendilo": manderebbe Andrea a premere il pulsante Disponibile, che su un articolo fuori menu è spento ("${esito.body.error}")`
   );
 
   // ⚠️ L'ARTICOLO ESISTE — non si cancella: una cancellazione che fallisse
@@ -756,19 +806,26 @@ const righeDi = (scritture, tabella) =>
     "h28) e in tutta la sequenza non compare nessuna cancellazione"
   );
 
-  // ⚠️ ED È SPENTO: nato spento e mai acceso.
-  assert(prodotti[0].is_available === false, `h29) ⚠️ è nato SPENTO (${prodotti[0].is_available})`);
-  const accensione = scritture.find(
-    (s) => s.tabella === "products" && s.op === "update" && s.patch?.is_available === true
+  // ⚠️ ED È FUORI DAL MENU: nato fuori e mai rientrato.
+  assert(
+    prodotti[0].is_in_menu === false,
+    `h29) ⚠️ è nato FUORI DAL MENU (${prodotti[0].is_in_menu})`
   );
-  assert(accensione === undefined, "h30) ⚠️ e non è mai stato acceso: il guasto lo lascia invisibile ai clienti");
+  const rientro = scritture.find(
+    (s) => s.tabella === "products" && s.op === "update" && s.patch?.is_in_menu === true
+  );
+  assert(rientro === undefined, "h30) ⚠️ e non è mai rientrato: il guasto lo lascia invisibile ai clienti");
+  assert(
+    !scritture.some((s) => s.tabella === "products" && s.op === "update" && "is_available" in (s.patch ?? {})),
+    "h30b) ⚠️⚠️ e is_available non viene MAI scritta: è la colonna che il reset del mattino rimetterebbe a true, riportando in vendita da solo un articolo a metà"
+  );
   assert(
     scritture.every((s) => s.tabella !== "staff_action_log"),
     "h31) niente riga di registro, come per gli altri guasti a metà sequenza"
   );
 
   // ⚠️ Vale per TUTTE E QUATTRO le tabelle, non solo per la prima: un guasto
-  // sull'ultima deve spegnere l'articolo come uno sulla prima.
+  // sull'ultima deve lasciare l'articolo fuori dal menu come uno sulla prima.
   for (const tabella of TABELLE_OPZIONI) {
     const payload =
       tabella === "product_accompaniments"
@@ -789,24 +846,80 @@ const righeDi = (scritture, tabella) =>
             },
           });
     const r = await creaConOpzioni(payload, { seed: { errori: { [`${tabella}.insert`]: { code: "XX000" } } } });
-    const acceso = r.scritture.some(
-      (s) => s.tabella === "products" && s.op === "update" && s.patch?.is_available === true
+    const rientrato = r.scritture.some(
+      (s) => s.tabella === "products" && s.op === "update" && s.patch?.is_in_menu === true
     );
     assert(
-      r.esito.status === 500 && !acceso,
-      `h32) un guasto su ${tabella} → 500 e articolo spento (status ${r.esito.status}, acceso: ${acceso})`
+      r.esito.status === 500 && !rientrato,
+      `h32) un guasto su ${tabella} → 500 e articolo fuori dal menu (status ${r.esito.status}, rientrato: ${rientrato})`
     );
   }
 
-  // E il guasto della sola ACCENSIONE: l'articolo è completo, gli manca solo di
-  // essere acceso, e il messaggio lo dice.
+  // E il guasto del solo RIENTRO IN MENU: l'articolo è completo, gli manca solo
+  // di rientrare, e il messaggio lo dice.
   const soloAccensione = await creaConOpzioni(conProteine, {
     seed: { errori: { "products.update": { code: "XX000" } } },
   });
   assert(
     soloAccensione.esito.status === 500 &&
       String(soloAccensione.esito.body?.error ?? "").includes("mai verificato"),
-    `h33) ⚠️ e se cade il PRIMO aggiornamento — quello della verifica allergeni — il messaggio resta il suo, non quello dell'accensione ("${soloAccensione.esito.body.error}")`
+    `h33) ⚠️ e se cade il PRIMO aggiornamento — quello della verifica allergeni — il messaggio resta il suo, non quello del rientro in menu ("${soloAccensione.esito.body.error}")`
+  );
+}
+
+// ---------------------------------------------------------------------------
+// h33b) ⚠️⚠️ IL RESET DEL MATTINO — la prova nuova del 13/08/2026.
+//
+// `app/api/cron/reset-availability/route.js` esegue ogni giorno
+// `.update({ is_available: true }).eq("is_available", false)` su TUTTI i
+// prodotti. Questa prova NON esegue il cron: verifica la condizione che lo
+// rende innocuo, cioè che la creazione non lasci MAI un articolo appeso a
+// `is_available`. *Se un domani qualcuno tornasse a quella colonna "per
+// semplificare", questa diventa rossa il giorno stesso invece che la notte
+// dopo il primo guasto vero.*
+// ---------------------------------------------------------------------------
+{
+  const conProteine = corpo({
+    category: "roll",
+    name: "Il Notturno",
+    base_price: "8.00",
+    options: { proteins: [{ key: "adana", price_delta: "4.50" }] },
+  });
+
+  // a) creazione riuscita: nessuna scrittura nomina is_available, mai.
+  const ok = await creaConOpzioni(conProteine);
+  const nominanoDisponibilita = ok.scritture.filter(
+    (s) => s.tabella === "products" && JSON.stringify(s.righe ?? s.patch ?? {}).includes("is_available")
+  );
+  assert(
+    ok.esito.status === 201 && nominanoDisponibilita.length === 0,
+    `h33b) ⚠️ una creazione CON OPZIONI riuscita non nomina mai is_available (${nominanoDisponibilita.length} scritture che la nominano)`
+  );
+
+  // b) creazione guasta a metà: l'articolo resta appeso a is_in_menu, che il
+  // reset non tocca, e non a is_available, che il reset rimetterebbe a true.
+  const guasta = await creaConOpzioni(conProteine, {
+    seed: { errori: { "product_choice_options.insert": { code: "XX000" } } },
+  });
+  const rigaCreata = righeDi(guasta.scritture, "products")[0];
+  assert(
+    guasta.esito.status === 500 &&
+      rigaCreata?.is_in_menu === false &&
+      !("is_available" in rigaCreata),
+    `h33c) ⚠️⚠️ e un articolo lasciato a metà è trattenuto da is_in_menu, che il reset del mattino non tocca (is_in_menu ${JSON.stringify(rigaCreata?.is_in_menu)}, is_available ${JSON.stringify(rigaCreata?.is_available)})`
+  );
+
+  // c) un articolo SENZA opzioni non è toccato da niente di tutto questo.
+  const senza = await creaConOpzioni(corpo({ category: "fritti", name: "Le Semplici", base_price: "4.00" }));
+  const rigaSemplice = righeDi(senza.scritture, "products")[0];
+  assert(
+    senza.esito.status === 201 &&
+      !("is_in_menu" in rigaSemplice) &&
+      !("is_available" in rigaSemplice) &&
+      !senza.scritture.some(
+        (s) => s.tabella === "products" && s.op === "update" && ("is_in_menu" in (s.patch ?? {}) || "is_available" in (s.patch ?? {}))
+      ),
+    `h33d) ⚠️ un articolo SENZA opzioni non tocca né is_in_menu né is_available, né alla nascita né dopo (${JSON.stringify(rigaSemplice)})`
   );
 }
 
@@ -874,13 +987,26 @@ const righeDi = (scritture, tabella) =>
     "h39) CONTROPROVA: `undefined` non è 0, quindi h8 non passerebbe con un campo saltato"
   );
 
-  // 3) La sonda dell'accensione (h30) distingue "acceso" da "spento"?
-  const acceso = conOpzioni.scritture.some(
-    (s) => s.tabella === "products" && s.op === "update" && s.patch?.is_available === true
+  // 3) La sonda del rientro in menu (h30) distingue "rientrato" da "fuori"?
+  const rientrato = conOpzioni.scritture.some(
+    (s) => s.tabella === "products" && s.op === "update" && s.patch?.is_in_menu === true
   );
   assert(
-    acceso === true,
-    "h40) ⚠️ CONTROPROVA: su una creazione riuscita la sonda dell'accensione la TROVA — quindi quando in h30 dice «non acceso» sta misurando qualcosa"
+    rientrato === true,
+    "h40) ⚠️ CONTROPROVA: su una creazione riuscita la sonda del rientro lo TROVA — quindi quando in h30 dice «mai rientrato» sta misurando qualcosa"
+  );
+
+  // 3b) ⚠️ E la sonda della colonna (h16b, h30b, h33b) saprebbe VEDERE un
+  // `is_available` scritto? Le si dà una scrittura finta che lo contiene: se
+  // dicesse di no anche qui, direbbe di no sempre, e le tre prove che si
+  // fondano su di essa non proverebbero niente.
+  const finta = [{ tabella: "products", op: "update", patch: { is_available: true } }];
+  assert(
+    finta.some((s) => s.tabella === "products" && s.op === "update" && "is_available" in (s.patch ?? {})) === true &&
+      conOpzioni.scritture.some(
+        (s) => s.tabella === "products" && s.op === "update" && "is_available" in (s.patch ?? {})
+      ) === false,
+    "h40b) ⚠️⚠️ CONTROPROVA: la stessa lettura trova `is_available` in una scrittura finta che ce l'ha e NON lo trova nelle scritture vere — quindi h16b/h30b/h33b guardano davvero"
   );
 
   // 4) E il rifiuto della Bowl: senza `options` il modulo la rifiuta, con gli
@@ -1077,5 +1203,7 @@ const rollConProteine = (extra = {}, proteine = [{ key: "adana", price_delta: "4
   );
 }
 
-console.log(failures === 0 ? "\nTUTTI I TEST PASSATI" : `\n${failures} TEST FALLITI`);
+arrivataInFondo = true;
+console.log(`\n${eseguite} prove eseguite`);
+console.log(failures === 0 ? "TUTTI I TEST PASSATI" : `${failures} TEST FALLITI`);
 process.exitCode = failures === 0 ? 0 : 1;
