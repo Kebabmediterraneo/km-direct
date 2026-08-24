@@ -207,6 +207,209 @@ function fakeDb({ righe = [], errore = null } = {}) {
 }
 
 // ---------------------------------------------------------------------------
+// e-bis) ⚠️⚠️ L'ELENCO CHIUSO DEI CAMPI CHE IL CORPO DELLA CREAZIONE MANDA OGGI.
+//
+// Scritta il 24/08/2026, **prima** di fondere il modulo di creazione con quello
+// di modifica delle opzioni (§63-64, decisione BB). Serve a una cosa sola: il
+// modo in cui una fusione si rompe non è un errore che si vede, è **un campo
+// che smette di partire**.
+//
+// ⚠️ E DODICI DEI VENTUNO CAMPI IL SERVER LI ACCETTA IN SILENZIO — accertato il
+// 24/08/2026 leggendo `lib/menu-create.js` e `lib/menu-options.js`: se
+// sparissero, la creazione risponderebbe lo stesso, e l'articolo nascerebbe con
+// un valore di ripiego che nessuno ha deciso. *Nessun'altra prova di questa
+// batteria nomina quei campi: il blocco e) qui sopra fissa `payload.options` e i
+// quattro gruppi, e si ferma lì.*
+//
+// ⚠️ IL CONFRONTO È CHIUSO NELLE DUE DIREZIONI: diventa rossa se un nome
+// dell'elenco sparisce dal corpo, e diventa rossa anche se nel corpo compare un
+// nome che l'elenco non ha. *Una prova che verificasse solo la presenza
+// troverebbe solo ciò che nomina, e il giorno della fusione un campo IN PIÙ —
+// per esempio l'`id` dell'articolo, che il modulo di MODIFICA manda e quello di
+// creazione no — passerebbe inosservato.*
+//
+// ⚠️⚠️ **QUANDO QUESTA PROVA DIVENTA ROSSA DURANTE LA FUSIONE, LA COSA DA FARE È
+// AGGIORNARE L'ELENCO QUI SOTTO CON INTENZIONE**, guardando il corpo vero e
+// decidendo campo per campo se quel cambiamento è voluto. **Non cancellarla, e
+// non allargarla "tanto è solo una prova": è l'unica cosa che sa dire quali
+// campi partivano prima.**
+//
+// ⚠️ Il blocco si CERCA nel testo — dal `const payload = {` alla chiamata `fetch`
+// verso la rotta di creazione — e non si indica per numero di riga: le righe si
+// spostano al primo ritocco, e la prova diventerebbe rossa per il motivo
+// sbagliato.
+// ---------------------------------------------------------------------------
+const APERTURA_CORPO = "const payload = {";
+const CHIUSURA_CORPO = 'fetch("/api/staff/menu/create"';
+
+// I VENTUNO CAMPI, coi nomi esatti che hanno NEL CORPO — non quelli delle
+// variabili di stato del modulo, che a volte si chiamano diversamente
+// (`price` → `base_price`, `sortOrder` → `sort_order`).
+const CAMPI_ATTESI = [
+  // I sette scalari, che partono sempre — bevande comprese.
+  "category",
+  "name",
+  "description",
+  "base_price",
+  "badge",
+  "sort_order",
+  "spice_level",
+  // I tre che partono solo se la categoria NON è una bevanda (§67).
+  "allergenIds",
+  "noAllergens",
+  "dietary",
+  // Le righe delle proteine.
+  "key",
+  "price_delta",
+  "is_default",
+  "extra_dose_included",
+  "choice_label",
+  // Le righe degli extra.
+  "label",
+  "price",
+  "requires_protein",
+  "max_quantity",
+  // I due gruppi che viaggiano INTERI, senza nomi di campo dentro: le rimozioni
+  // sono stringhe nude, gli accompagnamenti l'array così com'è.
+  "removals",
+  "accompaniments",
+];
+
+// ⚠️ I TRE CONTENITORI NON SONO CAMPI: `options` è l'oggetto che raccoglie i
+// quattro gruppi, `proteins` e `addons` sono i due gruppi le cui righe hanno
+// nomi propri (già nell'elenco qui sopra). L'estrazione li incontra per forza,
+// quindi stanno in un elenco loro **invece di essere tolti di nascosto**: così
+// il confronto resta chiuso anche su di essi, e un gruppo nuovo si vede.
+const CONTENITORI_ATTESI = ["options", "proteins", "addons"];
+
+// I cinque nomi che, secondo la ricognizione del 24/08/2026, lo schermo NON
+// manda: li scrive il server. Se l'estrazione li trovasse, starebbe leggendo
+// oltre il blocco, e il conteggio a ventuno non varrebbe niente.
+const NOMI_DEL_SERVER = ["slug", "store_id", "is_available", "is_in_menu", "spice_label"];
+
+function ritagliaCorpo(testo) {
+  const inizio = testo.indexOf(APERTURA_CORPO);
+  if (inizio < 0) return { ok: false, error: `non trovo «${APERTURA_CORPO}»` };
+  const fine = testo.indexOf(CHIUSURA_CORPO, inizio);
+  if (fine < 0) return { ok: false, error: "non trovo la chiamata alla rotta di creazione dopo l'apertura del corpo" };
+  return { ok: true, blocco: testo.slice(inizio, fine) };
+}
+
+// Le tre forme con cui un campo entra nel corpo, e non ce ne sono altre:
+//   `nome: valore,`   `nome,` (forma abbreviata)   `qualcosa.nome = valore`
+// ⚠️ Le espressioni si costruiscono QUI DENTRO a ogni chiamata: una regex con
+// `g` si porta dietro `lastIndex`, e riusarla salterebbe pezzi di testo alla
+// seconda estrazione — cioè proprio nelle controprove.
+function estraiCampi(blocco) {
+  const nomi = new Set();
+  const forme = [
+    /^[ \t]*([A-Za-z_][A-Za-z0-9_]*)[ \t]*:/gm,
+    /^[ \t]*([A-Za-z_][A-Za-z0-9_]*)[ \t]*,[ \t]*$/gm,
+    /\b[A-Za-z_][A-Za-z0-9_]*\.([A-Za-z_][A-Za-z0-9_]*)[ \t]*=[^=]/g,
+  ];
+  for (const forma of forme) {
+    let trovato;
+    while ((trovato = forma.exec(blocco)) !== null) nomi.add(trovato[1]);
+  }
+  return [...nomi].sort();
+}
+
+{
+  const ritaglio = ritagliaCorpo(codicePannello);
+  assert(
+    ritaglio.ok,
+    `eb1) il corpo della creazione si trova CERCANDOLO nel testo, non contando le righe (${ritaglio.error ?? "trovato"})`
+  );
+
+  const blocco = ritaglio.ok ? ritaglio.blocco : "";
+  const trovati = estraiCampi(blocco);
+  const attesi = [...CAMPI_ATTESI, ...CONTENITORI_ATTESI];
+
+  assert(
+    CAMPI_ATTESI.length === 21,
+    `eb2) l'elenco dichiarato porta VENTUNO nomi di campo (ne porta ${CAMPI_ATTESI.length})`
+  );
+
+  const mancanti = attesi.filter((n) => !trovati.includes(n));
+  assert(
+    mancanti.length === 0,
+    `eb3) ⚠️⚠️ NESSUN CAMPO HA SMESSO DI PARTIRE dal corpo della creazione (mancano: ${
+      mancanti.join(", ") || "nessuno"
+    }). Se è rossa durante la fusione, un campo non arriva più al server: guarda il corpo vero e AGGIORNA L'ELENCO CON INTENZIONE se il cambiamento è voluto — non cancellare la prova.`
+  );
+
+  const inattesi = trovati.filter((n) => !attesi.includes(n));
+  assert(
+    inattesi.length === 0,
+    `eb4) ⚠️⚠️ E NESSUN CAMPO NUOVO è comparso nel corpo senza che l'elenco lo sappia (in più: ${
+      inattesi.join(", ") || "nessuno"
+    }). Se è rossa durante la fusione, la modifica ha portato dentro un campo che la creazione non mandava: AGGIORNA L'ELENCO CON INTENZIONE dopo aver deciso che ci deve stare.`
+  );
+
+  const intrusi = NOMI_DEL_SERVER.filter((n) => trovati.includes(n));
+  assert(
+    intrusi.length === 0,
+    `eb5) ⚠️ CONTROLLO DELL'ESTRAZIONE: nessuno dei cinque nomi che scrive il SERVER è finito nell'insieme (trovati: ${
+      intrusi.join(", ") || "nessuno"
+    }) — se comparissero, l'estrazione starebbe leggendo oltre il blocco e i ventuno non vorrebbero dire niente`
+  );
+
+  // ⚠️⚠️ I DUE CAMPI CIECHI, e sono un caso a sé.
+  for (const cieco of ["extra_dose_included", "max_quantity"]) {
+    assert(
+      trovati.includes(cieco),
+      `eb6) ⚠️⚠️ \`${cieco}\` parte ancora dallo schermo — e OGGI NESSUNA RIGA DI CODICE A VALLE LA LEGGE (§63-64, v72): il pannello la scrive, ma perché serva dovrà leggerla chi calcola il prezzo. Se smettesse di partire non lo vedrebbe NEMMENO UNA PROVA DAL VIVO, perché non c'è niente che la mostri al cliente: si scoprirebbe il giorno in cui qualcuno costruisce il calcolo, sui dati già scritti male. Questa sonda è l'unica difesa che ha.`
+    );
+  }
+
+  // -------------------------------------------------------------------------
+  // ⚠️ CONTROPROVE — le sonde qui sopra sanno dire di NO?
+  // Non su testi inventati: su QUESTO stesso blocco, guastato con materiale
+  // vero preso dai file.
+  // -------------------------------------------------------------------------
+
+  // 1) UN CAMPO SPARITO. Si toglie la riga di `choice_label`, che è il caso
+  //    peggiore fra i dodici silenziosi: il server RIPIEGA sulla frase
+  //    predefinita, quindi la sua scomparsa non darebbe nessun errore e il
+  //    titolo resterebbe giusto per caso.
+  const rigaTitolo = /^[ \t]*choice_label: titoloScelta,[ \t]*$/m.exec(blocco);
+  assert(rigaTitolo !== null, "eb7) la riga di `choice_label` esiste nel blocco (è il materiale della controprova)");
+  const senzaTitolo = rigaTitolo ? blocco.replace(`${rigaTitolo[0]}\n`, "") : blocco;
+  assert(
+    trovati.includes("choice_label") && !estraiCampi(senzaTitolo).includes("choice_label"),
+    "eb8) CONTROPROVA: tolta quella riga dal blocco, `choice_label` sparisce davvero dall'insieme estratto — quindi eb3, quando dice «non manca niente», sta guardando"
+  );
+
+  // 2) UN CAMPO IN PIÙ, ed è il caso vero della fusione: `ProductEditForm` manda
+  //    `id: product.id` e la creazione no. ⚠️ La riga NON è inventata qui: si
+  //    prende dal pannello, dove è già scritta.
+  const rigaId = /^[ \t]*id: product\.id,[ \t]*$/m.exec(codicePannello);
+  assert(rigaId !== null, "eb9) la riga `id: product.id,` del modulo di MODIFICA esiste nel pannello (è il materiale della controprova)");
+  const conId = rigaId ? blocco.replace(APERTURA_CORPO, `${APERTURA_CORPO}\n${rigaId[0]}`) : blocco;
+  assert(
+    !trovati.includes("id") && estraiCampi(conId).includes("id"),
+    "eb10) ⚠️ CONTROPROVA: innestando nel corpo della creazione la riga che oggi manda il modulo di MODIFICA, `id` compare fra gli inattesi — è precisamente ciò che la fusione rischia di portare dentro, ed eb4 lo vedrebbe"
+  );
+
+  // 3) L'ESTRAZIONE SA TROVARE I NOMI DEL SERVER? Le si dà in pasto la riga che
+  //    `lib/menu-create.js` costruisce davvero, dove quattro dei cinque nomi di
+  //    eb5 ci sono per davvero.
+  //    ⚠️ `is_available` non c'è nemmeno lì, ed è giusto: il cuore non la tocca
+  //    mai (13/08/2026), la nomina solo nei commenti — che `soloCodice` toglie.
+  const cuore = soloCodice(leggi("lib", "menu-create.js"));
+  const daRiga = cuore.indexOf("const riga = {");
+  const aInsert = cuore.indexOf("const { data: creato", daRiga);
+  const rigaServer = daRiga >= 0 && aInsert > daRiga ? cuore.slice(daRiga, aInsert) : "";
+  const nomiServer = estraiCampi(rigaServer);
+  assert(
+    ["slug", "store_id", "spice_label", "is_in_menu"].every((n) => nomiServer.includes(n)),
+    `eb11) ⚠️ CONTROPROVA: sulla riga che costruisce il SERVER, la stessa estrazione trova slug, store_id, spice_label e is_in_menu (${
+      nomiServer.join(", ") || "niente"
+    }) — quindi eb5, quando dice che nel corpo dello schermo non ci sono, non sta solo guardando male`
+  );
+}
+
+// ---------------------------------------------------------------------------
 // f) ⚠️ LE BEVANDE NON MOSTRANO NESSUNO DEI QUATTRO GRUPPI.
 // ---------------------------------------------------------------------------
 {
