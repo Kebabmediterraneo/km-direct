@@ -1490,7 +1490,7 @@ const ACCOMPAGNAMENTI_PROPOSTI = [
 // due di esse hanno una prova che le sorveglia.
 const TITOLO_SCELTA_PROPOSTO = "Come preferisci il tuo kebab?";
 
-function ProductCreateForm({ products, allergensCatalog, onCreated, onCancel }) {
+function ProductForm({ products, allergensCatalog, onSaved, onCancel }) {
   // ⚠️ La tendina parte VUOTA, senza preselezione (decisione del 06/08/2026).
   //
   // Perché non si preseleziona la prima voce: con "Roll" già scelto il percorso
@@ -1795,7 +1795,7 @@ function ProductCreateForm({ products, allergensCatalog, onCreated, onCancel }) 
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Errore nella creazione.");
-      onCreated();
+      onSaved();
     } catch (err) {
       setError(err.message);
       setIsSubmitting(false);
@@ -2310,11 +2310,11 @@ function MenuSection() {
           </div>
         )}
         {creating && (
-          <ProductCreateForm
+          <ProductForm
             products={products}
             allergensCatalog={allergensCatalog}
             onCancel={() => setCreating(false)}
-            onCreated={() => {
+            onSaved={() => {
               setCreating(false);
               fetchMenu();
             }}
