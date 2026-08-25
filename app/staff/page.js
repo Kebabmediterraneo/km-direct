@@ -1490,7 +1490,19 @@ const ACCOMPAGNAMENTI_PROPOSTI = [
 // due di esse hanno una prova che le sorveglia.
 const TITOLO_SCELTA_PROPOSTO = "Come preferisci il tuo kebab?";
 
-function ProductForm({ products, allergensCatalog, onSaved, onCancel }) {
+function ProductForm({ products, allergensCatalog, articolo, onSaved, onCancel }) {
+  // ⚠️⚠️ PASSO 2 DEI SETTE (§63-64, decisione BB) — `articolo` È FACOLTATIVO.
+  //
+  // Quando NON arriva, questo modulo si comporta **esattamente come prima**:
+  // stessa rotta di creazione, stesso corpo, gli stessi ventuno campi che la
+  // sonda di `tests/menu-create-form.test.mjs` sorveglia. Quando arriva, la
+  // stessa scheda si apre precompilata e salva i SEI campi scalari sulla rotta
+  // `product`, come faceva la scheda di modifica.
+  //
+  // ⚠️ Non è un modulo che fa due cose in parallelo: è lo stesso modulo con un
+  // dato in più. Tutto ciò che distingue i due mestieri passa da qui sotto.
+  const inModifica = Boolean(articolo);
+
   // ⚠️ La tendina parte VUOTA, senza preselezione (decisione del 06/08/2026).
   //
   // Perché non si preseleziona la prima voce: con "Roll" già scelto il percorso
@@ -1503,20 +1515,34 @@ function ProductForm({ products, allergensCatalog, onSaved, onCancel }) {
   // ⚠️ Quello che si toglie è la PRESELEZIONE, non le voci: `roll` e `bowl`
   // restano nella tendina, perché l'elenco è la fonte unica di
   // `lib/menu-categories.js` e va usato intero.
-  const [category, setCategory] = useState("");
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
-  const [price, setPrice] = useState("");
-  const [badge, setBadge] = useState("");
-  const [spiceLevel, setSpiceLevel] = useState("0");
+  //
+  // ⚠️ PRECOMPILAZIONE (passo 2): i valori di partenza vengono dall'articolo
+  // quando c'è, e sono quelli di prima quando non c'è. Le conversioni sono le
+  // STESSE che faceva la scheda di modifica — `String()` su prezzo, posto e
+  // piccantezza — copiate da lì e non reinventate.
+  const [category, setCategory] = useState(articolo?.category ?? "");
+  const [name, setName] = useState(articolo?.name ?? "");
+  const [description, setDescription] = useState(articolo?.description ?? "");
+  const [price, setPrice] = useState(articolo ? String(articolo.base_price ?? "") : "");
+  const [badge, setBadge] = useState(articolo?.badge ?? "");
+  const [spiceLevel, setSpiceLevel] = useState(articolo ? String(articolo.spice_level ?? 0) : "0");
   // Nessuna proposta finché non c'è una categoria: un posto "dopo l'ultimo"
-  // calcolato su nessuna categoria non vuol dire niente.
-  const [sortOrder, setSortOrder] = useState("");
-  const [selected, setSelected] = useState(() => new Set());
+  // calcolato su nessuna categoria non vuol dire niente. Su un articolo che
+  // esiste il posto è quello che ha, non una proposta.
+  const [sortOrder, setSortOrder] = useState(articolo ? String(articolo.sort_order ?? 0) : "");
+  // ⚠️ Allergeni e tipo dietetico si precompilano ma NON si salvano da qui
+  // (passo 3). Precompilarli non è un vezzo: un blocco spento e vuoto su un
+  // articolo che ha allergeni direbbe una cosa falsa a chi guarda.
+  const [selected, setSelected] = useState(() => new Set(articolo?.allergens ?? []));
   const [noAllergens, setNoAllergens] = useState(false);
-  const [dietary, setDietary] = useState("");
+  const [dietary, setDietary] = useState(
+    articolo ? dietaryFromFlags(articolo.is_vegan, articolo.is_vegetarian) : ""
+  );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState(null);
+  // §63-64 — la conferma sul prezzo, copiata dalla scheda di modifica. In
+  // creazione non si accende mai: non esiste un prezzo precedente da confrontare.
+  const [confermaPrezzo, setConfermaPrezzo] = useState(false);
 
   // -------------------------------------------------------------------------
   // §63-64 (Fase 4, passo 3) — LE OPZIONI, tutte in questa schermata (decisione
@@ -1698,39 +1724,107 @@ function ProductForm({ products, allergensCatalog, onSaved, onCancel }) {
   const rimozioniVuote = rimozioni.some((r) => r.trim() === "");
   const accompagnamentiVuoti = accompagnamenti.some((a) => a.label.trim() === "");
 
-  const canSave =
-    categoriaScelta &&
-    name.trim() !== "" &&
-    prezzoValido &&
-    ordineValido &&
-    allergeniValidi &&
-    !accompagnamentiMancanti &&
-    !proteineSenzaPrezzo &&
-    !extraIncompleti &&
-    !rimozioniVuote &&
-    !accompagnamentiVuoti;
+  // ⚠️ IN MODIFICA IL PULSANTE GUARDA SOLO CIÒ CHE PARTE DAVVERO.
+  //
+  // I blocchi spenti — allergeni e opzioni — non si salvano da questa scheda
+  // (passi 3 e 4) e **non devono poterla bloccare**: una Bowl esistente, il cui
+  // blocco opzioni qui è spento e vuoto, sarebbe altrimenti impossibile da
+  // salvare per la mancanza di accompagnamenti che nessuno le sta togliendo.
+  // *Le condizioni della creazione restano identiche, parola per parola: sono
+  // l'altro ramo di questa scelta, non una versione modificata.*
+  const canSaveModifica = categoriaScelta && name.trim() !== "" && prezzoValido && ordineValido;
+  const canSave = inModifica
+    ? canSaveModifica
+    : categoriaScelta &&
+      name.trim() !== "" &&
+      prezzoValido &&
+      ordineValido &&
+      allergeniValidi &&
+      !accompagnamentiMancanti &&
+      !proteineSenzaPrezzo &&
+      !extraIncompleti &&
+      !rimozioniVuote &&
+      !accompagnamentiVuoti;
 
   // Che cosa manca, detto in chiaro: un pulsante spento senza spiegazione manda
   // a cercare l'errore nel posto sbagliato. Non è l'avviso sul tipo dietetico
   // che §63-64 esclude — quello riguarda un campo facoltativo, questi sono i
   // campi obbligatori.
+  // ⚠️ In modifica si elencano solo le mancanze che spengono davvero il
+  // pulsante: dire «mancano gli allergeni» accanto a un blocco spento manderebbe
+  // a cercare l'errore proprio dove non si può fare niente.
   const mancanti = [
     !categoriaScelta && "la categoria",
     name.trim() === "" && "il nome",
     !prezzoValido && "un prezzo maggiore di zero",
     !ordineValido && "un ordinamento intero",
-    !allergeniValidi && "gli allergeni, oppure la casella «nessuno dei 14»",
-    accompagnamentiMancanti &&
+    !inModifica && !allergeniValidi && "gli allergeni, oppure la casella «nessuno dei 14»",
+    !inModifica &&
+      accompagnamentiMancanti &&
       "almeno un accompagnamento: una Bowl senza non è ordinabile dal cliente",
-    proteineSenzaPrezzo && "il sovrapprezzo di ogni proteina scelta (scrivi 0 se non costa nulla)",
-    rimozioniVuote && "l'etichetta di ogni rimozione aggiunta",
-    accompagnamentiVuoti && "l'etichetta di ogni accompagnamento",
-    extraIncompleti && "etichetta e prezzo di ogni extra aggiunto",
+    !inModifica &&
+      proteineSenzaPrezzo &&
+      "il sovrapprezzo di ogni proteina scelta (scrivi 0 se non costa nulla)",
+    !inModifica && rimozioniVuote && "l'etichetta di ogni rimozione aggiunta",
+    !inModifica && accompagnamentiVuoti && "l'etichetta di ogni accompagnamento",
+    !inModifica && extraIncompleti && "etichetta e prezzo di ogni extra aggiunto",
   ].filter(Boolean);
+
+  // ⚠️ LA CONFERMA SUL PREZZO, copiata da `ProductEditForm` e non reinventata.
+  // La condizione è una **disuguaglianza**: scatta anche quando il prezzo si
+  // ABBASSA, perché un ribasso per sbaglio non lo segnala nessuno. In creazione
+  // resta sempre falsa — non c'è nessun prezzo precedente da confrontare.
+  const prezzoCambiato = inModifica && Number(price) !== Number(articolo.base_price);
+
+  // ⚠️ PASSO 2 — il salvataggio di un articolo che ESISTE: i sei campi scalari
+  // sulla rotta `product`, con l'id. Gli allergeni e le opzioni non partono da
+  // qui, e infatti quella rotta non li legge.
+  //
+  // *Sta in una funzione sua, e non dentro `handleSubmit`, perché il pulsante
+  // «Conferma e salva» del riquadro del prezzo deve poterla chiamare dritta,
+  // senza ripassare dal controllo che ha acceso il riquadro.*
+  async function salvaScalari() {
+    setIsSubmitting(true);
+    setError(null);
+    try {
+      const response = await fetch("/api/staff/menu/product", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: articolo.id,
+          name,
+          description,
+          base_price: price,
+          badge: badge === "" ? null : badge,
+          sort_order: Number(sortOrder),
+          // §34-35: si manda SOLO il livello; la dicitura la ricava il server.
+          spice_level: Number(spiceLevel),
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Errore nel salvataggio.");
+      onSaved();
+    } catch (err) {
+      setError(err.message);
+      setConfermaPrezzo(false);
+      setIsSubmitting(false);
+    }
+  }
 
   async function handleSubmit(event) {
     event.preventDefault();
     if (isSubmitting || !canSave) return;
+    // ⚠️ Su un articolo esistente la strada finisce qui: prima la conferma sul
+    // prezzo se è cambiato, poi i sei scalari. Il corpo della CREAZIONE qui
+    // sotto non viene nemmeno composto.
+    if (inModifica) {
+      if (prezzoCambiato && !confermaPrezzo) {
+        setConfermaPrezzo(true);
+        return;
+      }
+      salvaScalari();
+      return;
+    }
     setIsSubmitting(true);
     setError(null);
     try {
@@ -1802,6 +1896,25 @@ function ProductForm({ products, allergensCatalog, onSaved, onCancel }) {
     }
   }
 
+  // ⚠️ I PEZZI CHE ANCORA NON SI SALVANO SI VEDONO MA SONO SPENTI, e lo si fa
+  // con un `fieldset disabled`: è il modo del browser di spegnere un blocco
+  // intero — tastiera e lettori di schermo compresi — invece di spegnere trenta
+  // controlli uno per uno e dimenticarne due. Lo stile lo riporta a essere
+  // invisibile: senza bordo, senza margini, con lo stesso passo del modulo, così
+  // in CREAZIONE non cambia niente di ciò che si vede.
+  const bloccoStyle = {
+    display: "flex",
+    flexDirection: "column",
+    gap: 10,
+    border: "none",
+    padding: 0,
+    margin: 0,
+    minWidth: 0,
+  };
+  // La frase corta che dice PERCHÉ un blocco è spento: un campo spento senza
+  // spiegazione manda a cercare il guasto dove guasto non ce n'è.
+  const notaSpenta = { fontSize: 12, color: "var(--text-on-dark)", margin: 0 };
+
   const labelStyle = { fontSize: 12, fontWeight: 600, color: "var(--navy)" };
   const inputStyle = {
     padding: "8px 10px",
@@ -1825,11 +1938,21 @@ function ProductForm({ products, allergensCatalog, onSaved, onCancel }) {
         background: "var(--bg-warm)",
       }}
     >
-      <h3 style={{ fontWeight: 700, fontSize: 15, color: "var(--navy)", margin: 0 }}>Nuovo articolo</h3>
+      <h3 style={{ fontWeight: 700, fontSize: 15, color: "var(--navy)", margin: 0 }}>
+        {inModifica ? `Modifica: ${articolo.name}` : "Nuovo articolo"}
+      </h3>
 
       <label style={{ display: "flex", flexDirection: "column", gap: 4 }}>
         <span style={labelStyle}>Categoria</span>
-        <select value={category} onChange={(e) => changeCategory(e.target.value)} style={inputStyle}>
+        {/* ⚠️ (HH): la categoria di un articolo che esiste non si cambia da qui.
+            È un lavoro a sé, dopo la fusione, perché cambiarla vuol dire poter
+            rifare le opzioni nello stesso gesto. */}
+        <select
+          value={category}
+          onChange={(e) => changeCategory(e.target.value)}
+          disabled={inModifica}
+          style={inputStyle}
+        >
           {/* Voce vuota di partenza: la scelta è esplicita, mai ereditata. Le
               otto voci restano tutte, `roll` e `bowl` compresi. */}
           <option value="">Scegli una categoria…</option>
@@ -1839,6 +1962,7 @@ function ProductForm({ products, allergensCatalog, onSaved, onCancel }) {
             </option>
           ))}
         </select>
+        {inModifica && <p style={notaSpenta}>La categoria non si cambia da qui: è un lavoro a parte.</p>}
       </label>
 
       <label style={{ display: "flex", flexDirection: "column", gap: 4 }}>
@@ -1923,7 +2047,16 @@ function ProductForm({ products, allergensCatalog, onSaved, onCancel }) {
           dietetico, come quelle già a menu.
         </p>
       ) : (
-        <>
+        // ⚠️ Passo 3: da questa scheda gli allergeni si VEDONO ma non si
+        // salvano ancora. Sono precompilati con quelli veri dell'articolo,
+        // perché un blocco vuoto direbbe che non ne ha.
+        <fieldset disabled={inModifica} style={bloccoStyle}>
+          {inModifica && (
+            <p style={notaSpenta}>
+              Gli allergeni non si salvano ancora da qui: per cambiarli usa il pulsante «Allergeni»
+              della riga.
+            </p>
+          )}
           <span style={labelStyle}>Allergeni</span>
           <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 14px" }}>
             {allergensCatalog.map((a) => (
@@ -1965,7 +2098,7 @@ function ProductForm({ products, allergensCatalog, onSaved, onCancel }) {
               </label>
             ))}
           </div>
-        </>
+        </fieldset>
       )}
 
       {/* ===================================================================
@@ -1974,8 +2107,17 @@ function ProductForm({ products, allergensCatalog, onSaved, onCancel }) {
           accompagnamenti solo sulle Bowl.
           =================================================================== */}
       {mostraOpzioni && (
-        <>
+        // ⚠️ Passo 4: da questa scheda le opzioni si vedono ma non si salvano
+        // ancora, e — a differenza degli allergeni — qui NON mostrano quelle
+        // dell'articolo: l'elenco del menu non le porta con sé.
+        <fieldset disabled={inModifica} style={bloccoStyle}>
           <hr style={{ border: "none", borderTop: "1px solid var(--card-border)", margin: "4px 0" }} />
+          {inModifica && (
+            <p style={notaSpenta}>
+              Le opzioni non si salvano ancora da qui, e questo blocco non mostra quelle che
+              l'articolo ha già.
+            </p>
+          )}
 
           {/* --- 1) PROTEINE: caselle da spuntare, come i 14 allergeni --- */}
           <span style={labelStyle}>Proteine (facoltative)</span>
@@ -2189,7 +2331,7 @@ function ProductForm({ products, allergensCatalog, onSaved, onCancel }) {
           >
             + Aggiungi extra
           </button>
-        </>
+        </fieldset>
       )}
 
       {error && <p style={{ fontSize: 13, color: "#C0392B", margin: 0 }}>{error}</p>}
@@ -2200,14 +2342,60 @@ function ProductForm({ products, allergensCatalog, onSaved, onCancel }) {
         </p>
       )}
 
-      <div style={{ display: "flex", gap: 8 }}>
-        <button type="submit" disabled={!canSave || isSubmitting} style={confirmBtn(!canSave || isSubmitting)}>
-          {isSubmitting ? "Creazione…" : "Crea articolo"}
-        </button>
-        <button type="button" onClick={onCancel} disabled={isSubmitting} style={secondaryBtn}>
-          Annulla
-        </button>
-      </div>
+      {/* ⚠️ LA CONFERMA SUL PREZZO, nella forma della scheda di modifica: non una
+          finestra sopra la pagina, ma la fila dei pulsanti che SI SOSTITUISCE.
+          Finché si conferma, «Salva» non esiste. */}
+      {confermaPrezzo ? (
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 8,
+            padding: "10px 12px",
+            borderRadius: 8,
+            border: "1px solid var(--brand-orange)",
+            background: "var(--surface-white)",
+          }}
+        >
+          <span style={{ fontSize: 13, color: "var(--navy)" }}>
+            Stai cambiando il prezzo: <strong>{formatPrice(articolo.base_price)}</strong> →{" "}
+            <strong>{formatPrice(Number(price))}</strong>. Confermi?
+          </span>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button
+              type="button"
+              onClick={salvaScalari}
+              disabled={isSubmitting}
+              style={confirmBtn(isSubmitting)}
+            >
+              {isSubmitting ? "Salvataggio…" : "Conferma e salva"}
+            </button>
+            <button
+              type="button"
+              onClick={() => setConfermaPrezzo(false)}
+              disabled={isSubmitting}
+              style={secondaryBtn}
+            >
+              Annulla
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div style={{ display: "flex", gap: 8 }}>
+          <button type="submit" disabled={!canSave || isSubmitting} style={confirmBtn(!canSave || isSubmitting)}>
+            {isSubmitting
+              ? inModifica
+                ? "Salvataggio…"
+                : "Creazione…"
+              : inModifica
+                ? "Salva"
+                : "Crea articolo"}
+          </button>
+          <button type="button" onClick={onCancel} disabled={isSubmitting} style={secondaryBtn}>
+            Annulla
+          </button>
+        </div>
+      )}
     </form>
   );
 }
@@ -2360,9 +2548,15 @@ function MenuSection() {
                         : undefined
                     }
                   />
+                  {/* ⚠️ Passo 2: «Modifica» apre la SCHEDA UNICA, precompilata.
+                      `ProductEditForm` resta nel file e non la apre più nessuno:
+                      sparirà al passo 6, quando la scheda unica saprà fare tutto
+                      quello che sapeva fare lei. */}
                   {editingId === product.id && (
-                    <ProductEditForm
-                      product={product}
+                    <ProductForm
+                      products={products}
+                      allergensCatalog={allergensCatalog}
+                      articolo={product}
                       onCancel={() => setEditingId(null)}
                       onSaved={() => {
                         setEditingId(null);
