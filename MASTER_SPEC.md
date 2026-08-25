@@ -1,6 +1,6 @@
 # KM DIRECT — MASTER SPECIFICATION
 
-**Versione 73** — sostituisce la v72.
+**Versione 74** — sostituisce la v73.
 
 Documento di riferimento definitivo per lo sviluppo. Le decisioni qui
 contenute sono approvate: non vanno reinterpretate senza un motivo concreto
@@ -22,42 +22,41 @@ versione corrente**. I precedenti vivono in `git log`, che è fatto per quello.
 del documento prima che cominciasse a parlare del progetto — e dentro c'erano
 istruzioni rovesciate che nessuno rileggeva.*
 
-**Novità della v73** (vincolanti, dal lavoro del 13/08/2026):
+**Novità della v74** (vincolanti, dal lavoro del 24/08/2026):
 
-1. §63-64 — ⚠️ **CORRETTO UN DIFETTO INTRODOTTO IL 12/08**: un articolo creato
-   a metà era trattenuto da `is_available`, che **il reset del mattino rimette a
-   true ogni giorno**. Sarebbe tornato in vendita da solo, incompleto. Ora è
-   `is_in_menu`, che il reset non tocca mai.
-   ⚠️ *§63-64 lo diceva dal 07/08 ed è il motivo per cui quella colonna esiste:
-   la regola era scritta e non è stata letta.*
-2. §63-64 — ✅ **il cuore che MODIFICA le opzioni di un articolo esistente**,
-   con **lo scudo**: l'articolo esce dal menu **prima** che si tocchi una riga e
-   ci rientra come ultimo atto.
-3. §63-64 — le regole di Andrea: **un articolo che ha proteine non può restare
-   senza**, una **Bowl non può restare senza accompagnamenti**, e il **titolo**
-   ripiega sulla frase della creazione invece di rifiutare.
-4. §36-40 — ✅ **il carrello faceva già la cosa giusta** e non è stato toccato:
-   se la proteina scelta non c'è più, toglie **la riga intera** — il combo
-   intero se è un combo. Verificato leggendo, non supposto.
-5. §63-64 — ⚠️ **NESSUNA ROTTA DEL PANNELLO VERIFICA CHE L'ARTICOLO SIA DI
-   QUESTO STORE.** Non è un problema con un negozio solo; il giorno del secondo
-   va chiuso **per tutte e sette insieme**.
-6. ⚠️ **Le suite di prove MUOIONO senza dirlo** quando una prova esplode: il
-   conteggio non arriva e sembra che sia andata. Chiuso in 3 suite su 33.
+1. §63-64 — ⚠️⚠️ **ACCERTATO: DEI VENTUNO CAMPI CHE IL MODULO DI CREAZIONE
+   MANDA, DODICI IL SERVER LI ACCETTA IN SILENZIO.** Se smettessero di partire,
+   la creazione risponderebbe lo stesso e l'articolo nascerebbe con un valore di
+   ripiego che nessuno ha deciso. *Letto sul codice il 24/08, non supposto.*
+2. §63-64 — ✅ **UNA SONDA FISSA QUELL'ELENCO, ED È CHIUSA NELLE DUE
+   DIREZIONI**: diventa rossa se un campo sparisce e anche se ne compare uno
+   nuovo. Costruita **prima** di fondere modifica e creazione, perché è la
+   fusione a metterli in pericolo. Prove da 1599 a **1611**, suite **ferme a
+   33**: estesa una suite esistente, non creato un file.
+3. §63-64 — ⚠️ **CORRETTA UNA FRASE DELLA v72** su `extra_dose_included` e
+   `max_quantity`: dire che *"non sono lette da nessuna riga di codice"* è
+   troppo largo. La **creazione le legge, le valida e le scrive**; sono i
+   **consumatori a valle** a non esistere ancora. *Due affermazioni diverse, e
+   la seconda non implica la prima.*
+4. §63-64 — ⚠️ **LA FUSIONE DELLA SCHERMATA NON È STATA COMINCIATA, ED È UNA
+   SCELTA**: prima la rete, poi il lavoro rischioso. *Il rischio non è la
+   modifica: è la **creazione**, che funziona e che Andrea ha provato dal vivo
+   il 12/08.*
+5. §63-64 — registrato che **`removals` e `accompaniments` viaggiano interi**:
+   la forma delle loro righe vive **fuori** dal blocco che compone il corpo,
+   quindi la sonda non li protegge. *Non è urgente — il server pretende
+   `label` e `contains_gluten` e rifiuterebbe a voce alta — ma è un buco della
+   sonda, scritto qui perché non si scopra il giorno che serve.*
 
 *Il conteggio delle condizioni di apertura non cambia: **quattro chiuse, cinque
-aperte**. ✅ **La Fase 4 esce da questo elenco: è fatta il 12/08.** Il lavoro
-pre-go-live che resta è il **viewport**, le tre verifiche registrate in v63 e le
-**tre voci di §6c**.*
+aperte**. Il lavoro pre-go-live che resta è il **viewport**, le tre verifiche
+registrate in v63 e le **tre voci di §6c**.*
 
-⚠️ *Fuori dall'elenco perché non è una condizione di apertura, ma **chiesto da
-Andrea il 12/08 e da fare**: la **modifica** delle opzioni di un articolo già
-creato. Oggi il pannello sa crearle e non correggerle — un prezzo di proteina
-sbagliato costringe a rifare l'articolo.*
-
-✅ *I due lavori chiesti da Andrea l'11/08 — il **prefisso internazionale** e
-l'**indirizzo nella scheda ordine** — sono **fatti** il 12/08 e provati dal vivo.
-Vedi §41-45 e §52-56.*
+⚠️ *Fuori dall'elenco perché non è una condizione di apertura: della **modifica
+delle opzioni** chiesta da Andrea il 12/08 restano **la schermata** e la
+**conferma esplicita sul sovrapprezzo della proteina**, che si realizza insieme
+a lei. Cuore e rotta sono fatti il 13/08 — e ⚠️ **nessuno li ha ancora chiamati
+dal vivo**: la prima chiamata vera sarà con la schermata.*
 
 ## 1. Visione del progetto
 
@@ -3662,8 +3661,22 @@ il danno sarebbe **rifiutare al pagamento i carrelli già composti**.
 * **Le tre colonne prima escluse sono state incluse**: proteina preselezionata,
   dose inclusa (§19) e dosi cumulabili (§22). *Senza, un KM Special ricreato dal
   pannello non sarebbe uguale all'originale.* ⚠️ *`extra_dose_included` e
-  `max_quantity` oggi **non sono lette da nessuna riga di codice**: il pannello
-  le scrive, ma perché servano dovrà leggerle chi calcola il prezzo.*
+  `max_quantity` oggi **non sono lette da chi calcola il prezzo al cliente**: il
+  pannello le scrive, ma perché servano dovrà leggerle qualcuno a valle.*
+  ⚠️ **Correzione della v74**: fino alla v73 questa frase diceva che quelle due
+  colonne *"non sono lette da nessuna riga di codice"*, ed era **troppo larga**.
+  *Accertato il 24/08/2026: la **creazione le legge, le valida e le scrive** —
+  `lib/menu-options.js` dà loro un ripiego (`false` e `1`) quando mancano, e
+  `lib/menu-create.js` scrive comunque la riga con quel valore. Sono i
+  **consumatori a valle** a non esistere. Le due affermazioni sono diverse, e
+  la seconda non implica la prima.*
+  ⚠️⚠️ *Ed è la ragione per cui queste due sono le **più esposte** di tutte: le
+  altre colonne hanno almeno un lettore che un giorno mostrerebbe il valore
+  sbagliato, queste no. Se smettessero di partire dallo schermo, **non lo
+  vedrebbe nemmeno una prova dal vivo** — non c'è niente, nel sito, che le
+  mostri. Si scoprirebbe il giorno in cui qualcuno costruisce quel calcolo, sui
+  dati già scritti male. Dal 24/08 la sola difesa che hanno è la sonda del
+  blocco qui sotto.*
 
 **Il catalogo delle proteine** si legge dal database filtrando sull'enum
 `protein_key`, che è la lista chiusa che il database già dichiara. ⚠️ **Si ferma
@@ -3767,6 +3780,64 @@ un problema finché il negozio è uno solo. Il giorno del secondo va chiuso **pe
 tutte e sette insieme**: chiuderlo in un punto solo lascerebbe le altre sei
 porte aperte e darebbe l'impressione che il problema sia risolto. Due prove
 fissano lo stato accertato e diventano rosse se qualcuno lo chiude a metà.*
+
+### ✅ La RETE PRIMA DELLA FUSIONE — i ventuno campi del corpo di creazione (v74, 24/08/2026)
+
+La schermata unica (decisione **BB** di Andrea, 13/08: fondere modifica e
+creazione in un modulo solo, precompilato) **non è stata cominciata**, e la
+ragione è che prima non esisteva niente che sapesse dire *"un campo ha smesso di
+partire"*. ⚠️ *Il rischio della fusione non è la modifica: è la **creazione**,
+che funziona ed è stata provata dal vivo il 12/08. E il modo in cui si rompe non
+è un errore che si vede — è un campo che smette di arrivare al server.*
+
+⚠️ **ACCERTATO IL 24/08/2026, leggendo il codice**: il modulo di creazione
+compone **ventuno campi** su quattro livelli di annidamento, e di questi il
+server **ne pretende nove** e **ne accetta dodici in silenzio**. I dodici:
+`description`, `badge`, `sort_order`, `spice_level`, `noAllergens`, `dietary`,
+l'intero `options`, `is_default`, `extra_dose_included`, `choice_label`,
+`requires_protein`, `max_quantity`. *Se uno di questi sparisse, la creazione
+risponderebbe **come sempre** e l'articolo nascerebbe col valore di ripiego —
+un dato che nessuno ha deciso, scritto senza che niente lo segnali.*
+
+⚠️ **Nessun campo del corpo è ignorato dal server**: il gruppo "non lo legge
+affatto" è **vuoto**, verificato campo per campo. *È un'assenza accertata, non
+un'assenza di ricerca.*
+
+**La sonda** (commit `477cd00`) sta in `tests/menu-create-form.test.mjs`, accanto
+al blocco che già vegliava `payload.options` e i quattro gruppi. ⚠️ **È un
+confronto CHIUSO NELLE DUE DIREZIONI**: rossa se un nome dell'elenco sparisce
+dal corpo, e rossa anche se nel corpo compare un nome che l'elenco non ha.
+*Una prova che verificasse solo la presenza troverebbe solo ciò che nomina, e il
+giorno della fusione un campo **in più** — per esempio l'`id` dell'articolo, che
+il modulo di modifica manda e la creazione no — passerebbe inosservato.*
+
+⚠️⚠️ **QUANDO QUESTA PROVA DIVENTA ROSSA DURANTE LA FUSIONE, LA COSA DA FARE È
+AGGIORNARE L'ELENCO CON INTENZIONE**, guardando il corpo vero e decidendo campo
+per campo se il cambiamento è voluto. **Non cancellarla e non allargarla**: è
+l'unica cosa che sa dire quali campi partivano prima.
+
+**Tre scelte di forma, e la ragione di ciascuna:**
+
+* **Il blocco si cerca nel testo**, dal `const payload = {` alla chiamata verso
+  la rotta di creazione, e **non si indica per numero di riga**: le righe si
+  spostano al primo ritocco e la prova diventerebbe rossa per il motivo
+  sbagliato.
+* **È una sonda di testo, non una prova che esegue**, perché il pannello non è
+  importabile fuori da Next. ⚠️ *La strada forte sarebbe estrarre la
+  composizione del corpo in un modulo sotto `lib/`, com'è la forma del progetto
+  — ma **quella tocca la creazione**, cioè esattamente il rischio, e la si
+  farebbe senza rete. Prima la rete. Per il difetto temuto la sonda di testo
+  basta: se la riga sparisce dal file, la sonda lo vede.*
+* **Suite estesa, non file nuovo**: le suite restano **33**, le prove passano da
+  1599 a **1611**. *Un file nuovo avrebbe spezzato in due la stessa vigilanza.*
+
+⚠️ **CIÒ CHE LA SONDA NON PROTEGGE, e va saputo**: `removals` e `accompaniments`
+non vengono composti dentro quel blocco — passano **interi** così come stanno
+nello stato del modulo, e la forma delle loro righe (`label`, `contains_gluten`)
+vive altrove. *Non è urgente: il server pretende entrambi quei campi, e
+`contains_gluten` lo pretende come booleano esplicito, quindi la loro scomparsa
+verrebbe **rifiutata a voce alta**. È scritto qui perché non si scopra il giorno
+in cui serve.*
 
 **Stato di avanzamento (aggiornato in v72)**: ✅ **Fase 1, 2A, 2B, 3, "togli dal
 menu" e FASE 4 sono complete e verificate dal vivo.** **Non resta più nessuna
