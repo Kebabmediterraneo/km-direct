@@ -23,10 +23,13 @@ nessuno se ne ricorda.*
 ## 2) Stato git
 
 - Branch **`main`**, working tree **pulita**, allineata a `origin/main`.
-- HEAD: **`1a54810`** — la spec v73 (13/08/2026).
+- HEAD: **`adbd155`** — la spec v74 (24/08/2026).
 - Ultimi commit (dal più recente):
 
 ```
+adbd155 docs: v74 — la rete prima della fusione, coi dodici campi che il server accetta in silenzio e la frase della v72 corretta perche' era troppo larga
+477cd00 prove: l'elenco chiuso dei ventuno campi che il modulo di creazione manda oggi, fissato prima della fusione, con le controprove prese dal file che lo fanno diventare rosso nelle due direzioni
+718fd18 handoff: stato al 13/08 — la modifica delle opzioni per due terzi, e la lezione che una regola scritta non e' una regola letta
 1a54810 docs: v73 — la modifica delle opzioni col suo scudo, e la regola del reset notturno che era scritta da sei giorni e il 12/08 e' stata violata lo stesso
 e4ea910 menu: la rotta che espone l'aggiornamento delle opzioni, sottile come le altre e senza logica propria, col catalogo delle proteine letto solo quando servono
 d9bec2a menu: la creazione trattiene un articolo incompleto con is_in_menu e non con is_available, che il reset del mattino rimetterebbe in vendita da solo
@@ -105,6 +108,13 @@ spec — la regola "prima la spec, poi l'handoff" la mette in mezzo per
 costruzione. *Rilevato da Code il 05/08 confrontando `git log` con questo
 blocco: l'HEAD dichiarato era giusto, era la spiegazione a non coprire il caso
 normale della coppia spec+handoff.*
+
+*Caso del 24/08/2026: distanza **uno**, e il solo commit di codice della
+giornata — la sonda `477cd00` — è prima della spec `adbd155`. ⚠️ Ma stavolta
+c'era anche una distanza **all'indietro**: `718fd18`, l'handoff del 13/08, non
+compariva nel registro perché è il commit che quel registro l'ha scritto. Il
+documento arrivava quindi in questa sessione con **due** commit non nominati,
+non uno.*
 
 *Caso del 13/08/2026: distanza **uno**, e i tre commit di codice della giornata
 sono tutti prima della spec `1a54810`.*
@@ -697,7 +707,13 @@ non è una zona che il lavoro del giorno prevedeva di toccare (lezione `cm`).
 qualcuno va a leggere quante prove ci sono, quindi un numero vecchio qui mente
 con l'autorità del documento (lezione `aj`).*
 
-**Trentatre suite** in `tests/`, tutte con estensione **`.mjs`** e non `.js`,
+**Trentatre suite** in `tests/` e **1611 prove**, verdi al **24/08/2026**, letti
+dall'esecuzione e non contati a mano. *Il 24/08 le prove sono passate da 1599 a
+1611 e le suite **non** si sono mosse: la sonda nuova è stata messa dentro una
+suite esistente invece che in un file suo. **Suite ferme non vuol dire lavoro
+fermo**, ed è il caso opposto a quello dell'11/08 qui sopra — allora il numero
+era vecchio, stavolta è giusto proprio perché non è cambiato.* Tutte con
+estensione **`.mjs`** e non `.js`,
 perché vanno eseguite da Node fuori da Next. In `package.json` **non esiste uno
 script `test`**: si lanciano una per una con `node tests/<nome>.test.mjs`, o
 tutte con
@@ -2848,3 +2864,111 @@ progetto**: i commenti sono pieni di accenti e di ⚠️.*
 * **Le CATEGORIE**, discusse il 12/08 e non aperte.
 * ⚠️ **Nessuno ha provato dal vivo cuore e rotta**: le prove leggono il codice,
   la prima chiamata vera sarà con la schermata.
+
+---
+
+## 34) La rete prima della fusione: i ventuno campi del corpo di creazione (24/08/2026)
+
+**Un commit di codice**, `477cd00`, prove da 1599 a **1611**, suite **ferme a
+33**. Più la spec v74, `adbd155`. ⚠️ **La fusione della schermata NON è stata
+cominciata, ed è la decisione della giornata**: prima la rete, poi il lavoro
+rischioso.
+
+### 34a) Perché la rete viene prima, e non è prudenza generica
+
+Il rischio della decisione BB non è la modifica: è la **creazione**, che
+funziona e che Andrea ha provato dal vivo il 12/08. ⚠️ *E il modo in cui si
+rompe non è un errore che si vede — è **un campo che smette di partire**. Il
+server risponderebbe come sempre.*
+
+Prima di oggi **niente sapeva dirlo**. Le prove della Fase 4 vegliano il
+**cuore**, e il cuore non cambia: cambia il modulo che gli parla. Il difetto
+sarebbe vissuto nel pezzo che nessuna prova guardava, e sarebbe emerso solo
+rifacendo a mano un Roll intero. *Stessa forma del difetto del 12/08: non un
+fatto ignoto, un punto senza sentinella.*
+
+### 34b) ⚠️⚠️ DODICI CAMPI SU VENTUNO IL SERVER LI ACCETTA IN SILENZIO
+
+Accertato leggendo `app/staff/page.js`, `lib/menu-create.js` e
+`lib/menu-options.js`. Il modulo di creazione manda **ventuno campi** su quattro
+livelli di annidamento. Il server **ne pretende nove** e rifiuta a voce alta se
+mancano; **ne accetta dodici in silenzio** e ci mette un ripiego:
+`description`, `badge`, `sort_order`, `spice_level`, `noAllergens`, `dietary`,
+l'intero `options`, `is_default`, `extra_dose_included`, `choice_label`,
+`requires_protein`, `max_quantity`.
+
+⚠️ **Il gruppo "non lo legge affatto" è VUOTO**, verificato campo per campo.
+*È un'assenza accertata, non un'assenza di ricerca — la differenza fra le due è
+tutta.*
+
+⚠️⚠️ **`extra_dose_included` e `max_quantity` sono le due peggiori**, e per una
+ragione in più: le altre dieci hanno almeno un lettore a valle che un giorno
+mostrerebbe il valore sbagliato. **Queste due oggi non le legge nessuno.** Se
+smettessero di partire, **non lo vedrebbe nemmeno una prova dal vivo** — non c'è
+niente, nel sito, che le mostri. Si scoprirebbe il giorno in cui qualcuno
+costruisce il calcolo del prezzo, sui dati già scritti male.
+
+### 34c) La sonda, e perché è chiusa nelle due direzioni
+
+`tests/menu-create-form.test.mjs`, esteso e non duplicato. Diventa rossa **se un
+campo dell'elenco sparisce** e **anche se nel corpo ne compare uno che l'elenco
+non ha**. ⚠️ *Una prova che verificasse solo la presenza troverebbe solo ciò che
+nomina: il giorno della fusione un campo **in più** passerebbe inosservato — e
+il caso non è teorico, `ProductEditForm` manda già `id: product.id` e la
+creazione no.*
+
+⚠️⚠️ **QUANDO DIVENTA ROSSA DURANTE LA FUSIONE, SI AGGIORNA L'ELENCO CON
+INTENZIONE**, campo per campo, guardando il corpo vero. **Non si cancella e non
+si allarga**: è l'unica cosa che sa dire quali campi partivano prima.
+
+Tre scelte di forma: il blocco si **cerca nel testo** e non si indica per numero
+di riga, che al primo ritocco si sposta; è una **sonda di testo** perché il
+pannello non è importabile fuori da Next; ed è dentro una **suite esistente**,
+così la stessa vigilanza non si spezza in due.
+
+### 34d) ⚠️ CIÒ CHE LA SONDA NON PROTEGGE
+
+`removals` e `accompaniments` **non vengono composti** dentro quel blocco:
+passano interi come stanno nello stato, e la forma delle loro righe (`label`,
+`contains_gluten`) vive altrove. *Non è urgente — il server pretende entrambi, e
+`contains_gluten` come booleano esplicito, quindi la scomparsa sarebbe
+**rifiutata a voce alta**. Scritto qui perché non si scopra il giorno che serve.*
+
+### 34e) Tre lezioni
+
+**dh. ⚠️ UN "VERBATIM" CON DEI BUCHI NON È UN VERBATIM.** Il primo referto sul
+corpo della creazione presentava 43 righe su 59 come copiate integralmente, e le
+sedici mancanti cadevano **dentro** gli oggetti dove stanno i campi. Erano
+commenti — *ma non si poteva saperlo prima di guardare*, e l'elenco dei ventuno
+sarebbe stato una conclusione tratta da un testo bucato. *Il rimedio che ha
+funzionato: far ristampare il blocco con `cat -n` e **pretendere che l'ultimo
+numero fosse 59**. Una controprova che il testo non può superare per caso.*
+
+**di. ⚠️ L'ASSENZA DI UNA PAROLA NON È UNA PROVA.** Dopo la spinta, `git status
+-sb` non stampa `ahead` quando i rami coincidono — ma non lo stampa neanche in
+altri casi. *Verificato invece con due sonde che sanno dire di no: zero commit
+in `origin/main..HEAD`, e lo stesso oggetto per HEAD e per `origin/main`.*
+
+**dj. UNA DATA NEL DOCUMENTO NON È LA DATA DEL COMMIT.** `718fd18` porta data
+git **21/08** e il suo messaggio dice *"stato al 13/08"*: otto giorni. ⚠️ *I
+documenti di questo progetto datano **la giornata di lavoro**, non il
+salvataggio. Non è un difetto e non va corretto — ma va saputo da chi confronta
+`git log` con questi testi, o li troverà in contraddizione.*
+
+### 34f) Cosa resta aperto
+
+* ⚠️ **LA SCHERMATA** — fondere modifica e creazione in un modulo solo
+  (decisione BB). ✅ *Ora ha la sua rete.* **Va cominciata da fresca, come primo
+  lavoro di una sessione**: aprirla in coda significa lasciarla a metà.
+* **La conferma esplicita sul sovrapprezzo di una proteina**, da realizzare
+  insieme alla schermata. ⚠️ *Resta da decidere QUANDO compare: a ogni
+  salvataggio che cambia un sovrapprezzo, o solo quando lo si alza.*
+* **Cosa fa il modulo unico su bevande e salse**, che opzioni non ne hanno.
+  *Oggi per loro creazione e modifica sono due schermate diverse. Mai discusso.*
+* ⚠️ **La rete sul conteggio in 30 suite su 33** — e `menu-create-form`, quella
+  estesa oggi, è una delle trenta.
+* ⚠️ **Nessuno ha ancora chiamato dal vivo cuore e rotta** delle opzioni: la
+  prima chiamata vera sarà con la schermata.
+* **Lo store** non verificato su nessuna delle sette rotte del pannello, da
+  chiudere tutte insieme il giorno del secondo negozio.
+* **Le CATEGORIE**, discusse il 12/08 e non aperte.
