@@ -23,10 +23,12 @@ nessuno se ne ricorda.*
 ## 2) Stato git
 
 - Branch **`main`**, working tree **pulita**, allineata a `origin/main`.
-- HEAD: **`adbd155`** — la spec v74 (24/08/2026).
+- HEAD: **`3ac16f6`** — la spec v75 (25/08/2026).
 - Ultimi commit (dal più recente):
 
 ```
+3ac16f6 docs: v75 — la schermata unica con le quattro decisioni nuove, l'ordine di costruzione in sette passi e il salva che chiama solo le rotte dei pezzi toccati
+d04a270 handoff: stato al 24/08 — la rete prima della fusione, i dodici campi che il server accetta in silenzio e la schermata lasciata da cominciare da fresca
 adbd155 docs: v74 — la rete prima della fusione, coi dodici campi che il server accetta in silenzio e la frase della v72 corretta perche' era troppo larga
 477cd00 prove: l'elenco chiuso dei ventuno campi che il modulo di creazione manda oggi, fissato prima della fusione, con le controprove prese dal file che lo fanno diventare rosso nelle due direzioni
 718fd18 handoff: stato al 13/08 — la modifica delle opzioni per due terzi, e la lezione che una regola scritta non e' una regola letta
@@ -108,6 +110,10 @@ spec — la regola "prima la spec, poi l'handoff" la mette in mezzo per
 costruzione. *Rilevato da Code il 05/08 confrontando `git log` con questo
 blocco: l'HEAD dichiarato era giusto, era la spiegazione a non coprire il caso
 normale della coppia spec+handoff.*
+
+*Caso del 25/08/2026: distanza **uno**, e ⚠️ **zero commit di codice**: la
+giornata è di sole decisioni e ricognizione, quindi fra la spec `3ac16f6` e
+questo documento non c'è nient'altro.*
 
 *Caso del 24/08/2026: distanza **uno**, e il solo commit di codice della
 giornata — la sonda `477cd00` — è prima della spec `adbd155`. ⚠️ Ma stavolta
@@ -2972,3 +2978,125 @@ salvataggio. Non è un difetto e non va corretto — ma va saputo da chi confron
 * **Lo store** non verificato su nessuna delle sette rotte del pannello, da
   chiudere tutte insieme il giorno del secondo negozio.
 * **Le CATEGORIE**, discusse il 12/08 e non aperte.
+
+---
+
+## 35) La giornata delle decisioni: la schermata unica prende forma (25/08/2026)
+
+⚠️ **Zero commit di codice.** Uno solo, `3ac16f6`, ed è la **spec v75**. *Spec
+prima del codice: le quattro decisioni di Andrea sono scritte prima che qualcuno
+tocchi il pannello.* Suite e prove **ferme a 33 e 1611**, non toccate.
+
+**Le decisioni stanno in spec §63-64 e NON si ricostruiscono da qui**: (BB) la
+scheda unica, (EE) bevande e salse dentro, (FF) la conferma sul sovrapprezzo a
+ogni cambio, (HH) la categoria si cambia ma dopo la fusione, (KK) un Salva solo
+che chiama in fila le rotte dei pezzi toccati, più **l'ordine di costruzione in
+sette passi**. *Qui c'è solo ciò che la ricognizione ha trovato e che la spec
+non racconta.*
+
+### 35a) Cosa sa già fare la scheda di modifica: molto meno del previsto
+
+`ProductEditForm` (`app/staff/page.js`, righe 963-1221) manda **sette campi** a
+`/api/staff/menu/product`. ⚠️ *Forma diversa dalla creazione: **non c'è nessuna
+variabile `payload`**, il corpo è scritto in linea dentro la `fetch`.*
+
+* **sei in comune** con la creazione — `name`, `description`, `base_price`,
+  `badge`, `sort_order`, `spice_level` — **con le stesse tre conversioni** riga
+  per riga (`Number()`, `badge` vuoto → `null`, prezzo come stringa). *Per
+  questi sei la fusione è meccanica: i due moduli fanno già la stessa cosa.*
+* **uno solo suo**: `id`.
+* **quindici le mancano**: `category`, i tre degli allergeni, e **undici** che
+  sono tutto il mondo delle opzioni.
+
+La rotta `product` è sottile: legge il corpo intero e passa a
+`updateProductCore` in `lib/menu-editor.js`, che scrive **sette colonne**
+dichiarate in `EDITABLE_FIELDS`. ⚠️ *Se non è cambiato niente **non scrive
+affatto**, e `spice_label` **viene ignorata apposta** se arriva: la dicitura la
+ricava il server dal livello.*
+
+### 35b) ✅ Gli allergeni si correggevano già — il sospetto era sbagliato
+
+Il 25/08 avevo sospettato che gli allergeni di un articolo esistente non fossero
+modificabili da nessuna parte. ⚠️ **Era una deduzione dall'assenza, ed era
+falsa**: esiste `AllergensEditForm`, una **scheda separata** che chiama
+`/api/staff/menu/allergens` mandando `{ kind, id, allergenIds, noAllergens,
+dietary }`. *Registrato perché il sospetto stava per diventare un lavoro.*
+
+### 35c) ⚠️ La categoria invece NON è modificabile, e non è una rotta che manca
+
+Cercando chi scrive `category:` in `lib/` e `app/api/`, gli unici punti sono
+l'**inserimento** della creazione e due **letture**. **Nessun percorso del codice
+cambia la categoria di un articolo già creato.** *Non è un buco da tappare con
+una rotta: è la ragione per cui (HH) è un lavoro a sé, dopo la fusione.*
+
+### 35d) Le rotte del menu sono OTTO, non sette
+
+`ls -R app/api/staff/menu/`: `allergens`, `availability`, `create`, `options`,
+`product`, `product-options`, `visibility`, **più `route.js` nella radice** —
+`/api/staff/menu`, quella che il pannello usa per leggere l'elenco.
+
+⚠️ **Sette delle otto hanno un chiamante nel pannello. `product-options` è
+l'unica che nessuno chiama**: cuore e rotta esistono dal 13/08 e nessun pezzo di
+interfaccia li conosce. *Confermato con una ricerca che, sullo stesso metodo,
+trova la chiamata a `create` alla riga 1791 — e allargata agli URL composti a
+pezzi, che nel menu non ce ne sono.*
+
+⚠️ **DA VERIFICARE, non concluso**: questo documento e la spec parlano in più
+punti delle *"sette rotte del pannello"* a proposito dello store non verificato.
+Sotto `menu/` ne risultano **otto**. *Può darsi che il conteggio a sette
+escludesse di proposito la rotta in radice, che è di sola lettura e non riceve
+nessun id di articolo — ma **non l'ho verificato**, e va guardato il giorno in
+cui si chiude lo store.*
+
+### 35e) ✅ La conferma sul prezzo esiste già ed è il modello di (FF)
+
+In `ProductEditForm`: `confirmingPrice` acceso da `priceChanged`, che è una
+**disuguaglianza** — quindi scatta **in aumento come in diminuzione**. Non è una
+finestra: la fila dei pulsanti **si sostituisce** con un riquadro arancione che
+mostra i **due prezzi in chiaro**, vecchio e nuovo, e i pulsanti *Conferma e
+salva* / *Annulla*. Finché si conferma, **"Salva" non esiste**. Il primo gesto
+accende soltanto il riquadro. Si spegne da solo anche se il salvataggio
+fallisce. *(FF) si copia da qui: non c'è niente da inventare.*
+
+### 35f) Quattro lezioni
+
+**dk. ⚠️ UNA CONTROPROVA PUÒ PASSARE PER IL MOTIVO SBAGLIATO.** La ricerca sugli
+allergeni doveva trovare la rotta di creazione per dimostrare di non essere
+cieca, e **l'ha trovata — dentro un commento**. La rotta scrive gli allergeni
+**delegando**, senza mai nominarli. *Una rotta che li scrivesse delegando e
+senza quel commento sarebbe sfuggita. Il rinforzo che ha funzionato: cercare
+chi scrive sulla **tabella**, dove la logica vive davvero.*
+
+**dl. UN ELENCO SI GUARDA, NON SI INTERROGA.** Le rotte del menu sono otto
+perché sono state **elencate** con `ls -R`. ⚠️ *Una ricerca per nome trova solo
+ciò che il nome indovina: la rotta in radice non si chiama come le altre e
+sarebbe sfuggita.* È la stessa forma della lezione già scritta al punto 33.
+
+**dm. ⚠️ UN CONTROLLO SCRITTO ALLA LETTERA CHIEDE LA COSA SBAGLIATA.** Due volte
+in due giorni un controllo è stato formulato come *"la parola X non compare da
+nessuna parte"* mentre intendeva *"non esiste una dichiarazione autonoma di X"*,
+e Code si è dovuto fermare a chiedere. *Il rimedio: chiedere la **forma esatta**
+da cercare — per esempio le righe che cominciano con `**Versione `, non la
+parola `Versione`.*
+
+**dn. UN NUMERO ATTESO DAL DIFF DIPENDE DALL'ALGORITMO.** Il conto annunciato era
+118/30, git ne ha dati 119/31. ⚠️ *Non era il file: l'algoritmo predefinito
+(Myers) contava una **riga vuota** come tolta+aggiunta invece di riconoscerla
+come contesto. Con `--patience`, `--histogram` o `--minimal` il conto tornava
+esatto.* **Un divario di una riga per parte, con contenuto identico, è quasi
+sempre questo — ma va verificato, non supposto.**
+
+### 35g) Cosa resta aperto — aggiorna il punto 34f
+
+* ⚠️ **LA SCHERMATA UNICA**: si comincia dal **passo 1** dei sette in spec
+  §63-64 — la scheda che crea, con la sonda dei ventuno campi che **deve restare
+  verde senza che nessuno tocchi l'elenco**.
+* ⚠️ **La rete sul conteggio in 30 suite su 33.**
+* **Lo store** non verificato, e con esso il conteggio a sette o otto rotte.
+* **Le CATEGORIE**, discusse il 12/08 e non aperte. *Da non confondere con (HH),
+  che è il cambio di categoria di un singolo articolo.*
+* ⚠️ *Una sigla scomoda ma non sbagliata:* **(HH)**. Nella forma con le parentesi
+  non collide con niente, ma `HH` senza parentesi compare 8 volte nella spec come
+  **formato dell'ora** (`HH:MM`). *Chi cercasse `HH` troverebbe gli orari di
+  apertura. Lasciata così perché nella forma usata è univoca: da cambiare solo
+  se un giorno dà davvero fastidio.*
