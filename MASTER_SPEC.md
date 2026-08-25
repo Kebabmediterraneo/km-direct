@@ -1,6 +1,6 @@
 # KM DIRECT — MASTER SPECIFICATION
 
-**Versione 74** — sostituisce la v73.
+**Versione 75** — sostituisce la v74.
 
 Documento di riferimento definitivo per lo sviluppo. Le decisioni qui
 contenute sono approvate: non vanno reinterpretate senza un motivo concreto
@@ -22,41 +22,37 @@ versione corrente**. I precedenti vivono in `git log`, che è fatto per quello.
 del documento prima che cominciasse a parlare del progetto — e dentro c'erano
 istruzioni rovesciate che nessuno rileggeva.*
 
-**Novità della v74** (vincolanti, dal lavoro del 24/08/2026):
+**Novità della v75** (vincolanti, dalle decisioni di Andrea del 25/08/2026):
 
-1. §63-64 — ⚠️⚠️ **ACCERTATO: DEI VENTUNO CAMPI CHE IL MODULO DI CREAZIONE
-   MANDA, DODICI IL SERVER LI ACCETTA IN SILENZIO.** Se smettessero di partire,
-   la creazione risponderebbe lo stesso e l'articolo nascerebbe con un valore di
-   ripiego che nessuno ha deciso. *Letto sul codice il 24/08, non supposto.*
-2. §63-64 — ✅ **UNA SONDA FISSA QUELL'ELENCO, ED È CHIUSA NELLE DUE
-   DIREZIONI**: diventa rossa se un campo sparisce e anche se ne compare uno
-   nuovo. Costruita **prima** di fondere modifica e creazione, perché è la
-   fusione a metterli in pericolo. Prove da 1599 a **1611**, suite **ferme a
-   33**: estesa una suite esistente, non creato un file.
-3. §63-64 — ⚠️ **CORRETTA UNA FRASE DELLA v72** su `extra_dose_included` e
-   `max_quantity`: dire che *"non sono lette da nessuna riga di codice"* è
-   troppo largo. La **creazione le legge, le valida e le scrive**; sono i
-   **consumatori a valle** a non esistere ancora. *Due affermazioni diverse, e
-   la seconda non implica la prima.*
-4. §63-64 — ⚠️ **LA FUSIONE DELLA SCHERMATA NON È STATA COMINCIATA, ED È UNA
-   SCELTA**: prima la rete, poi il lavoro rischioso. *Il rischio non è la
-   modifica: è la **creazione**, che funziona e che Andrea ha provato dal vivo
-   il 12/08.*
-5. §63-64 — registrato che **`removals` e `accompaniments` viaggiano interi**:
-   la forma delle loro righe vive **fuori** dal blocco che compone il corpo,
-   quindi la sonda non li protegge. *Non è urgente — il server pretende
-   `label` e `contains_gluten` e rifiuterebbe a voce alta — ma è un buco della
-   sonda, scritto qui perché non si scopra il giorno che serve.*
+1. §63-64 — ✅ **REGISTRATA LA SIGLA (BB)**, la schermata unica. *Fino alla v74
+   la decisione era scritta ma la lettera no: chi avesse cercato "BB" in questo
+   documento non avrebbe trovato niente.*
+2. §63-64 — **(EE) BEVANDE E SALSE STANNO DENTRO la schermata unica.** Una
+   scheda sola per tutto ciò che è a menu; sono i pezzi dentro a comparire o no
+   secondo la categoria.
+3. §63-64 — **(FF) La conferma sul SOVRAPPREZZO compare a OGNI salvataggio che
+   lo cambia**, in aumento come in diminuzione. *Identica alla conferma sul
+   prezzo, che si comporta già così.*
+4. §63-64 — **(HH) LA CATEGORIA SI CAMBIA**, ma ⚠️ **dopo la fusione, non
+   dentro**: per cambiare categoria bisogna poter cambiare le opzioni nello
+   stesso gesto, e solo la schermata unica saprà farlo.
+5. §63-64 — **(KK) UN SALVA SOLO, che chiama in fila SOLO le rotte dei pezzi
+   toccati.** I venti campi stanno dietro **tre** rotte diverse.
+6. §63-64 — ✅ **ACCERTATO CHE GLI ALLERGENI SI CORREGGONO GIÀ**, da una scheda
+   separata. *Il sospetto che non fossero modificabili era una deduzione
+   dall'assenza, ed era sbagliata.*
+7. §63-64 — ⚠️ **ACCERTATO CHE LA CATEGORIA DI UN ARTICOLO ESISTENTE NON È
+   MODIFICABILE DA NESSUN PERCORSO DEL CODICE.** Non è una rotta che manca:
+   non esiste proprio.
+8. §63-64 — ✅ **fissato l'ORDINE DI COSTRUZIONE in sette passi**, ognuno dei
+   quali finisce con qualcosa che Andrea può provare dal vivo.
 
 *Il conteggio delle condizioni di apertura non cambia: **quattro chiuse, cinque
 aperte**. Il lavoro pre-go-live che resta è il **viewport**, le tre verifiche
 registrate in v63 e le **tre voci di §6c**.*
 
-⚠️ *Fuori dall'elenco perché non è una condizione di apertura: della **modifica
-delle opzioni** chiesta da Andrea il 12/08 restano **la schermata** e la
-**conferma esplicita sul sovrapprezzo della proteina**, che si realizza insieme
-a lei. Cuore e rotta sono fatti il 13/08 — e ⚠️ **nessuno li ha ancora chiamati
-dal vivo**: la prima chiamata vera sarà con la schermata.*
+⚠️ *Nessuna riga di codice è stata scritta il 25/08: la giornata è di decisioni
+e di ricognizione. **Spec prima del codice.***
 
 ## 1. Visione del progetto
 
@@ -3780,6 +3776,98 @@ un problema finché il negozio è uno solo. Il giorno del secondo va chiuso **pe
 tutte e sette insieme**: chiuderlo in un punto solo lascerebbe le altre sei
 porte aperte e darebbe l'impressione che il problema sia risolto. Due prove
 fissano lo stato accertato e diventano rosse se qualcuno lo chiude a metà.*
+
+### ✅ LA SCHERMATA UNICA — le decisioni di Andrea del 25/08/2026 (v75)
+
+**(BB) UNA SOLA SCHEDA, PRECOMPILATA, PER CREARE E PER MODIFICARE.** *Decisione
+di Andrea del 13/08/2026, registrata con la sua lettera solo qui in v75: fino
+alla v74 la decisione era scritta e la sigla no.* Oggi il pannello ha due schede
+diverse — una che crea e non corregge, una che corregge sei campi su ventuno.
+
+⚠️ **IL RISCHIO DI QUESTO LAVORO NON È LA MODIFICA: È LA CREAZIONE**, che
+funziona e che Andrea ha provato dal vivo il 12/08. *Il modo in cui si rompe non
+è un errore che si vede: è un campo che smette di partire. La rete che lo
+segnala è la sonda del blocco qui sotto, costruita apposta il 24/08.*
+
+**(EE) BEVANDE E SALSE STANNO DENTRO.** Una scheda sola per tutto ciò che è a
+menu; sono i **pezzi dentro** a comparire o no secondo la categoria, com'era già
+la decisione **(b)** sui gruppi. ⚠️ *Sulle bevande il pezzo degli allergeni deve
+sparire davvero, non essere solo nascosto: §67 le esenta, e il cuore rifiuta in
+blocco quelle categorie — una birra creata con allergeni non sarebbe più
+modificabile da nessuna schermata.*
+
+**(FF) LA CONFERMA SUL SOVRAPPREZZO DI UNA PROTEINA COMPARE A OGNI SALVATAGGIO
+CHE LO CAMBIA**, in aumento **come in diminuzione**. ⚠️ *"Solo se lo alzi" era
+la strada peggiore: abbassare un sovrapprezzo per sbaglio non fa arrabbiare
+nessun cliente e non si segnala da solo — si incassa meno su ogni pezzo venduto
+e non se ne accorge nessuno.*
+
+**Il modello esiste già e si copia, non si inventa** (accertato il 25/08 in
+`ProductEditForm`): la conferma sul prezzo **non è una finestra sopra la
+pagina** — la fila dei pulsanti **si sostituisce** con un riquadro che mostra i
+**due valori in chiaro**, il vecchio e il nuovo, e i pulsanti *Conferma e salva*
+e *Annulla*. Finché si sta confermando, **"Salva" non esiste**. Il primo gesto
+accende soltanto il riquadro; il salvataggio parte al secondo. E scatta a ogni
+cambio perché la condizione è una **disuguaglianza**, non un confronto di
+maggiore.
+
+**(HH) LA CATEGORIA DI UN ARTICOLO ESISTENTE SI PUÒ CAMBIARE** — ⚠️ **ma è un
+lavoro a sé, DOPO la fusione, e non un pezzo della fusione.** *Accertato il
+25/08: oggi **nessun percorso del codice** cambia la categoria di un articolo
+già creato. Non è una rotta che manca, non esiste proprio.*
+
+⚠️ *La ragione dell'ordine è tecnica, non di prudenza: cambiare categoria non è
+cambiare un campo, è rimettere in discussione metà dell'articolo — un Roll che
+diventa Bowl deve **di colpo avere degli accompagnamenti**, che il server
+pretende sulle Bowl e rifiuta sulle altre. Serve quindi poter modificare le
+opzioni nello stesso gesto, e l'unica schermata che saprà farlo è proprio quella
+da fondere.*
+
+**(KK) UN SALVA SOLO, CHE CHIAMA IN FILA SOLO LE ROTTE DEI PEZZI TOCCATI.** I
+venti campi non stanno dietro una rotta sola:
+
+* **sei scalari** — `name`, `description`, `base_price`, `badge`, `sort_order`,
+  `spice_level` — dietro `/api/staff/menu/product`;
+* **tre** — allergeni, `noAllergens`, `dietary` — dietro
+  `/api/staff/menu/allergens`;
+* **undici**, tutto il mondo delle opzioni, dietro
+  `/api/staff/menu/product-options`.
+
+Se non hai toccato le opzioni, quella rotta **non viene chiamata affatto**. Se
+una fallisce, la scheda dice **cosa è passato e cosa no**. ⚠️ *Il rischio che
+questa strada accetta è un articolo salvato a metà. È stato scelto lo stesso
+perché non aggiunge codice nuovo sul percorso della modifica mentre si sta già
+toccando la creazione, e perché il pezzo peggiore è coperto: la rotta delle
+opzioni ha già **lo scudo (WW)** — se si rompe a metà l'articolo **resta fuori
+dal menu**, visibile nel pannello e irraggiungibile dai clienti. Un guasto
+visibile, non silenzioso.*
+
+#### ⚠️ L'ORDINE DI COSTRUZIONE, VINCOLANTE — sette passi
+
+*La regola con cui è ordinato: **ogni passo finisce con qualcosa che Andrea può
+provare dal vivo**, e il pezzo più rischioso arriva quando l'impalcatura attorno
+è già provata.*
+
+1. **La scheda unica esiste e CREA**, identica a oggi, ancora senza articolo
+   esistente. ⚠️ **LA SONDA DEI VENTUNO CAMPI DEVE RESTARE VERDE SENZA CHE
+   NESSUNO TOCCHI L'ELENCO.** *Se diventasse rossa qui non si aggiorna l'elenco:
+   ci si ferma — vorrebbe dire che la scheda manda già qualcosa di diverso
+   mentre dovrebbe fare esattamente ciò che faceva prima. È il collaudo della
+   rete.*
+2. **La scheda si apre PRECOMPILATA su un articolo esistente** e salva i sei
+   scalari, come fa oggi la scheda di modifica.
+3. **Gli allergeni entrano nella stessa scheda**, chiamando la rotta che esiste
+   già.
+4. ⚠️ **Le OPZIONI entrano nella scheda.** *È la prima volta che
+   `/api/staff/menu/product-options` viene chiamata dal vivo: la rotta esiste
+   dal 13/08 e **nessuna interfaccia la conosce** — verificato il 25/08, è
+   l'unica delle otto rotte del menu senza chiamanti.* **È il pezzo pericoloso,
+   ed è quart'ultimo apposta.**
+5. **La conferma sul sovrapprezzo (FF)**, copiata dal modello del prezzo.
+6. **La vecchia scheda di modifica sparisce.** ⚠️ **NON PRIMA**: finché non
+   sparisce resta sempre una strada che funziona.
+7. **Il cambio di categoria (HH)**, lavoro a sé, sopra una schermata già in
+   piedi e provata dal vivo.
 
 ### ✅ La RETE PRIMA DELLA FUSIONE — i ventuno campi del corpo di creazione (v74, 24/08/2026)
 
