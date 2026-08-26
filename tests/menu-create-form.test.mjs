@@ -170,9 +170,47 @@ function fakeDb({ righe = [], errore = null } = {}) {
 // strada che fa rifiutare al pagamento i carrelli già composti.
 // ---------------------------------------------------------------------------
 {
+  // -------------------------------------------------------------------------
+  // ⚠️⚠️ d1) SOSTITUISCE LA SONDA CHE C'ERA (26/08/2026, passo 4a).
+  //
+  // Prima diceva: *il pannello non nomina mai `product_removals`*. Il passo 4a
+  // l'ha fatta diventare rossa — ma **la decisione DD non è stata violata**: la
+  // risposta del lettore (`lib/menu-options-reader.js`) è chiavata sui nomi
+  // delle quattro tabelle, e la scheda quel nome lo scrive **per leggere una
+  // chiave di quella risposta**, non per scrivere in database.
+  //
+  // *Ciò che si era rotto non era la regola: era il SEGNALE. "La parola non
+  // compare" è più largo di "non si rinomina", e il giorno che il primo ha
+  // gridato la seconda era intatta.* La regola vera — il pannello non tocca il
+  // database, tutto passa dalle rotte — si può sorvegliare per quello che è, e
+  // questa sonda fa quello.
+  //
+  // ⚠️ **La decisione DD resta sorvegliata da d2 e d3**, che non sono cambiate:
+  // nessuna rotta o funzione di rinomina, e le righe si aggiungono e si tolgono.
+  //
+  // ⚠️ LA `delete` VA DISTINTA, e il discriminante è il numero di argomenti:
+  // quella del database si chiama **senza** (`.delete().eq("product_id", id)`,
+  // `lib/menu-options-editor.js`), quelle di `Set` e `Map` **sempre con uno**
+  // (`next.delete(id)`, `next.delete(key)`, che nel pannello ci sono già). Una
+  // sonda che non le distinguesse sarebbe rossa da sempre, cioè muta.
+  //
+  // ⚠️ E `Array.from(` non è il database: si toglie dal testo prima di cercare,
+  // così il giorno che qualcuno lo usa la sonda non grida per niente.
+  // -------------------------------------------------------------------------
+  const SCRITTURE_VIETATE = [
+    [/\.from\(/, ".from( — l'ingresso del client database"],
+    [/\.insert\(/, ".insert("],
+    [/\.update\(/, ".update("],
+    [/\.upsert\(/, ".upsert("],
+    [/\.delete\(\s*\)/, ".delete() senza argomenti — quella del database"],
+  ];
+  const senzaArrayFrom = codicePannello.split("Array.from(").join("Array·from(");
+  const trovate = SCRITTURE_VIETATE.filter(([re]) => re.test(senzaArrayFrom)).map(([, nome]) => nome);
   assert(
-    !/product_removals/.test(codicePannello),
-    "d1) ⚠️ il pannello non nomina mai la tabella delle rimozioni: non la scrive e non la aggiorna"
+    trovate.length === 0,
+    `d1) ⚠️⚠️ IL PANNELLO NON FA NESSUNA OPERAZIONE SUL DATABASE: ogni scrittura passa da una rotta, che verifica la sessione e valida (§66). Trovate: ${
+      trovate.join(", ") || "nessuna"
+    }`
   );
   assert(
     !/menu\/removals|rename|rinomina/i.test(codicePannello),
@@ -184,6 +222,50 @@ function fakeDb({ righe = [], errore = null } = {}) {
     /const aggiungi = \(setter, vuoto\)/.test(codicePannello) &&
       /const togli = \(setter\)/.test(codicePannello),
     "d3) le righe si aggiungono e si tolgono, che è ciò che la decisione DD permette"
+  );
+
+  // -------------------------------------------------------------------------
+  // ⚠️ CONTROPROVE DI d1, NEI DUE VERSI. Senza, avremmo sostituito una sonda
+  // che funzionava con una che non può fallire.
+  // La sporcatura si fa sulla COPIA IN MEMORIA del testo, come in eb8 e in et13:
+  // il pannello non si tocca.
+  // -------------------------------------------------------------------------
+  const cerca = (testo) =>
+    SCRITTURE_VIETATE.filter(([re]) => re.test(testo.split("Array.from(").join("Array·from("))).map(
+      ([, nome]) => nome
+    );
+
+  // 1) SA GRIDARE? Si innesta una scrittura VERA, presa da `lib/menu-create.js`.
+  const rigaInsert = /^[ \t]*const \{ error: errAllergeni \} = await db\.from\("product_allergens"\)\.insert\(righeAllergeni\);[ \t]*$/m.exec(
+    leggi("lib", "menu-create.js")
+  );
+  assert(
+    rigaInsert !== null,
+    "d4) la riga di scrittura di `lib/menu-create.js` esiste (è il materiale della controprova)"
+  );
+  const pannelloSporcato = rigaInsert ? `${codicePannello}\n${rigaInsert[0]}` : codicePannello;
+  assert(
+    cerca(codicePannello).length === 0 && cerca(pannelloSporcato).length > 0,
+    `d5) ⚠️ CONTROPROVA: innestando nel testo del pannello una scrittura vera presa dalla creazione, d1 la VEDE (${
+      cerca(pannelloSporcato).join(", ") || "niente"
+    }) — quindi quando dice «nessuna» sta guardando`
+  );
+
+  // 2) SA TACERE? `next.delete(id)` è un `Set`, non il database, e non deve
+  //    farla diventare rossa. La riga si prende dal pannello, dov'è già scritta.
+  const rigaSet = /^[ \t]*if \(next\.has\(id\)\) next\.delete\(id\);[ \t]*$/m.exec(codicePannello);
+  assert(rigaSet !== null, "d6) la riga `next.delete(id)` esiste nel pannello (è il materiale della controprova)");
+  assert(
+    rigaSet !== null && cerca(rigaSet[0]).length === 0,
+    "d7) ⚠️ CONTROPROVA ALL'ALTRO VERSO: una `delete` di Set con un argomento NON fa gridare d1 — una sonda che gridasse sempre sarebbe muta"
+  );
+
+  // 3) E la `delete` del database, quella senza argomenti, la vede? Riga presa
+  //    da `lib/menu-options-editor.js`, dove la cancellazione è vera.
+  const rigaDeleteVera = /\.delete\(\)\.eq\("product_id", id\)/.exec(leggi("lib", "menu-options-editor.js"));
+  assert(
+    rigaDeleteVera !== null && cerca(rigaDeleteVera[0]).length > 0,
+    "d8) ⚠️ CONTROPROVA: la `delete()` senza argomenti del cuore che salva, quella sì, d1 la trova — il discriminante è il numero di argomenti, non la parola"
   );
 }
 
