@@ -23,10 +23,20 @@ nessuno se ne ricorda.*
 ## 2) Stato git
 
 - Branch **`main`**, working tree **pulita**, allineata a `origin/main`.
-- HEAD: **`3ac16f6`** — la spec v75 (25/08/2026).
+- HEAD: **`905c4a0`** — la spec v76 (26/08/2026).
 - Ultimi commit (dal più recente):
 
 ```
+905c4a0 docs: v76 — i passi 1, 2, 3 e 4a fatti e provati dal vivo, la ragione grave per cui il passo 4 e' spezzato in due, e la decisione LL sulla rotta che legge le opzioni
+b22f23e pannello: la scheda mostra le opzioni che l'articolo ha gia', lette dalla rotta nuova, spente e coi tre esiti tenuti distinti a schermo
+18388db prove: d1 smette di vietare una parola e sorveglia la regola vera, che il pannello non tocchi il database, con le controprove nei due versi
+719cdbb prove: il cuore che legge le opzioni, con la controprova che un guasto di lettura non diventa quattro liste vuote
+6c29d4f menu: il cuore e la rotta che leggono le opzioni di un articolo, con la lettura tolta dal cuore che salva e messa in un posto solo
+8d3e79c prove: la seconda rete, sugli undici campi che il corpo della modifica manda oggi, con l'assert che sorveglia il confine fra i due ritagli
+07b0960 pannello: la scheda unica salva anche gli allergeni, chiamando quella rotta solo se sono stati toccati e spegnendo il salva quando manca il tipo dietetico
+ac75ab5 pannello: la scheda unica si apre precompilata su un articolo e ne salva i sei scalari, coi pezzi non ancora salvabili spenti e detti
+922024e pannello: la scheda che crea prende il nome del suo ruolo nuovo, ProductForm con onSaved, primo dei sette passi verso la scheda unica
+eff8c82 handoff: stato al 25/08 — la giornata delle decisioni, la scheda di modifica che sa sei campi su ventuno e le otto rotte del menu di cui una senza chiamanti
 3ac16f6 docs: v75 — la schermata unica con le quattro decisioni nuove, l'ordine di costruzione in sette passi e il salva che chiama solo le rotte dei pezzi toccati
 d04a270 handoff: stato al 24/08 — la rete prima della fusione, i dodici campi che il server accetta in silenzio e la schermata lasciata da cominciare da fresca
 adbd155 docs: v74 — la rete prima della fusione, coi dodici campi che il server accetta in silenzio e la frase della v72 corretta perche' era troppo larga
@@ -110,6 +120,11 @@ spec — la regola "prima la spec, poi l'handoff" la mette in mezzo per
 costruzione. *Rilevato da Code il 05/08 confrontando `git log` con questo
 blocco: l'HEAD dichiarato era giusto, era la spiegazione a non coprire il caso
 normale della coppia spec+handoff.*
+
+*Caso del 26/08/2026: distanza **uno**, ma ⚠️ **la giornata porta OTTO commit
+di codice e prove** prima della spec `905c4a0` — la più piena finora. *Il passo
+1 è del **25/08 sera**, dopo che l'handoff di quel giorno era già stato
+committato: per questo `922024e` non compare nel registro di ieri.**
 
 *Caso del 25/08/2026: distanza **uno**, e ⚠️ **zero commit di codice**: la
 giornata è di sole decisioni e ricognizione, quindi fra la spec `3ac16f6` e
@@ -713,13 +728,12 @@ non è una zona che il lavoro del giorno prevedeva di toccare (lezione `cm`).
 qualcuno va a leggere quante prove ci sono, quindi un numero vecchio qui mente
 con l'autorità del documento (lezione `aj`).*
 
-**Trentatre suite** in `tests/` e **1611 prove**, verdi al **24/08/2026**, letti
-dall'esecuzione e non contati a mano. *Il 24/08 le prove sono passate da 1599 a
-1611 e le suite **non** si sono mosse: la sonda nuova è stata messa dentro una
-suite esistente invece che in un file suo. **Suite ferme non vuol dire lavoro
-fermo**, ed è il caso opposto a quello dell'11/08 qui sopra — allora il numero
-era vecchio, stavolta è giusto proprio perché non è cambiato.* Tutte con
-estensione **`.mjs`** e non `.js`,
+**Trentaquattro suite** in `tests/` e **1658 prove**, verdi al **26/08/2026**,
+letti dall'esecuzione e non contati a mano. *Il 26/08 le suite si sono mosse da
+33 a 34, ed **era voluto**: la suite nuova è quella del lettore delle opzioni,
+che è un modulo nuovo. Le due sonde dei campi invece stanno **dentro suite
+esistenti**, e infatti non avevano mosso il conteggio.* Tutte con estensione
+**`.mjs`** e non `.js`,
 perché vanno eseguite da Node fuori da Next. In `package.json` **non esiste uno
 script `test`**: si lanciano una per una con `node tests/<nome>.test.mjs`, o
 tutte con
@@ -3100,3 +3114,158 @@ sempre questo — ma va verificato, non supposto.**
   **formato dell'ora** (`HH:MM`). *Chi cercasse `HH` troverebbe gli orari di
   apertura. Lasciata così perché nella forma usata è univoca: da cambiare solo
   se un giorno dà davvero fastidio.*
+
+---
+
+## 36) La fusione cammina: quattro passi in un giorno, e un guasto evitato (25/08 sera – 26/08/2026)
+
+**Otto commit di codice e prove**, più la spec v76 (`905c4a0`). Suite da 33 a
+**34**, prove da 1611 a **1658**. ⚠️ **Il passo 4b — il salvataggio delle
+opzioni — NON è stato cominciato, ed è una scelta.**
+
+*Le decisioni stanno in spec §63-64 e **non si ricostruiscono da qui**. Questo
+punto porta ciò che la costruzione ha insegnato e che le decisioni non
+sapevano.*
+
+### 36a) ✅ Le prove dal vivo di Andrea — nessuna prova automatica può darle
+
+*Le suite leggono il pannello **come testo** e non aprono nessun browser. Senza
+queste righe i referti direbbero «nessuno l'ha visto».*
+
+* **25/08 sera, passo 1**: la scheda rinominata crea un Roll completo. *Il
+  collaudo della rete è passato: la sonda dei ventuno campi è rimasta verde
+  **da sola**, senza che nessuno toccasse l'elenco.*
+* **26/08, passo 2**: la scheda si apre piena su `Roll prova`, il nome si salva,
+  e ⚠️ **la conferma sul prezzo compare in aumento COME IN DIMINUZIONE** — è
+  (FF) verificata da una persona, non dedotta dalla disuguaglianza nel codice.
+* **26/08, passo 3**: allergeni salvati; su **Tzatziki** senza tipo dietetico il
+  Salva si spegne toccando gli allergeni e **non** si spegne cambiando solo il
+  prezzo; il blocco c'è sulle **salse** e non c'è sulle **birre**.
+* **26/08, passo 4a**: le opzioni compaiono, e ⚠️ **Andrea le ha verificate
+  anche su un Roll VERO del menu**, non solo su quelli di prova. *È il controllo
+  che contava: i Roll veri esistono da mesi e sono stati scritti in altri modi.*
+* ✅ **Chiusa una voce aperta che non era di codice**: Yogurt e Tzatziki hanno
+  ora il tipo dietetico, compilato da Andrea dal pannello.
+
+⚠️ *Curiosità utile: il caso provato al passo 3 — il Salva spento perché manca
+il tipo dietetico — **non esiste più**, perché Andrea ha poi compilato quei due
+flag. La protezione resta per gli articoli futuri, e sappiamo che funziona
+perché è stata vista mentre il caso c'era ancora.*
+
+### 36b) ⚠️⚠️ IL GUASTO EVITATO, ed è la cosa più importante della giornata
+
+**Il cuore delle opzioni non aggiusta: SOSTITUISCE.** Un gruppo assente nel
+corpo vale come **gruppo vuoto**, quindi diverso dal "prima", quindi quella
+tabella viene **cancellata e riscritta**.
+
+⚠️ **Se il passo 4 fosse stato fatto tutto insieme, una scheda che non sapeva
+quali rimozioni ed extra ha l'articolo glieli avrebbe AZZERATI.** Proteine e
+accompagnamenti sono protetti da un rifiuto rumoroso; **rimozioni ed extra no:
+sparirebbero in silenzio, con un 200 in risposta.**
+
+*Non è stato trovato provando: è stato trovato **leggendo il cuore prima di
+scrivere la scheda**. Ed è la ragione per cui il 4a — far vedere le opzioni —
+non è un abbellimento ma la condizione perché il 4b non distrugga dati.*
+
+### 36c) Il lettore, e la lettura in un posto solo
+
+⚠️ **Nessuna rotta dello staff sapeva dire quali opzioni ha un articolo.**
+L'elenco del menu porta gli allergeni ma non le opzioni; la rotta che si chiama
+`options` è **un'altra cosa** — i due cataloghi piatti di tutto il menu, senza
+nessun `product_id`. *Il nome somigliava, la cosa era diversa: da qui la regola
+di non dedurre mai cosa fa una rotta dal suo nome.*
+
+`GET /api/staff/menu/product-options/[id]` + `lib/menu-options-reader.js`.
+⚠️ **La lettura è stata TOLTA dal cuore che salva e messa nel lettore**, che il
+primo ora importa: *due letture delle stesse tabelle possono divergere, e il
+giorno che divergono la scheda mostra una cosa e il salvataggio ne scrive
+un'altra.*
+
+⚠️ **E i nomi delle colonne NON coincidono con quelli che il modulo a schermo
+usa**: `choice_key` contro la chiave della Map, `price_delta` numerico contro
+stringa, `requires_protein` **null** contro stringa vuota, il titolo che in
+database sta **su ogni riga** e a schermo è **uno solo**. La conversione sta in
+**un punto solo**, e ⚠️ *il lettore fa la `select` **senza `.order()`**: senza
+riordinare per `sort_order` le proteine sarebbero comparse alla rinfusa.*
+
+### 36d) Le due reti, e il buco che ne è uscito
+
+* **Ventuno campi** in creazione (`eb`, 24/08) — **undici** in modifica (`et`,
+  26/08). *Prima del 26/08 il corpo della modifica non lo guardava nessuno: sei
+  campi al passo 2, undici al passo 3, tutti al passo 4b.*
+* ⚠️ **Un assert sorveglia il confine fra i due ritagli**, e nasce da un difetto
+  della prima rete che nessuno aveva visto: *il ritaglio della creazione tiene
+  solo perché la funzione della modifica sta **sopra**. Spostandola sotto, o
+  dichiarandovi dentro un `payload`, i due elenchi si guarderebbero a vicenda i
+  campi e la sonda diventerebbe rossa per il motivo sbagliato.*
+
+### 36e) `d1` riscritta con intenzione
+
+Da *«il pannello non nomina `product_removals`»* a **«il pannello non fa nessuna
+operazione sul database»**. Il 4a ha dovuto nominare quella tabella **per
+leggere una chiave della risposta**, non per scrivere.
+
+⚠️ **La decisione (DD) è viva e resta sorvegliata da `d2` e `d3`**: ciò che si è
+rotto era il **segnale**, più largo della regola. *La sonda nuova è più severa,
+non più permissiva.* E distingue la `delete()` del database da `next.delete(id)`
+**dalla forma della chiamata** — senza argomenti contro con argomenti — non da
+una lista di eccezioni da tenere aggiornata.
+
+### 36f) Cinque lezioni
+
+**do. ⚠️ UNA PROVA CHE SI AGGIUSTA NON È UNA PROVA — MA UNA CHE SI RESTRINGE
+CON INTENZIONE SÌ.** `d1` è stata riscritta, non rilassata: prima vietava una
+parola, ora vieta qualunque scrittura. *Il discrimine è che la **regola** non è
+cambiata, è cambiato il **segnale** che la sorvegliava. E la decisione l'ha
+presa chi ragiona, non chi scrive: Code si è fermato e ha chiesto.*
+
+**dp. ⚠️ UNA SONDA CHE LEGGE IL FILE VERO PUÒ NON POTER FALLIRE.** L'assert sul
+confine fra i due ritagli legge il pannello, dove l'intrusione non c'è, e per
+farla accadere si sarebbe dovuto spostare codice — che era vietato. *Rimedio:
+simulare l'intrusione **incollando il blocco vero della modifica dentro il
+blocco vero della creazione**, in memoria. Senza, era un assert che non poteva
+diventare rosso, cioè niente.*
+
+**dq. ⚠️ UN DIFETTO PUÒ LASCIARE VERDE TUTTA LA BATTERIA ESISTENTE.** Installato
+di proposito il difetto "un guasto di lettura diventa lista vuota", la suite del
+cuore che salva è rimasta **verde, 51 su 51**. *È la misura di cosa mancava: non
+«le prove passano», ma «quali difetti le prove sanno vedere».*
+
+**dr. ⚠️ LE SONDE DI SISTEMA MENTONO, E SEMPRE ALLO STESSO MODO.** Tre volte in
+due giorni: `ps` che conta **la riga del proprio comando** perché la parola
+cercata era nel testo stampato; `head -n -2` che **su macOS non esiste** e
+produce un blocco vuoto invece di un errore; `diff` e `grep -c` che **escono
+con codice 1** trovando qualcosa, troncando la catena `&&` — così un lavoro
+sembrava fatto e non lo era. *Famiglia unica: **il silenzio che sembra
+successo**.*
+
+**ds. UN NUMERO DI RIGHE ATTESO DAL DIFF VA CHIESTO CON `--patience`.**
+Confermato due volte: l'algoritmo predefinito conta **una riga vuota** come
+tolta+aggiunta. *Il divario è sempre di uno per parte, e il contenuto è
+identico — ma va verificato, non supposto.*
+
+### 36g) Cosa resta aperto — aggiorna il punto 35g
+
+* ⚠️⚠️ **IL PASSO 4b: SALVARE LE OPZIONI.** *È il pezzo pericoloso — quello che
+  sbagliato cancella rimozioni ed extra in silenzio — e sarà la **prima
+  chiamata dal vivo** a `POST product-options`, che nessuno ha mai chiamato.*
+  **VA APERTO DA FRESCO, COME PRIMO LAVORO DI UNA SESSIONE.**
+  ⚠️ *Due asimmetrie già accertate e da tenere presenti: il corpo della modifica
+  è **piatto** dove quello della creazione è annidato sotto `options`, e il
+  titolo delle proteine lì è **un campo a sé** (`choiceLabel`) mentre in
+  creazione viaggia **ripetuto su ogni riga**.*
+* **Poi i passi 5, 6 e 7**: la conferma sul sovrapprezzo (FF), la sparizione di
+  `ProductEditForm`, e il cambio di categoria (HH).
+* ⚠️ **TRE ARTICOLI DI PROVA DA CANCELLARE**: `Roll prova`, `Roll di prova 2`,
+  `Roll di prova 3`. *Da fare in SQL editor con la migrazione in `sql/`, e ⚠️
+  **non prima del 4b**: `Roll prova` ha le opzioni ed è il caso su cui il 4b si
+  prova. Un Roll con opzioni ha righe su **quattro tabelle** oltre a `products`
+  e agli allergeni: vanno tolte tutte, nell'ordine giusto.*
+* ⚠️ **La rete sul conteggio**: ora **30 suite su 34** non ce l'hanno.
+  ⚠️ *Il numero **non è salito** benché le suite siano una in più: la suite
+  nuova del lettore **la rete ce l'ha già**, copiata da quella del cuore che
+  salva. Misurato, non ottenuto sommando uno al numero di ieri — che è
+  l'errore commesso scrivendo questo punto la prima volta.*
+* **Lo store** non verificato, e con esso il conteggio a sette o otto rotte —
+  che con la rotta nuova del lettore sono diventate **nove**.
+* **Le CATEGORIE**, discusse il 12/08 e non aperte.
