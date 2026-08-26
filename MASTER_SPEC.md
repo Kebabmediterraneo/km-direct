@@ -1,6 +1,6 @@
 # KM DIRECT — MASTER SPECIFICATION
 
-**Versione 75** — sostituisce la v74.
+**Versione 76** — sostituisce la v75.
 
 Documento di riferimento definitivo per lo sviluppo. Le decisioni qui
 contenute sono approvate: non vanno reinterpretate senza un motivo concreto
@@ -22,37 +22,41 @@ versione corrente**. I precedenti vivono in `git log`, che è fatto per quello.
 del documento prima che cominciasse a parlare del progetto — e dentro c'erano
 istruzioni rovesciate che nessuno rileggeva.*
 
-**Novità della v75** (vincolanti, dalle decisioni di Andrea del 25/08/2026):
+**Novità della v76** (vincolanti, dal lavoro del 25/08 sera e del 26/08/2026):
 
-1. §63-64 — ✅ **REGISTRATA LA SIGLA (BB)**, la schermata unica. *Fino alla v74
-   la decisione era scritta ma la lettera no: chi avesse cercato "BB" in questo
-   documento non avrebbe trovato niente.*
-2. §63-64 — **(EE) BEVANDE E SALSE STANNO DENTRO la schermata unica.** Una
-   scheda sola per tutto ciò che è a menu; sono i pezzi dentro a comparire o no
-   secondo la categoria.
-3. §63-64 — **(FF) La conferma sul SOVRAPPREZZO compare a OGNI salvataggio che
-   lo cambia**, in aumento come in diminuzione. *Identica alla conferma sul
-   prezzo, che si comporta già così.*
-4. §63-64 — **(HH) LA CATEGORIA SI CAMBIA**, ma ⚠️ **dopo la fusione, non
-   dentro**: per cambiare categoria bisogna poter cambiare le opzioni nello
-   stesso gesto, e solo la schermata unica saprà farlo.
-5. §63-64 — **(KK) UN SALVA SOLO, che chiama in fila SOLO le rotte dei pezzi
-   toccati.** I venti campi stanno dietro **tre** rotte diverse.
-6. §63-64 — ✅ **ACCERTATO CHE GLI ALLERGENI SI CORREGGONO GIÀ**, da una scheda
-   separata. *Il sospetto che non fossero modificabili era una deduzione
-   dall'assenza, ed era sbagliata.*
-7. §63-64 — ⚠️ **ACCERTATO CHE LA CATEGORIA DI UN ARTICOLO ESISTENTE NON È
-   MODIFICABILE DA NESSUN PERCORSO DEL CODICE.** Non è una rotta che manca:
-   non esiste proprio.
-8. §63-64 — ✅ **fissato l'ORDINE DI COSTRUZIONE in sette passi**, ognuno dei
-   quali finisce con qualcosa che Andrea può provare dal vivo.
+1. §63-64 — ✅ **PASSI 1, 2 E 3 FATTI E PROVATI DAL VIVO DA ANDREA.** La scheda
+   unica si apre precompilata su un articolo esistente, ne salva i sei scalari
+   e gli allergeni, con la conferma sul prezzo che scatta **in aumento come in
+   diminuzione**.
+2. §63-64 — ✅ **IL PASSO 4 È STATO SPEZZATO IN 4a E 4b**, e non per prudenza:
+   il cuore delle opzioni **sostituisce** invece di aggiustare, e un gruppo
+   omesso vale come gruppo vuoto. ⚠️ **Salvare senza prima saper leggere
+   avrebbe cancellato rimozioni ed extra in silenzio, con un 200 in risposta.**
+3. §63-64 — **(LL) LE OPZIONI DI UN ARTICOLO SI LEGGONO DA UNA ROTTA NUOVA
+   DELLO STAFF**, non allargando l'elenco del menu. *Decisione di Andrea del
+   26/08: una rotta nuova, se si rompe, rompe solo la scheda; l'elenco del menu
+   regge il pannello intero.*
+4. §63-64 — ✅ **4a FATTO E PROVATO DAL VIVO**: la scheda mostra le opzioni che
+   l'articolo ha già, **spente**. ⚠️ Resta il **4b**, il salvataggio, che è il
+   pezzo pericoloso.
+5. §63-64 — ✅ **DUE RETI, NON UNA**: alla sonda dei ventuno campi della
+   creazione si affianca quella degli **undici** campi della modifica, più
+   l'assert che **sorveglia il confine fra i due ritagli**.
+6. §63-64 — ⚠️ **LA SONDA `d1` È STATA RISCRITTA CON INTENZIONE**: da *"il
+   pannello non nomina `product_removals`"* a **"il pannello non fa nessuna
+   operazione sul database"**. *Il segnale era più largo della regola; la
+   decisione **(DD)** resta viva e sorvegliata da `d2` e `d3`.*
+7. §63-64 — ⚠️ **ACCERTATO CHE UN GUASTO DI LETTURA NON DEVE DIVENTARE UNA
+   LISTA VUOTA**, né nel server né a schermo. *Con quel difetto installato, la
+   suite del cuore che salva restava **verde**: nessuna prova esistente lo
+   vedeva.*
 
 *Il conteggio delle condizioni di apertura non cambia: **quattro chiuse, cinque
 aperte**. Il lavoro pre-go-live che resta è il **viewport**, le tre verifiche
 registrate in v63 e le **tre voci di §6c**.*
 
-⚠️ *Nessuna riga di codice è stata scritta il 25/08: la giornata è di decisioni
-e di ricognizione. **Spec prima del codice.***
+⚠️ *Suite da 33 a **34** e prove da 1611 a **1658**. La suite nuova è quella del
+lettore: è un modulo nuovo, quindi il conteggio **doveva** muoversi.*
 
 ## 1. Visione del progetto
 
@@ -3776,6 +3780,101 @@ un problema finché il negozio è uno solo. Il giorno del secondo va chiuso **pe
 tutte e sette insieme**: chiuderlo in un punto solo lascerebbe le altre sei
 porte aperte e darebbe l'impressione che il problema sia risolto. Due prove
 fissano lo stato accertato e diventano rosse se qualcuno lo chiude a metà.*
+
+### ✅ LA FUSIONE IN CORSO — dove siamo (v76, 26/08/2026)
+
+**Passi 1, 2 e 3: FATTI E PROVATI DAL VIVO DA ANDREA.** *Le prove leggono il
+pannello come testo e non aprono nessun browser: ciò che segue lo ha visto una
+persona, ed è scritto qui perché nei referti risulterebbe «nessuno l'ha visto».*
+
+* **Passo 1** (25/08 sera) — `ProductCreateForm` è diventata **`ProductForm`**.
+  Quattro righe, quattro nomi, nessun comportamento nuovo. ⚠️ *Era il collaudo
+  della rete: la sonda dei ventuno campi è rimasta **verde da sola**, senza che
+  nessuno toccasse l'elenco. Andrea ha creato un Roll completo dal vivo.*
+* **Passo 2** (26/08) — la scheda si apre **precompilata** su un articolo
+  esistente e ne salva i **sei scalari**. La **conferma sul prezzo** è stata
+  portata dentro e provata: compare **in aumento come in diminuzione**.
+* **Passo 3** (26/08) — gli **allergeni** entrano nella scheda. ⚠️ *La rotta
+  `allergens` non viene chiamata se non sono stati toccati, e "toccati" si
+  misura **contro lo stato di partenza**: spuntare e ripensarci non chiama
+  niente. È **(KK)** applicato davvero.*
+* ⚠️ *Sulle **salse** il blocco allergeni **compare e si salva**: le salse sono
+  **cibo**, cinque su sette hanno allergeni registrati e il cuore non le
+  rifiuta. Solo `drink` e `birre` restano fuori (§67).*
+* ✅ *Chiusa una voce aperta che non era di codice: **Yogurt e Tzatziki** hanno
+  ora il tipo dietetico, compilato da Andrea dal pannello il 26/08.*
+
+#### ⚠️⚠️ IL PASSO 4 È SPEZZATO IN DUE, E LA RAGIONE È GRAVE
+
+**Accertato il 26/08 leggendo `lib/menu-options-editor.js`: il cuore delle
+opzioni non aggiusta, SOSTITUISCE.** Un gruppo assente nel corpo vale come
+**gruppo vuoto**, quindi diverso dal "prima", quindi quella tabella viene
+**cancellata e riscritta**.
+
+⚠️ *Conseguenza: una scheda che salvasse senza sapere quali rimozioni ed extra
+ha l'articolo **glieli azzererebbe**. Proteine e accompagnamenti sono protetti
+da un rifiuto rumoroso; **rimozioni ed extra no: sparirebbero in silenzio, con
+un 200 in risposta**.*
+
+**Perciò: il 4a — far VEDERE le opzioni — non è un abbellimento, è la
+condizione perché il 4b non distrugga dati.**
+
+#### (LL) Le opzioni si leggono da una rotta nuova dello staff
+
+*Decisione di Andrea del 26/08.* ⚠️ *Accertato che **nessuna rotta dello staff**
+sapeva dire quali opzioni ha un articolo: l'elenco del menu porta gli allergeni
+ma non le opzioni, e la rotta che si chiama `options` è un'altra cosa — i due
+**cataloghi piatti** di tutto il menu, senza nessun `product_id`.*
+
+Le due strade erano una rotta nuova o allargare l'elenco del menu. **Scelta la
+rotta nuova**: se si rompe, rompe **soltanto** la scheda nuova; l'elenco del
+menu **regge il pannello intero**.
+
+* `GET /api/staff/menu/product-options/[id]`, sottile, con il cuore in
+  `lib/menu-options-reader.js`.
+* ⚠️ **La lettura sta in UN POSTO SOLO**: è stata tolta dal cuore che salva e
+  messa nel lettore, che il primo ora importa. *Due letture delle stesse
+  tabelle possono divergere, e il giorno che divergono la scheda mostra una
+  cosa e il salvataggio ne scrive un'altra.*
+* ⚠️⚠️ **TRE ESITI CHE NON DEVONO ASSOMIGLIARSI**, né nel server né a schermo:
+  *nessuna opzione* → 200 con quattro liste vuote; *articolo inesistente* →
+  400 **senza nessuna lista**; *guasto di lettura* → **500, mai una lista
+  vuota**. E a schermo si aggiunge il quarto: **mentre la risposta viaggia il
+  blocco lo dice**, perché un attimo di vuoto è indistinguibile da "non ne ha".
+* ⚠️ *Con il difetto "un guasto diventa lista vuota" installato di proposito, la
+  suite del cuore che salva è rimasta **verde, 51 su 51**: nessuna prova
+  esistente lo vedeva. È la misura di cosa mancava.*
+
+**Passo 4a: fatto e provato dal vivo il 26/08** — la scheda mostra le opzioni
+che l'articolo ha già, **spente**, e Andrea le ha verificate anche su un Roll
+vero del menu, non solo su quelli di prova.
+
+⚠️ **RESTA IL 4b: il salvataggio. È il pezzo pericoloso e va aperto da fresco.**
+
+#### ✅ DUE RETI, NON UNA
+
+* **Ventuno campi** in creazione (`eb`, dal 24/08).
+* **Undici campi** in modifica (`et`, dal 26/08): sei verso `product`, cinque
+  verso `allergens`. ⚠️ *Prima non li guardava nessuno.*
+* ⚠️ **Un assert sorveglia il confine fra i due ritagli.** *Il ritaglio della
+  creazione tiene solo perché la funzione della modifica sta **sopra**: se
+  qualcuno la spostasse sotto, o vi dichiarasse dentro un `payload`, i due
+  elenchi si guarderebbero a vicenda i campi e la sonda diventerebbe rossa per
+  il motivo sbagliato.*
+
+#### ⚠️ La sonda `d1` riscritta con intenzione (26/08)
+
+Da *«il pannello non nomina `product_removals`»* a **«il pannello non fa nessuna
+operazione sul database»**. *Il 4a ha dovuto nominare quella tabella **per
+leggere una chiave della risposta**, non per scrivere — e nel pannello non
+esiste nessuna operazione sul database, misurato.*
+
+⚠️ **La decisione (DD) — si aggiunge e si toglie, non si rinomina — è viva e
+resta sorvegliata da `d2` e `d3`.** Ciò che si è rotto era il **segnale**, più
+largo della regola. *La sonda nuova è più severa, non più permissiva: vieta
+qualunque scrittura, non una parola. E distingue la `delete()` del database da
+`next.delete(id)` **dalla forma della chiamata** — senza argomenti contro con
+argomenti — non da una lista di eccezioni da tenere aggiornata.*
 
 ### ✅ LA SCHERMATA UNICA — le decisioni di Andrea del 25/08/2026 (v75)
 
