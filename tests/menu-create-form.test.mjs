@@ -410,6 +410,208 @@ function estraiCampi(blocco) {
 }
 
 // ---------------------------------------------------------------------------
+// e-ter) ⚠️⚠️ LA SECONDA RETE — I CAMPI CHE IL CORPO DELLA MODIFICA MANDA.
+//
+// Scritta il 26/08/2026, dopo i passi 2 e 3 e **prima** del passo 4. La sonda
+// qui sopra veglia il corpo della CREAZIONE; questo veglia l'altro lato della
+// stessa scheda, che fino a oggi non guardava nessuno. *Erano sei campi dopo il
+// passo 2, sono UNDICI dopo il passo 3, e col passo 4 saranno tutti.*
+//
+// ⚠️ LA FORMA È DIVERSA DA QUELLA DELLA CREAZIONE, e la sonda deve saperlo: la
+// modifica **non compone nessun `payload`**. Manda DUE corpi scritti in linea
+// dentro `JSON.stringify`, uno per rotta — i sei scalari a `product`, gli
+// allergeni ad `allergens` — e li manda **in fila nella stessa funzione**
+// (decisione KK). Cercare `const payload` qui non troverebbe niente.
+//
+// L'ANCORAGGIO SCELTO, e perché:
+// * **la funzione, per nome** (`async function salvaModifica() {`), che nel
+//   pannello compare **una volta sola**. *Le due `fetch` NON andavano bene come
+//   ancoraggio: le stesse due stringhe compaiono anche in `ProductEditForm` e in
+//   `AllergensEditForm`, e un `indexOf` avrebbe ritagliato quelle.*
+// * **la fine**, la prima riga che è esattamente due spazi e una graffa: le
+//   chiusure interne stanno più rientrate. *Non si usa "la funzione dopo" come
+//   confine, così riordinare il file non sposta il ritaglio.*
+//
+// ⚠️⚠️ **QUANDO QUESTA PROVA DIVENTA ROSSA DURANTE IL PASSO 4, LA COSA DA FARE È
+// AGGIORNARE L'ELENCO CON INTENZIONE**, guardando i corpi veri e decidendo campo
+// per campo se il cambiamento è voluto. **Non cancellarla e non allargarla**: è
+// l'unica cosa che sa dire quali campi la modifica mandava prima.
+// ---------------------------------------------------------------------------
+const APERTURA_MODIFICA = "async function salvaModifica() {";
+const MARCA_CORPO = "body: JSON.stringify({";
+
+// GLI UNDICI CAMPI, coi nomi esatti che hanno nei due corpi. `id` sta in tutti e
+// due, quindi i nomi distinti sono undici e non dodici.
+// ⚠️ Letti dai corpi veri il 26/08/2026, non ricopiati da un elenco a memoria.
+const CAMPI_MODIFICA = [
+  // Verso `/api/staff/menu/product` — i sei scalari, più l'id.
+  "id",
+  "name",
+  "description",
+  "base_price",
+  "badge",
+  "sort_order",
+  "spice_level",
+  // Verso `/api/staff/menu/allergens` — la forma che manda già
+  // `AllergensEditForm`, `kind` compreso.
+  "kind",
+  "allergenIds",
+  "noAllergens",
+  "dietary",
+];
+
+function ritagliaModifica(testo) {
+  const inizio = testo.indexOf(APERTURA_MODIFICA);
+  if (inizio < 0) return { ok: false, error: `non trovo «${APERTURA_MODIFICA}»` };
+  // La prima riga che è SOLO due spazi e una graffa chiude la funzione: dentro,
+  // ogni chiusura è più rientrata.
+  const fine = testo.indexOf("\n  }", inizio);
+  if (fine < 0) return { ok: false, error: "non trovo la chiusura della funzione" };
+  return { ok: true, blocco: testo.slice(inizio, fine + 4) };
+}
+
+// I corpi veri e propri: ciò che sta DENTRO ogni `JSON.stringify({ … })`.
+// ⚠️ Si parte DOPO il marcatore, altrimenti `body` — che è un'opzione della
+// `fetch` e non un campo — finirebbe fra i campi. *Provato: senza questo
+// accorgimento l'insieme usciva di dodici nomi invece di undici.*
+function corpiDi(blocco) {
+  const trovati = [];
+  let da = 0;
+  for (;;) {
+    const apre = blocco.indexOf(MARCA_CORPO, da);
+    if (apre < 0) break;
+    const chiude = blocco.indexOf("}),", apre);
+    if (chiude < 0) break;
+    trovati.push(blocco.slice(apre + MARCA_CORPO.length, chiude));
+    da = chiude + 1;
+  }
+  return trovati;
+}
+
+{
+  const ritaglio = ritagliaModifica(codicePannello);
+  assert(
+    ritaglio.ok,
+    `et1) la funzione che salva la modifica si trova CERCANDOLA per nome (${ritaglio.error ?? "trovata"})`
+  );
+  const blocco = ritaglio.ok ? ritaglio.blocco : "";
+
+  // -------------------------------------------------------------------------
+  // ⚠️⚠️ IL BUCO FRA I DUE RITAGLI, E QUESTO È L'ASSERT CHE LO CHIUDE.
+  //
+  // Il ritaglio della creazione va dal `const payload = {` alla `fetch` verso
+  // `create`. Oggi tiene **solo perché la funzione della modifica sta PRIMA**:
+  // niente lo impone. Il giorno in cui qualcuno la spostasse sotto, o vi
+  // dichiarasse dentro una variabile chiamata `payload`, quel ritaglio si
+  // mangerebbe i corpi della modifica e la sonda dei ventuno campi diventerebbe
+  // rossa su `id`, `kind`, `allergenIds` — cioè **per il motivo sbagliato**.
+  // *Il pannello non si tocca per rimediare: è la prova che deve accorgersene.*
+  // -------------------------------------------------------------------------
+  const creazione = ritagliaCorpo(codicePannello);
+  const bloccoCreazione = creazione.ok ? creazione.blocco : "";
+  const intrusioni = [
+    bloccoCreazione.includes('fetch("/api/staff/menu/product"') && "il corpo verso `product`",
+    bloccoCreazione.includes('fetch("/api/staff/menu/allergens"') && "il corpo verso `allergens`",
+  ].filter(Boolean);
+  assert(
+    creazione.ok && intrusioni.length === 0,
+    `et2) ⚠️⚠️ I DUE RITAGLI NON SI TOCCANO: dentro il blocco della CREAZIONE non è finito nessun corpo della modifica (dentro: ${
+      intrusioni.join(", ") || "nessuno"
+    }). Se è rossa, il colpevole NON è un campo sparito: è un BLOCCO CHE SI È SPOSTATO — la funzione della modifica è finita sotto il \`const payload\`, e da lì in poi i due elenchi si guardano a vicenda i campi.`
+  );
+  assert(
+    !blocco.includes('fetch("/api/staff/menu/create"'),
+    "et3) e nemmeno il contrario: dentro il blocco della MODIFICA non è finita la chiamata della creazione"
+  );
+
+  // -------------------------------------------------------------------------
+  // I CAMPI, con lo stesso confronto chiuso della sonda dei ventuno.
+  // -------------------------------------------------------------------------
+  const corpi = corpiDi(blocco);
+  assert(
+    corpi.length === 2,
+    `et4) ⚠️ i corpi che la modifica manda sono DUE, uno per rotta (ne ho trovati ${corpi.length}). Al passo 4 diventeranno tre: quando succede, questo numero si aggiorna con intenzione.`
+  );
+
+  const trovati = estraiCampi(corpi.join("\n"));
+  assert(
+    CAMPI_MODIFICA.length === 11,
+    `et5) l'elenco dichiarato porta UNDICI nomi di campo (ne porta ${CAMPI_MODIFICA.length})`
+  );
+
+  const mancanti = CAMPI_MODIFICA.filter((n) => !trovati.includes(n));
+  assert(
+    mancanti.length === 0,
+    `et6) ⚠️⚠️ NESSUN CAMPO HA SMESSO DI PARTIRE dai corpi della modifica (mancano: ${
+      mancanti.join(", ") || "nessuno"
+    }). Se è rossa durante il passo 4, un campo non arriva più al server: guarda i corpi veri e AGGIORNA L'ELENCO CON INTENZIONE se il cambiamento è voluto — non cancellare la prova.`
+  );
+
+  const inattesi = trovati.filter((n) => !CAMPI_MODIFICA.includes(n));
+  assert(
+    inattesi.length === 0,
+    `et7) ⚠️⚠️ E NESSUN CAMPO NUOVO è comparso nei corpi senza che l'elenco lo sappia (in più: ${
+      inattesi.join(", ") || "nessuno"
+    }). Se è rossa durante il passo 4, la scheda manda qualcosa che nessuno ha deciso di mandare: AGGIORNA L'ELENCO CON INTENZIONE dopo aver stabilito che ci deve stare.`
+  );
+
+  // ⚠️ `kind` È UNA COSTANTE, NON UNA VARIABILE.
+  assert(
+    /kind: "product",/.test(blocco),
+    'et8) ⚠️ `kind` viaggia come la stringa letterale "product": il cuore degli allergeni la pretende esattamente così e rifiuta qualunque altro valore. Se un giorno diventasse una variabile, il rifiuto arriverebbe solo dal server, a salvataggio già tentato.'
+  );
+
+  // -------------------------------------------------------------------------
+  // ⚠️ CONTROPROVE — questa sonda sa dire di NO?
+  // Su questo stesso blocco, guastato con materiale vero preso dal file.
+  // -------------------------------------------------------------------------
+
+  // 1) UN CAMPO SPARITO. Si toglie la riga di `allergenIds`, che sta nel
+  //    SECONDO corpo: così la controprova dimostra anche che i corpi letti sono
+  //    due e non uno.
+  const rigaAllergeni = /^[ \t]*allergenIds: desiderati,[ \t]*$/m.exec(blocco);
+  assert(
+    rigaAllergeni !== null,
+    "et9) la riga di `allergenIds` esiste nel blocco (è il materiale della controprova)"
+  );
+  const senzaAllergeni = rigaAllergeni ? blocco.replace(`${rigaAllergeni[0]}\n`, "") : blocco;
+  assert(
+    trovati.includes("allergenIds") &&
+      !estraiCampi(corpiDi(senzaAllergeni).join("\n")).includes("allergenIds"),
+    "et10) CONTROPROVA: tolta quella riga, `allergenIds` sparisce davvero dall'insieme estratto — quindi et6, quando dice «non manca niente», sta guardando"
+  );
+
+  // 2) UN CAMPO IN PIÙ, ed è il caso vero del passo 7: `category` la manda la
+  //    CREAZIONE e la modifica no, perché cambiarla è la decisione (HH), un
+  //    lavoro a sé. ⚠️ La riga non è inventata qui: si prende dal blocco della
+  //    creazione, dov'è già scritta.
+  const rigaCategoria = /^[ \t]*category,[ \t]*$/m.exec(bloccoCreazione);
+  assert(
+    rigaCategoria !== null,
+    "et11) la riga `category,` esiste nel corpo della CREAZIONE (è il materiale della controprova)"
+  );
+  const conCategoria = rigaCategoria
+    ? blocco.replace(MARCA_CORPO, `${MARCA_CORPO}\n${rigaCategoria[0]}`)
+    : blocco;
+  assert(
+    !trovati.includes("category") &&
+      estraiCampi(corpiDi(conCategoria).join("\n")).includes("category"),
+    "et12) ⚠️ CONTROPROVA: innestando nel corpo della modifica la riga che manda la creazione, `category` compare fra gli inattesi — ed è precisamente ciò che il passo 7 aggiungerà, il giorno in cui la categoria si potrà cambiare"
+  );
+
+  // 3) ⚠️ E IL BUCO DI et2? Lo si simula **senza toccare il pannello**: si
+  //    incolla il blocco vero della modifica dentro quello vero della
+  //    creazione — che è ciò che succederebbe spostando la funzione più in
+  //    basso — e si verifica che il controllo se ne accorga.
+  const creazioneInquinata = `${bloccoCreazione}\n${blocco}`;
+  assert(
+    !bloccoCreazione.includes('fetch("/api/staff/menu/product"') &&
+      creazioneInquinata.includes('fetch("/api/staff/menu/product"'),
+    "et13) ⚠️ CONTROPROVA: se la funzione della modifica finisse dentro il ritaglio della creazione, et2 lo troverebbe — provato incollando un blocco vero dentro l'altro, senza spostare una riga del pannello"
+  );
+}
+
+// ---------------------------------------------------------------------------
 // f) ⚠️ LE BEVANDE NON MOSTRANO NESSUNO DEI QUATTRO GRUPPI.
 // ---------------------------------------------------------------------------
 {
