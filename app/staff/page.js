@@ -1572,6 +1572,11 @@ function ProductForm({ products, allergensCatalog, articolo, onSaved, onCancel }
   const [rimozioni, setRimozioni] = useState([]);
   const [accompagnamenti, setAccompagnamenti] = useState([]);
   const [extra, setExtra] = useState([]);
+  // §63-64 (passo 4a) — le opzioni che l'articolo HA GIÀ, lette dalla rotta
+  // nuova. ⚠️ `null` significa "non è ancora arrivata la risposta", NON "non ne
+  // ha": sono due cose diverse e a schermo devono restare diverse.
+  const [opzioniArticolo, setOpzioniArticolo] = useState(null);
+  const [opzioniError, setOpzioniError] = useState(null);
 
   useEffect(() => {
     let annullato = false;
@@ -1592,6 +1597,87 @@ function ProductForm({ products, allergensCatalog, articolo, onSaved, onCancel }
       annullato = true;
     };
   }, []);
+
+  // -------------------------------------------------------------------------
+  // §63-64 (passo 4a, 26/08/2026) — LE OPZIONI CHE L'ARTICOLO HA GIÀ.
+  //
+  // ⚠️ Fino a ieri questo blocco, su un Roll con tre proteine, mostrava caselle
+  // VUOTE: diceva una cosa falsa. Ora le chiede alla rotta nuova.
+  //
+  // ⚠️ **In CREAZIONE non si chiama niente**: l'effetto esce alla prima riga.
+  // Un articolo che non esiste ancora non ha opzioni da leggere, e il ramo della
+  // creazione deve restare identico a com'era.
+  // -------------------------------------------------------------------------
+  useEffect(() => {
+    if (!articolo) return undefined;
+    let annullato = false;
+    (async () => {
+      try {
+        const response = await fetch(`/api/staff/menu/product-options/${articolo.id}`);
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "Errore nella lettura delle opzioni.");
+        if (annullato) return;
+
+        // ⚠️ I NOMI DELLE COLONNE NON SONO QUELLI DI QUESTO MODULO, e qui è
+        // l'unico punto dove si fanno combaciare: la chiave della proteina in
+        // database è `choice_key`, i prezzi arrivano come TESTO da PostgREST,
+        // `requires_protein` vuoto è `null` mentre la tendina usa la stringa
+        // vuota, e le rimozioni sono righe con un `label` mentre qui viaggiano
+        // come stringhe nude.
+        //
+        // ⚠️ E si riordinano per `sort_order`: il lettore non ordina, e senza
+        // ordine esplicito il database non lo garantisce — le proteine
+        // comparirebbero in un ordine qualsiasi, che è anche l'ordine in cui il
+        // cliente le vedrebbe se un domani si salvassero così.
+        const opz = data.options ?? {};
+        const perOrdine = (righe) =>
+          [...(righe ?? [])].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+
+        const proteineDb = perOrdine(opz.product_choice_options);
+        setProteine(
+          new Map(
+            proteineDb.map((r) => [
+              r.choice_key,
+              {
+                price_delta: String(r.price_delta ?? ""),
+                is_default: r.is_default === true,
+                extra_dose_included: r.extra_dose_included === true,
+              },
+            ])
+          )
+        );
+        // Il titolo è UNO per il gruppo: si prende dalla prima riga, che è ciò
+        // che il server garantisce scrivendolo uguale su tutte.
+        if (proteineDb.length > 0 && proteineDb[0].choice_label) {
+          setTitoloScelta(proteineDb[0].choice_label);
+        }
+        setRimozioni(perOrdine(opz.product_removals).map((r) => r.label));
+        setAccompagnamenti(
+          perOrdine(opz.product_accompaniments).map((r) => ({
+            label: r.label,
+            contains_gluten: r.contains_gluten === true,
+          }))
+        );
+        setExtra(
+          perOrdine(opz.product_addons).map((r) => ({
+            label: r.label,
+            price: String(r.price ?? ""),
+            requires_protein: r.requires_protein ?? "",
+            max_quantity: String(r.max_quantity ?? 1),
+          }))
+        );
+        setOpzioniArticolo(opz);
+      } catch (err) {
+        // ⚠️⚠️ L'ERRORE SI MOSTRA, e il blocco NON resta vuoto. Un blocco vuoto
+        // per un guasto è la cosa più pericolosa che si possa mettere a schermo:
+        // al passo 4b sarebbe esattamente ciò che cancella le opzioni vere.
+        if (!annullato) setOpzioniError(err.message);
+      }
+    })();
+    return () => {
+      annullato = true;
+    };
+  }, [articolo?.id]);
 
   const categoriaScelta = category !== "";
   const bevanda = categoriaScelta && isBevanda(category);
@@ -1614,6 +1700,23 @@ function ProductForm({ products, allergensCatalog, articolo, onSaved, onCancel }
   // `lib/menu-categories.js`: nessun elenco nuovo di categorie in questo file.
   const mostraOpzioni = categoriaScelta && !bevanda;
   const mostraAccompagnamenti = category === "bowl";
+
+  // ⚠️ PASSO 4a — I TRE ESITI DEL LETTORE, TENUTI DISTINTI ANCHE A SCHERMO.
+  // Il cuore distingue "nessuna opzione" (200 con liste vuote), "articolo
+  // inesistente" (400) e "guasto di lettura" (500); se qui si mostrassero
+  // uguali, quella distinzione non esisterebbe. *In creazione nessuno dei tre
+  // si accende: `inModifica` è falso e la rotta non viene nemmeno chiamata.*
+  const opzioniInArrivo = inModifica && opzioniArticolo === null && opzioniError === null;
+  const opzioniLette = inModifica && opzioniArticolo !== null;
+  const quanteOpzioni = opzioniArticolo
+    ? Object.values(opzioniArticolo).reduce((n, righe) => n + (righe?.length ?? 0), 0)
+    : 0;
+  // I quattro gruppi si disegnano solo quando c'è qualcosa di vero da mostrare:
+  // in creazione sempre, in modifica **solo a lettura riuscita**. ⚠️ Disegnarli
+  // vuoti durante il caricamento o dopo un guasto direbbe "questo articolo non
+  // ha opzioni", che è la bugia che il passo 4b trasformerebbe in una
+  // cancellazione.
+  const mostraGruppiOpzioni = !inModifica || opzioniLette;
 
   // Cambiare categoria rifà la proposta del posto — un numero calcolato su
   // un'altra categoria non vuol dire niente — e azzera ciò che su una bevanda
@@ -2203,18 +2306,35 @@ function ProductForm({ products, allergensCatalog, articolo, onSaved, onCancel }
           accompagnamenti solo sulle Bowl.
           =================================================================== */}
       {mostraOpzioni && (
-        // ⚠️ Passo 4: da questa scheda le opzioni si vedono ma non si salvano
-        // ancora, e — a differenza degli allergeni — qui NON mostrano quelle
-        // dell'articolo: l'elenco del menu non le porta con sé.
+        // ⚠️ Passo 4a: da questa scheda le opzioni dell'articolo SI VEDONO —
+        // lette dalla rotta `product-options/[id]` — ma restano spente: si
+        // salveranno al passo 4b.
         <fieldset disabled={inModifica} style={bloccoStyle}>
           <hr style={{ border: "none", borderTop: "1px solid var(--card-border)", margin: "4px 0" }} />
-          {inModifica && (
-            <p style={notaSpenta}>
-              Le opzioni non si salvano ancora da qui, e questo blocco non mostra quelle che
-              l'articolo ha già.
-            </p>
-          )}
+          {inModifica &&
+            (opzioniError ? (
+              // ⚠️⚠️ IL GUASTO SI DICE, e i gruppi qui sotto NON si disegnano:
+              // un blocco vuoto dopo un errore di lettura sarebbe indistinguibile
+              // da "questo articolo non ha opzioni".
+              <p style={{ fontSize: 12, color: "#C0392B", margin: 0 }}>
+                Non è stato possibile leggere le opzioni di questo articolo: {opzioniError} Le sue
+                opzioni ci sono comunque e non sono state toccate — chiudi e riapri la scheda.
+              </p>
+            ) : opzioniInArrivo ? (
+              // ⚠️ Anche l'attesa si dice: un attimo di vuoto mentre i dati
+              // viaggiano si legge come "non ne ha".
+              <p style={notaSpenta}>Sto leggendo le opzioni di questo articolo…</p>
+            ) : quanteOpzioni === 0 ? (
+              <p style={notaSpenta}>Questo articolo non ha nessuna opzione: nessuna proteina, nessuna rimozione, nessun extra.</p>
+            ) : (
+              <p style={notaSpenta}>
+                Queste sono le opzioni che l'articolo ha già: si vedono, ma da qui non si salvano
+                ancora.
+              </p>
+            ))}
 
+          {mostraGruppiOpzioni && (
+            <>
           {/* --- 1) PROTEINE: caselle da spuntare, come i 14 allergeni --- */}
           <span style={labelStyle}>Proteine (facoltative)</span>
           {catalogError ? (
@@ -2427,6 +2547,8 @@ function ProductForm({ products, allergensCatalog, articolo, onSaved, onCancel }
           >
             + Aggiungi extra
           </button>
+            </>
+          )}
         </fieldset>
       )}
 
