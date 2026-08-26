@@ -1530,14 +1530,23 @@ function ProductForm({ products, allergensCatalog, articolo, onSaved, onCancel }
   // calcolato su nessuna categoria non vuol dire niente. Su un articolo che
   // esiste il posto è quello che ha, non una proposta.
   const [sortOrder, setSortOrder] = useState(articolo ? String(articolo.sort_order ?? 0) : "");
-  // ⚠️ Allergeni e tipo dietetico si precompilano ma NON si salvano da qui
-  // (passo 3). Precompilarli non è un vezzo: un blocco spento e vuoto su un
-  // articolo che ha allergeni direbbe una cosa falsa a chi guarda.
-  const [selected, setSelected] = useState(() => new Set(articolo?.allergens ?? []));
-  const [noAllergens, setNoAllergens] = useState(false);
-  const [dietary, setDietary] = useState(
-    articolo ? dietaryFromFlags(articolo.is_vegan, articolo.is_vegetarian) : ""
-  );
+  // ⚠️ PASSO 3 — I VALORI DI PARTENZA DEGLI ALLERGENI, calcolati una volta e
+  // usati DUE: per precompilare le caselle, e per sapere al salvataggio se
+  // qualcuno le ha davvero toccate (KK: la rotta dei pezzi non toccati non si
+  // chiama). Le tre regole sono copiate da `AllergensEditForm`, non dedotte.
+  const idsIniziali = articolo?.allergens ?? [];
+  // §67 v31 regola 1: "Nessuno dei 14" già spuntata se zero allergeni E
+  // `allergens_verified_at` valorizzato; non spuntata se la data è nulla.
+  // ⚠️ Senza questa distinzione un articolo verificato e senza allergeni si
+  // aprirebbe con la casella vuota, cioè dicendo "non l'ha ancora dichiarato"
+  // di uno che l'ha dichiarato.
+  const noAllergensIniziale =
+    Boolean(articolo) && idsIniziali.length === 0 && articolo.allergens_verified_at != null;
+  // §67 v30 regola 5: nessuna preselezione del flag quando il dato manca.
+  const dietaryIniziale = articolo ? dietaryFromFlags(articolo.is_vegan, articolo.is_vegetarian) : "";
+  const [selected, setSelected] = useState(() => new Set(idsIniziali));
+  const [noAllergens, setNoAllergens] = useState(noAllergensIniziale);
+  const [dietary, setDietary] = useState(dietaryIniziale);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState(null);
   // §63-64 — la conferma sul prezzo, copiata dalla scheda di modifica. In
@@ -1724,15 +1733,45 @@ function ProductForm({ products, allergensCatalog, articolo, onSaved, onCancel }
   const rimozioniVuote = rimozioni.some((r) => r.trim() === "");
   const accompagnamentiVuoti = accompagnamenti.some((a) => a.label.trim() === "");
 
+  // ⚠️ PASSO 3 — GLI ALLERGENI SONO STATI TOCCATI DAVVERO?
+  //
+  // Si confronta con lo stato di partenza, non si alza una bandierina al primo
+  // clic: spuntare una casella e ripensarci lascia l'articolo com'era, e in quel
+  // caso la rotta degli allergeni **non va chiamata** (KK).
+  const desiderati = noAllergens ? [] : [...selected];
+  const allergeniToccati =
+    inModifica &&
+    (noAllergens !== noAllergensIniziale ||
+      dietary !== dietaryIniziale ||
+      desiderati.length !== idsIniziali.length ||
+      desiderati.some((id) => !idsIniziali.includes(id)));
+
+  // ⚠️ IL PULSANTE SI SPEGNE PRIMA, invece di far partire una richiesta che il
+  // server rifiuterebbe. Le due condizioni sono quelle che `menu-allergens.js`
+  // pretende, copiate dal `canSave` di `AllergensEditForm`:
+  //   - il tipo dietetico è OBBLIGATORIO (§67 regola 3) — e Tzatziki e Yogurt
+  //     ce l'hanno vuoto, quindi il caso è reale e non teorico;
+  //   - zero allergeni vale solo con «nessuno dei 14» spuntata (§67 regola 2).
+  // Valgono **solo se gli allergeni sono stati toccati**: chi cambia il solo
+  // prezzo di una salsa senza flag dietetico deve poter salvare lo stesso.
+  const dietaryMancante = allergeniToccati && dietary === "";
+  const allergeniIncompleti = allergeniToccati && !noAllergens && desiderati.length === 0;
+
   // ⚠️ IN MODIFICA IL PULSANTE GUARDA SOLO CIÒ CHE PARTE DAVVERO.
   //
-  // I blocchi spenti — allergeni e opzioni — non si salvano da questa scheda
-  // (passi 3 e 4) e **non devono poterla bloccare**: una Bowl esistente, il cui
-  // blocco opzioni qui è spento e vuoto, sarebbe altrimenti impossibile da
-  // salvare per la mancanza di accompagnamenti che nessuno le sta togliendo.
+  // Il blocco spento — le opzioni — non si salva da questa scheda (passo 4) e
+  // **non deve poterla bloccare**: una Bowl esistente, il cui blocco opzioni qui
+  // è spento e vuoto, sarebbe altrimenti impossibile da salvare per la mancanza
+  // di accompagnamenti che nessuno le sta togliendo.
   // *Le condizioni della creazione restano identiche, parola per parola: sono
   // l'altro ramo di questa scelta, non una versione modificata.*
-  const canSaveModifica = categoriaScelta && name.trim() !== "" && prezzoValido && ordineValido;
+  const canSaveModifica =
+    categoriaScelta &&
+    name.trim() !== "" &&
+    prezzoValido &&
+    ordineValido &&
+    !dietaryMancante &&
+    !allergeniIncompleti;
   const canSave = inModifica
     ? canSaveModifica
     : categoriaScelta &&
@@ -1768,6 +1807,8 @@ function ProductForm({ products, allergensCatalog, articolo, onSaved, onCancel }
     !inModifica && rimozioniVuote && "l'etichetta di ogni rimozione aggiunta",
     !inModifica && accompagnamentiVuoti && "l'etichetta di ogni accompagnamento",
     !inModifica && extraIncompleti && "etichetta e prezzo di ogni extra aggiunto",
+    dietaryMancante && "il tipo dietetico, che è obbligatorio per salvare gli allergeni",
+    allergeniIncompleti && "almeno un allergene, oppure la casella «nessuno dei 14»",
   ].filter(Boolean);
 
   // ⚠️ LA CONFERMA SUL PREZZO, copiata da `ProductEditForm` e non reinventata.
@@ -1776,16 +1817,30 @@ function ProductForm({ products, allergensCatalog, articolo, onSaved, onCancel }
   // resta sempre falsa — non c'è nessun prezzo precedente da confrontare.
   const prezzoCambiato = inModifica && Number(price) !== Number(articolo.base_price);
 
-  // ⚠️ PASSO 2 — il salvataggio di un articolo che ESISTE: i sei campi scalari
-  // sulla rotta `product`, con l'id. Gli allergeni e le opzioni non partono da
-  // qui, e infatti quella rotta non li legge.
+  // ⚠️⚠️ (KK) UN SALVA SOLO, CHE CHIAMA IN FILA LE ROTTE DEI PEZZI TOCCATI.
+  //
+  // Passo 2: i sei campi scalari sulla rotta `product`. Passo 3: gli allergeni
+  // sulla rotta `allergens`, **solo se sono stati toccati**. Le opzioni non
+  // partono ancora da qui (passo 4).
+  //
+  // ⚠️ **Perché la rotta `product` si chiama comunque e quella degli allergeni
+  // no.** Non è un'incoerenza con (KK): `updateProductCore` confronta il prima
+  // col dopo e, se non è cambiato niente, **non scrive e non registra nulla**
+  // (`lib/menu-editor.js`, "Niente da cambiare: nessuna scrittura, nessun log").
+  // Chiamarla a vuoto costa una lettura e nient'altro. *La strada alternativa —
+  // confrontare qui i sei valori per decidere se chiamarla — vorrebbe dire sei
+  // confronti scritti a mano, e ognuno può sbagliare nella direzione peggiore:
+  // dire "non è cambiato niente" di un campo che è cambiato, e perdere la
+  // modifica in silenzio.*
   //
   // *Sta in una funzione sua, e non dentro `handleSubmit`, perché il pulsante
   // «Conferma e salva» del riquadro del prezzo deve poterla chiamare dritta,
   // senza ripassare dal controllo che ha acceso il riquadro.*
-  async function salvaScalari() {
+  async function salvaModifica() {
     setIsSubmitting(true);
     setError(null);
+
+    // 1) I SEI SCALARI.
     try {
       const response = await fetch("/api/staff/menu/product", {
         method: "POST",
@@ -1803,26 +1858,59 @@ function ProductForm({ products, allergensCatalog, articolo, onSaved, onCancel }
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "Errore nel salvataggio.");
-      onSaved();
     } catch (err) {
-      setError(err.message);
+      // ⚠️ Qui non è passato niente, e va detto per esteso: gli allergeni non
+      // sono nemmeno stati tentati.
+      setError(`Non è stato salvato niente: ${err.message}`);
       setConfermaPrezzo(false);
       setIsSubmitting(false);
+      return;
     }
+
+    // 2) GLI ALLERGENI, solo se toccati. La forma del corpo è quella che manda
+    // già `AllergensEditForm`: cinque campi, `kind` compreso — il cuore lo
+    // pretende esattamente uguale a "product" e rifiuta qualunque altro valore.
+    if (allergeniToccati) {
+      try {
+        const response = await fetch("/api/staff/menu/allergens", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            kind: "product",
+            id: articolo.id,
+            allergenIds: desiderati,
+            noAllergens,
+            dietary,
+          }),
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "Errore nel salvataggio degli allergeni.");
+      } catch (err) {
+        // ⚠️ QUI METÀ È PASSATA, e la scheda deve dire quale metà: un errore
+        // generico lascerebbe credere che non sia passato niente, e chi rifà il
+        // salvataggio da capo non saprebbe cosa aspettarsi.
+        setError(`Nome, prezzo e gli altri campi sono stati salvati; gli allergeni NO: ${err.message}`);
+        setConfermaPrezzo(false);
+        setIsSubmitting(false);
+        return;
+      }
+    }
+
+    onSaved();
   }
 
   async function handleSubmit(event) {
     event.preventDefault();
     if (isSubmitting || !canSave) return;
     // ⚠️ Su un articolo esistente la strada finisce qui: prima la conferma sul
-    // prezzo se è cambiato, poi i sei scalari. Il corpo della CREAZIONE qui
-    // sotto non viene nemmeno composto.
+    // prezzo se è cambiato, poi le rotte dei pezzi toccati. Il corpo della
+    // CREAZIONE qui sotto non viene nemmeno composto.
     if (inModifica) {
       if (prezzoCambiato && !confermaPrezzo) {
         setConfermaPrezzo(true);
         return;
       }
-      salvaScalari();
+      salvaModifica();
       return;
     }
     setIsSubmitting(true);
@@ -2042,21 +2130,19 @@ function ProductForm({ products, allergensCatalog, articolo, onSaved, onCancel }
           Scegli una categoria: da quella dipende se servono gli allergeni.
         </p>
       ) : bevanda ? (
+        // ⚠️ SOLO drink e birre, cioè ciò che `isBevanda` riconosce. Le SALSE
+        // non passano di qui: sono food, cinque su sette hanno allergeni, e il
+        // cuore (`lib/menu-allergens.js`) non le rifiuta mai.
         <p style={{ fontSize: 12, color: "var(--text-on-dark)", margin: 0 }}>
-          Le bevande sono fuori dal tracciamento allergeni (§67): nascono senza allergeni e senza tipo
-          dietetico, come quelle già a menu.
+          {inModifica
+            ? "Le bevande sono fuori dal tracciamento allergeni (§67): drink e birre non hanno allergeni né tipo dietetico, e non si possono dichiarare da nessuna schermata."
+            : "Le bevande sono fuori dal tracciamento allergeni (§67): nascono senza allergeni e senza tipo dietetico, come quelle già a menu."}
         </p>
       ) : (
-        // ⚠️ Passo 3: da questa scheda gli allergeni si VEDONO ma non si
-        // salvano ancora. Sono precompilati con quelli veri dell'articolo,
-        // perché un blocco vuoto direbbe che non ne ha.
-        <fieldset disabled={inModifica} style={bloccoStyle}>
-          {inModifica && (
-            <p style={notaSpenta}>
-              Gli allergeni non si salvano ancora da qui: per cambiarli usa il pulsante «Allergeni»
-              della riga.
-            </p>
-          )}
+        // ⚠️ PASSO 3: da questa scheda gli allergeni si vedono, si toccano e si
+        // salvano, sulla rotta che esisteva già. Precompilati con quelli veri
+        // dell'articolo, perché un blocco vuoto direbbe che non ne ha.
+        <>
           <span style={labelStyle}>Allergeni</span>
           <div style={{ display: "flex", flexWrap: "wrap", gap: "6px 14px" }}>
             {allergensCatalog.map((a) => (
@@ -2077,10 +2163,14 @@ function ProductForm({ products, allergensCatalog, articolo, onSaved, onCancel }
             Nessuno dei 14 allergeni
           </label>
 
-          {/* §67: il selettore c'è ma NON blocca e non produce avvisi
-              (decisione 4 del 06/08/2026). Si può compilare dopo, dal modulo
-              allergeni, che è lo stesso blocco. */}
-          <span style={labelStyle}>Tipo dietetico (facoltativo)</span>
+          {/* §67: in CREAZIONE il selettore c'è ma NON blocca e non produce
+              avvisi (decisione 4 del 06/08/2026). ⚠️ Sul salvataggio degli
+              allergeni invece è OBBLIGATORIO (§67 regola 3): l'etichetta lo dice
+              quando lo diventa, invece di restare "facoltativo" accanto a un
+              pulsante che si è spento per causa sua. */}
+          <span style={labelStyle}>
+            {allergeniToccati ? "Tipo dietetico (obbligatorio per salvare gli allergeni)" : "Tipo dietetico (facoltativo)"}
+          </span>
           <div style={{ display: "flex", gap: 16, fontSize: 13, color: "var(--navy)" }}>
             {[
               ["vegan", "Vegano"],
@@ -2098,7 +2188,13 @@ function ProductForm({ products, allergensCatalog, articolo, onSaved, onCancel }
               </label>
             ))}
           </div>
-        </fieldset>
+          {dietaryMancante && (
+            <p style={notaSpenta}>
+              Questo articolo non ha ancora un tipo dietetico: sceglilo, altrimenti gli allergeni non
+              si possono salvare.
+            </p>
+          )}
+        </>
       )}
 
       {/* ===================================================================
@@ -2364,7 +2460,7 @@ function ProductForm({ products, allergensCatalog, articolo, onSaved, onCancel }
           <div style={{ display: "flex", gap: 8 }}>
             <button
               type="button"
-              onClick={salvaScalari}
+              onClick={salvaModifica}
               disabled={isSubmitting}
               style={confirmBtn(isSubmitting)}
             >
