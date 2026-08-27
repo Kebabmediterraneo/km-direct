@@ -942,5 +942,130 @@ function corpiDi(blocco) {
   );
 }
 
+// ---------------------------------------------------------------------------
+// §63-64 (passo 4b-2a) — IL PULSANTE «CONFERMA E SALVA» GUARDA `canSave`.
+//
+// ⚠️⚠️ PERCHÉ SERVE UNA PROVA QUI. «Conferma e salva» ha `type="button"` e
+// `onClick={salvaModifica}`: chiama il salvataggio DRITTO, senza passare da
+// `handleSubmit`, quindi la guardia `if (isSubmitting || !canSave) return;` non
+// sta sulla sua strada. Finché quel pulsante guardava il solo `isSubmitting`,
+// esisteva una strada che arrivava alla rete con `canSave` falso.
+//
+// ⚠️ QUESTE PROVE NON GUARDANO IL TESTO: LO ESEGUONO. Si ritagliano dal pannello
+// le espressioni vere dei DUE pulsanti e le si valuta con valori finti, come
+// mm0-mm5. *Una sonda di testo direbbe che la parola `canSave` compare in quella
+// riga; non saprebbe dire che i due pulsanti si comportano uguale.*
+//
+// ⚠️ I RITAGLI SI ANCORANO A UN DATO CHE CARATTERIZZA, MAI ALLA POSIZIONE: nel
+// pannello ci sono QUATTRO `type="submit"` e TRE «Conferma e salva» — gli altri
+// stanno in `ProductEditForm` e `AllergensEditForm`, e un ancoraggio generico
+// ritaglierebbe quelli. I due ancoraggi usati compaiono UNA volta sola, e il
+// ritaglio si rifiuta di lavorare se ne trovasse due.
+// ---------------------------------------------------------------------------
+{
+  const bloccoPulsante = (ancora) => {
+    const i = codicePannello.indexOf(ancora);
+    if (i === -1) return null;
+    if (codicePannello.indexOf(ancora, i + 1) !== -1) return null;
+    const inizio = codicePannello.lastIndexOf("<button", i);
+    const fine = codicePannello.indexOf("</button>", i);
+    return inizio === -1 || fine === -1 ? null : codicePannello.slice(inizio, fine);
+  };
+  const disabledDi = (blocco) => {
+    const m = /disabled=\{([\s\S]*?)\}/.exec(blocco ?? "");
+    return m ? m[1] : null;
+  };
+
+  const dConferma = disabledDi(bloccoPulsante("onClick={salvaModifica}"));
+  const dSalva = disabledDi(bloccoPulsante('"Crea articolo"'));
+
+  assert(
+    dConferma !== null && dSalva !== null,
+    "cs0) le espressioni `disabled` dei due pulsanti si ritagliano dal pannello, ciascuna da un ancoraggio unico — se questa cade, tutte le cs qui sotto non stanno misurando niente"
+  );
+
+  const spento = (espr, canSave, isSubmitting) =>
+    new Function("canSave", "isSubmitting", `return (${espr});`)(canSave, isSubmitting);
+
+  assert(
+    spento(dConferma, false, false) === true,
+    "cs1) ⚠️⚠️ con `canSave` FALSO il pulsante «Conferma e salva» è SPENTO: la strada che arrivava alla rete senza passare dalla guardia di `handleSubmit` è chiusa"
+  );
+
+  assert(
+    spento(dConferma, true, false) === false,
+    "cs2) con `canSave` vero e nessun salvataggio in corso il pulsante è ACCESO — così cs1 non passa per un motivo qualsiasi"
+  );
+
+  assert(
+    spento(dConferma, true, true) === true,
+    "cs3) a salvataggio in corso resta SPENTO: `isSubmitting` non si è perso nel cambiamento"
+  );
+
+  const combinazioni = [[false, false], [false, true], [true, false], [true, true]];
+  const divergenti = combinazioni.filter(
+    ([c, s]) => spento(dConferma, c, s) !== spento(dSalva, c, s)
+  );
+  assert(
+    divergenti.length === 0,
+    `cs4) ⚠️ i DUE pulsanti danno lo STESSO esito su tutte e quattro le combinazioni di canSave/isSubmitting — la forma è una sola, copiata, non due scritte a mano (combinazioni divergenti: ${divergenti.length})`
+  );
+
+  const senzaCanSave = (dConferma ?? "").replace("!canSave || ", "");
+  assert(
+    senzaCanSave !== dConferma && spento(senzaCanSave, false, false) === false,
+    "cs5) ⚠️ CONTROPROVA di cs1: tolto `!canSave` dal pulsante «Conferma e salva», con canSave falso risulterebbe ACCESO — la prova cs1 sa diventare rossa"
+  );
+
+  const salvaSporcato = (dSalva ?? "").replace("!canSave || ", "");
+  assert(
+    salvaSporcato !== dSalva &&
+      spento(salvaSporcato, false, false) !== spento(dConferma, false, false),
+    "cs6) ⚠️ CONTROPROVA di cs4: se uno solo dei due perdesse `!canSave`, i due esiti divergerebbero — la prova cs4 sa diventare rossa"
+  );
+
+  const ritagliaFinoAlPuntoEVirgola = (testo, inizio) => {
+    const i = testo.indexOf(inizio);
+    if (i === -1) return null;
+    const fine = testo.indexOf(";", i);
+    return fine === -1 ? null : testo.slice(i, fine + 1);
+  };
+  const esprModifica = ritagliaFinoAlPuntoEVirgola(codicePannello, "const canSaveModifica =");
+  const esprCanSave = ritagliaFinoAlPuntoEVirgola(codicePannello, "const canSave = inModifica");
+  const inRegola = {
+    isSubmitting: false,
+    categoriaScelta: true,
+    name: "Il Turco",
+    prezzoValido: true,
+    ordineValido: true,
+    dietaryMancante: false,
+    allergeniIncompleti: false,
+    allergeniValidi: true,
+    accompagnamentiMancanti: false,
+    proteineSenzaPrezzo: false,
+    extraIncompleti: false,
+    rimozioniVuote: false,
+    accompagnamentiVuoti: false,
+  };
+  const catena = (vars) => {
+    const nomi = Object.keys(vars);
+    const corpo = `${esprModifica}\n${esprCanSave}\nreturn (${dConferma});`;
+    return new Function(...nomi, corpo)(...nomi.map((n) => vars[n]));
+  };
+
+  assert(
+    esprModifica !== null &&
+      esprCanSave !== null &&
+      catena({ ...inRegola, inModifica: true, opzioniLette: false }) === true,
+    "cs7) ⚠️⚠️ LA CATENA INTERA: in modifica con le opzioni non ancora lette, la condizione vera del pannello arriva fino al pulsante «Conferma e salva» e lo trova SPENTO"
+  );
+
+  assert(
+    catena({ ...inRegola, inModifica: true, opzioniLette: true }) === false,
+    "cs8) e appena le opzioni sono arrivate lo stesso pulsante è ACCESO — così cs7 non passa per un motivo qualsiasi"
+  );
+}
+
+
 console.log(failures === 0 ? "\nTUTTI I TEST PASSATI" : `\n${failures} TEST FALLITI`);
 process.exitCode = failures === 0 ? 0 : 1;
