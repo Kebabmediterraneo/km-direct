@@ -2671,11 +2671,20 @@ function ProductForm({ products, allergensCatalog, articolo, onSaved, onCancel }
             <strong>{formatPrice(Number(price))}</strong>. Confermi?
           </span>
           <div style={{ display: "flex", gap: 8 }}>
+            {/* ⚠️ QUESTO PULSANTE CHIAMA `salvaModifica` DRITTA, senza ripassare da
+                `handleSubmit`: la guardia `if (isSubmitting || !canSave) return;` non
+                sta sulla sua strada, quindi `canSave` deve guardarlo lui. La forma è
+                copiata dal «Salva» qui sotto, perché due condizioni scritte a mano
+                divergono.
+                ⚠️ Spento non vuol dire muto: la frase «Per salvare manca ancora» sta
+                FUORI dal ternario di `confermaPrezzo` — verificata sul rientro, è un
+                fratello del ternario e non un suo figlio — quindi resta a schermo anche
+                col riquadro del prezzo aperto e dice che cosa manca. */}
             <button
               type="button"
               onClick={salvaModifica}
-              disabled={isSubmitting}
-              style={confirmBtn(isSubmitting)}
+              disabled={!canSave || isSubmitting}
+              style={confirmBtn(!canSave || isSubmitting)}
             >
               {isSubmitting ? "Salvataggio…" : "Conferma e salva"}
             </button>
