@@ -1151,8 +1151,18 @@ carrello, documento per lo staff e Stripe, ed è un lavoro a sé.*
   fa quando si riapre il file del checkout (punto 16): **non è una condizione di
   apertura**, è un lavoro registrato.
 - **Stripe live** (oggi sandbox).
-- **Dominio** `ordina.kebabmediterraneo.it`. ⚠️ *Contestualmente va **ristretta
-  al dominio la chiave API di Google**, oggi senza restrizioni.*
+- **Dominio** `ordina.kebabmediterraneo.it` — ⚠️ **APERTA, MA FATTA A METÀ
+  (27/08/2026).** ✅ *Il DNS è **puntato e funzionante dal 26/08**: il sito
+  risponde sul dominio vero, e ogni pubblicazione esce ora su **due indirizzi**
+  (l'altro è `km-direct.vercel.app`).* ⚠️ **Resta da restringere la chiave API
+  di Google**, oggi senza restrizioni, e la voce è **scaduta**: la spec dice
+  "contestualmente all'attivazione del dominio vero", e il dominio è attivo.
+  ⚠️⚠️ *Con due indirizzi vivi, **restringerla al solo dominio nuovo spegne il
+  completamento dell'indirizzo sull'altro** — e non con un errore, con un campo
+  che smette di suggerire. Vedi spec §66.*
+  ⚠️ **Questa condizione NON si chiude con il DNS**: si chiude quando il DNS
+  funziona **e** la chiave è ristretta. *Sono la stessa voce apposta: separarle
+  vorrebbe dire dichiarare chiusa una cosa fatta a metà.*
 - **Analytics** (§65). ⚠️ *È **lavoro di codice**, non configurazione: una
   dozzina di eventi da tracciare più la pagina dei carrelli abbandonati nel
   pannello staff.* Ora con i vincoli dichiarati nell'informativa e il limite dei
@@ -3269,3 +3279,155 @@ identico — ma va verificato, non supposto.*
 * **Lo store** non verificato, e con esso il conteggio a sette o otto rotte —
   che con la rotta nuova del lettore sono diventate **nove**.
 * **Le CATEGORIE**, discusse il 12/08 e non aperte.
+
+---
+
+## 37) Il giorno in cui non si è scritto niente: il 4b letto per intero (27/08/2026)
+
+**Zero commit di codice. Zero righe scritte.** Quattro ricognizioni di sola
+lettura, una misura sui dati veri eseguita da Andrea, e sei decisioni. ⚠️ *Suite
+e prove restano **34** e **1658**, misurate eseguendole: **non dovevano
+muoversi**, e il fatto che non si siano mosse è il controllo, non un'omissione.*
+
+*Le decisioni stanno in spec §63-64 (blocco della v77) e **non si ricostruiscono
+da qui**. Questo punto porta ciò che la lettura ha insegnato.*
+
+### 37a) ✅ Le prove dal vivo di Andrea — nessuna prova automatica può darle
+
+* **Il font sul dominio vero**: Andrea ha guardato il sito su
+  `ordina.kebabmediterraneo.it` e le scritte gli sono sembrate a posto.
+  ⚠️ **Non chiude la voce di §6c**: un font non autorizzato non dà errori, e il
+  confronto a occhio con `km-direct.vercel.app` non distingue i due casi. *La
+  prova sta nell'elenco domini del pannello Adobe, non nel sito.*
+* **La misura sui dati veri**, eseguita nel SQL editor: referto arrivato intero,
+  35 righe su 35 dichiarate, ogni riga con accanto quante righe ha esaminato.
+* ⚠️⚠️ **Il difetto del 4a sui dolci, FOTOGRAFATO.** Andrea ha aperto la
+  Cheesecake nella scheda e ha mandato lo schermo. *È la scoperta più importante
+  della giornata, e non è uscita da un ragionamento: è uscita da uno sguardo.*
+
+### 37b) ⚠️⚠️ IL VUOTO CHE SI PRESENTA COME PIENO
+
+Sulla Cheesecake la scheda scrive **"queste sono le opzioni che l'articolo ha
+già"** — frase che compare **solo a lettura riuscita** — e il campo del titolo
+contiene **`Gusto`**, che viene dalle righe lette. I dati sono arrivati. Poi
+disegna **tre caselle di proteina vuote** e dei quattro gusti veri non c'è
+traccia: la scheda sa disegnare soltanto le tre proteine del catalogo.
+
+⚠️ *Oggi non fa danno perché il 4a non salva. Ma è la **stessa famiglia** contro
+cui è stato costruito tutto il resto — il vuoto che mente — e nessuno l'aveva
+previsto: la ricerca era partita per un'altra domanda.*
+
+Riparazione decisa: **(PP)**, l'avviso, **dentro lo stesso passaggio del 4b**.
+
+### 37c) La riga che oggi ha ragione e domani avrà torto
+
+La condizione del Salva in modifica **non contiene nessuno** dei controlli sulle
+opzioni che la creazione ha, e sopra c'è un commento che spiega perché **con un
+buon motivo**: il blocco è spento, quindi non deve poter bloccare il
+salvataggio. ⚠️ **Il 4b accende quel blocco.**
+
+*Da quel momento il commento descrive una situazione che non esiste più, ma
+resta lì a giustificare un'assenza in modo convincente. È **la forma esatta del
+difetto del 12/08** (lezione `de`): non un fatto ignoto, ma un paragrafo che
+diceva il vero in un altro momento. Controlli e commento vanno rifatti **nello
+stesso passaggio della chiamata**, o si ottiene una scheda che salva opzioni
+incomplete senza dire niente.*
+
+### 37d) La misura ha tolto un muro e ne ha rivelato un limite
+
+**Nessun ostacolo in database**: zero etichette divergenti su tre chiavi
+confrontate, zero valori che il validatore rifiuterebbe, zero Bowl scoperte.
+⚠️ *Il "tre" è ciò che rende valido lo "zero": con zero chiavi il confronto non
+avrebbe guardato niente.*
+
+**L'unico numero diverso da zero — 4 righe su 2 articoli — sono i gusti dei
+dolci**, e da lì è nato tutto il resto: il limite accettato, il difetto del 4a,
+e il lavoro registrato sull'inserimento in creazione. *Una misura fatta per
+cercare un pericolo ne ha trovato un altro che non stava cercando.*
+
+### 37e) Sei lezioni
+
+**dt. ⚠️⚠️ CHI SCRIVE IL COMANDO PUÒ MANDARE SUL FILE SBAGLIATO, E CHI LO ESEGUE
+DEVE FERMARSI.** Il comando del 27/08 chiedeva le chiavi dei quattro gruppi in
+`menu-options-editor.js`, dove **non ci sono**: stanno in `menu-options.js`.
+*L'errore è nato prendendo la parola "cuore" dei documenti e assumendo che il
+cuore contenesse anche la lettura delle chiavi. Code ha dichiarato la
+discrepanza, seguito la chiamata fino alla fonte vera, e detto da dove prendeva
+i dati. **Se avesse aggiustato in silenzio, il referto sarebbe stato giusto e
+inverificabile.***
+
+**du. ⚠️⚠️ UNA LISTA TROVA SOLO CIÒ CHE NOMINA — E VALE ANCHE PER CHI RAGIONA.**
+Cercando cosa il dominio vero facesse scattare, §6c è stato letto, ha dato tre
+voci, e quelle tre sono state prese per l'elenco completo. **La chiave API di
+Google era la quarta**, e viveva in §66 e nell'elenco delle condizioni di
+apertura. *L'ha vista Code, non chi ragionava. Rimedio applicato alla spec: la
+voce è stata **aggiunta anche a §6c**, che è la lista che si guarda prima di
+incassare, e l'intestazione è passata da tre a quattro.*
+⚠️ *I punti più vecchi di questo handoff dicono ancora **"le tre voci di §6c"**:
+sono datati e non si riscrivono. **Fa fede questo punto e la spec v77.***
+
+**dv. ⚠️ UNA SONDA PUÒ ESSERE CIECA PROPRIO SUL BERSAGLIO CHE LE HAI DATO.**
+Cercando i controlli di tipo per **nome del campo**, la sonda ha trovato zero su
+**sei campi su otto** — pur essendoci il controllo — perché le funzioni condivise
+ribattezzano il valore (`valore`, `tetto`, `legame`). *Code ha misurato la
+propria cecità e l'ha dichiarata invece di riferire lo zero. **Riferendolo,
+avrebbe detto il falso su sei campi su otto.***
+
+**dw. ⚠️ LA CONCLUSIONE GIUSTA PER LA RAGIONE SBAGLIATA È UN DIFETTO, ANCHE SE
+LA CONCLUSIONE REGGE.** *"Trentaquattro `TUTTI I TEST PASSATI`, uno per suite,
+quindi nessuna si è interrotta"*: il "uno per suite" non era misurato. La
+conclusione era vera per un motivo più forte già disponibile — **le prove passate
+erano esattamente 1658**, e una suite troncata avrebbe dato un numero più basso.
+
+**dx. ⚠️ UN TIMORE VA MISURATO, NON ASSUNTO — E PUÒ ESSERE ROVESCIATO.** Il
+sospetto era che il salvataggio **riscrivesse in silenzio** l'etichetta di una
+proteina. Letto il codice, fa il contrario: su etichette divergenti **si ferma
+con un errore**. *Il pericolo silenzioso non esisteva; ne esisteva uno rumoroso,
+che era un muro. Sono due lavori diversi, e assumere il primo avrebbe fatto
+costruire la difesa sbagliata.*
+
+**dy. LEGGERE TUTTO PRIMA DI SCRIVERE COSTA UNA GIORNATA E NE FA RISPARMIARE
+DIVERSE.** Quattro ricognizioni hanno stabilito che le forme combaciano, che i
+tipi passano, che un campo di troppo è innocuo e che il database non oppone
+ostacoli. *Se il muro delle etichette fosse esistito, sarebbe stato trovato
+**dopo** aver scritto il 4b, e sarebbe stato cercato nel codice nuovo — dove non
+era.*
+
+### 37f) Cosa resta aperto — sostituisce il punto 36g
+
+* ⚠️⚠️ **IL PASSO 4b: SALVARE LE OPZIONI. LETTO E DECISO, NON SCRITTO.** ⚠️ *È
+  **un passaggio con tre cose dentro, non una**: la chiamata alla rotta, i
+  controlli da rimettere nel Salva **con il commento riscritto**, e la
+  riparazione **(PP)** del blocco che oggi mente sui dolci.* Le decisioni sono
+  **(MM)**, **(NN)**, **(OO)**, **(PP)** in spec §63-64 v77: **non
+  ricostruirle, leggerle.**
+* ⚠️ **Prima della prova dal vivo del 4b, decidere se caricare `Roll prova` di
+  rimozioni ed extra dal pannello.** *Dalla misura risultano 71 rimozioni su 15
+  articoli contro le 70 su 14 del 29/07: **una sola rimozione** su tutti e tre i
+  Roll di prova. Il 4b va provato proprio sul gruppo che sparisce in silenzio, e
+  con una sola riga si vedrebbe poco.*
+* ⚠️ **LA CHIAVE API DI GOOGLE — scaduta il 26/08, non fatta.** Non è lavoro di
+  Code e non tocca il repo: è un intervento di Andrea nella console Google
+  Cloud. ⚠️ **Da non fare mentre il 4b è in corso**, per non mescolare due cose
+  che possono rompersi. *E con due indirizzi vivi, la restrizione al singolare
+  romperebbe il completamento dell'indirizzo sull'altro.*
+* **L'inserimento dei gusti in creazione**, registrato e **non aperto**: non è
+  accertato che oggi funzioni, `lib/menu-create.js` non è mai stato letto.
+  *Non è una cosa che il 4b rompe: è una cosa che il 4b non risolve.*
+* **Poi i passi 5, 6 e 7**: la conferma sul sovrapprezzo (FF), la sparizione di
+  `ProductEditForm`, e il cambio di categoria (HH).
+* ⚠️ **TRE ARTICOLI DI PROVA DA CANCELLARE**: `Roll prova`, `Roll di prova 2`,
+  `Roll di prova 3` — **non prima del 4b**. *Un Roll con opzioni ha righe su
+  quattro tabelle oltre a `products` e agli allergeni.*
+* ⚠️ **La rete sul conteggio**: **30 suite su 34** non ce l'hanno.
+* ⚠️ **La rete dei ventuno campi potrebbe essere cieca alla scorciatoia**
+  (`key,` invece di `key: key,`), che è il difetto che è nata per vedere.
+  *Non affermato: da guardare il giorno che la si tocca.*
+* **Lo store** non verificato. ⚠️ *E il conteggio "nove rotte" è **ereditato**,
+  non misurato: veniva da un "sette o otto" a cui è stato sommato uno. Il giorno
+  che si apre quel lavoro, si misura.*
+* **Le CATEGORIE**, discusse il 12/08 e non aperte.
+* ⚠️ **Il tetto delle righe dell'editor SQL è stato cambiato da Andrea il 27/08
+  e il suo valore vero NON è misurato.** *Si sa cosa dichiara il pannello, non
+  cosa fa lo strumento. La spec non dichiara più una cifra, dichiara la regola:
+  un'interrogazione lunga annuncia in cima quante righe deve avere il referto.*
