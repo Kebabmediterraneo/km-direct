@@ -804,5 +804,143 @@ function corpiDi(blocco) {
   );
 }
 
+// ---------------------------------------------------------------------------
+// §63-64 v77 — (MM) IL SALVA SPENTO FINCHÉ LE OPZIONI NON SONO STATE LETTE,
+// e il vincolo che tiene in vita il pulsante della CREAZIONE.
+//
+// ⚠️⚠️ QUESTE PROVE NON GUARDANO IL TESTO: LO ESEGUONO. Il ritaglio prende dal
+// pannello le due espressioni vere — `canSaveModifica` e `canSave` — e le
+// valuta con valori finti. *Una sonda di testo direbbe soltanto che la parola
+// `opzioniLette` compare in mezzo alle altre; non saprebbe dire se il pulsante
+// della creazione si accende, che è l'unica cosa che conta qui.*
+//
+// ⚠️ Il ritaglio si cerca NEL TESTO e non per numero di riga: le righe si
+// spostano al primo ritocco, e la prova diventerebbe rossa per il motivo
+// sbagliato (stessa scelta della sonda dei ventuno campi).
+// ---------------------------------------------------------------------------
+{
+  const ritaglia = (testo, inizio) => {
+    const i = testo.indexOf(inizio);
+    if (i === -1) return null;
+    const fine = testo.indexOf(";", i);
+    return fine === -1 ? null : testo.slice(i, fine + 1);
+  };
+
+  const esprModifica = ritaglia(codicePannello, "const canSaveModifica =");
+  const esprCanSave = ritaglia(codicePannello, "const canSave = inModifica");
+
+  assert(
+    esprModifica !== null && esprCanSave !== null,
+    "mm0) le due espressioni del pulsante Salva si trovano nel pannello — se questa cade, tutte le mm qui sotto non stanno misurando niente"
+  );
+
+  // I valori finti: tutto in regola, così l'unica cosa che cambia fra un caso e
+  // l'altro è ciò che si sta misurando.
+  const tuttoAPosto = {
+    categoriaScelta: true,
+    name: "Il Turco",
+    prezzoValido: true,
+    ordineValido: true,
+    dietaryMancante: false,
+    allergeniIncompleti: false,
+    allergeniValidi: true,
+    accompagnamentiMancanti: false,
+    proteineSenzaPrezzo: false,
+    extraIncompleti: false,
+    rimozioniVuote: false,
+    accompagnamentiVuoti: false,
+  };
+
+  // Valuta le espressioni VERE del pannello. `varianti` permette alle
+  // controprove di sporcare il testo prima di eseguirlo, che è l'unico modo di
+  // far diventare rossa una sonda che legge un file dove il difetto non c'è
+  // (lezione `dp`).
+  const valutaCanSave = (vars, { modifica = esprModifica, canSave = esprCanSave } = {}) => {
+    const nomi = Object.keys(vars);
+    const corpo = `${modifica}\n${canSave}\nreturn canSave;`;
+    return new Function(...nomi, corpo)(...nomi.map((n) => vars[n]));
+  };
+
+  assert(
+    valutaCanSave({ ...tuttoAPosto, inModifica: true, opzioniLette: false }) === false,
+    "mm1) (MM) in MODIFICA, con le opzioni non ancora arrivate o non riuscite, il Salva è SPENTO anche se tutto il resto è in regola"
+  );
+
+  assert(
+    valutaCanSave({ ...tuttoAPosto, inModifica: true, opzioniLette: true }) === true,
+    "mm2) in MODIFICA, appena le opzioni sono arrivate, il Salva si accende — così mm1 non passa per un motivo qualsiasi"
+  );
+
+  assert(
+    valutaCanSave({ ...tuttoAPosto, inModifica: false, opzioniLette: false }) === true,
+    "mm3) ⚠️⚠️ IN CREAZIONE IL SALVA NON È TOCCATO da (MM): con `opzioniLette` falso — che in creazione è il valore di SEMPRE, perché la rotta del lettore non viene mai chiamata — il pulsante si accende"
+  );
+
+  // --- le controprove, nei due versi, sul testo vero sporcato in memoria ---
+
+  const senzaVincolo = esprCanSave.replace(
+    "const canSave = inModifica",
+    "const canSave = true"
+  );
+  assert(
+    senzaVincolo !== esprCanSave &&
+      valutaCanSave({ ...tuttoAPosto, inModifica: false, opzioniLette: false }, { canSave: senzaVincolo }) === false,
+    "mm4) ⚠️ CONTROPROVA di mm3: se il vincolo `inModifica` cadesse e la creazione passasse dalla condizione di (MM), il pulsante della creazione risulterebbe SPENTO — la prova mm3 sa diventare rossa"
+  );
+
+  const senzaMM = esprModifica.replace("opzioniLette &&", "");
+  assert(
+    senzaMM !== esprModifica &&
+      valutaCanSave({ ...tuttoAPosto, inModifica: true, opzioniLette: false }, { modifica: senzaMM }) === true,
+    "mm5) ⚠️ CONTROPROVA di mm1: tolto `opzioniLette` dalla condizione, il Salva in modifica torna ACCESO con le opzioni non lette — la prova mm1 sa diventare rossa"
+  );
+}
+
+// ---------------------------------------------------------------------------
+// §63-64 v77 — (PP) L'AVVISO SULLE SCELTE CHE LA SCHEDA NON SA DISEGNARE.
+//
+// Qui si sorveglia da DOVE nasce l'elenco delle scelte disegnabili: dal
+// catalogo, mai da una lista scritta a mano. *Una lista di categorie o di
+// chiavi sarebbe giusta oggi e falsa il giorno che il catalogo cambia, senza
+// che nulla lo segnali.*
+// ---------------------------------------------------------------------------
+{
+  const blocco = codicePannello.slice(
+    codicePannello.indexOf("const chiaviDisegnabili"),
+    codicePannello.indexOf("const scelteNonRappresentabili")
+  );
+
+  assert(
+    /cataloghi\?\.proteins/.test(blocco),
+    "pp1) l'elenco di ciò che la scheda sa disegnare si prende dal CATALOGO (`cataloghi?.proteins`), lo stesso da cui nascono le caselle"
+  );
+
+  const conListaAMano = 'const chiaviDisegnabili = new Set(["pollo_tacchino", "planted", "adana"]);';
+  assert(
+    /\[\s*"[a-z_]+"\s*,/.test(conListaAMano) && !/\[\s*"[a-z_]+"\s*,/.test(blocco),
+    "pp2) ⚠️ CONTROPROVA: su un elenco di chiavi scritto a mano la sonda pp1 lo vedrebbe — quindi quando dice «viene dal catalogo» sta guardando"
+  );
+
+  assert(
+    /mostraGruppiOpzioni = !inModifica \|\| opzioniLette;/.test(codicePannello),
+    "pp3) (PP) è l'avviso e NON la riparazione: il blocco delle opzioni resta legato alla sola lettura riuscita, e l'avviso non lo nasconde"
+  );
+
+  // ⚠️ Il divieto del passo 4b-1: la rotta che SALVA le opzioni non viene
+  // chiamata. La sonda guarda le chiamate, non i commenti — nel pannello quel
+  // nome compare anche in un commento che spiega da dove arrivano le opzioni.
+  const chiamate = codicePannello.match(/fetch\([^)]*product-options[^)]*\)/g) ?? [];
+  assert(
+    chiamate.length === 1 && !/method:\s*"POST"[\s\S]{0,80}product-options/.test(codicePannello),
+    "pp4) ⚠️ il pannello chiama `product-options` UNA volta sola, ed è la GET del lettore: il salvataggio delle opzioni non è ancora attaccato"
+  );
+
+  const conPost = 'await fetch("/api/staff/menu/product-options", { method: "POST" });';
+  assert(
+    (conPost.match(/fetch\([^)]*product-options[^)]*\)/g) ?? []).length === 1,
+    "pp5) ⚠️ CONTROPROVA: la sonda pp4 conta anche una chiamata di scrittura — quando dice «una sola» sta contando davvero"
+  );
+}
+
 console.log(failures === 0 ? "\nTUTTI I TEST PASSATI" : `\n${failures} TEST FALLITI`);
 process.exitCode = failures === 0 ? 0 : 1;
