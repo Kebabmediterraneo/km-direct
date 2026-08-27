@@ -1,6 +1,6 @@
 # KM DIRECT — MASTER SPECIFICATION
 
-**Versione 76** — sostituisce la v75.
+**Versione 77** — sostituisce la v76.
 
 Documento di riferimento definitivo per lo sviluppo. Le decisioni qui
 contenute sono approvate: non vanno reinterpretate senza un motivo concreto
@@ -22,41 +22,56 @@ versione corrente**. I precedenti vivono in `git log`, che è fatto per quello.
 del documento prima che cominciasse a parlare del progetto — e dentro c'erano
 istruzioni rovesciate che nessuno rileggeva.*
 
-**Novità della v76** (vincolanti, dal lavoro del 25/08 sera e del 26/08/2026):
+**Novità della v77** (vincolanti, dal lavoro del 27/08/2026):
 
-1. §63-64 — ✅ **PASSI 1, 2 E 3 FATTI E PROVATI DAL VIVO DA ANDREA.** La scheda
-   unica si apre precompilata su un articolo esistente, ne salva i sei scalari
-   e gli allergeni, con la conferma sul prezzo che scatta **in aumento come in
-   diminuzione**.
-2. §63-64 — ✅ **IL PASSO 4 È STATO SPEZZATO IN 4a E 4b**, e non per prudenza:
-   il cuore delle opzioni **sostituisce** invece di aggiustare, e un gruppo
-   omesso vale come gruppo vuoto. ⚠️ **Salvare senza prima saper leggere
-   avrebbe cancellato rimozioni ed extra in silenzio, con un 200 in risposta.**
-3. §63-64 — **(LL) LE OPZIONI DI UN ARTICOLO SI LEGGONO DA UNA ROTTA NUOVA
-   DELLO STAFF**, non allargando l'elenco del menu. *Decisione di Andrea del
-   26/08: una rotta nuova, se si rompe, rompe solo la scheda; l'elenco del menu
-   regge il pannello intero.*
-4. §63-64 — ✅ **4a FATTO E PROVATO DAL VIVO**: la scheda mostra le opzioni che
-   l'articolo ha già, **spente**. ⚠️ Resta il **4b**, il salvataggio, che è il
-   pezzo pericoloso.
-5. §63-64 — ✅ **DUE RETI, NON UNA**: alla sonda dei ventuno campi della
-   creazione si affianca quella degli **undici** campi della modifica, più
-   l'assert che **sorveglia il confine fra i due ritagli**.
-6. §63-64 — ⚠️ **LA SONDA `d1` È STATA RISCRITTA CON INTENZIONE**: da *"il
-   pannello non nomina `product_removals`"* a **"il pannello non fa nessuna
-   operazione sul database"**. *Il segnale era più largo della regola; la
-   decisione **(DD)** resta viva e sorvegliata da `d2` e `d3`.*
-7. §63-64 — ⚠️ **ACCERTATO CHE UN GUASTO DI LETTURA NON DEVE DIVENTARE UNA
-   LISTA VUOTA**, né nel server né a schermo. *Con quel difetto installato, la
-   suite del cuore che salva restava **verde**: nessuna prova esistente lo
-   vedeva.*
+1. §63-64 — ✅ **IL 4b È STATO LETTO PER INTERO PRIMA DI SCRIVERE UNA RIGA.**
+   Quattro ricognizioni di sola lettura hanno accertato cosa pretende il
+   salvataggio, cosa ha in mano la scheda, che le **forme combaciano** e che i
+   **tipi passano**. *Nessun codice scritto: è la condizione che le decisioni
+   qui sotto siano decisioni e non scommesse.*
+2. §63-64 — **(MM) FINCHÉ LE OPZIONI NON SONO STATE LETTE, IL SALVA È SPENTO.**
+   Decisione di Andrea del 27/08. ⚠️ **Vale SOLO in modifica**: in creazione la
+   rotta del lettore non viene mai chiamata, e la stessa condizione senza quel
+   vincolo spegnerebbe per sempre il pulsante della creazione.
+3. §63-64 — **(NN) I QUATTRO GRUPPI SI MANDANO SEMPRE COMPLETI**, anche vuoti.
+   ⚠️ *La forma della creazione — che omette un gruppo quando è vuoto — nel
+   salvataggio significa **cancellare quella tabella**. Non si copia.*
+4. §63-64 — **(OO) IL TITOLO VIAGGIA COME `choiceLabel` AL PRIMO LIVELLO**, non
+   come `choice_label` dentro le righe. ⚠️ *Il nome sbagliato non viene
+   rifiutato: viene **ignorato**, e il titolo torna com'era con un 200.*
+5. §63-64 — ⚠️ **I CONTROLLI SULLE OPZIONI VANNO RIMESSI NEL PULSANTE SALVA**, e
+   il commento che spiega perché erano stati tolti va **riscritto nello stesso
+   passaggio**: oggi dice il vero, dal 4b dirà il falso.
+6. §63-64 — ⚠️ **DIFETTO DEL 4a FOTOGRAFATO DA ANDREA IL 27/08**: sui due dolci
+   con i gusti la scheda annuncia *"queste sono le opzioni che l'articolo ha
+   già"* e mostra **tre caselle di proteina vuote**. Riparazione **(PP)**,
+   dentro lo stesso passaggio del 4b.
+7. §63-64 — **I GUSTI DEI DOLCI NON SI MODIFICANO DAL PANNELLO**: limite
+   accettato, Andrea, 27/08/2026, con la ragione tecnica scritta accanto.
+8. §63-64 — ✅ **MISURA SUI DATI VERI, eseguita da Andrea nel SQL editor**:
+   nessuna etichetta divergente, nessun valore che il validatore rifiuterebbe,
+   nessuna Bowl senza accompagnamenti. **Il 4b non ha ostacoli in database.**
+9. §63-64 — ⚠️ **IL CATALOGO NON RISCRIVE IN SILENZIO: SI FERMA.** Su due
+   etichette diverse per la stessa chiave risponde con un errore. *Il timore era
+   che riscrivesse l'etichetta di nascosto; il codice fa il contrario.*
+10. §3, §6c, §66 — ✅ **IL DNS È PUNTATO E FUNZIONANTE dal 26/08/2026.** Il sito
+    risponde su `ordina.kebabmediterraneo.it`, e ogni pubblicazione esce ora su
+    **due indirizzi**.
+11. §66 — ⚠️ **LA CONDIZIONE DI APERTURA "DOMINIO" È CHIUSA A METÀ, NON CHIUSA**:
+    la **chiave API di Google** resta da restringere, e con due indirizzi vivi
+    restringerla a uno solo **spegne il completamento dell'indirizzo sull'altro**.
+12. §66 — ⚠️ **IL TETTO DELLE RIGHE DELL'EDITOR SQL È STATO CAMBIATO DA ANDREA
+    IL 27/08 e il suo valore vero NON è misurato.**
 
 *Il conteggio delle condizioni di apertura non cambia: **quattro chiuse, cinque
-aperte**. Il lavoro pre-go-live che resta è il **viewport**, le tre verifiche
-registrate in v63 e le **tre voci di §6c**.*
+aperte** — il dominio resta fra le aperte finché la chiave non è ristretta. Il
+lavoro pre-go-live che resta è il **viewport**, le tre verifiche registrate in
+v63 e le voci di §6c, che da questa versione sono **quattro e non tre**, di
+cui una ora **scaduta**.*
 
-⚠️ *Suite da 33 a **34** e prove da 1611 a **1658**. La suite nuova è quella del
-lettore: è un modulo nuovo, quindi il conteggio **doveva** muoversi.*
+⚠️ *Suite e prove restano **34** e **1658**, misurate eseguendole il 27/08.
+**Non dovevano muoversi**: in questa versione non è stata scritta una riga di
+codice. Un numero cambiato qui sarebbe un errore, non un progresso.*
 
 ## 1. Visione del progetto
 
@@ -80,8 +95,15 @@ inserisce manualmente la consegna su Glovo On-Demand.
 
 ## 3. Nome e dominio
 
-Progetto: KM Direct. Dominio previsto: `ordina.kebabmediterraneo.it`. Il
-sito vetrina resta `kebabmediterraneo.it`.
+Progetto: KM Direct. Dominio: `ordina.kebabmediterraneo.it` — ✅ **puntato e
+funzionante dal 26/08/2026**, non più "previsto". Il sito vetrina resta
+`kebabmediterraneo.it`.
+
+⚠️ **Gli indirizzi vivi sono DUE, non uno.** Il sito risponde sia sul dominio
+sia su `km-direct.vercel.app`, e ogni pubblicazione esce su entrambi. *Ogni
+riga di questo documento scritta quando l'indirizzo era uno solo va riletta con
+questa lente: la prima conseguenza è la restrizione della chiave API di Google
+(§66), che al singolare romperebbe il secondo indirizzo.*
 
 ## 4. Stack tecnico di riferimento
 
@@ -191,19 +213,29 @@ soprattutto. Provato dal vivo l'08/08: nessuna rottura.
 e nessuna prova possono accorgersi che mancano: il codice sarà verde lo stesso.
 *Emerse il 09/08/2026 guardando il pannello di pubblicazione, non il codice.*
 
-**L'indirizzo pubblico sarà `ordina.kebabmediterraneo.it`** — deciso il
-09/08/2026, **in attesa che il DNS venga creato**. Il valore da configurare è
-un record `CNAME` **specifico di questo progetto**, che si legge dal pannello e
-**non si ricopia da nessuna guida**: i valori generici che circolano possono
-non valere. *Va copiato con il pulsante, non ribattuto a mano: contiene cifre e
-lettere che sullo schermo si assomigliano.*
+✅ **L'INDIRIZZO PUBBLICO È `ordina.kebabmediterraneo.it`, E DAL 26/08/2026
+RISPONDE.** Il DNS è puntato e funzionante. *Deciso il 09/08/2026, realizzato il
+26/08. Il record era un `CNAME` **specifico di questo progetto**, letto dal
+pannello e non ricopiato da una guida.*
+
+⚠️ **"Aperto ma sconosciuto" è diventato "aperto e raggiungibile", e non è la
+stessa cosa.** Nessuno conosce l'indirizzo e non è pubblicizzato, ma ora è un
+indirizzo che si può **indovinare e digitare a memoria**. *Ogni frase di questo
+progetto che si appoggiava all'idea che il sito fosse di fatto irraggiungibile
+va riletta.*
 
 ⚠️ **IL SITO È GIÀ RAGGIUNGIBILE**, accertato il 09/08: `km-direct.vercel.app`
 risponde e risulta configurato. *Non è mai stato chiuso — era solo sconosciuto,
 che è un'altra cosa. Ogni frase di questo progetto che dice "non lo raggiunge
 nessuno" va letta come "nessuno lo conosce".*
 
-### Le tre cose da fare prima di incassare
+### Le QUATTRO cose da fare prima di incassare
+
+⚠️ *Erano tre fino alla v76. La quarta — la chiave API di Google — non è nata
+oggi: esisteva in §66 e nell'elenco delle condizioni di apertura, e **questa
+lista non la nominava**. Il 27/08 è stata cercata qui e non trovata, e per poco
+non è stata data per inesistente. **Una lista trova solo ciò che nomina**, e
+questa era la lista che si guarda prima di incassare.*
 
 **1. ⚠️ IL PIANO DI PUBBLICAZIONE VA PORTATO A PRO.** Il progetto sta oggi sul
 piano gratuito, che le condizioni del fornitore riservano all'uso **personale e
@@ -221,6 +253,25 @@ cui il sottodominio risponde, va aggiunto `ordina.kebabmediterraneo.it` fra i
 domini del progetto Adobe `jth6flt`. *§6b la definisce la cosa più facile da
 dimenticare di tutto il documento, e aggiunge la ragione: quando succederà
 sembrerà un guasto del sito, e non lo sarà.*
+
+⚠️ **Stato al 27/08/2026, scritto per quello che è e non per quello che si
+vorrebbe che fosse: Andrea ha guardato il sito sul dominio vero e le scritte gli
+sono sembrate a posto. L'elenco dei domini del progetto Adobe NON è stato
+verificato, quindi questa voce NON è chiusa.** *Un font non autorizzato non
+produce nessun errore: disegna le lettere con un carattere di riserva. Il
+confronto a occhio con `km-direct.vercel.app` non distingue i due casi, perché
+di quell'indirizzo questo documento non dichiara l'autorizzazione: se il
+sostituto arrivasse su entrambi, sembrerebbero uguali proprio perché sbagliati
+allo stesso modo. **La prova sta nell'elenco dei domini del pannello Adobe, non
+nel sito.***
+
+**2b. ⚠️ LA CHIAVE API DI GOOGLE VA RISTRETTA, ED È SCADUTA IL 26/08.** Non è
+una voce nuova — vive in §66 e nell'elenco delle condizioni di apertura — ma è
+elencata **anche qui** perché §6c è la lista che si guarda prima di incassare e
+fino alla v76 non la nominava. *Il 26/08 questa voce è passata da "da fare
+quando" a "da fare adesso": la spec dice **contestualmente all'attivazione del
+dominio vero**, e il dominio è attivo.* ⚠️ **Con due indirizzi vivi la
+restrizione al singolare romperebbe il secondo**: vedi §66.
 
 **3. ⚠️ STRIPE VA PORTATO FUORI DALLA SANDBOX.** Oggi il pagamento è in
 ambiente di prova. Passare al reale non è un interruttore: cambiano le chiavi,
@@ -3849,7 +3900,9 @@ menu **regge il pannello intero**.
 che l'articolo ha già, **spente**, e Andrea le ha verificate anche su un Roll
 vero del menu, non solo su quelli di prova.
 
-⚠️ **RESTA IL 4b: il salvataggio. È il pezzo pericoloso e va aperto da fresco.**
+⚠️ **RESTA IL 4b: il salvataggio. È il pezzo pericoloso.** ✅ *Aperto da fresco
+il 27/08 e **letto per intero**: decisioni e accertamenti nel blocco della v77
+qui sopra. **Non è ancora stato scritto.***
 
 #### ✅ DUE RETI, NON UNA
 
@@ -3875,6 +3928,215 @@ largo della regola. *La sonda nuova è più severa, non più permissiva: vieta
 qualunque scrittura, non una parola. E distingue la `delete()` del database da
 `next.delete(id)` **dalla forma della chiamata** — senza argomenti contro con
 argomenti — non da una lista di eccezioni da tenere aggiornata.*
+
+### ⚠️ IL PASSO 4b — LETTO PER INTERO, DECISO, NON ANCORA SCRITTO (v77, 27/08/2026)
+
+*Il 27/08 è stato speso **tutto in lettura**. Nessuna riga di codice. Le
+decisioni qui sotto poggiano su quattro ricognizioni che hanno letto i file
+veri, non su ciò che i documenti dicevano di quei file.*
+
+#### Ciò che è stato ACCERTATO, e non va riverificato
+
+* **La rotta che salva è `app/api/staff/menu/product-options/route.js`, solo
+  `POST`, e l'identificativo dell'articolo viaggia NEL CORPO**, non
+  nell'indirizzo. ⚠️ *È un'altra cosa da `product-options/[id]` (che legge) e
+  da `options` (i due cataloghi piatti di tutto il menu). Tre rotte con nomi
+  che si somigliano: **non si deduce cosa fa una rotta dal suo nome**.*
+* **Le quattro chiavi non stanno nel cuore**: `menu-options-editor.js` passa il
+  corpo intero a `validateProductOptions`, in **`lib/menu-options.js`**, che è
+  dove le chiavi sono scritte. ⚠️ *Il comando del 27/08 mandava sul file
+  sbagliato proprio per questo, ed è stato Code a fermarsi e a dirlo invece di
+  aggiustare in silenzio.*
+* **Le righe dentro i quattro gruppi COMBACIANO.** Proteine `key`,
+  `price_delta`, `is_default`, `extra_dose_included`; rimozioni stringhe nude
+  (accettate esplicitamente); accompagnamenti `label` e `contains_gluten`;
+  extra `label`, `price`, `requires_protein`, `max_quantity`. **Non esiste una
+  terza asimmetria** oltre alle due già note.
+* **I TIPI PASSANO.** I due prezzi e le dosi cumulabili arrivano come **testo**
+  dalla scheda e il validatore **converte**; le tre caselle vere pretendono
+  booleani e booleani sono. *Il primo salvataggio dal vivo non si schianterà per
+  una forma sbagliata.*
+* **Un campo di troppo non fa danno**: ogni gruppo **ricostruisce una voce
+  nuova** con i soli campi validati, invece di ricopiare quella ricevuta.
+* **Lo scudo c'è e concorda con l'handoff**: `is_in_menu` giù come prima
+  scrittura, su come ultimo atto. ⚠️ *Due precisazioni lette dal codice e che
+  l'handoff non conteneva: lo scudo si alza **solo se** l'articolo è in menu, e
+  **se nessuna delle quattro tabelle cambia** la funzione esce con 200 **prima**
+  di arrivare allo scudo — l'articolo non esce dal menu neanche per un istante.*
+
+#### ⚠️ IL CATALOGO NON RISCRIVE IN SILENZIO: SI FERMA
+
+*Correzione di un timore, non conferma di un sospetto.* Il salvataggio scrive
+l'etichetta della proteina **presa dal catalogo**, non quella che l'articolo ha.
+Sembrava la via a una riscrittura silenziosa. **Non lo è**: `lib/protein-catalog.js`
+davanti a due etichette diverse per la stessa chiave **non sceglie**, restituisce
+un errore, e la rotta risponde **500** senza entrare nel cuore.
+
+⚠️ *Conseguenza da tenere: se quella divergenza esistesse, il salvataggio delle
+opzioni sarebbe **impossibile su ogni articolo con proteine**. Rumoroso, quindi
+innocuo per i dati — ma un muro. **Va misurato prima di costruire, non scoperto
+dopo.*** Il confronto è **esatto, senza ripulire gli spazi**: `Adana` e `Adana `
+sono due proteine diverse.
+
+#### ✅ LA MISURA SUI DATI VERI — eseguita da Andrea nel SQL editor il 27/08/2026
+
+*Interrogazione di sola lettura, referto arrivato **intero**: 35 righe su 35
+dichiarate. Ogni riga porta accanto quante righe ha esaminato, quindi ogni zero
+è una risposta e non una cecità.*
+
+* **Nessuna etichetta divergente** (0 su **3 chiavi** confrontate, 38 righe).
+  ⚠️ *Il 3 è ciò che rende valido lo 0: con zero chiavi il confronto non avrebbe
+  guardato niente.* Le tre in chiaro: `adana`, `planted`, `pollo_tacchino`.
+* **Nessuna etichetta vuota**, nessun prezzo negativo o fuori scala, nessun
+  doppione, nessun articolo con due proteine preselezionate, nessun titolo
+  divergente, **nessuna Bowl senza accompagnamenti** (0 su 7 Bowl).
+* Consistenza: **42** righe di proteine su 15 articoli, **71** rimozioni su 15,
+  **21** accompagnamenti su 7, **5** extra su 5; **65** articoli in menu, **19**
+  con almeno una riga di opzioni.
+* **L'unico numero diverso da zero sono 4 righe su 2 articoli**, ed era previsto:
+  i **gusti dei dolci** (vedi sotto). Le due misure indipendenti che li contano
+  danno lo stesso 4, che è il controllo incrociato.
+
+⚠️ **Sonde di cui NON ci si fida, dichiarate invece di taciute**: i due controlli
+sui prezzi con più di due decimali **non possono fallire** se il database tiene
+quei numeri in una forma che ne ammette solo due. Non è stato verificato. *Quei
+due zeri valgono per quello che sono, non come garanzia.*
+
+#### ⚠️ IL DIFETTO DEL 4a SUI DOLCI — fotografato da Andrea il 27/08/2026
+
+**Non è un vuoto: è un vuoto che si presenta come pieno.** Aprendo la Cheesecake
+la scheda scrive *"queste sono le opzioni che l'articolo ha già"* — frase che
+compare **solo a lettura riuscita** — e il campo del titolo contiene **`Gusto`**,
+che viene dalle righe lette. **I dati sono arrivati.** Poi la scheda disegna
+**tre caselle di proteina vuote**, e dei quattro gusti veri non c'è traccia:
+sa disegnare soltanto le tre proteine del catalogo.
+
+⚠️ *Oggi non fa danno — il 4a non chiama la rotta che salva — ma è **la stessa
+famiglia di guasti** contro cui è stato costruito tutto il resto della giornata,
+e stavolta è stata trovata **guardando**, non ragionando.*
+
+#### LE DECISIONI DI ANDREA DEL 27/08/2026, vincolanti
+
+**(MM) FINCHÉ LE OPZIONI NON SONO STATE LETTE, IL SALVA È SPENTO.** Né gli
+scalari, né gli allergeni: se non sai cosa c'è, non tocchi niente. *Costo
+accettato e nominato: un guasto della lettura blocca **anche** le correzioni che
+non c'entrano — un prezzo sbagliato di sabato sera non si corregge da quella
+scheda. Scartata la strada di lasciar salvare il resto senza chiamare la rotta
+delle opzioni, benché fosse più vicina a **(KK)**.*
+
+⚠️⚠️ **VALE SOLO IN MODIFICA.** In creazione la rotta del lettore **non viene
+mai chiamata**, quindi la variabile che dice "la risposta non è ancora arrivata"
+resta a `null` per sempre: la stessa condizione senza il vincolo di `inModifica`
+**spegnerebbe per sempre il pulsante della creazione**. *È il rischio che questo
+intero lavoro mette al primo posto — il pericolo non è la modifica, è la
+creazione. Qui almeno sarebbe rumoroso: un pulsante spento si vede.*
+
+*Nota: la stessa condizione copre anche l'attimo in cui la risposta sta ancora
+viaggiando. Aprire la scheda e premere Salva subito è indistinguibile da un
+guasto, e la protezione è **una sola** perché entrambi i casi passano dalla
+stessa variabile a `null`.*
+
+**(NN) I QUATTRO GRUPPI SI MANDANO SEMPRE COMPLETI, ANCHE VUOTI.** Non esiste il
+mezzo corpo. ⚠️ **Il blocco della creazione NON si copia proprio dove è più
+tentante copiarlo**: manda un gruppo *solo se non è vuoto*, e nel salvataggio
+quel gesto **cancella la tabella**. *Rimozioni ed extra sono gli unici due
+gruppi che l'assenza azzera **in silenzio, con un 200**: proteine e
+accompagnamenti sono protetti da un rifiuto rumoroso. Accertato riga per riga, e
+la controprova ha mostrato che la stessa sonda **trova** il rifiuto sul vuoto
+dove esiste.*
+
+**(OO) IL TITOLO VIAGGIA COME `choiceLabel`, CAMPO A SÉ AL PRIMO LIVELLO.** Non
+come `choice_label` dentro le righe, che è la forma della creazione. ⚠️ *I due
+nomi si somigliano fino a confondersi, e il modo in cui si rompe è il peggiore:
+`choice_label` dentro le righe **non viene rifiutato, viene ignorato** — quella
+parola in `lib/menu-options.js` non compare affatto — e `choiceLabel` mancante
+**non è un errore**, perché il sistema conserva il titolo già in database.
+Risultato: **200, opzioni salvate, titolo tornato indietro**, nessun errore da
+nessuna parte. Se non l'avevi cambiato non te ne accorgi mai.*
+
+**(PP) GLI ARTICOLI CON SCELTE NON RAPPRESENTABILI MOSTRANO UN AVVISO, E IL
+SALVA NON TENTA.** *Decisione di Andrea del 27/08, scelta fra due strade.* Il
+blocco delle opzioni **resta** e sopra compare una frase che dice che l'articolo
+ha delle scelte che da questa scheda **non si vedono e non si modificano**.
+⚠️ *Scartato il nascondere il blocco: il giorno che un articolo avesse **sia**
+proteine vere **sia** scelte non rappresentabili, nasconderlo toglierebbe dalla
+vista anche le proteine. Oggi quel caso non esiste — la misura dice che i gusti
+stanno su due articoli e le proteine su altri — ma la scelta si fa una volta.*
+
+E **su quegli articoli il Salva non deve nemmeno provarci** se le opzioni sono
+state toccate: meglio spento che una richiesta destinata a fallire. *È **(MM)**
+applicata: se la scheda non sa rappresentare le opzioni, non le salva.*
+
+⚠️ **(PP) si realizza NELLO STESSO PASSAGGIO del 4b**, per decisione di Andrea:
+è lo stesso blocco di scheda, e aprirlo due volte è il lavoro doppio che questo
+progetto evita già altrove.
+
+**I CONTROLLI SULLE OPZIONI VANNO RIMESSI NEL PULSANTE SALVA, E IL COMMENTO VA
+RISCRITTO.** ⚠️⚠️ *Oggi la condizione del Salva in modifica **non contiene
+nessuno** dei controlli che la creazione ha — prezzo della proteina, extra
+incompleti, rimozioni vuote, accompagnamenti — e sopra c'è un commento che
+spiega perché, con un buon motivo: il blocco è **spento**, quindi non deve poter
+bloccare il salvataggio. **Il 4b accende quel blocco.** Da quel momento il
+commento descrive una situazione che non esiste più, ma resta lì a giustificare
+un'assenza in modo convincente.*
+
+⚠️ **È esattamente la forma del difetto del 12/08** (lezione `de`): non un fatto
+ignoto, ma un paragrafo che diceva il vero in un altro momento. *Se si fa solo
+la chiamata, si ottiene una scheda che salva opzioni incomplete senza dire
+niente.*
+
+#### I GUSTI DEI DOLCI — limite accettato (Andrea, 27/08/2026)
+
+**I gusti dei dolci NON si modificano dal pannello.** Il salvataggio delle
+opzioni rifiuterà **sempre** quei due articoli, perché le loro chiavi non sono
+fra le quattro proteine ammesse. *Rumoroso, quindi innocuo: e per **(KK)** se
+non tocchi le opzioni quella rotta non parte affatto, quindi **nome, prezzo e
+allergeni di un dolce restano modificabili** normalmente.*
+
+⚠️ **Su quegli articoli non esiste nessuna strada silenziosa**, verificato:
+qualunque cosa la scheda mandi, il salvataggio protesta a voce alta — o perché
+la chiave non è ammessa, o perché scatta la regola che vieta di lasciare senza
+proteine un articolo che ne ha.
+
+⚠️ **PERCHÉ NON BASTA ALLARGARE LA LISTA, se un giorno la si volesse aprire.**
+La lista chiusa delle quattro proteine **governa anche un'altra cosa**: alla
+riga 490 di `lib/menu-options.js` decide a quale proteina può essere legato un
+extra. Infilarci dentro i gusti dei dolci renderebbe possibile legare un extra a
+un gusto di cheesecake. *La strada vera non è allargare la lista: è che il
+progetto impari a distinguere **"un gruppo di scelte qualsiasi"** da **"le
+proteine"**, due concetti che oggi condividono una tabella e un pezzo di codice.
+**Non è un ritocco**, ed è la ragione per cui non entra nel 4b.*
+
+#### Registrato e NON aperto — l'inserimento dei gusti in creazione
+
+⚠️ **Non è accertato che oggi si possa creare dal pannello un dolce con i suoi
+gusti.** La creazione passa da un controllore **diverso**, `lib/menu-create.js`,
+che non è mai stato letto; e l'elenco delle scelte che il pannello propone è
+costruito dal catalogo, che conosce **soltanto le quattro proteine**. *Il
+sospetto ragionevole è che i due dolci esistenti non siano mai stati creati dal
+pannello. Se fosse così, **non è una cosa che il 4b rompe: è una cosa che il 4b
+non risolve**.*
+
+*È lo stesso schema di **(EE)** sulle birre — creazione e modifica con due
+controllori e due idee diverse di cosa sia legittimo — girato al contrario.*
+
+#### Cosa NON è stato verificato, e va detto
+
+* **`lib/menu-create.js` non è stato aperto**, per divieto esplicito: "la
+  creazione funziona" non è una risposta su un altro file.
+* ⚠️ **La rete dei ventuno campi potrebbe essere cieca a un campo scritto con la
+  scorciatoia** (`key,` invece di `key: key,`): la sonda usata il 27/08 non lo
+  vedeva, e l'ha dichiarato. *Se quella rete conta i campi con una sonda della
+  stessa famiglia, un campo così le sarebbe invisibile — cioè il difetto che è
+  nata per vedere. **Non affermato: da guardare il giorno che la si tocca.***
+* **Il "nove rotte del menu" è ereditato**, non misurato: veniva da un
+  "sette o otto" a cui è stato sommato uno.
+* **Per la prova dal vivo del 4b, `Roll prova` è materiale magro sul gruppo che
+  conta**: dalla misura risultano 71 rimozioni su 15 articoli contro le 70 su 14
+  del 29/07, cioè **una sola rimozione** in più su tutti e tre i Roll di prova.
+  ⚠️ *Il 4b va provato proprio sul gruppo che sparisce in silenzio: se dopo il
+  salvataggio ne resta una, si è visto poco. **Prima della prova dal vivo va
+  deciso se caricare `Roll prova` di rimozioni ed extra dal pannello.***
 
 ### ✅ LA SCHERMATA UNICA — le decisioni di Andrea del 25/08/2026 (v75)
 
@@ -3961,7 +4223,10 @@ provare dal vivo**, e il pezzo più rischioso arriva quando l'impalcatura attorn
    `/api/staff/menu/product-options` viene chiamata dal vivo: la rotta esiste
    dal 13/08 e **nessuna interfaccia la conosce** — verificato il 25/08, è
    l'unica delle otto rotte del menu senza chiamanti.* **È il pezzo pericoloso,
-   ed è quart'ultimo apposta.**
+   ed è quart'ultimo apposta.** ✅ **4a fatto.** ⚠️ **Il 4b è letto e deciso
+   (v77) e comprende TRE cose nello stesso passaggio, non una**: la chiamata,
+   i controlli da rimettere nel Salva con il commento riscritto, e la
+   riparazione **(PP)** del blocco che oggi mente sui dolci.
 5. **La conferma sul sovrapprezzo (FF)**, copiata dal modello del prezzo.
 6. **La vecchia scheda di modifica sparisce.** ⚠️ **NON PRIMA**: finché non
    sparisce resta sempre una strada che funziona.
@@ -4570,6 +4835,12 @@ Verificato dalla dashboard, non dedotto: organizzazione **Kebab Mediterraneo** i
 
 **Chiave API di Google da restringere al dominio** nella console Google Cloud, contestualmente all'attivazione del dominio vero. Oggi è una variabile `NEXT_PUBLIC_` visibile nel sorgente e senza restrizioni: chiunque la copi consuma il credito.
 
+⚠️ **SCADUTA IL 26/08/2026, e non è stata fatta.** Il dominio vero è attivo, quindi "contestualmente" significa **adesso**. *Il rischio non è grande oggi — il sito è raggiungibile ma sconosciuto — ma cresce da solo col tempo e non si segnala: una chiave copiata consuma credito senza che nessuno se ne accorga finché non arriva il conto.*
+
+⚠️⚠️ **QUESTA RIGA È SCRITTA AL SINGOLARE E IL SINGOLARE ORA È SBAGLIATO.** Quando è stata scritta l'indirizzo previsto era uno solo. Da oggi il sito risponde su **due** — `ordina.kebabmediterraneo.it` e `km-direct.vercel.app` — e restringere la chiave al solo dominio nuovo **spegne il completamento dell'indirizzo di consegna sull'altro**. *E non si spegne con un errore: si spegne con un campo che smette di suggerire, che è il modo in cui un guasto non si vede. Se servono entrambi gli indirizzi vivi, vanno messi **entrambi** nella restrizione.*
+
+⚠️ *Non è accertato quale sia la forma esatta da inserire nella console, né se la restrizione corretta sia per referente HTTP o d'altro tipo: **va letto dalla console, non dedotto da qui**.*
+
 ---
 
 ### Il referto di audit sul database — 04/08/2026 (v54)
@@ -4620,7 +4891,7 @@ Eseguito da Andrea nell'editor SQL della dashboard con query di sola lettura sul
 
 ### La sequenza di apertura (v55) — l'ordine ha una ragione
 
-1. **dominio**, e con esso la restrizione della chiave API di Google;
+1. **dominio**, e con esso la restrizione della chiave API di Google. ⚠️ **AL 27/08/2026 QUESTO PASSO È FATTO A METÀ**: il DNS è puntato e funzionante dal 26/08, la **chiave non è ristretta**. *La condizione di apertura "dominio" **non si chiude** con il DNS: si chiude quando il DNS funziona **e** la chiave è ristretta. Sono la stessa voce apposta, perché separarle vorrebbe dire dichiarare chiusa una cosa fatta a metà.*
 2. **Stripe in modalità reale**, con il webhook puntato al dominio **definitivo**. ⚠️ Non è un interruttore: sandbox e reale sono due ambienti separati con chiavi e webhook diversi, e ci sono cose che in sandbox non esistono e quindi non si possono provare — che il conto incassi davvero, che l'antifrode non blocchi i primi pagamenti, e soprattutto che l'avviso di pagamento arrivi al sito. Se quel pezzo non funziona **i clienti pagano e in cucina non arriva niente**;
 3. **un ordine vero fatto da Andrea**, pagato con carta propria, che percorra tutta la catena fino alla comparsa in cucina, e poi rimborsato dalla dashboard. Costa le commissioni di un caffè ed è l'unica prova che vale;
 4. **pulizia dei dati** — dopo l'ordine vero, non prima, altrimenti resterebbe dentro un ordine pagato con denaro reale;
@@ -4631,7 +4902,9 @@ Eseguito da Andrea nell'editor SQL della dashboard con query di sola lettura sul
 
 ⚠️ **Da verificare prima del passo 2, e non ancora verificato:** come il codice sceglie le chiavi di Stripe. Se sono lette da variabili d'ambiente il passaggio è cambiare quei valori; se da qualche parte è scritto "sandbox" è un lavoro diverso.
 
-⚠️ **Limite dello strumento, da ricordare:** l'editor SQL della dashboard restituisce **al massimo 500 righe** (misurato il 06/08/2026; fino alla v58 questo documento diceva 100, ed era il limite di allora). Un referto che finisce sul numero tondo non va mai considerato completo — il primo giro sulle colonne si era interrotto così, e sembrava una risposta. *Il numero cambia con lo strumento senza avvisare: è la diffidenza verso il numero tondo che va conservata, non la cifra.*
+⚠️ **Limite dello strumento, da ricordare:** l'editor SQL della dashboard ha un tetto sulle righe restituite. ⚠️ **Il 27/08/2026 Andrea ha cambiato l'impostazione che lo governa, e il valore vero NON è misurato: si sa cosa dichiara il pannello, non cosa fa lo strumento.** *Storia della cifra: fino alla v58 questo documento diceva **100**; dalla v58 alla v76 diceva **500**, misurato il 06/08/2026; dal 27/08 non lo dichiara più.* Un referto che finisce sul numero tondo non va mai considerato completo — il primo giro sulle colonne si era interrotto così, e sembrava una risposta. *Il numero cambia con lo strumento senza avvisare: **è la diffidenza verso il numero tondo che va conservata, non la cifra** — e il 27/08 questa frase si è dimostrata vera per la terza volta.*
+
+⚠️ **Regola che ne discende, vincolante: un'interrogazione lunga dichiara in cima QUANTE RIGHE deve avere il proprio referto.** Se ne arrivano meno, è il tetto che taglia e i controlli in fondo **non sono stati letti** — non sono "a posto". *E non si mette un `LIMIT` proprio per stare sicuri: è il modo più facile per reintrodurre di nascosto il problema che si sta evitando.*
 
 ---
 
