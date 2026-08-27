@@ -1718,6 +1718,44 @@ function ProductForm({ products, allergensCatalog, articolo, onSaved, onCancel }
   // cancellazione.
   const mostraGruppiOpzioni = !inModifica || opzioniLette;
 
+  // -------------------------------------------------------------------------
+  // ⚠️ (PP, Andrea 27/08/2026) — LE SCELTE CHE QUESTA SCHEDA NON SA DISEGNARE.
+  //
+  // Il difetto che questa parte ripara, fotografato da Andrea il 27/08: sui due
+  // dolci con i gusti (§31) la scheda annunciava *"queste sono le opzioni che
+  // l'articolo ha già"* e mostrava **tre caselle di proteina vuote**. Le sue
+  // scelte esistono, ma questa scheda non le rappresenta.
+  //
+  // ⚠️⚠️ L'ELENCO DI CIÒ CHE SI SA DISEGNARE NON È SCRITTO QUI, SI MISURA: le
+  // caselle nascono da `cataloghi.proteins` (una per voce, più sotto nel
+  // rendering), cioè dal catalogo che `lib/protein-catalog.js` costruisce
+  // tenendo solo le chiavi del tipo chiuso `protein_key`. Confrontare con
+  // QUELLO, e non con una lista di categorie scritta a mano, è ciò che tiene
+  // vero l'avviso il giorno che il catalogo cambia: una lista di categorie
+  // sarebbe giusta oggi e falsa allora, senza che nulla lo segnali.
+  //
+  // ⚠️ Si accende solo quando **entrambe** le letture sono arrivate. Con il
+  // catalogo ancora in viaggio ogni chiave risulterebbe non rappresentabile, e
+  // l'avviso comparirebbe su tutti gli articoli per un istante — un avviso
+  // ritirato dopo mezzo secondo è peggio del silenzio (§36-40 v42).
+  //
+  // ⚠️ (PP) è l'avviso, NON la riparazione: il blocco resta dov'è e la lista
+  // delle scelte disegnabili non si allarga. *Nascondere il blocco è stato
+  // scartato da Andrea: il giorno che un articolo avesse sia proteine vere sia
+  // scelte non rappresentabili, nasconderlo toglierebbe dalla vista anche le
+  // proteine.*
+  // -------------------------------------------------------------------------
+  const chiaviDisegnabili = new Set((cataloghi?.proteins ?? []).map((p) => p.key));
+  const righeNonRappresentabili =
+    opzioniLette && cataloghi !== null
+      ? (opzioniArticolo.product_choice_options ?? []).filter(
+          (r) => !chiaviDisegnabili.has(r.choice_key)
+        )
+      : [];
+  const scelteNonRappresentabili = [
+    ...new Set(righeNonRappresentabili.map((r) => r.label ?? r.choice_key)),
+  ];
+
   // Cambiare categoria rifà la proposta del posto — un numero calcolato su
   // un'altra categoria non vuol dire niente — e azzera ciò che su una bevanda
   // non si può nemmeno inviare, così non resta selezionato e invisibile.
@@ -1862,13 +1900,36 @@ function ProductForm({ products, allergensCatalog, articolo, onSaved, onCancel }
 
   // ⚠️ IN MODIFICA IL PULSANTE GUARDA SOLO CIÒ CHE PARTE DAVVERO.
   //
-  // Il blocco spento — le opzioni — non si salva da questa scheda (passo 4) e
-  // **non deve poterla bloccare**: una Bowl esistente, il cui blocco opzioni qui
-  // è spento e vuoto, sarebbe altrimenti impossibile da salvare per la mancanza
-  // di accompagnamenti che nessuno le sta togliendo.
+  // Il blocco spento — le opzioni — non si salva da questa scheda (il
+  // salvataggio delle opzioni è il 4b, e non è ancora attaccato) e **non deve
+  // poterla bloccare**: una Bowl esistente, il cui blocco opzioni qui è spento e
+  // vuoto, sarebbe altrimenti impossibile da salvare per la mancanza di
+  // accompagnamenti che nessuno le sta togliendo.
+  // ⚠️⚠️ **QUESTO COMMENTO SCADE NEL PASSO IN CUI LE OPZIONI COMINCIANO A
+  // PARTIRE**: da quel momento i controlli della creazione — sovrapprezzo della
+  // proteina, extra incompleti, rimozioni vuote, accompagnamenti — vanno rimessi
+  // qui dentro, e questa spiegazione va riscritta invece che lasciata a
+  // giustificare in modo convincente un'assenza che non ha più ragione (spec
+  // §63-64 v77, ed è la forma del difetto del 12/08, lezione `de`).
   // *Le condizioni della creazione restano identiche, parola per parola: sono
   // l'altro ramo di questa scelta, non una versione modificata.*
+  //
+  // ⚠️⚠️ (MM, Andrea 27/08/2026) — FINCHÉ LE OPZIONI NON SONO STATE LETTE, IL
+  // SALVA È SPENTO: né gli scalari, né gli allergeni. Se non sai cosa c'è, non
+  // tocchi niente. *Costo accettato e nominato: un guasto della lettura blocca
+  // anche le correzioni che non c'entrano.* Una variabile sola copre i due casi
+  // — la risposta ancora in viaggio e il guasto — perché entrambi lasciano
+  // `opzioniArticolo` a `null`.
+  //
+  // ⚠️⚠️ VALE SOLO IN MODIFICA, E NON È UNA CAUTELA: in creazione la rotta del
+  // lettore non viene mai chiamata, quindi quella variabile resta a `null` per
+  // sempre. La stessa condizione senza il vincolo **spegnerebbe per sempre il
+  // pulsante della creazione**, che è il pezzo che funziona e che Andrea ha
+  // provato dal vivo. Il vincolo è dentro `opzioniLette`, che comincia con
+  // `inModifica &&`, e questa riga vive nel ramo `inModifica` di `canSave`: due
+  // volte, di proposito.
   const canSaveModifica =
+    opzioniLette &&
     categoriaScelta &&
     name.trim() !== "" &&
     prezzoValido &&
@@ -1896,6 +1957,11 @@ function ProductForm({ products, allergensCatalog, articolo, onSaved, onCancel }
   // pulsante: dire «mancano gli allergeni» accanto a un blocco spento manderebbe
   // a cercare l'errore proprio dove non si può fare niente.
   const mancanti = [
+    // ⚠️ (MM) detto in chiaro. Il blocco delle opzioni annuncia già da sé
+    // l'attesa e il guasto, ma **solo dove si disegna**: su una bevanda
+    // `mostraOpzioni` è falso, quindi senza questa riga il pulsante resterebbe
+    // spento e muto proprio dove non c'è nient'altro a spiegarlo.
+    inModifica && !opzioniLette && "la lettura delle opzioni dell'articolo, che non è ancora riuscita",
     !categoriaScelta && "la categoria",
     name.trim() === "" && "il nome",
     !prezzoValido && "un prezzo maggiore di zero",
@@ -2332,6 +2398,31 @@ function ProductForm({ products, allergensCatalog, articolo, onSaved, onCancel }
                 ancora.
               </p>
             ))}
+
+          {/* ⚠️ (PP, Andrea 27/08/2026) — L'AVVISO SULLE SCELTE CHE QUESTA
+              SCHEDA NON SA DISEGNARE. Sta SOPRA il blocco, e il blocco RESTA:
+              nasconderlo toglierebbe dalla vista anche le proteine vere, il
+              giorno che un articolo avesse le une e le altre.
+              *L'elenco non è scritto qui: è la differenza fra ciò che il
+              lettore ha riportato e ciò che il catalogo sa disegnare.* */}
+          {scelteNonRappresentabili.length > 0 && (
+            <p
+              style={{
+                fontSize: 12,
+                color: "var(--navy)",
+                margin: 0,
+                padding: "8px 10px",
+                borderRadius: 8,
+                border: "1px solid var(--brand-orange)",
+                background: "var(--surface-white)",
+              }}
+            >
+              Attenzione: questo articolo ha {righeNonRappresentabili.length} scelte che questa
+              scheda non sa mostrare ({scelteNonRappresentabili.join(", ")}). Non si vedono qui
+              sotto e da qui non si modificano: restano com'erano. Nome, prezzo e allergeni si
+              salvano normalmente.
+            </p>
+          )}
 
           {mostraGruppiOpzioni && (
             <>
