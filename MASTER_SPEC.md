@@ -1,6 +1,6 @@
 # KM DIRECT — MASTER SPECIFICATION
 
-**Versione 77** — sostituisce la v76.
+**Versione 78** — sostituisce la v77.
 
 Documento di riferimento definitivo per lo sviluppo. Le decisioni qui
 contenute sono approvate: non vanno reinterpretate senza un motivo concreto
@@ -22,56 +22,49 @@ versione corrente**. I precedenti vivono in `git log`, che è fatto per quello.
 del documento prima che cominciasse a parlare del progetto — e dentro c'erano
 istruzioni rovesciate che nessuno rileggeva.*
 
-**Novità della v77** (vincolanti, dal lavoro del 27/08/2026):
+**Novità della v78** (vincolanti, dalla sera del 27/08/2026):
 
-1. §63-64 — ✅ **IL 4b È STATO LETTO PER INTERO PRIMA DI SCRIVERE UNA RIGA.**
-   Quattro ricognizioni di sola lettura hanno accertato cosa pretende il
-   salvataggio, cosa ha in mano la scheda, che le **forme combaciano** e che i
-   **tipi passano**. *Nessun codice scritto: è la condizione che le decisioni
-   qui sotto siano decisioni e non scommesse.*
-2. §63-64 — **(MM) FINCHÉ LE OPZIONI NON SONO STATE LETTE, IL SALVA È SPENTO.**
-   Decisione di Andrea del 27/08. ⚠️ **Vale SOLO in modifica**: in creazione la
-   rotta del lettore non viene mai chiamata, e la stessa condizione senza quel
-   vincolo spegnerebbe per sempre il pulsante della creazione.
-3. §63-64 — **(NN) I QUATTRO GRUPPI SI MANDANO SEMPRE COMPLETI**, anche vuoti.
-   ⚠️ *La forma della creazione — che omette un gruppo quando è vuoto — nel
-   salvataggio significa **cancellare quella tabella**. Non si copia.*
-4. §63-64 — **(OO) IL TITOLO VIAGGIA COME `choiceLabel` AL PRIMO LIVELLO**, non
-   come `choice_label` dentro le righe. ⚠️ *Il nome sbagliato non viene
-   rifiutato: viene **ignorato**, e il titolo torna com'era con un 200.*
-5. §63-64 — ⚠️ **I CONTROLLI SULLE OPZIONI VANNO RIMESSI NEL PULSANTE SALVA**, e
-   il commento che spiega perché erano stati tolti va **riscritto nello stesso
-   passaggio**: oggi dice il vero, dal 4b dirà il falso.
-6. §63-64 — ⚠️ **DIFETTO DEL 4a FOTOGRAFATO DA ANDREA IL 27/08**: sui due dolci
-   con i gusti la scheda annuncia *"queste sono le opzioni che l'articolo ha
-   già"* e mostra **tre caselle di proteina vuote**. Riparazione **(PP)**,
-   dentro lo stesso passaggio del 4b.
-7. §63-64 — **I GUSTI DEI DOLCI NON SI MODIFICANO DAL PANNELLO**: limite
-   accettato, Andrea, 27/08/2026, con la ragione tecnica scritta accanto.
-8. §63-64 — ✅ **MISURA SUI DATI VERI, eseguita da Andrea nel SQL editor**:
-   nessuna etichetta divergente, nessun valore che il validatore rifiuterebbe,
-   nessuna Bowl senza accompagnamenti. **Il 4b non ha ostacoli in database.**
-9. §63-64 — ⚠️ **IL CATALOGO NON RISCRIVE IN SILENZIO: SI FERMA.** Su due
-   etichette diverse per la stessa chiave risponde con un errore. *Il timore era
-   che riscrivesse l'etichetta di nascosto; il codice fa il contrario.*
-10. §3, §6c, §66 — ✅ **IL DNS È PUNTATO E FUNZIONANTE dal 26/08/2026.** Il sito
-    risponde su `ordina.kebabmediterraneo.it`, e ogni pubblicazione esce ora su
-    **due indirizzi**.
-11. §66 — ⚠️ **LA CONDIZIONE DI APERTURA "DOMINIO" È CHIUSA A METÀ, NON CHIUSA**:
-    la **chiave API di Google** resta da restringere, e con due indirizzi vivi
-    restringerla a uno solo **spegne il completamento dell'indirizzo sull'altro**.
-12. §66 — ⚠️ **IL TETTO DELLE RIGHE DELL'EDITOR SQL È STATO CAMBIATO DA ANDREA
-    IL 27/08 e il suo valore vero NON è misurato.**
+*La v77 di stamattina resta valida in tutto: decisioni **(MM) (NN) (OO) (PP)**,
+misura sui dati veri, DNS, chiave Google, tetto dell'editor. Questa versione
+aggiunge ciò che è successo scrivendo il primo pezzo di codice.*
+
+1. §63-64 — ⚠️ **IL 4b SI FA IN TRE PASSAGGI, NON IN UNO: 4b-1, 4b-2, 4b-3.**
+   *L'ordine non è prudenza, è necessità: **le protezioni devono esistere prima
+   che il codice sappia cancellare**. Se il salvataggio nascesse prima delle
+   difese, esisterebbe un momento in cui sa cancellare e non sa fermarsi.*
+2. §63-64 — ✅ **4b-1 FATTO, PUBBLICATO E PROVATO DAL VIVO DA ANDREA**: il Salva
+   spento finché le opzioni non sono lette **(MM)** e l'avviso sulle scelte non
+   disegnabili **(PP)**. Commit `7624498` (pannello) e `7acd543` (prove).
+3. §63-64 — ✅ **IL DIFETTO FOTOGRAFATO STAMATTINA È CHIUSO**: sulla Cheesecake
+   l'avviso **compare**, verificato dal vivo da Andrea la sera del 27/08.
+4. §63-64 — ✅ **LA CREAZIONE È INTATTA**, verificata dal vivo: Andrea ha creato
+   un Roll completo e il Salva si è acceso. *Era il rischio messo al primo posto
+   di tutto il passo.*
+5. §63-64 — **(PP) È STATA REALIZZATA A METÀ, PER FORZA E NON PER OMISSIONE**:
+   la parte "il Salva non tenta" poggia sulla nozione di **opzioni toccate**,
+   che nasce col salvataggio. Va fatta nel **4b-2**.
+6. §63-64 — ⚠️ **IL COMMENTO CHE SCADE È STATO RISCRITTO SUBITO**, benché i
+   controlli si rimettano solo nel 4b-2. *Metà del lavoro si poteva fare adesso
+   ed è la metà che protegge dalla lezione `de`.*
+7. §63-64 — ⚠️ **L'ATTESA ALL'APERTURA DELLA SCHEDA È "UN PO' LENTA"**,
+   osservata da Andrea. *Oggi è un fastidio; dal 4b-2 sarà il tempo in cui la
+   scheda è aperta e non si può toccare.*
+8. §4g — ⚠️ **CORRETTA UNA NOTA DELL'HANDOFF CHE DICEVA IL FALSO** sull'a capo
+   finale del file. *Nessun file è cambiato: era la nota a descrivere una
+   condizione che non si verificava.*
+9. ⚠️ **REGOLA DI METODO NUOVA, NATA DA UN ERRORE**: quando si chiede una prova
+   dal vivo, **si dichiara SEMPRE dove guardare** — sito pubblicato o `localhost`.
+   *Vedi la lezione `dz` nell'handoff.*
+10. ⚠️ **GLI ARTICOLI DI PROVA DA CANCELLARE SONO CINQUE**, non tre: `Roll prova`,
+    `Roll di prova 2`, `Roll di prova 3`, `Roll di prova 4`, `Roll di prova 5`.
 
 *Il conteggio delle condizioni di apertura non cambia: **quattro chiuse, cinque
-aperte** — il dominio resta fra le aperte finché la chiave non è ristretta. Il
-lavoro pre-go-live che resta è il **viewport**, le tre verifiche registrate in
-v63 e le voci di §6c, che da questa versione sono **quattro e non tre**, di
-cui una ora **scaduta**.*
+aperte** — il dominio resta fra le aperte finché la chiave Google non è
+ristretta.*
 
-⚠️ *Suite e prove restano **34** e **1658**, misurate eseguendole il 27/08.
-**Non dovevano muoversi**: in questa versione non è stata scritta una riga di
-codice. Un numero cambiato qui sarebbe un errore, non un progresso.*
+⚠️ *Suite invariate a **34**, prove da 1658 a **1669** (+11: sei sonde su (MM),
+cinque su (PP)). Misurate eseguendole. Le suite **non dovevano** muoversi: le
+prove nuove sono state aggiunte a una suite esistente, non in un file nuovo.*
 
 ## 1. Visione del progetto
 
@@ -3929,7 +3922,82 @@ qualunque scrittura, non una parola. E distingue la `delete()` del database da
 `next.delete(id)` **dalla forma della chiamata** — senza argomenti contro con
 argomenti — non da una lista di eccezioni da tenere aggiornata.*
 
-### ⚠️ IL PASSO 4b — LETTO PER INTERO, DECISO, NON ANCORA SCRITTO (v77, 27/08/2026)
+### ⚠️ IL 4b SI FA IN TRE PASSAGGI — 4b-1 FATTO (v78, sera del 27/08/2026)
+
+**L'ordine non è prudenza, è necessità: le protezioni devono esistere PRIMA che
+il codice sappia cancellare.** *Se il salvataggio nascesse prima delle difese,
+esisterebbe un momento in cui il codice sa cancellare e non sa fermarsi.*
+
+**✅ 4b-1 — LE DIFESE. FATTO, PUBBLICATO, PROVATO DAL VIVO.** Il Salva spento
+finché le opzioni non sono arrivate **(MM)**, e l'avviso sulle scelte non
+disegnabili **(PP)**. *Non può far partire nessuna richiesta: può solo spegnere
+un pulsante. **Rischio zero sui dati.*** Commit `7624498` (pannello) e `7acd543`
+(prove), pubblicati.
+
+**⚠️ 4b-2 — ACCENDERE IL BLOCCO E RIMETTERE I CONTROLLI**, col commento già
+riscritto da chiudere. ⚠️ *I controlli sulle opzioni **non si possono rimettere
+prima** di accendere il blocco: un controllo che diventasse rosso a campi ancora
+spenti lascerebbe il pulsante spento **senza nessun modo di correggerlo**. Vanno
+insieme, ed è per questo che stanno nello stesso passaggio.* Qui va anche la
+**seconda metà di (PP)**: il Salva che non tenta quando le opzioni sono state
+toccate su un articolo con scelte non rappresentabili.
+
+**⚠️ 4b-3 — LA CHIAMATA.** Il pezzo pericoloso, con l'impalcatura attorno già
+provata dal vivo.
+
+#### ✅ Le tre prove dal vivo di Andrea — sera del 27/08/2026
+
+*Le suite leggono il pannello come **testo**: non aprono nessun browser e non
+premono nessun pulsante. Queste righe sono l'unica fonte, e nei referti di Code
+risulterebbero come cose che nessuno ha visto.*
+
+1. ✅ **LA CREAZIONE È INTATTA.** Andrea ha creato un Roll completo: **il Salva
+   si è acceso e l'articolo si è salvato.** ⚠️ *È la prova che conta più di
+   tutte: se **(MM)** fosse finita anche sul ramo della creazione, il pulsante
+   non si sarebbe acceso mai più.*
+2. ✅ **SULLA CHEESECAKE L'AVVISO COMPARE.** *Il difetto fotografato la mattina
+   del 27/08 — "queste sono le opzioni che l'articolo ha già" sopra tre caselle
+   vuote — **è chiuso**.*
+3. ✅ **La scheda di modifica di un Roll vero funziona normalmente.** ⚠️
+   **L'attesa iniziale si vede, ed è "un po' lenta"** (parole di Andrea). *Oggi
+   è un fastidio, perché il Salva è spento solo per quell'istante. **Dal 4b-2
+   sarà il tempo in cui la scheda è aperta e non si può toccare**, e di sabato
+   sera si nota di più. Registrato ora apposta: scoperto dopo, sembrerebbe colpa
+   del 4b-2 e non lo sarebbe.*
+
+#### Cosa il 4b-1 ha realizzato, e cosa ha lasciato al 4b-2
+
+* **(MM)** vive nella condizione del Salva in modifica. ⚠️ *Il vincolo alla
+  modifica è **doppio di proposito**: la variabile che dice "le opzioni sono
+  arrivate" comincia già con `inModifica`, e la condizione vive nel ramo
+  `inModifica`. **Due sbarramenti dove il guasto sarebbe irreversibile.***
+* **(PP)** confronta **le chiavi riportate dal lettore** con **le chiavi che il
+  catalogo sa disegnare**. ⚠️ *Non una lista di categorie scritta a mano: il
+  giorno che il catalogo cambia, l'avviso resta vero da solo.* E si accende
+  **solo quando entrambe le letture sono arrivate** — col catalogo ancora in
+  viaggio ogni chiave risulterebbe non rappresentabile e l'avviso comparirebbe
+  su ogni articolo. *È il ragionamento del 4a sul vuoto che mente, applicato a
+  una cosa nuova.*
+* ⚠️ **Aggiunta una riga che spiega PERCHÉ il Salva è spento**, dichiarata da
+  Code come iniziativa e approvata. *Su una **bevanda** il blocco delle opzioni
+  non si disegna affatto: senza quella riga il pulsante resterebbe spento **e
+  muto**, e un pulsante spento senza spiegazione si legge come un pannello
+  rotto.*
+* **Lasciati al 4b-2, per forza e non per omissione**: i controlli sulle opzioni
+  nel Salva (rimetterli ora renderebbe **non salvabile una Bowl esistente**,
+  esattamente il caso che il vecchio commento descriveva), e la seconda metà di
+  **(PP)**. ⚠️ *Spegnere sempre il Salva sui dolci contraddirebbe questa spec,
+  che dichiara che di un dolce **nome, prezzo e allergeni restano
+  modificabili**.*
+
+#### ⚠️ GLI ARTICOLI DI PROVA SONO CINQUE, NON TRE
+
+`Roll prova`, `Roll di prova 2`, `Roll di prova 3`, `Roll di prova 4`,
+`Roll di prova 5`. *I due nuovi sono nati dalle prove dal vivo del 4b-1.* Si
+cancellano **tutti insieme dopo il 4b**: `Roll prova` ha le opzioni ed è il caso
+su cui il 4b si prova, quindi resta fino all'ultimo.
+
+### ⚠️ IL PASSO 4b — LETTO PER INTERO, DECISO (v77, 27/08/2026)
 
 *Il 27/08 è stato speso **tutto in lettura**. Nessuna riga di codice. Le
 decisioni qui sotto poggiano su quattro ricognizioni che hanno letto i file
@@ -4106,6 +4174,16 @@ un gusto di cheesecake. *La strada vera non è allargare la lista: è che il
 progetto impari a distinguere **"un gruppo di scelte qualsiasi"** da **"le
 proteine"**, due concetti che oggi condividono una tabella e un pezzo di codice.
 **Non è un ritocco**, ed è la ragione per cui non entra nel 4b.*
+
+⚠️ **REGOLA DI METODO, NATA DA UN ERRORE DEL 27/08 E VINCOLANTE: quando si
+chiede una prova dal vivo, si dichiara SEMPRE dove guardare** — il sito
+pubblicato o `localhost`. *La sera del 27/08 il push era stato trattenuto
+apposta per provare prima di pubblicare, e la richiesta di provare dal vivo è
+arrivata **senza dire che quel giorno "dal vivo" significava un altro posto**.
+Andrea ha guardato il sito pubblicato, che serviva ancora il codice vecchio, e
+tre prove hanno controllato nulla — compresa quella sulla creazione, che era la
+più importante. **Chi chiede la prova ha un'informazione che chi la esegue non
+ha: dichiararla è parte della richiesta, non un di più.***
 
 #### Registrato e NON aperto — l'inserimento dei gusti in creazione
 
