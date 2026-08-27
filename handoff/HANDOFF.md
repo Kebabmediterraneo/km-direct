@@ -243,11 +243,15 @@ g. **Aggiornamenti spec col METODO FILE**: si genera il `MASTER_SPEC.md`
    dimensione di ciascuna: un numero da solo non è un riscontro (lezione `ao`).
    Ogni misura confrontata dentro un comando va ripulita con `| tr -d ' '`
    (lezione `an`). Vale anche per l'handoff.
-   *Nota su questo file*: `handoff/HANDOFF.md` **non termina con un a capo**,
-   a differenza di `MASTER_SPEC.md`. È una caratteristica di come viene
-   generato, non del repo: un editor che lo riaprisse e lo "sistemasse"
-   aggiungendolo cambierebbe l'impronta senza cambiare una sola parola. Da
-   sapere al prossimo confronto, non da correggere.
+   *Nota su questo file* — ⚠️ **CORRETTA IL 27/08/2026, DICEVA IL FALSO.**
+   Fino a quel giorno qui era scritto che `handoff/HANDOFF.md` **non termina
+   con un a capo**. Code ha controllato l'ultimo byte: il file **termina con
+   a capo** (`0a`), e ci terminava **anche la versione vecchia già nel repo**.
+   *Non è cambiato niente il 27/08: era la nota a descrivere una condizione
+   che non si verificava. Resta valido il resto — un editor che "sistemasse"
+   un file cambierebbe l'impronta senza cambiare una parola. È la stessa
+   famiglia del commento sul pulsante Salva (lezione `de`): un paragrafo che
+   diceva il vero in un altro momento e che nessuno rileggeva.*
 h. **Claude Code NON può eseguire DDL** (solo PostgREST): `ALTER`/`DROP TABLE` li
    esegue **Andrea nel SQL editor Supabase**, con **migration versionata in `sql/`**.
 i. **Verifiche dal vivo**: Code avvia **un solo** `next dev` — controllando prima
@@ -3431,3 +3435,134 @@ era.*
   e il suo valore vero NON è misurato.** *Si sa cosa dichiara il pannello, non
   cosa fa lo strumento. La spec non dichiara più una cifra, dichiara la regola:
   un'interrogazione lunga annuncia in cima quante righe deve avere il referto.*
+
+---
+
+## 38) Il 4b-1: le difese prima della chiamata, e tre prove che non controllavano niente (sera del 27/08/2026)
+
+**Primo codice del 4b, scritto e pubblicato.** Il Salva spento finché le opzioni
+non sono lette **(MM)** e l'avviso sulle scelte non disegnabili **(PP)**.
+Commit `7624498` (pannello, `95 4`) e `7acd543` (prove, `138 0`), separati,
+pubblicati. ⚠️ *Suite invariate a **34**, prove da 1658 a **1669**: +11, e le
+suite **non dovevano** muoversi perché le prove nuove sono andate in una suite
+esistente.*
+
+*Le decisioni stanno in spec §63-64 (blocchi v77 e v78). **Non ricostruirle.***
+
+### 38a) ⚠️⚠️ TRE PROVE DAL VIVO CHE NON HANNO CONTROLLATO NIENTE
+
+*È l'errore più istruttivo della giornata, ed è di chi ragiona, non di chi
+esegue.*
+
+Il push era stato **trattenuto apposta**, per far provare Andrea prima di
+pubblicare. Poi gli è stato chiesto di "provare dal vivo" — **senza dirgli che
+quel giorno "dal vivo" significava un altro posto**. Per due giorni "dal vivo"
+aveva sempre voluto dire *il sito pubblicato*, perché il codice veniva sempre
+pubblicato prima. Andrea ha guardato il sito, che serviva ancora il codice
+vecchio, e ha visto una schermata identica a quella della mattina.
+
+⚠️ **Le tre prove non hanno controllato nulla — compresa quella sulla creazione,
+che era la più importante di tutte.** *E il costo non è stato solo tempo: un
+articolo di prova in più in database.*
+
+**dz. ⚠️⚠️ CHI CHIEDE UNA PROVA DAL VIVO DICHIARA SEMPRE DOVE GUARDARE.** Sito
+pubblicato o `localhost`, ogni volta, dentro la richiesta. *Chi chiede ha
+un'informazione che chi esegue non ha — in questo caso "il codice non è
+pubblicato" — e **cambiare una regola in silenzio e poi stupirsi del risultato**
+è la stessa famiglia della lezione `de`: non un fatto ignoto, ma un contesto
+cambiato che nessuno ha dichiarato.* **Regola scritta anche in spec §63-64.**
+
+**ea. ⚠️ "OK" NON È UN REFERTO.** Alle tre prove rifatte Andrea ha risposto
+*"ok, ok, ok"*. Due dei tre erano ambigui: la mattina, allo stesso punto, "ok"
+avrebbe descritto una **schermata sbagliata**. *Le risposte sono state richieste
+di nuovo in forma secca prima di scrivere qualunque cosa nei documenti.*
+⚠️ **Una verifica dal vivo si scrive solo se è stata raccontata, mai se è stata
+dedotta da un assenso.**
+
+### 38b) ✅ Le prove vere, rifatte sul sito dopo la pubblicazione
+
+* ✅ **LA CREAZIONE È INTATTA**: Roll completo creato, **il Salva si è acceso e
+  l'articolo si è salvato**. *Era il rischio al primo posto del passo: **(MM)**
+  finita anche sul ramo della creazione avrebbe spento quel pulsante per sempre.*
+* ✅ **SULLA CHEESECAKE L'AVVISO COMPARE.** *Il difetto fotografato la mattina è
+  chiuso nella stessa giornata in cui è stato scoperto.*
+* ✅ **La scheda di modifica funziona.** ⚠️ **L'attesa iniziale si vede ed è "un
+  po' lenta"** — parole di Andrea. *Oggi innocua. **Dal 4b-2 sarà il tempo in cui
+  la scheda è aperta e non si può toccare.** Registrata ora apposta: scoperta
+  dopo, sembrerebbe colpa del 4b-2.*
+
+### 38c) Le controprove del 4b-1, e perché sono le migliori finora
+
+Code non ha sporcato una copia in memoria: ha sporcato **il file vero**, visto le
+prove diventare rosse, ripristinato dalla copia e **riverificato l'impronta**.
+Nei due versi, ed è il verso che conta:
+
+* tolta la condizione dal ramo della modifica → **3 rosse**;
+* messa la condizione **anche nel ramo della creazione** → **1 rossa**, che è il
+  pericolo messo al primo posto. ⚠️ *Quella prova esiste ed è rossa quando deve:
+  il pulsante della creazione è sorvegliato.*
+
+*E le prove **non sono sonde di testo**: ritagliano le espressioni vere dal
+pannello e le eseguono con valori finti. È la differenza fra controllare che una
+regola sia scritta e controllare che funzioni.*
+
+### 38d) ⚠️ Una misura chiesta in forma sbagliata — di nuovo
+
+Era stato chiesto: *"cerca `product-options` nel pannello, mi aspetto **una
+riga sola**"*. Ne trova **due**, e la seconda è un **commento** che c'era già
+prima. ⚠️ *È la lezione `az` ripetuta: **una domanda testuale posta per
+verificare una cosa sostanziale**. La cosa da sapere era "il salvataggio non
+viene chiamato", e la forma giusta è quella che Code ha usato rispondendo: le
+righe che **chiamano** sono una sola, e le POST verso quella rotta sono **zero**,
+sorvegliate da una sonda che conta le chiamate e non i commenti.*
+
+### 38e) L'iniziativa di Code, dichiarata e approvata
+
+Una riga che spiega **perché** il Salva è spento. *Motivo portato: su una
+**bevanda** il blocco delle opzioni non si disegna affatto, quindi senza quella
+riga il pulsante resterebbe spento **e muto** — e un pulsante spento senza
+spiegazione si legge come un pannello rotto.* ⚠️ **L'ha dichiarata invece di
+infilarla di nascosto, ed è il modo giusto di prendersi un'iniziativa.**
+
+E due cose lasciate fuori **per forza, non per omissione**, entrambe con la
+fonte citata invece che dedotta: i controlli sulle opzioni (renderebbero **non
+salvabile una Bowl esistente**, il caso esatto che il vecchio commento
+descriveva) e la seconda metà di **(PP)** (poggia su "opzioni toccate", che
+nasce col salvataggio; spegnere sempre contraddirebbe la spec). ✅ *Il commento
+che scade è però stato **riscritto subito**: è la metà del lavoro che si poteva
+fare, ed è quella che protegge dalla lezione `de`.*
+
+### 38f) Cosa resta aperto — sostituisce il punto 37f
+
+* ⚠️⚠️ **4b-2: ACCENDERE IL BLOCCO E RIMETTERE I CONTROLLI**, insieme, nello
+  stesso passaggio. ⚠️ *I controlli **non si possono rimettere prima** di
+  accendere il blocco: un controllo rosso a campi spenti lascerebbe il pulsante
+  spento **senza nessun modo di correggerlo**.* Qui va anche la seconda metà di
+  **(PP)**. **È il passaggio in cui una Bowl può diventare non salvabile.**
+* ⚠️ **4b-3: LA CHIAMATA.** Il pezzo pericoloso, con l'impalcatura già provata.
+* ⚠️ **Prima della prova dal vivo del 4b-3, decidere se caricare `Roll prova` di
+  rimozioni ed extra dal pannello.** *Ne ha **una sola**: il gruppo che sparisce
+  in silenzio va provato con più di una riga.*
+* ⚠️ **L'attesa "un po' lenta"** all'apertura della scheda: registrata, non
+  aperta. Diventa rilevante col 4b-2.
+* ⚠️ **LA CHIAVE API DI GOOGLE — scaduta il 26/08, non fatta.** Intervento di
+  Andrea nella console, non lavoro di Code. ⚠️ *Con due indirizzi vivi, la
+  restrizione al singolare romperebbe il completamento dell'indirizzo
+  sull'altro.*
+* ⚠️ **Il font**: la voce di §6c **non è chiusa**. Andrea ha guardato il sito e
+  gli è sembrato a posto, ma la prova sta nell'**elenco domini del pannello
+  Adobe**, non nel sito.
+* **L'inserimento dei gusti in creazione**, registrato e **non aperto**:
+  `lib/menu-create.js` non è mai stato letto.
+* **Poi i passi 5, 6 e 7**: conferma sul sovrapprezzo (FF), sparizione di
+  `ProductEditForm`, cambio di categoria (HH).
+* ⚠️ **CINQUE ARTICOLI DI PROVA DA CANCELLARE**, non tre: `Roll prova`,
+  `Roll di prova 2`, `3`, `4`, `5`. *I due nuovi sono nati dalle prove dal vivo
+  di stasera.* **Non prima del 4b**: `Roll prova` è il caso su cui si prova.
+* ⚠️ **La rete sul conteggio**: **30 suite su 34** non ce l'hanno.
+* ⚠️ **La rete dei ventuno campi potrebbe essere cieca alla scorciatoia**
+  (`key,` invece di `key: key,`), che è il difetto che è nata per vedere.
+* **Lo store** non verificato, e il "nove rotte" è **ereditato**, non misurato.
+* **Le CATEGORIE**, discusse il 12/08 e non aperte.
+* ⚠️ **Il tetto delle righe dell'editor SQL** è stato cambiato il 27/08 e il suo
+  valore vero **non è misurato**.
