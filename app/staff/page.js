@@ -2128,8 +2128,14 @@ function ProductForm({ products, allergensCatalog, articolo, onSaved, onCancel }
   // ⚠️⚠️ (KK) UN SALVA SOLO, CHE CHIAMA IN FILA LE ROTTE DEI PEZZI TOCCATI.
   //
   // Passo 2: i sei campi scalari sulla rotta `product`. Passo 3: gli allergeni
-  // sulla rotta `allergens`, **solo se sono stati toccati**. Le opzioni non
-  // partono ancora da qui (passo 4).
+  // sulla rotta `allergens`, **solo se sono stati toccati**. Passo 4b-3: le
+  // opzioni sulla rotta `product-options`, **solo se sono state toccate**, e per
+  // ultime perché sono le più pericolose.
+  //
+  // ✅ *Aggiornato il 28/08/2026: fino al 4b-2 questa riga diceva «le opzioni non
+  // partono ancora da qui», ed era vera. Ha smesso di esserlo nel momento in cui
+  // il terzo passo è stato scritto, e la riga è stata corretta invece di
+  // lasciarla a descrivere un'assenza che non c'è più.*
   //
   // ⚠️ **Perché la rotta `product` si chiama comunque e quella degli allergeni
   // no.** Non è un'incoerenza con (KK): `updateProductCore` confronta il prima
@@ -2197,7 +2203,120 @@ function ProductForm({ products, allergensCatalog, articolo, onSaved, onCancel }
         // ⚠️ QUI METÀ È PASSATA, e la scheda deve dire quale metà: un errore
         // generico lascerebbe credere che non sia passato niente, e chi rifà il
         // salvataggio da capo non saprebbe cosa aspettarsi.
-        setError(`Nome, prezzo e gli altri campi sono stati salvati; gli allergeni NO: ${err.message}`);
+        //
+        // ⚠️⚠️ RISCRITTO NEL 4b-3: fino a ieri questa frase nominava due pezzi
+        // perché due erano. Col terzo passo **diventava falsa per omissione** —
+        // chi la leggeva non poteva sapere che le opzioni non erano nemmeno
+        // partite, e avrebbe potuto crederle salvate. *È la stessa forma del
+        // difetto del 12/08 (lezione `de`): una frase vera in un altro momento.*
+        // La coda si aggiunge **solo se le opzioni sarebbero davvero partite**:
+        // dirlo a chi non le ha toccate nominerebbe un pezzo che non c'entra.
+        setError(
+          `Salvati: nome, prezzo e gli altri campi. Gli allergeni NO` +
+            (opzioniToccate ? ", e le opzioni non sono state nemmeno tentate" : "") +
+            `: ${err.message}`
+        );
+        setConfermaPrezzo(false);
+        setIsSubmitting(false);
+        return;
+      }
+    }
+
+    // -----------------------------------------------------------------------
+    // 3) LE OPZIONI — (KK), il terzo e ULTIMO passo, solo se toccate.
+    //
+    // ⚠️⚠️ **VA PER ULTIMA PERCHÉ È LA PIÙ PERICOLOSA.** Se si rompe, i campi
+    // che il cliente vede — nome, prezzo, allergeni — sono già a posto e le
+    // opzioni restano quelle di prima. L'ordine inverso lascerebbe un articolo
+    // con le opzioni nuove e il prezzo vecchio, che è la combinazione peggiore:
+    // il cliente ordina una cosa e ne paga un'altra.
+    //
+    // ⚠️ **Solo se `opzioniToccate`**, ed è (KK) alla lettera: la rotta dei
+    // pezzi non toccati non si chiama. *Qui non vale il ragionamento che tiene
+    // in piedi la chiamata sempre-fatta agli scalari — `updateProductOptionsCore`
+    // non è innocuo a vuoto: alza lo scudo, cancella e riscrive le tabelle che
+    // trova diverse. Chiamarlo senza motivo è lavoro vero sul database.*
+    // -----------------------------------------------------------------------
+    if (opzioniToccate) {
+      try {
+        // ⚠️⚠️ LA TRADUZIONE ALL'INDIETRO, dalla forma del modulo a quella della
+        // rotta. **(QQ) l'aveva scartata PER IL CONFRONTO** — due traduzioni da
+        // tenere d'accordo a mano — ma qui è obbligatoria per un'altra ragione:
+        // la rotta non parla la lingua del modulo, e qualcuno deve tradurre.
+        // *La differenza è che questa non ha una gemella: è l'unico posto dove
+        // si scrive, e nessun'altra deve restarle d'accordo.*
+        //
+        // ⚠️ **LA PROTEINA SI IDENTIFICA CON `key`, NON con `choice_key`.**
+        // `choice_key` è il nome della COLONNA che il cuore scrive, non del
+        // campo in arrivo. Misurato eseguendo il validatore: con `choice_key` la
+        // richiesta è **rifiutata** («manca la scelta su una delle righe»).
+        //
+        // ⚠️⚠️ **IL TITOLO VIAGGIA COME `choiceLabel`, CAMPO A SÉ AL PRIMO
+        // LIVELLO** — è (OO). NON come `choice_label` dentro le righe, che è la
+        // forma della CREAZIONE poche righe più sotto. *Sbagliarlo non dà nessun
+        // errore: dà 200, opzioni salvate e titolo tornato indietro. Se non
+        // l'avevi cambiato non te ne accorgi mai.*
+        //
+        // ⚠️ **`category` NON si manda**: la rotta la legge dal database apposta,
+        // perché chi salva non deve poter dichiarare «questa non è una Bowl» e
+        // portarsi via la regola dell'accompagnamento.
+        //
+        // ⚠️⚠️ **I QUATTRO GRUPPI SI MANDANO SEMPRE COMPLETI, ANCHE VUOTI** —
+        // è (NN). Il blocco della creazione qui sotto manda un gruppo *solo se
+        // non è vuoto*, e **NON si copia proprio dove è più tentante copiarlo**:
+        // nel salvataggio un gruppo assente vale come gruppo vuoto e
+        // **cancella la tabella con un 200**. Non esiste il mezzo corpo.
+        //
+        // ⚠️ Le rimozioni: nel modulo sono stringhe nude, e il validatore
+        // accetta **sia** le stringhe nude **sia** le righe `{ label }` —
+        // misurato eseguendolo, non dedotto. Si mandano come righe perché è la
+        // forma in cui il cuore le tiene, e non dipende da una tolleranza che
+        // un domani potrebbe stringersi.
+        //
+        // ⚠️ `requires_protein` resta la stringa vuota del modulo: il validatore
+        // tratta vuoto, `null` e assente allo stesso modo e li porta tutti e tre
+        // a `null` — misurato. Convertirlo qui sarebbe una seconda regola.
+        const corpoOpzioni = {
+          id: articolo.id,
+          choiceLabel: titoloScelta,
+          proteins: [...proteine].map(([key, voce]) => ({
+            key,
+            price_delta: voce.price_delta,
+            is_default: voce.is_default,
+            extra_dose_included: voce.extra_dose_included,
+          })),
+          removals: rimozioni.map((label) => ({ label })),
+          accompaniments: accompagnamenti.map((a) => ({
+            label: a.label,
+            contains_gluten: a.contains_gluten,
+          })),
+          addons: extra.map((e) => ({
+            label: e.label,
+            price: e.price,
+            requires_protein: e.requires_protein,
+            max_quantity: e.max_quantity,
+          })),
+        };
+        const response = await fetch("/api/staff/menu/product-options", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(corpoOpzioni),
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "Errore nel salvataggio delle opzioni.");
+      } catch (err) {
+        // ⚠️⚠️ IL MESSAGGIO DEL SERVER SI RIPORTA PER INTERO, e non è una
+        // comodità: è **l'unico** che sa dire se l'articolo è rimasto FUORI DAL
+        // MENU. Lo scudo (WW) toglie l'articolo dal menu prima di toccare le
+        // tabelle e ce lo rimette come ultimo atto; se si rompe in mezzo, quella
+        // frase è l'unica cosa che dice a chi guarda di andarlo a riaccendere
+        // con l'occhio. *Sostituirla con un messaggio nostro perderebbe
+        // l'informazione che conta di più.*
+        setError(
+          `Salvati: nome, prezzo e gli altri campi` +
+            (allergeniToccati ? ", e gli allergeni" : "") +
+            `. Le OPZIONI no: ${err.message}`
+        );
         setConfermaPrezzo(false);
         setIsSubmitting(false);
         return;
