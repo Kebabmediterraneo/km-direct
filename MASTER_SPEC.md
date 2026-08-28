@@ -1,6 +1,6 @@
 # KM DIRECT — MASTER SPECIFICATION
 
-**Versione 81** — sostituisce la v80.
+**Versione 82** — sostituisce la v81.
 
 Documento di riferimento definitivo per lo sviluppo. Le decisioni qui
 contenute sono approvate: non vanno reinterpretate senza un motivo concreto
@@ -22,55 +22,40 @@ versione corrente**. I precedenti vivono in `git log`, che è fatto per quello.
 del documento prima che cominciasse a parlare del progetto — e dentro c'erano
 istruzioni rovesciate che nessuno rileggeva.*
 
-**Novità della v81** (vincolanti, terza sessione del 28/08/2026):
+**Novità della v82** (vincolanti, notte fra il 28 e il 29/08/2026):
 
-*La v80 di poche ore fa registrava una lettura e una decisione. Questa registra
-il **codice scritto, provato dal vivo sul sito pubblicato, e i difetti che la
-prova ha fatto uscire**. ⚠️ Due voci della v80 sono diventate false e sono
-corrette qui: il 4b-2 non è più «da fare», e il `fieldset` non è più agganciato
-a `inModifica`.*
+*⚠️ **Nove voci della v81 non erano scritte nel corpo del documento**: vivevano
+solo dentro il blocco Novità, che la disciplina cancella a ogni versione. Sono
+state **portate nel corpo** in questa versione, in una sezione loro, invece di
+essere riscritte qui. È la terza volta in un giorno che quel blocco stava per
+mangiare qualcosa: chi scrive una versione nuova **controlli voce per voce**.*
 
-1. §63-64 — ✅ **IL 4b-2 È FATTO, PUBBLICATO E PROVATO DAL VIVO SUL SITO.**
-   Quattro commit: `9baa54a` e `34f6dac` (la fotografia e il confronto),
-   `d3c371e` e `aa9d825` (il blocco, i cinque controlli, (PP) e le mancanze).
-   **Restano 36 suite e 1760 prove, zero fallite**, misurate eseguendole.
-2. §63-64 — ⚠️⚠️ **LA FINESTRA MUTA FRA IL 4b-2 E IL 4b-3, TROVATA DA ANDREA
-   PROVANDO.** Oggi si può toccare un'opzione, premere Salva, **ricevere un
-   salvataggio riuscito e vedere la modifica sparire**, senza nessun avviso.
-   *È il guasto muto che questo progetto insegue da settimane, e adesso è vivo
-   sul sito pubblicato.* **Si chiude solo col 4b-3**, ed è la ragione per cui
-   il 4b-3 non va rimandato.
-3. §63-64 — ⚠️ **IL PANNELLO PUÒ SERVIRE IL CODICE VECCHIO DOPO UNA
-   PUBBLICAZIONE**, misurato il 28/08: la scheda della Cheesecake si è aperta
-   **senza l'avviso di (PP)** e con una frase falsa, finché il browser non è
-   stato ricaricato a fondo. *Non è un difetto del codice: è la cache. Ma il
-   giorno dell'apertura fa sembrare rotto un sito che funziona, e falsa
-   qualunque prova dal vivo fatta subito dopo un push.*
-4. §6b — ⚠️ **IL SALVA SPENTO È INDISTINGUIBILE DALL'ACCESO**: resta arancione
-   pieno, `opacity: 1`, cambia solo il cursore. *Difetto **preesistente**, non
-   creato dal 4b-2 — ma tutto il 4b-2 serve a spegnere quel pulsante, e se non
-   si vede spento il lavoro si vede a metà.* **Aperto, non ancora fatto.**
-5. §63-64 — ⚠️ **LE MANCANZE SONO UN ELENCO, NON UNA RIGA**, e nessun
-   separatore dentro la riga poteva funzionare.
-6. §63-64 — ⚠️ **GLI ARTICOLI DI PROVA SONO OTTO**, non sette.
-7. §63-64 — ⚠️ **`mostraGruppiOpzioni` RIPETE LA CONDIZIONE DEL `fieldset`
-   SCRITTA AL ROVESCIO**, in un altro punto del file. *Oggi sono d'accordo. Sono
-   il tipo di coppia che un giorno diverge.* Registrato, non aperto.
-8. **METODO** — ⚠️ **myers e `--patience` danno numeri diversi sullo stesso
-   file**: il riepilogo che git stampa dopo un commit usa myers. Il 28/08:
-   128/53 contro 126/51 sulla spec, 201/350 contro 194/343 sull'handoff.
-   **Netto identico in tutti i casi.** *La lezione `bo` diceva che le zone
-   dipendono dall'algoritmo; il 28/08 si è visto che dipendono anche i più e i
-   meno.*
-9. **NEL MENU** — `Il turco` è scritto con la **t minuscola**, mentre gli altri
-   Roll hanno l'iniziale maiuscola. *Lo vedono i clienti. È un dato, non
-   codice: si corregge quando si vuole.*
+1. §63-64 — ✅ **IL 4b È COMPLETO: il 4b-3 è FATTO, PUBBLICATO E PROVATO DAL
+   VIVO.** Commit `e826380` (pannello) e `21f44d0` (prove). **37 suite, 1783
+   prove, zero fallite.** *La finestra muta fra il 4b-2 e il 4b-3 è **chiusa**.*
+2. §63-64 — ✅ **(OO) VERIFICATA DAL VIVO**, ed era l'unica verifica possibile:
+   un `200` non dimostra niente su quel campo, perché col nome sbagliato la
+   risposta è `200` lo stesso e il titolo torna indietro in silenzio. *Andrea ha
+   cambiato il titolo, salvato, riaperto e l'ha trovato cambiato.*
+3. §63-64 — ✅ **(KK) VISTA ALL'OPERA NEL REGISTRO DEL SERVER**: quattro
+   `POST /product` contro **due** `POST /product-options`. *Nei due salvataggi
+   in cui le opzioni non erano state toccate, quella rotta non è partita
+   affatto.*
+4. §6b — ⚠️ **DUE COMANDI CHE NON DICONO IN CHE STATO SEI**, stessa famiglia,
+   entrambi **aperti**: il Salva spento indistinguibile dall'acceso, e il
+   pulsante dell'occhio, che mostra **l'azione che farebbe** e non lo stato in
+   cui l'articolo si trova. ⚠️ *Il secondo ha ingannato chi ragionava la notte
+   del 28/08, che questi documenti li aveva letti tutti. Di sabato sera lo
+   guarda qualcuno che non li ha letti.*
+5. §63-64 — ⚠️ **GLI OTTO ARTICOLI DI PROVA NON SI CANCELLANO ANCORA**, benché
+   il 4b sia finito e questa spec dicesse «dopo il 4b». *Il passo 5 tocca i
+   prezzi, e le prove sul prezzo si fanno sugli articoli di prova: cancellarli
+   ora vorrebbe dire ricrearli. Si cancellano **dopo il passo 7**.*
 
 *Il conteggio delle condizioni di apertura non cambia: **quattro chiuse, cinque
 aperte**.*
 
-⚠️ *Suite **36**, prove **1760**, zero fallite, misurate eseguendole. Le prove
-nuove di oggi sono 39 sul confronto delle opzioni e 43 sul blocco e sul salva.*
+⚠️ *Suite **37**, prove **1783**, zero fallite, misurate eseguendole.*
 
 ## 1. Visione del progetto
 
@@ -4206,10 +4191,94 @@ il nome resta modificabile e **toccare un'opzione spegne il Salva** — è l'uni
 posto dove si vede a occhio che il ricordo funziona; **la creazione è intatta**,
 provata salvando davvero.
 
-**⚠️ 4b-3 — LA CHIAMATA.** Il pezzo pericoloso, con l'impalcatura attorno già
-provata dal vivo. ⚠️⚠️ **E adesso non è più solo l'ultimo passo: è la chiusura
-di una finestra muta che è VIVA sul sito pubblicato** — vedi il blocco della
-v81, voce 2.
+**✅ 4b-3 — LA CHIAMATA. FATTA, PUBBLICATA, PROVATA DAL VIVO** la notte del
+28/08. Commit `e826380` (pannello) e `21f44d0` (prove). **Il 4b è completo in
+tutti e quattro i passaggi.**
+
+⚠️ **Il corpo va TRADOTTO dalla forma del modulo a quella della rotta**, e le
+due sono diverse. *È la traduzione all'indietro che **(QQ)** aveva scartato **per
+il confronto**: lì era evitabile, qui è obbligatoria, perché la rotta non parla
+la lingua del modulo.* Le tre asimmetrie, **misurate eseguendo il validatore
+vero** e non lette: la proteina si identifica con **`key`**, e con `choice_key`
+il validatore **rifiuta**; le rimozioni sono accettate sia come stringhe nude
+sia come righe, e si mandano **come righe**, perché è la forma in cui il cuore
+le tiene e non dipende da una tolleranza che potrebbe stringersi; gli
+accompagnamenti come stringhe nude sono invece **rifiutati**.
+
+✅ **`requires_protein` vuoto: misurato, non dedotto.** La stringa vuota è
+**accettata e diventa `null`**, come `null` e come l'assenza; `max_quantity`
+vuota diventa **1**. *Controprova eseguita: una proteina inventata è rifiutata,
+quindi il validatore non stava accettando qualunque cosa.*
+
+⚠️ **I messaggi di errore sono stati riscritti, non aggiunti.** Quello degli
+allergeni diceva che gli allergeni non erano passati e non nominava le opzioni:
+col terzo passo **diventava falso per omissione**. *È la lezione `de`: un
+paragrafo vero in un altro momento. La coda che nomina le opzioni compare solo
+se erano state toccate.* ⚠️ **E il messaggio del server va riportato
+all'utente**: è l'unico che sa dire che l'articolo è rimasto **fuori dal menu**.
+
+⚠️ **Una prova preesistente è scaduta ed è stata SOSTITUITA, non tolta.**
+Sorvegliava il divieto del 4b-1 — «il salvataggio delle opzioni non è ancora
+attaccato» — che questo passo revoca. Al suo posto **l'asserzione opposta e più
+stretta**: le chiamate sono due, una per verso, e la POST sta dentro il vincolo
+delle opzioni toccate. *Il conteggio della suite non è cambiato.*
+
+**Le quattro prove dal vivo di Andrea**, su un articolo di prova: senza toccare
+le opzioni la rotta **non parte**; una rimozione scritta e salvata **si
+ritrova** riaprendo la scheda; l'articolo **resta nel menu** dopo il
+salvataggio; e il **titolo cambiato si ritrova**, che è (OO). *Nel registro del
+server: due `POST /product-options`, entrambe `200`, ~1,4 secondi ciascuna. È la
+prima volta che quella rotta viene chiamata dal vivo — esisteva dal 13/08 e
+nessuna interfaccia la conosceva.*
+
+#### ⚠️ REGISTRATO E NON APERTO — i limiti noti del pannello (v82)
+
+*Portati qui dai blocchi Novità delle v81 e v82, dove vivevano soli e la
+disciplina del blocco li avrebbe cancellati. **Questa sezione è la loro casa**:
+non si riscrivono nei blocchi delle versioni future.*
+
+* ⚠️ **IL SALVA SPENTO È INDISTINGUIBILE DALL'ACCESO**: resta arancione pieno,
+  `opacity: 1`, sfondo identico. Cambia solo il cursore. *Difetto
+  **preesistente**, non creato dal 4b — ma tutto il 4b serve a spegnere quel
+  pulsante, e se non si vede spento il lavoro si vede a metà.*
+* ⚠️ **IL PULSANTE DELL'OCCHIO MOSTRA L'AZIONE, NON LO STATO**: occhio barrato
+  vuol dire che l'articolo **è visibile** e che premendo lo si spegne. *Ha
+  ingannato chi ragionava la notte del 28/08. Stessa famiglia del Salva: comandi
+  che non dicono in che stato sei.*
+* ⚠️ **L'ORDINE DELLE PROTEINE PUÒ CAMBIARE IN SILENZIO.** Il corpo le manda
+  nell'ordine della Map e il cuore usa l'indice come `sort_order`: togliere e
+  rimettere una spunta sposta la proteina in fondo. *Da sola quella mossa non fa
+  danno — «opzioni toccate» la ignora, perché la fotografia ordina per chiave —
+  ma **insieme a un'altra modifica** l'ordine che il cliente vede cambia.*
+* ⚠️ **LO SCUDO (WW) NON COPRE GLI ARTICOLI GIÀ FUORI DAL MENU**: si alza solo
+  se l'articolo è dentro. Su uno già fuori, un guasto a metà delle quattro
+  tabelle lo lascia con le opzioni **rotte a metà, senza protezione**. *Fino al
+  4b-3 era teorico, perché nessuna interfaccia scriveva opzioni. Da adesso è
+  raggiungibile. Il pericolo non è che il cliente le veda — fuori dal menu non
+  le vede — è che qualcuno **lo rimetta dentro** senza sapere che sono rotte.*
+* ⚠️ **IL GUASTO A METÀ NON È MAI STATO ESERCITATO**: entrambe le chiamate dal
+  vivo sono andate bene, quindi il messaggio «l'articolo è rimasto FUORI DAL
+  MENU» **nessuno l'ha mai visto**.
+* ⚠️ **`mostraGruppiOpzioni` RIPETE LA CONDIZIONE DEL `fieldset` SCRITTA AL
+  ROVESCIO**, in un altro punto del file. *Oggi sono d'accordo. È il tipo di
+  coppia che un giorno diverge.*
+* ⚠️ **IL PANNELLO PUÒ SERVIRE IL CODICE VECCHIO DOPO UNA PUBBLICAZIONE**,
+  misurato il 28/08: la scheda si è aperta senza l'avviso di (PP) finché il
+  browser non è stato ricaricato a fondo. *Non è un difetto del codice, è la
+  cache. Ma falsa qualunque prova dal vivo fatta subito dopo un push, ed è la
+  seconda volta che una prova guarda il codice sbagliato.* **Chi chiede una
+  prova dopo un push dica anche di ricaricare a fondo.**
+* **`Il turco` è scritto con la t minuscola** nel menu, mentre gli altri Roll
+  hanno l'iniziale maiuscola. *Lo vedono i clienti. È un dato, non codice.*
+
+#### ⚠️ METODO — myers e `--patience` danno numeri diversi sullo stesso file
+
+Il riepilogo che git stampa dopo un commit usa **myers**. Il 28/08: **128/53**
+contro 126/51 sulla spec, **201/350** contro 194/343 sull'handoff, **117/54**
+contro 115/52. E le zone dipendono anche dalla **larghezza del contesto**.
+**Netto identico in tutti i casi.** *La lezione `bo` diceva che le zone dipendono
+dall'algoritmo; il 28/08 si è visto che dipendono anche i più e i meno. Chi legge
+due numeri diversi non sta guardando due file diversi.*
 
 #### ⚠️ La forma delle mancanze — elenco, non riga (v81, 28/08/2026)
 
@@ -4280,8 +4349,11 @@ risulterebbero come cose che nessuno ha visto.*
 corretto perché Code ha trovato **70 articoli invece di 69** riaprendo il
 pannello e non l'ha dato per scontato: è andato nel registro del server a
 stabilire che la scrittura non era sua.* Si cancellano
-**tutti insieme dopo il 4b**: `Roll prova` ha le opzioni ed è il caso su cui il
-4b si prova, quindi resta fino all'ultimo.
+**tutti insieme DOPO IL PASSO 7**, non dopo il 4b. ⚠️ *La v81 diceva «dopo il
+4b» e quel momento è arrivato la notte del 28/08 — ma il **passo 5 tocca i
+prezzi**, e la regola vuole che le prove sul prezzo si facciano sugli articoli
+di prova. Cancellarli adesso vorrebbe dire ricrearli domani.* `Roll prova` ha le
+opzioni ed è il caso su cui il pannello si prova: resta fino all'ultimo.
 
 ### ⚠️ IL PASSO 4b — LETTO PER INTERO, DECISO (v77, 27/08/2026)
 
