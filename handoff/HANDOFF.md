@@ -3299,7 +3299,10 @@ rotto quella giusta. È la famiglia della lezione `bp`.*
 * **Poi i passi 5, 6 e 7**: conferma sul sovrapprezzo (FF), sparizione di
   `ProductEditForm`, cambio di categoria (HH). ⚠️ *Da tenere per il passo 6:
   `ProductForm` e `ProductEditForm` **stanno nello stesso file**,
-  `app/staff/page.js`, righe 1493-2710 e 963-1221.*
+  `app/staff/page.js`. ⚠️ *I confini scritti qui — 1493-2710 e 963-1221 — erano
+  **sbagliati**: sono 1493-2722 e 963-1210, verificati il 28/08 sulle
+  definizioni che li seguono. E si muovono a ogni lavoro sul pannello: si
+  rileggono, non si citano da qui.*
 * ⚠️ **SETTE ARTICOLI DI PROVA DA CANCELLARE**: `Roll prova`, `Roll di prova 2`,
   `3`, `4`, `5`, `6`, `7`. **Non prima del 4b.**
 * ⚠️ **VOCI RECUPERATE dai vecchi elenchi (28/08)**, che nessun elenco più
@@ -3324,3 +3327,119 @@ rotto quella giusta. È la famiglia della lezione `bp`.*
   pretendono l'accompagnamento.*
 * ⚠️ **Il tetto delle righe dell'editor SQL** è stato cambiato il 27/08 e il suo
   valore vero **non è misurato**.
+
+---
+
+## 40) Il 4b-2: il blocco acceso, e la finestra muta che la prova ha aperto (28/08/2026, sera)
+
+**Scritto in due pezzi, provato dal vivo sul sito, pubblicato.** Quattro commit:
+`9baa54a` e `34f6dac` la fotografia e il confronto, `d3c371e` e `aa9d825` il
+blocco e i controlli. Suite **36**, prove **1760**, zero fallite. *Le decisioni
+stanno in spec §63-64 (blocchi v80 e v81). **Non ricostruirle.***
+
+### 40a) ⚠️⚠️ LA FINESTRA MUTA, TROVATA DA ANDREA PROVANDO
+
+Andrea ha aggiunto una rimozione a un Roll di prova, premuto Salva, riaperto la
+scheda: **la rimozione non c'era.** Nessun errore, nessun avviso, salvataggio
+riuscito.
+
+**È corretto** — il 4b-2 costruisce il ricordo, il 4b-3 fa la chiamata — e il
+pannello lo dice, in una riga sopra il blocco. ⚠️ **Ma Andrea, che sapeva come
+funziona, non l'ha vista lo stesso.** *È la forma esatta del guasto muto che
+questo progetto insegue da settimane, e vive nella finestra fra il 4b-2 e il
+4b-3, oggi **aperta sul sito pubblicato**. Si chiude solo col 4b-3: è la ragione
+per cui il 4b-3 non si rimanda.*
+
+### 40b) ⚠️ IL PANNELLO HA SERVITO IL CODICE VECCHIO DOPO IL PUSH
+
+La prima apertura della Cheesecake dopo la pubblicazione mostrava **il pannello
+di ieri**: nessun avviso di (PP), e la frase *«questo articolo non ha nessuna
+opzione»* — falsa su un articolo che due gusti ce li ha. Ricaricando a fondo
+tutto era a posto.
+
+⚠️ *Non è un difetto del codice, è la cache del browser. Ma falsa qualunque
+prova dal vivo fatta subito dopo un push, ed è la seconda volta che una prova
+dal vivo guarda il codice sbagliato — la prima fu il 27/08, quando il push era
+stato trattenuto apposta. **Chi chiede una prova dopo un push dica anche di
+ricaricare a fondo.***
+
+### 40c) ⚠️ IL SALVA SPENTO SEMBRA ACCESO
+
+Misurato da Code e poi visto da Andrea: il pulsante disabilitato **resta
+arancione pieno**, `opacity: 1`, sfondo identico all'acceso. Cambia solo il
+cursore in `not-allowed`. *Difetto **preesistente**, non creato dal 4b-2 — ma
+tutto il 4b-2 serve a spegnere quel pulsante quando qualcosa non va, e un
+pulsante che non si vede spento fa sembrare rotto il pannello.* **Aperto.**
+
+### 40d) La forma delle mancanze, e perché nessun separatore poteva reggere
+
+Con due mancanze la frase concatenava le voci con una virgola ed era
+illeggibile. ⚠️ **Il difetto non era la virgola**: le voci contengono già
+virgole, due punti, parentesi e virgolette basse, quindi **qualunque segno messo
+fra le voci compare anche dentro le voci**. L'unica forma che regge è uscire
+dalla riga: un elenco, una voce per riga. *Con una voce sola la frase resta
+identica a prima.* Provata dal vivo da Andrea, ed è la prima volta che quella
+forma è stata **vista con gli occhi**: Code l'aveva solo letta dal DOM, perché
+il suo browser non gli mostrava la figura.
+
+### 40e) Tre cose che Code ha fatto senza che gli fossero chieste
+
+* **Ha azzerato la fotografia al cambio di articolo.** Senza, la fotografia di
+  un articolo sarebbe rimasta valida sul successivo.
+* **Ha corretto un numero nel messaggio di commit**: erano quarantatré prove,
+  non quarantadue. *Il numero sbagliato l'aveva scritto chi ragionava, senza
+  averlo contato.*
+* **Si è fermato su `Roll di prova 8`**, che non c'era la mattina, ed è andato
+  nel registro del server a stabilire che la scrittura non era sua invece di
+  presumerlo. *Era la prova sulla creazione fatta da Andrea.*
+
+### 40f) ⚠️ Due sonde troppo larghe, e cosa hanno insegnato
+
+* **Una prova rossa cercava `disabled={inModifica}` in tutto il file** e lo
+  trovava ancora: era il **`select` della categoria**, spento in modifica di
+  proposito per **(HH)**. Code non ha allargato le maglie: ha ristretto la
+  sonda e **ne ha aggiunta una che sorveglia quel `select`**, perché accenderlo
+  insieme al blocco sarebbe stato un danno silenzioso.
+* **Una suite esistente stava per morire**, non fallire: esegue la condizione
+  vera del Salva, e con una variabile nuova non legata sarebbero sparite tutte e
+  **92** le sue prove. Aggiunto il solo legame, **nessuna asserzione toccata**.
+
+### 40g) Cose registrate e NON aperte
+
+* ⚠️ **`mostraGruppiOpzioni` ripete la condizione del `fieldset` scritta al
+  rovescio**, in un altro punto del file. *Oggi sono d'accordo. È il tipo di
+  coppia che un giorno diverge.*
+* ⚠️ **Nessuno ha mai osservato il momento dell'attesa** in cui il blocco è
+  grigio: in locale è troppo veloce. Andrea l'ha giudicata sul sito e dice che
+  **non dà fastidio**. *La voce «un po' lenta», registrata prima che si vedesse
+  apposta per non farla sembrare colpa del 4b-2, è chiusa.*
+* **`Il turco` è scritto con la t minuscola** nel menu, mentre gli altri Roll
+  hanno l'iniziale maiuscola. *Lo vedono i clienti. È un dato, non codice.*
+
+### 40h) ⚠️ Errori di chi ragionava, in questa giornata
+
+* **Una prova chiesta su un articolo che non poteva eseguirla**: svuotare
+  l'etichetta di una rimozione su `Roll di prova 6`, che rimozioni non ne ha.
+  *È la lezione `eb` un'altra volta, e Code l'ha dichiarato invece di adattare
+  la risposta.*
+* **Un numero scritto senza averlo contato** nel messaggio di commit.
+* **Un atteso misurato con una sonda cieca**: uno zero letto riga per riga su
+  una frase che era spezzata da un a-capo. *Il documento diceva il vero; era il
+  numero a essere sbagliato, e le due cose vanno tenute separate — altrimenti
+  si corregge un testo giusto per far tornare una misura.*
+* ⚠️ **Due domande tecniche girate ad Andrea come se fossero sue.** *Andrea non
+  scrive codice: le scelte tecniche si prendono e si dichiarano, non si fanno
+  approvare. A lui si chiede ciò che solo lui può sapere o decidere — le prove
+  dal vivo, le priorità, i costi accettati, e tutto ciò che tocca il locale, il
+  database vero o il momento dell'apertura.*
+
+### 40i) ⚠️ myers e `--patience` danno numeri diversi sullo stesso file
+
+Il riepilogo che git stampa dopo un commit usa **myers**. Il 28/08: **128/53**
+contro 126/51 sulla spec, **201/350** contro 194/343 sull'handoff, e le zone
+cambiano anche con la larghezza del contesto. **Netto identico in tutti i casi.**
+*La lezione `bo` diceva che le zone dipendono dall'algoritmo; oggi si è visto che
+dipendono anche i più e i meno. Chi legge due numeri diversi non sta guardando
+due file diversi.*
+
+---
