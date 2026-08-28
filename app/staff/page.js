@@ -1422,8 +1422,28 @@ function AllergensEditForm({ article, kind, allergensCatalog, onSaved, onCancel 
   );
 }
 
+// ⚠️ IL SALVA SPENTO SI VEDE SPENTO (spec §63-64, «registrato e non aperto»).
+//
+// Fino al 28/08 questa funzione cambiava **solo il cursore**: un pulsante spento
+// restava arancione pieno, `opacity: 1`, sfondo identico all'acceso. *Sul
+// telefono il cursore non esiste affatto, cioè proprio dove il pannello si usa
+// di più il pulsante spento era indistinguibile da quello acceso.* Tutto il 4b
+// serve a spegnere questo pulsante: se non si vede spento, il lavoro si vede a
+// metà.
+//
+// ⚠️⚠️ **NON SI DISEGNA UNO SPENTO NUOVO: SI RIUSA `stileSpento`**, che esiste
+// dal §63-64 v62 e vive più in alto in questo stesso file. Il suo commento dice
+// già perché è uno solo — «tre copie divergono alla prima modifica» — e la sua
+// coppia di colori è quella che il pannello usa per «Esaurito», cioè l'unico
+// «spento» che il menu mostra. *Inventarne un secondo qui vorrebbe dire due
+// spenti diversi nella stessa schermata, e un giorno tre.*
+//
+// ⚠️ **QUESTA FUNZIONE NON DECIDE NIENTE**: riceve un `disabled` già calcolato
+// altrove e restituisce solo un aspetto. Nessuna condizione cambia — non
+// `canSave`, non `canSaveModifica`, non `opzioniToccate`. Cambia **come si vede**
+// uno stato che il codice conosceva già.
 function confirmBtn(disabled) {
-  return {
+  const acceso = {
     background: "var(--brand-orange)",
     color: "var(--bg-warm)",
     border: "none",
@@ -1431,8 +1451,9 @@ function confirmBtn(disabled) {
     padding: "8px 16px",
     fontWeight: 600,
     fontSize: 13,
-    cursor: disabled ? "not-allowed" : "pointer",
+    cursor: "pointer",
   };
+  return disabled ? stileSpento(acceso) : acceso;
 }
 const secondaryBtn = {
   background: "none",
