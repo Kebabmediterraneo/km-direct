@@ -3443,3 +3443,92 @@ dipendono anche i più e i meno. Chi legge due numeri diversi non sta guardando
 due file diversi.*
 
 ---
+
+---
+
+## 41) Il 4b-3: la chiamata, e il 4b chiuso (notte fra il 28 e il 29/08/2026)
+
+**Il pannello salva le opzioni.** Commit `e826380` (pannello) e `21f44d0`
+(prove), pubblicati. **37 suite, 1783 prove, zero fallite.** *Le decisioni
+stanno in spec §63-64 (blocco v82). **Non ricostruirle.***
+
+⚠️ **La finestra muta aperta dal 4b-2 è chiusa nella stessa giornata in cui era
+nata.**
+
+### 41a) ✅ Le quattro prove dal vivo di Andrea, su `Roll di prova 6`
+
+Senza toccare le opzioni la rotta **non parte** · una rimozione scritta e
+salvata **si ritrova** riaprendo la scheda · l'articolo **resta nel menu** dopo
+il salvataggio · il **titolo cambiato si ritrova**.
+
+⚠️ **La quarta era l'unica verifica possibile di (OO), e nessuna sonda poteva
+farla**: col titolo mandato col nome sbagliato la risposta sarebbe stata `200`
+lo stesso, le opzioni salvate e il titolo tornato indietro **in silenzio**.
+*Solo chi riapre la scheda e guarda può dirlo.*
+
+### 41b) Il registro del server, che nessuno aveva chiesto
+
+Code è andato a leggerlo: **due `POST /product-options`, entrambe `200`**, ~1,4
+secondi ciascuna. *È la prima volta che quella rotta viene chiamata dal vivo:
+esisteva dal 13/08 e nessuna interfaccia la conosceva.*
+
+E si vede **(KK)** all'opera: **quattro `POST /product` contro due
+`POST /product-options`**. Nei due salvataggi in cui le opzioni non erano state
+toccate, quella rotta non è partita affatto.
+
+### 41c) ⚠️ Le trappole misurate ESEGUENDO, non lette
+
+* **`requires_protein` vuoto** è accettato e diventa `null`; `max_quantity`
+  vuota diventa **1**. *Con la controprova: una proteina inventata è rifiutata,
+  quindi il validatore non stava accettando qualunque cosa.*
+* **`choice_key` al posto di `key`**: il validatore **rifiuta**.
+* **Le rimozioni** sono accettate sia come stringhe nude sia come righe; si
+  mandano **come righe**, perché è la forma in cui il cuore le tiene e non
+  dipende da una tolleranza che potrebbe stringersi. **Gli accompagnamenti come
+  stringhe nude sono invece rifiutati.**
+
+### 41d) Una prova scaduta, sostituita e non tolta
+
+`pp4` sorvegliava il divieto del 4b-1 — *«il salvataggio delle opzioni non è
+ancora attaccato»* — che questo passo revoca, ed è diventata rossa **per il
+motivo giusto**. Al suo posto **l'asserzione opposta e più stretta**, e la frase
+accanto che rimandava a quella scaduta è stata allineata. *Il conteggio della
+suite non è cambiato: 92 prima, 92 dopo.*
+
+### 41e) ⚠️ Un errore di chi ragionava, corretto da Andrea
+
+Nella prova sullo scudo era stato scritto di controllare che l'occhio fosse
+**non barrato**. È il contrario: **occhio barrato = articolo visibile**, perché
+il pulsante mostra l'azione che farebbe e non lo stato in cui l'articolo si
+trova.
+
+⚠️ *E il fatto vale oltre l'errore: quel pulsante è ambiguo abbastanza da
+ingannare chi ha letto tutti i documenti. Di sabato sera lo guarda qualcuno che
+non li ha letti. Registrato in spec accanto al Salva spento: **sono due comandi
+che non dicono in che stato sei**.*
+
+### 41f) ⚠️ Il blocco Novità ha quasi mangiato nove voci
+
+Scrivendo la v82 si è scoperto che **nove voci della v81 non erano scritte nel
+corpo della spec**: vivevano solo nel blocco Novità, che la disciplina cancella
+a ogni versione. *È la **terza volta in un giorno** che quel blocco stava per
+far sparire qualcosa — la prima fu la regola sulle prove del prezzo, la seconda
+il limite sullo schema che non sta nel repo.* Sono state portate in una sezione
+loro, dichiarata come casa definitiva.
+
+**Regola che ne discende: chi scrive una versione nuova controlla il blocco
+vecchio voce per voce, prima di sostituirlo.**
+
+### 41g) Cosa resta aperto dopo il 4b
+
+*L'elenco vivo è in spec §63-64, «REGISTRATO E NON APERTO». Qui solo i titoli:*
+il Salva spento e l'occhio · l'ordine delle proteine che può cambiare in
+silenzio · **lo scudo che non copre gli articoli già fuori dal menu**, che fino
+al 4b-3 era teorico e da adesso è raggiungibile · il guasto a metà mai
+esercitato · `mostraGruppiOpzioni` · la cache dopo il push.
+
+⚠️ **E gli otto articoli di prova NON si cancellano ancora**, benché il 4b sia
+finito: il passo 5 tocca i prezzi e le prove sul prezzo si fanno su di loro.
+**Dopo il passo 7.**
+
+---
