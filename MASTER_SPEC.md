@@ -1,6 +1,6 @@
 # KM DIRECT — MASTER SPECIFICATION
 
-**Versione 78** — sostituisce la v77.
+**Versione 79** — sostituisce la v78.
 
 Documento di riferimento definitivo per lo sviluppo. Le decisioni qui
 contenute sono approvate: non vanno reinterpretate senza un motivo concreto
@@ -22,49 +22,62 @@ versione corrente**. I precedenti vivono in `git log`, che è fatto per quello.
 del documento prima che cominciasse a parlare del progetto — e dentro c'erano
 istruzioni rovesciate che nessuno rileggeva.*
 
-**Novità della v78** (vincolanti, dalla sera del 27/08/2026):
+**Novità della v79** (vincolanti, dalla giornata del 28/08/2026):
 
-*La v77 di stamattina resta valida in tutto: decisioni **(MM) (NN) (OO) (PP)**,
-misura sui dati veri, DNS, chiave Google, tetto dell'editor. Questa versione
-aggiunge ciò che è successo scrivendo il primo pezzo di codice.*
+*La v78 di ieri sera resta valida in tutto: decisioni **(MM) (NN) (OO) (PP)**,
+il 4b in tre passaggi, il 4b-1 fatto e provato. Questa versione registra la
+giornata spesa a **misurare prima di scrivere**, e il passaggio nuovo che quella
+misura ha reso necessario.*
 
-1. §63-64 — ⚠️ **IL 4b SI FA IN TRE PASSAGGI, NON IN UNO: 4b-1, 4b-2, 4b-3.**
-   *L'ordine non è prudenza, è necessità: **le protezioni devono esistere prima
-   che il codice sappia cancellare**. Se il salvataggio nascesse prima delle
-   difese, esisterebbe un momento in cui sa cancellare e non sa fermarsi.*
-2. §63-64 — ✅ **4b-1 FATTO, PUBBLICATO E PROVATO DAL VIVO DA ANDREA**: il Salva
-   spento finché le opzioni non sono lette **(MM)** e l'avviso sulle scelte non
-   disegnabili **(PP)**. Commit `7624498` (pannello) e `7acd543` (prove).
-3. §63-64 — ✅ **IL DIFETTO FOTOGRAFATO STAMATTINA È CHIUSO**: sulla Cheesecake
-   l'avviso **compare**, verificato dal vivo da Andrea la sera del 27/08.
-4. §63-64 — ✅ **LA CREAZIONE È INTATTA**, verificata dal vivo: Andrea ha creato
-   un Roll completo e il Salva si è acceso. *Era il rischio messo al primo posto
-   di tutto il passo.*
-5. §63-64 — **(PP) È STATA REALIZZATA A METÀ, PER FORZA E NON PER OMISSIONE**:
-   la parte "il Salva non tenta" poggia sulla nozione di **opzioni toccate**,
-   che nasce col salvataggio. Va fatta nel **4b-2**.
-6. §63-64 — ⚠️ **IL COMMENTO CHE SCADE È STATO RISCRITTO SUBITO**, benché i
-   controlli si rimettano solo nel 4b-2. *Metà del lavoro si poteva fare adesso
-   ed è la metà che protegge dalla lezione `de`.*
-7. §63-64 — ⚠️ **L'ATTESA ALL'APERTURA DELLA SCHEDA È "UN PO' LENTA"**,
-   osservata da Andrea. *Oggi è un fastidio; dal 4b-2 sarà il tempo in cui la
-   scheda è aperta e non si può toccare.*
-8. §4g — ⚠️ **CORRETTA UNA NOTA DELL'HANDOFF CHE DICEVA IL FALSO** sull'a capo
-   finale del file. *Nessun file è cambiato: era la nota a descrivere una
-   condizione che non si verificava.*
-9. ⚠️ **REGOLA DI METODO NUOVA, NATA DA UN ERRORE**: quando si chiede una prova
-   dal vivo, **si dichiara SEMPRE dove guardare** — sito pubblicato o `localhost`.
-   *Vedi la lezione `dz` nell'handoff.*
-10. ⚠️ **GLI ARTICOLI DI PROVA DA CANCELLARE SONO CINQUE**, non tre: `Roll prova`,
-    `Roll di prova 2`, `Roll di prova 3`, `Roll di prova 4`, `Roll di prova 5`.
+1. §63-64 — ⚠️ **IL 4b HA UN PASSAGGIO IN PIÙ, IL 4b-2a, E VIENE PRIMA DEL
+   4b-2.** *Nato da un difetto trovato leggendo: il pulsante «Conferma e salva»
+   del riquadro del prezzo **non guardava `canSave`**. Senza chiuderlo, i
+   controlli che il 4b-2 mette nel Salva sarebbero saltabili proprio sulla
+   strada in cui si cambia un prezzo, e la spec direbbe una cosa vera a metà.*
+2. §63-64 — ✅ **4b-2a FATTO, PUBBLICATO E PROVATO DAL VIVO SUL SITO.** Commit
+   `8422ef8` (pannello) e `f8de6ea` (prove). Tre righe di sostanza, nove sonde
+   nuove.
+3. §63-64 — ✅ **LA MISURA SUI DATI VERI, eseguita da Andrea il 28/08**: nessuno
+   dei cinque controlli della creazione scatterebbe da solo su nessun articolo
+   esistente. ⚠️ *Era la condizione per poter fare il 4b-2 senza rendere non
+   salvabile un articolo sano, ed è verde.*
+4. §63-64 — ⚠️ **I CONTROLLI SULLE OPZIONI SONO CINQUE, NON QUATTRO.** Gli
+   accompagnamenti sono **due controlli distinti**: uno guarda che la lista non
+   sia vuota (solo Bowl), l'altro che nessuna voce abbia l'etichetta vuota (ogni
+   categoria). *Il vecchio commento nel codice, e questa spec, ne nominavano
+   quattro.*
+5. §63-64 — ⚠️ **`proteineSenzaPrezzo` NON PUÒ SCATTARE SUI DATI LETTI DAL
+   DATABASE**, perché la colonna è `numeric not null`. *Il timore che i gusti
+   dei dolci spegnessero il Salva sulla Cheesecake **non ha fondamento**, e non
+   per una misura: per il tipo della colonna. La misura ha poi confermato il
+   presupposto.*
+6. §63-64 — ⚠️ **IL BLOCCO DELLE OPZIONI SI ACCENDE CAMBIANDO UN INTERRUTTORE
+   SOLO** — un `fieldset disabled` che governa diciotto controlli, misurato.
+   **E si accende su `opzioniLette`, non togliendo il vincolo**: in modifica le
+   quattro liste partono **vuote** e si riempiono dopo, quindi un blocco acceso
+   troppo presto mostrerebbe liste vuote su un articolo che opzioni ne ha.
+7. §63-64 — ⚠️ **L'ORDINE DI PROVA DEL RIQUADRO DEL PREZZO, trovato da Andrea
+   provando.** Non si può cambiare il prezzo *e* svuotare il nome prima di
+   premere Salva: col nome vuoto il Salva è spento e il riquadro non compare
+   mai. *L'ordine giusto è: cambia il prezzo → premi Salva → **poi** svuota il
+   nome.* **Serve ogni volta che si tocca quel riquadro.**
+8. §63-64 — ⚠️ **TRE COSE REGISTRATE E NON APERTE SUL RIQUADRO DEL PREZZO.**
+   Sono tre facce dello stesso pezzo di scheda e si aprono insieme, non a pezzi.
+9. ⚠️ **REGOLA DI METODO NUOVA**: le prove che toccano il **prezzo** si fanno
+   sugli **articoli di prova**, mai su un articolo del menu. *Il 28/08 la prova
+   è stata fatta sul Turco e il prezzo è stato rimesso a mano: con un database
+   solo e il sito raggiungibile, nulla ricorda di rimetterlo e nessun controllo
+   lo vede.*
+10. ⚠️ **GLI ARTICOLI DI PROVA DA CANCELLARE SONO SETTE**: `Roll prova`,
+    `Roll di prova 2, 3, 4, 5, 6, 7`. *I due nuovi sono nati dalle prove dal
+    vivo del 4b-2a.*
 
 *Il conteggio delle condizioni di apertura non cambia: **quattro chiuse, cinque
-aperte** — il dominio resta fra le aperte finché la chiave Google non è
-ristretta.*
+aperte**.*
 
-⚠️ *Suite invariate a **34**, prove da 1658 a **1669** (+11: sei sonde su (MM),
-cinque su (PP)). Misurate eseguendole. Le suite **non dovevano** muoversi: le
-prove nuove sono state aggiunte a una suite esistente, non in un file nuovo.*
+⚠️ *Suite invariate a **34**, prove da 1669 a **1678** (+9, tutte sul 4b-2a).
+Misurate eseguendole. Le suite **non dovevano** muoversi: le prove nuove sono
+andate in una suite esistente.*
 
 ## 1. Visione del progetto
 
@@ -3922,6 +3935,198 @@ qualunque scrittura, non una parola. E distingue la `delete()` del database da
 `next.delete(id)` **dalla forma della chiamata** — senza argomenti contro con
 argomenti — non da una lista di eccezioni da tenere aggiornata.*
 
+### ✅ IL 4b-2a — IL PULSANTE CHE NON GUARDAVA NIENTE (v79, 28/08/2026)
+
+**Il 4b ha quattro passaggi, non tre: 4b-1, 4b-2a, 4b-2, 4b-3.** *Il 4b-2a non
+era previsto: è nato da un difetto trovato leggendo il pannello prima di
+toccarlo, e va prima del 4b-2 per la stessa ragione per cui il 4b-1 va prima di
+tutto — una protezione che manca si scopre dopo.*
+
+#### Il difetto, misurato
+
+**I pulsanti che salvano sono due, non uno**, e passano da strade diverse:
+
+* **«Salva»** è `type="submit"`: passa dall'`onSubmit` del modulo, cioè da
+  `handleSubmit`, dove c'è la guardia `if (isSubmitting || !canSave) return;`.
+* **«Conferma e salva»**, che compare **al posto** del Salva quando il riquadro
+  della conferma sul prezzo è aperto, è `type="button"` con `onClick` diretto:
+  chiama `salvaModifica` **dritta**, e la guardia non sta sulla sua strada.
+  ⚠️ *È una scelta deliberata e documentata nel file: sta in una funzione sua
+  apposta per non ripassare dal controllo che ha acceso il riquadro.*
+
+⚠️ **Fra la pressione e la prima chiamata di rete `canSave` non veniva guardato
+in nessun punto.** *Misurato contando le occorrenze, non dedotto: i punti in cui
+`canSave` decideva erano due, e nessuno dei due stava su quella strada.*
+
+**La strada per arrivarci esiste e non è teorica**: mentre il riquadro è aperto
+il resto della scheda **resta modificabile** — nome, descrizione, prezzo,
+ordinamento, badge, piccantezza e allergeni stanno fuori dal ternario che
+governa i pulsanti. Quindi: prezzo cambiato → Salva → riquadro aperto → nome
+svuotato → «Conferma e salva» partiva lo stesso.
+
+⚠️ **Era un difetto già vivo prima del 4b**, non creato da questo lavoro. Ma
+senza chiuderlo, i cinque controlli che il 4b-2 mette in `canSave` sarebbero
+**saltabili proprio sulla strada in cui si cambia un prezzo**, e questa spec
+direbbe che i controlli sono nel Salva: vero su una strada, falso sull'altra.
+*È la forma della lezione `de` costruita di nostra mano, nel passaggio nato per
+evitarla.*
+
+#### La riparazione, e perché è minuscola
+
+Il `disabled` di quel pulsante passa da `isSubmitting` a `!canSave ||
+isSubmitting`. ⚠️ **L'espressione non è stata riscritta: è stata estratta dal
+pulsante «Salva» e incollata**, perché due condizioni scritte a mano divergono.
+
+⚠️ **Spento non vuol dire muto, e questa è la condizione che è stata misurata
+PRIMA di scrivere.** La frase *«Per salvare manca ancora: …»* sta **fuori** dal
+ternario che governa i pulsanti — sono due fratelli affiancati, verificato sul
+rientro — quindi resta a schermo col riquadro aperto. E tutti e sette i pezzi
+che la condizione del Salva in modifica guarda hanno **la propria voce**
+nell'elenco: nome, prezzo e ordinamento non hanno vincolo di ramo.
+
+#### ⚠️ L'ORDINE DI PROVA DEL RIQUADRO — trovato da Andrea provando
+
+**Non si può cambiare il prezzo e svuotare il nome prima di premere Salva**: col
+nome vuoto il Salva è spento, quindi non si preme, quindi il riquadro non
+compare mai. *La prova chiesta in quella forma era impossibile da eseguire.*
+
+**L'ordine giusto, l'unico che raggiunge quel pulsante:**
+
+1. cambia il prezzo;
+2. premi **Salva** — il riquadro si apre;
+3. **adesso** svuota il nome;
+4. «Conferma e salva» dev'essere **spento**, con sopra *«Per salvare manca
+   ancora: il nome»*;
+5. rimetti nome **e prezzo**, premi «Conferma e salva»: salva.
+
+⚠️ *Vale ogni volta che si tocca quel riquadro. La forma dell'errore era la
+solita: si scrive la condizione finale che si vuole vedere, invece del percorso
+per arrivarci.*
+
+#### ✅ Le prove dal vivo di Andrea — 28/08/2026
+
+*Fatte su `localhost` prima del push e **rifatte sul sito pubblicato** dopo,
+con il deploy verificato concluso sulla dashboard Vercel prima di guardare.*
+
+1. ✅ **Il pulsante si spegne**: «Conferma e salva» spento col nome svuotato, e
+   sopra la frase che dice che manca il nome.
+2. ✅ **E torna a funzionare**: rimesso il nome, si riaccende, premuto, **salva
+   davvero**. ⚠️ *È la prova che conta di più: storta, la conferma sul prezzo
+   sarebbe diventata un vicolo cieco su ogni articolo.*
+3. ✅ **La creazione è intatta**: articolo nuovo creato e salvato.
+
+*Le prove sul sito sono state fatte su `Roll di prova 6`, non su un articolo del
+menu.* Commit `8422ef8` (pannello, `11 2`) e `f8de6ea` (prove, `125 0`).
+
+#### ⚠️ LE PROVE SUL PREZZO SI FANNO SUGLI ARTICOLI DI PROVA
+
+**Regola nuova, vincolante.** Il 28/08 la prima tornata è stata fatta sul
+**Turco**, un articolo vero del menu, e il prezzo è stato rimesso a mano da
+Andrea. *Con un database solo e il sito raggiungibile, **niente ricorda di
+rimetterlo e nessun controllo lo vede**: un residuo così si scopre da un
+cliente.*
+
+#### ⚠️ TRE COSE REGISTRATE E NON APERTE, TUTTE SULLO STESSO RIQUADRO
+
+*Sono tre facce dello stesso pezzo di scheda: si aprono insieme, non a pezzi.*
+
+1. **Il riquadro non si richiude da solo.** Se si rimette il prezzo al valore di
+   partenza, continua a mostrare *«8,50 € → 8,50 €. Confermi?»*. ⚠️ *Misurato:
+   nessuna delle righe che lo spengono è raggiunta da quel gesto, e nessun
+   effetto ha il prezzo fra le dipendenze.*
+2. **«Annulla» non ripristina il prezzo.** Chiude il riquadro e lascia nel campo
+   il valore nuovo. ⚠️ *È la strada che aggira la conferma di §46: se poi si
+   salva per un'altra ragione, si salva anche quel prezzo.*
+3. **«Annulla» non è sorvegliato da nessuna prova.** ⚠️ *Misurato sporcando il
+   file vero: mettendogli addosso `!canSave` — che chiuderebbe l'utente dentro
+   il riquadro, con tutti e due i pulsanti spenti — **nessuna prova su 1678
+   diventa rossa**. Oggi è scritto giusto; è la sorveglianza che manca. E il
+   pulsante accanto è appena diventato il modello da cui si copia.*
+
+### ✅ LA MISURA PRIMA DEL 4b-2 — eseguita da Andrea nel SQL editor il 28/08/2026
+
+*Otto righe su otto dichiarate. Ogni riga porta accanto quante righe ha
+esaminato, quindi ogni zero è una risposta e non una cecità.*
+
+**La domanda:** con i dati che gli articoli hanno **oggi**, quali articoli
+avrebbero il Salva spento nel momento in cui i cinque controlli della creazione
+entrano nella condizione della modifica, **senza che nessuno tocchi niente**?
+
+**La risposta: nessuno.**
+
+* Bowl senza accompagnamenti: **0 su 7**.
+* Extra con etichetta vuota: **0 su 5**.
+* Rimozioni con etichetta vuota: **0 su 72**.
+* Accompagnamenti con etichetta vuota: **0 su 21**.
+* Etichette **nulle** nelle tre tabelle di testo: **0 su 98**.
+* Valori numerici **nulli** in `price_delta` e `price`: **0 su 50**.
+* Righe di proteine con chiave fuori catalogo: **4 su 45**, su `Cheesecake` e
+  `Yogurt turco` — i gusti dei dolci, previsti.
+* Articoli esaminati in tutto: **67**.
+
+⚠️ **I due controlli incrociati che rendono valido il referto**: 98 = 72+21+5 e
+50 = 45+5. *Se una delle interrogazioni avesse guardato nella tabella sbagliata,
+queste somme non tornerebbero.* E il **4** sui due dolci è lo stesso numero
+sugli stessi due articoli della misura del 27/08.
+
+⚠️ *Nota sul 67: la misura del 27/08 diceva **65**, ma contava gli articoli **in
+menu**. Non è un +2, è un'altra grandezza.*
+
+#### ⚠️ Ciò che questa misura NON poteva vedere, dichiarato
+
+**`proteineSenzaPrezzo` è rimasto fuori dall'interrogazione, e a ragione.**
+Quel controllo guarda se il campo *nella scheda aperta* è vuoto: è uno stato
+dell'interfaccia, che nasce solo se qualcuno lo svuota a mano. **Nessuna
+interrogazione al database lo può vedere.**
+
+⚠️ **E sui dati letti dal database non può scattare affatto**, perché
+`price_delta` è `numeric not null`: dal database non arriva né nullo né testo
+vuoto. *Il timore che i quattro gusti dei dolci spegnessero il Salva sulla
+Cheesecake — righe che dalla scheda non si vedono e non si correggono — **non ha
+fondamento**, e non per una misura: per il tipo della colonna. La misura ha poi
+confermato il presupposto, che era il verso in cui poteva cadere.*
+
+⚠️ *Restano fuori dalla traduzione SQL gli spazi Unicode rari: un'etichetta fatta
+solo di quelli risulterebbe piena al database e vuota al pannello. È l'unico
+verso in cui questa misura può sottostimare.*
+
+### ⚠️ COSA IL 4b-2 DEVE FARE, letto dal codice il 28/08
+
+*Accertamenti da non riverificare. Le decisioni restano **(MM) (NN) (OO) (PP)**
+nei blocchi v77 e v78.*
+
+* ⚠️ **I CONTROLLI SULLE OPZIONI SONO CINQUE, NON QUATTRO.** Gli accompagnamenti
+  sono **due controlli distinti**: uno guarda che la lista non sia **vuota**
+  (e solo sulle Bowl), l'altro che nessuna voce abbia **l'etichetta vuota** (su
+  qualunque categoria). Su una lista vuota il secondo è falso e il primo vero:
+  **non si sovrappongono**. *Il commento nel codice, e questa spec fino alla
+  v78, ne nominavano quattro.*
+* ⚠️ **IL BLOCCO SI ACCENDE CAMBIANDO UN INTERRUTTORE SOLO.** È un
+  `fieldset disabled` che governa **diciotto** controlli, e nessuno dei diciotto
+  ne ha uno proprio: misurato, non supposto. *Non ci sono trenta campi da
+  accendere uno per uno.*
+* ⚠️⚠️ **NON SI ACCENDE TOGLIENDO IL VINCOLO: SI ACCENDE SU `opzioniLette`.**
+  In modifica le quattro liste **partono vuote** e si riempiono dopo, in modo
+  asincrono. *Un blocco acceso troppo presto mostrerebbe quattro liste vuote su
+  un articolo che opzioni ne ha — e il cuore che salva **non aggiusta,
+  sostituisce**: vuoto significa cancella.* Così la stessa variabile che spegne
+  il Salva spegne il blocco, e un guasto di lettura li tiene spenti entrambi.
+  ⚠️ **Conseguenza visibile, registrata prima che si veda**: dal 4b-2 il blocco
+  resta grigio per il tempo dell'attesa che Andrea ha chiamato «un po' lenta».
+* **La nozione di «opzioni toccate» non esiste e va creata nel 4b-2.** Il modello
+  è `allergeniToccati`, che confronta i valori attuali con quelli di partenza e
+  comincia con `inModifica &&`. ⚠️ *Ma non si copia e basta: gli allergeni hanno
+  due copie della **stessa forma**, le opzioni hanno la fotografia in forma
+  database e lo stato in forma modulo, e **le due forme sono diverse**.*
+* ⚠️ **Il 4b-2 crea il ricordo di ciò che è stato toccato, NON la chiamata.**
+  La chiamata resta il 4b-3.
+* **Sui dolci il blocco si accende come sugli altri**, con sopra l'avviso di
+  **(PP)**: i campi diventano toccabili e il Salva si spegne appena si toccano.
+  *È la decisione già presa — scartato il nascondere il blocco — vista nella
+  forma che avrà a schermo.*
+* **I cinque controlli guardano tutte le righe in memoria, senza filtrare.**
+  *Filtrare quelle non disegnabili aggiungerebbe codice per un caso che la
+  misura e il tipo della colonna dicono impossibile.*
 ### ⚠️ IL 4b SI FA IN TRE PASSAGGI — 4b-1 FATTO (v78, sera del 27/08/2026)
 
 **L'ordine non è prudenza, è necessità: le protezioni devono esistere PRIMA che
@@ -3990,12 +4195,13 @@ risulterebbero come cose che nessuno ha visto.*
   che dichiara che di un dolce **nome, prezzo e allergeni restano
   modificabili**.*
 
-#### ⚠️ GLI ARTICOLI DI PROVA SONO CINQUE, NON TRE
+#### ⚠️ GLI ARTICOLI DI PROVA SONO SETTE (aggiornato in v79)
 
 `Roll prova`, `Roll di prova 2`, `Roll di prova 3`, `Roll di prova 4`,
-`Roll di prova 5`. *I due nuovi sono nati dalle prove dal vivo del 4b-1.* Si
-cancellano **tutti insieme dopo il 4b**: `Roll prova` ha le opzioni ed è il caso
-su cui il 4b si prova, quindi resta fino all'ultimo.
+`Roll di prova 5`, `Roll di prova 6`, `Roll di prova 7`. *Il 4 e il 5 sono nati
+dalle prove dal vivo del 4b-1, il 6 e il 7 da quelle del 4b-2a.* Si cancellano
+**tutti insieme dopo il 4b**: `Roll prova` ha le opzioni ed è il caso su cui il
+4b si prova, quindi resta fino all'ultimo.
 
 ### ⚠️ IL PASSO 4b — LETTO PER INTERO, DECISO (v77, 27/08/2026)
 
