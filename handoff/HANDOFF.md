@@ -3532,3 +3532,100 @@ finito: il passo 5 tocca i prezzi e le prove sul prezzo si fanno su di loro.
 **Dopo il passo 7.**
 
 ---
+
+---
+
+## 42) I due comandi muti, il registro sul guasto, e una riga di spec che era falsa (29/08/2026, notte)
+
+Tre lavori corti dopo il 4b, tutti pubblicati. **38 suite, 1810 prove, zero
+fallite.** *Le decisioni stanno in spec §63-64 e §6b (blocco v83). **Non
+ricostruirle.***
+
+### 42a) ✅ Il Salva spento si vede spento — `5c1c883`, `4a345d8`
+
+⚠️ **Lo spento esisteva già** — `stileSpento`, lo stesso grigio di «Esaurito» —
+e Code è andato a cercarlo prima di inventarne uno, perché il commento sopra
+quella funzione lo dice: *«tre copie divergono alla prima modifica»*. **Quattro
+pulsanti cambiano aspetto, contati**, e una prova sorveglia il numero.
+
+*Le prove misurano lo **sfondo**, non il cursore: il cursore c'era già e sul
+telefono non esiste.* Provato dal vivo da Andrea sul sito: si legge.
+
+⚠️ **Resta il «Salva» di `ProductEditForm`**, copia in linea che non passa da
+`confirmBtn`: continua a vedersi arancione da spento. *Non toccato di proposito
+— il passo 6 fa sparire quel componente.*
+
+### 42b) ✅ Il pulsante dell'occhio resta com'è — decisione di Andrea
+
+*La ragione vale più della correzione: **è Andrea che lo usa**, da settimane, e
+per lui non è ambiguo. Cambiarlo sposterebbe la confusione dall'unica persona
+che non ce l'ha all'unica che lo usa.*
+
+⚠️ **La regola che ne discende**: chi chiede una prova su quel pulsante **nomina
+lo stato dell'articolo, mai l'icona**. *La notte del 28/08 una richiesta di
+prova ha detto «l'occhio non barrato» intendendo il contrario, ed è stato Andrea
+a correggerla. L'ambiguità non è del pulsante, è di chi scrive le richieste.*
+
+### 42c) ✅ Un guasto lascia una traccia — `3b86f6f`, `c990b78`
+
+Prima il registro si scriveva **solo a salvataggio riuscito**, e sui rami di
+errore c'era un `console.error` che nessuno legge: l'unica traccia era una frase
+su uno schermo, che si chiude. Ora **tre** dei quattro punti di uscita per
+errore scrivono una riga con la fase e la tabella.
+
+⚠️ **Il quarto è escluso di proposito** — il guasto dello scudo, dove non è stato
+scritto niente e il messaggio dice già «NESSUNA MODIFICA». *Scelta di Code,
+dichiarata come tale.* E il numero l'ha chiesto al file: **dodici** uscite per
+errore in tutto, **quattro** dopo l'inizio delle scritture.
+
+✅ **Verificato da Andrea in Supabase**: quattro righe `modifica_opzioni_prodotto`
+dalle sue prove, **zero** di guasto. *La strada del successo non la scrive, e
+adesso è misurato sul database vero e non solo col cliente finto.*
+✅ **E `action` non ha vincoli sui valori**: due soli vincoli sulla tabella,
+chiave primaria e collegamento agli ordini. *Il limite che Code aveva dichiarato
+— «potrebbe urtare un vincolo che non posso vedere» — è chiuso con una misura.*
+
+### 42d) ⚠️⚠️ Una riga di spec era falsa, e ha fatto sbagliare
+
+La v82 diceva che lo scudo **non copre** gli articoli già fuori dal menu. **Non
+è un buco**: lo scudo serve a impedire che il cliente veda un articolo con le
+opzioni a metà, e per un articolo già fuori quella condizione è già vera.
+
+⚠️ *Chi ragionava ha letto **il titolo** della voce invece della frase che lo
+reggeva, e ha scritto un comando che chiedeva di costruire una protezione
+esistente e un messaggio scritto da tre settimane.* **Code si è fermato prima di
+scrivere una riga** e lo ha dimostrato leggendo il cuore, invece di eseguire un
+comando sbagliato.
+
+**Regola che ne discende: chi legge una voce dell'elenco dei limiti noti legge
+la frase, non il titolo.** *E chi la scrive metta nel titolo ciò che la frase
+dice, non il sospetto da cui è nata.*
+
+### 42e) ✅ L'elenco dei suggerimenti delle rimozioni — verificato da Andrea, non dedotto
+
+Una rimozione scritta su un articolo compare nei suggerimenti di tutti gli
+altri. ⚠️ *Nessun documento lo diceva.* Andrea ha provato: **cancellata la
+rimozione, la parola sparisce dall'elenco.** L'elenco si ricava dalle rimozioni
+che esistono.
+
+**Deciso di non toccarlo**, ed è il comportamento giusto: si riusano le stesse
+parole invece di riscriverle, e un errore di battitura si corregge cancellando e
+riscrivendo, senza residui. *Conseguenza: cancellando gli articoli di prova le
+loro rimozioni spariscono da sole — **lo script del go-live non deve toccare
+niente in più**.*
+
+### 42f) ⚠️ Le prove del pannello lasciano righe nel registro staff
+
+Quattro `modifica_opzioni_prodotto` al 29/08, e ne nasceranno altre ai passi 5,
+6 e 7. *Nel registro **non si distinguono da quelle vere in nessun modo
+automatico**: si lega al limite già noto, il criterio è un parametro compilato a
+mano il giorno del go-live.*
+
+### 42g) Il codice 144, cinque volte in una giornata
+
+Ogni spegnimento del server di sviluppo ha dichiarato «failed with exit code
+144», e ogni volta i tre riscontri della lezione `bx` hanno detto che lo
+spegnimento era riuscito. *Cinque casi in un giorno: non è un'anomalia, è come
+funziona.*
+
+---
