@@ -400,9 +400,99 @@ prova("m27", async () => {
     String(esito.body?.error ?? "").includes("TOLTO DAL MENU"),
     `m29) …e chi ha salvato legge che è successo (messaggio: "${esito.body?.error}")`
   );
+  // ⚠️⚠️ RISCRITTA IL 28/08/2026, E IL MOTIVO VA DETTO.
+  //
+  // Fino a oggi questa prova diceva: *un salvataggio andato male non scrive nel
+  // registro come se fosse riuscito*, e lo verificava con **nessuna riga di
+  // registro affatto**. Era giusta finché sul guasto non si scriveva niente, ed
+  // è **scaduta nel momento in cui il guasto ha cominciato a lasciare traccia**
+  // — è diventata rossa per il motivo giusto.
+  //
+  // ⚠️ *Non è stata tolta né allentata: al suo posto c'è l'asserzione più
+  // stretta. Prima chiedeva zero righe; ora chiede **zero righe di successo E
+  // una riga di guasto che dica su quale tabella si è fermato**. Toglierla
+  // avrebbe lasciato scoperto proprio ciò che sorvegliava: che un salvataggio
+  // fallito non venga registrato come riuscito.*
+  const registro = righeDi(scritture, "staff_action_log");
+  const successi = registro.filter((r) => r.action === "modifica_opzioni_prodotto");
+  const guasti = registro.filter((r) => r.action === "modifica_opzioni_prodotto_guasto");
   assert(
-    !scritture.some((s) => s.tabella === "staff_action_log"),
-    "m30) un salvataggio andato male non scrive nel registro come se fosse riuscito"
+    successi.length === 0,
+    `m30) un salvataggio andato male NON scrive nel registro come se fosse riuscito (righe di successo: ${successi.length})`
+  );
+  assert(
+    guasti.length === 1 && guasti[0].detail?.tabella === "product_choice_options",
+    `m30b) ⚠️ …ma lascia UNA riga di guasto che dice su quale tabella si è fermato (${guasti.length} riga, tabella "${guasti[0]?.detail?.tabella}")`
+  );
+  assert(
+    guasti[0]?.detail?.fase === "inserimento" && guasti[0]?.detail?.scudo_alzato === true,
+    `m30c) …e in quale fase, e se lo scudo era stato alzato (fase "${guasti[0]?.detail?.fase}", scudo ${guasti[0]?.detail?.scudo_alzato})`
+  );
+});
+
+// ---------------------------------------------------------------------------
+// m30d) IL GUASTO SU UN ARTICOLO GIÀ FUORI DAL MENU — il caso che non lasciava
+// nessun segno.
+//
+// ⚠️⚠️ È il caso che la spec registrava come scoperto: su un articolo che era
+// **già fuori dal menu** lo scudo non si alza — non c'è niente da abbassare — e
+// un guasto a metà non cambia **niente di visibile**. Sull'articolo che era in
+// menu almeno qualcosa si vede: sparisce dal menu del cliente e nel pannello
+// compare «fuori menu». *Qui no, ed è per questo che serviva la riga di
+// registro.*
+//
+// ⚠️ **QUESTA PROVA ESERCITA IL GUASTO, NON LO LEGGE**: il finto client riceve
+// `errori` e fa fallire davvero la `delete` della prima tabella, esattamente
+// come m27 fa con l'`insert`.
+// ---------------------------------------------------------------------------
+prova("m30d", async () => {
+  const fuori = { ...ROLL, is_in_menu: false };
+  const { esito, scritture } = await salva(
+    { id: "roll-1", proteins: proteineDelRoll({ adana: "5.00" }), removals: rimozioniDelRoll() },
+    {
+      prodotto: fuori,
+      opzioni: { product_choice_options: ROLL_PROTEINE, product_removals: ROLL_RIMOZIONI },
+      errori: { "product_choice_options.delete": { code: "XX000" } },
+    }
+  );
+  assert(esito.status === 500, `m30d) su un articolo GIÀ FUORI dal menu il guasto risponde 500 (status ${esito.status})`);
+  assert(
+    !scritture.some((s) => s.tabella === "products"),
+    `m30e) ⚠️ e \`products\` non viene toccato affatto: chi era fuori resta fuori, e nessuno lo rimette dentro (scritture su products: ${scritture.filter((s) => s.tabella === "products").length})`
+  );
+  const guasti = righeDi(scritture, "staff_action_log").filter(
+    (r) => r.action === "modifica_opzioni_prodotto_guasto"
+  );
+  assert(
+    guasti.length === 1 && guasti[0].detail?.era_fuori_dal_menu === true && guasti[0].detail?.scudo_alzato === false,
+    `m30f) ⚠️⚠️ …e resta UNA riga di registro che dice che l'articolo era già fuori dal menu e che lo scudo non era stato alzato — l'unico segno che questo caso lascia (righe ${guasti.length}, era_fuori ${guasti[0]?.detail?.era_fuori_dal_menu}, scudo ${guasti[0]?.detail?.scudo_alzato})`
+  );
+  assert(
+    guasti[0]?.detail?.fase === "cancellazione" && guasti[0]?.detail?.tabella === "product_choice_options",
+    `m30g) …e dice dove si è fermato (fase "${guasti[0]?.detail?.fase}", tabella "${guasti[0]?.detail?.tabella}")`
+  );
+
+  // ⚠️ CONTROPROVA NEI DUE VERSI: lo STESSO articolo già fuori dal menu, con lo
+  // STESSO corpo, ma **senza il guasto iniettato**. La riga di guasto non deve
+  // esserci, e quella di successo sì. *Senza, m30f passerebbe anche se la riga
+  // venisse scritta sempre — cioè se la strada del successo ci passasse.*
+  const senza = await salva(
+    { id: "roll-1", proteins: proteineDelRoll({ adana: "5.00" }), removals: rimozioniDelRoll() },
+    { prodotto: fuori, opzioni: { product_choice_options: ROLL_PROTEINE, product_removals: ROLL_RIMOZIONI } }
+  );
+  const registroSenza = righeDi(senza.scritture, "staff_action_log");
+  assert(
+    senza.esito.status === 200 &&
+      registroSenza.filter((r) => r.action === "modifica_opzioni_prodotto_guasto").length === 0,
+    `m30h) ⚠️ CONTROPROVA: senza guasto lo stesso salvataggio riesce (200) e NON scrive nessuna riga di guasto — la strada del successo non ci passa (status ${senza.esito.status}, righe di guasto ${registroSenza.filter((r) => r.action === "modifica_opzioni_prodotto_guasto").length})`
+  );
+  assert(
+    registroSenza.filter((r) => r.action === "modifica_opzioni_prodotto").length === 1,
+    "m30i) …e scrive invece la sua riga di successo, come ha sempre fatto"
+  );
+  assert(
+    !senza.scritture.some((s) => s.tabella === "products"),
+    "m30j) …senza rimettere l'articolo nel menu: chi era fuori resta fuori anche quando tutto va bene"
   );
 });
 
