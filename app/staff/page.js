@@ -7,6 +7,10 @@ import { sortQueueByReferenceTime } from "../../lib/staff-queue-order";
 import { BADGE_OPTIONS } from "../../lib/menu-badges";
 import { SPICE_OPTIONS } from "../../lib/menu-spice";
 import { PRODUCT_CATEGORIES, isBevanda } from "../../lib/menu-categories";
+// §63-64 (QQ) — la fotografia delle opzioni in forma modulo. ⚠️ Vive in `lib/`
+// e non qui perché è il cuore di «opzioni toccate», e un cuore dentro il
+// pannello nessuna prova può eseguirlo: le suite leggono questo file come testo.
+import { istantaneaOpzioni } from "../../lib/menu-options-snapshot";
 
 const POLL_INTERVAL_MS = 12000;
 
@@ -1577,6 +1581,20 @@ function ProductForm({ products, allergensCatalog, articolo, onSaved, onCancel }
   // ha": sono due cose diverse e a schermo devono restare diverse.
   const [opzioniArticolo, setOpzioniArticolo] = useState(null);
   const [opzioniError, setOpzioniError] = useState(null);
+  // §63-64 (QQ, 28/08/2026) — LA FOTOGRAFIA DI PARTENZA DELLE OPZIONI, in forma
+  // modulo. `null` finché la traduzione non l'ha scattata.
+  //
+  // ⚠️⚠️ **È UNA `ref` E NON UNO STATO, ed è il punto.** Deve restare FERMA
+  // mentre i campi cambiano: se fosse uno stato ricalcolato a ogni ridisegno
+  // sarebbe sempre uguale allo stato corrente e direbbe «mai toccato» per
+  // sempre — il guasto opposto a quello che (QQ) descrive, e altrettanto muto.
+  // *Una `ref` sopravvive ai ridisegni e non ne provoca: cambiarla non ridisegna
+  // niente, che è esattamente ciò che serve a una fotografia.*
+  //
+  // ⚠️ Nasce dentro il componente, non fuori: due schede aperte su due articoli
+  // diversi devono avere due fotografie diverse. E si azzera con l'articolo,
+  // perché l'effetto che la scatta riparte a ogni `articolo.id` nuovo.
+  const fotoOpzioni = useRef(null);
 
   useEffect(() => {
     let annullato = false;
@@ -1610,6 +1628,10 @@ function ProductForm({ products, allergensCatalog, articolo, onSaved, onCancel }
   // -------------------------------------------------------------------------
   useEffect(() => {
     if (!articolo) return undefined;
+    // ⚠️ (QQ) La fotografia del vecchio articolo NON vale per il nuovo: si
+    // azzera qui, prima di chiedere, così fra un articolo e l'altro «toccato»
+    // non si può rispondere con la fotografia di un altro articolo.
+    fotoOpzioni.current = null;
     let annullato = false;
     (async () => {
       try {
@@ -1633,39 +1655,62 @@ function ProductForm({ products, allergensCatalog, articolo, onSaved, onCancel }
         const perOrdine = (righe) =>
           [...(righe ?? [])].sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
 
+        // ⚠️ (QQ) I CINQUE VALORI TRADOTTI SI CALCOLANO UNA VOLTA E SI USANO
+        // DUE: per riempire i campi e per scattare la fotografia. *Prima
+        // andavano dritti dentro i `set…`; ora hanno un nome, e il motivo è che
+        // la fotografia deve essere fatta **degli stessi valori**, non di
+        // qualcosa che li somiglia. Due espressioni gemelle sono due cose che un
+        // giorno non lo saranno.*
         const proteineDb = perOrdine(opz.product_choice_options);
-        setProteine(
-          new Map(
-            proteineDb.map((r) => [
-              r.choice_key,
-              {
-                price_delta: String(r.price_delta ?? ""),
-                is_default: r.is_default === true,
-                extra_dose_included: r.extra_dose_included === true,
-              },
-            ])
-          )
+        const proteineForm = new Map(
+          proteineDb.map((r) => [
+            r.choice_key,
+            {
+              price_delta: String(r.price_delta ?? ""),
+              is_default: r.is_default === true,
+              extra_dose_included: r.extra_dose_included === true,
+            },
+          ])
         );
         // Il titolo è UNO per il gruppo: si prende dalla prima riga, che è ciò
         // che il server garantisce scrivendolo uguale su tutte.
-        if (proteineDb.length > 0 && proteineDb[0].choice_label) {
-          setTitoloScelta(proteineDb[0].choice_label);
+        // ⚠️ Quando la riga non c'è o non ha titolo **non si scrive niente**, e
+        // il campo resta sul proposto: la fotografia deve dire la stessa cosa,
+        // altrimenti un articolo senza titolo nascerebbe già «toccato».
+        const titoloDb = proteineDb.length > 0 ? proteineDb[0].choice_label : null;
+        const titoloForm = titoloDb || TITOLO_SCELTA_PROPOSTO;
+        const rimozioniForm = perOrdine(opz.product_removals).map((r) => r.label);
+        const accompagnamentiForm = perOrdine(opz.product_accompaniments).map((r) => ({
+          label: r.label,
+          contains_gluten: r.contains_gluten === true,
+        }));
+        const extraForm = perOrdine(opz.product_addons).map((r) => ({
+          label: r.label,
+          price: String(r.price ?? ""),
+          requires_protein: r.requires_protein ?? "",
+          max_quantity: String(r.max_quantity ?? 1),
+        }));
+
+        setProteine(proteineForm);
+        if (titoloDb) {
+          setTitoloScelta(titoloDb);
         }
-        setRimozioni(perOrdine(opz.product_removals).map((r) => r.label));
-        setAccompagnamenti(
-          perOrdine(opz.product_accompaniments).map((r) => ({
-            label: r.label,
-            contains_gluten: r.contains_gluten === true,
-          }))
-        );
-        setExtra(
-          perOrdine(opz.product_addons).map((r) => ({
-            label: r.label,
-            price: String(r.price ?? ""),
-            requires_protein: r.requires_protein ?? "",
-            max_quantity: String(r.max_quantity ?? 1),
-          }))
-        );
+        setRimozioni(rimozioniForm);
+        setAccompagnamenti(accompagnamentiForm);
+        setExtra(extraForm);
+
+        // ⚠️⚠️ (QQ) LA FOTOGRAFIA SI SCATTA QUI, e non all'apertura della
+        // scheda: in modifica le quattro liste **partono vuote** e si riempiono
+        // solo adesso. Scattata prima sarebbe la fotografia del vuoto, i campi
+        // si riempirebbero da soli e **tutto risulterebbe toccato**.
+        // *È la stessa ragione per cui il blocco si accende su `opzioniLette`.*
+        fotoOpzioni.current = istantaneaOpzioni({
+          proteine: proteineForm,
+          titoloScelta: titoloForm,
+          rimozioni: rimozioniForm,
+          accompagnamenti: accompagnamentiForm,
+          extra: extraForm,
+        });
         setOpzioniArticolo(opz);
       } catch (err) {
         // ⚠️⚠️ L'ERRORE SI MOSTRA, e il blocco NON resta vuoto. Un blocco vuoto
@@ -1886,6 +1931,36 @@ function ProductForm({ products, allergensCatalog, articolo, onSaved, onCancel }
       dietary !== dietaryIniziale ||
       desiderati.length !== idsIniziali.length ||
       desiderati.some((id) => !idsIniziali.includes(id)));
+
+  // ⚠️ PASSO 4b-2 (QQ, 28/08/2026) — LE OPZIONI SONO STATE TOCCATE DAVVERO?
+  //
+  // Stessa domanda di `allergeniToccati` qui sopra, e comincia allo stesso modo
+  // con `inModifica &&`. ⚠️ **Ma NON la stessa forma, e la spec lo dice per
+  // iscritto**: là si confrontano due booleani, una stringa e una lunghezza, e
+  // `!==` basta. Qui ci sono tre elenchi di oggetti e una mappa, e `!==` fra due
+  // elenchi con lo stesso contenuto **è vero**: un confronto copiato per
+  // somiglianza compilerebbe, non protesterebbe e direbbe «toccato» sempre.
+  //
+  // ⚠️ **COME GUARDA DENTRO**: entrambe le parti passano per
+  // `istantaneaOpzioni`, che riduce le opzioni a una stringa sola — array
+  // annidati, mai oggetti, così l'ordine delle chiavi non conta; proteine
+  // ordinate per chiave perché la loro Map non è ciò che si vede; i tre elenchi
+  // nell'ordine in cui stanno, perché lì l'ordine è il dato. *Una funzione sola
+  // per le due parti: due funzioni gemelle sarebbero due cose da tenere
+  // d'accordo a mano, che è il difetto che (QQ) scarta due volte.*
+  //
+  // ⚠️ **Senza fotografia la risposta è «no», non «sì»**: prima che la lettura
+  // arrivi — e dopo un guasto — `fotoOpzioni.current` è `null` e non c'è niente
+  // con cui confrontare. Rispondere «toccato» in quel caso significherebbe dire
+  // che è cambiato qualcosa proprio quando non si sa nemmeno cosa ci fosse.
+  //
+  // ⚠️⚠️ **IN QUESTO PASSO NESSUNO LA LEGGE, ed è voluto**: il pezzo 1 crea la
+  // nozione, il pezzo 2 la usa. A schermo non cambia niente.
+  const opzioniToccate =
+    inModifica &&
+    fotoOpzioni.current !== null &&
+    istantaneaOpzioni({ proteine, titoloScelta, rimozioni, accompagnamenti, extra }) !==
+      fotoOpzioni.current;
 
   // ⚠️ IL PULSANTE SI SPEGNE PRIMA, invece di far partire una richiesta che il
   // server rifiuterebbe. Le due condizioni sono quelle che `menu-allergens.js`
