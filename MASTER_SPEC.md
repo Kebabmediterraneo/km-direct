@@ -1,6 +1,6 @@
 # KM DIRECT — MASTER SPECIFICATION
 
-**Versione 80** — sostituisce la v79.
+**Versione 81** — sostituisce la v80.
 
 Documento di riferimento definitivo per lo sviluppo. Le decisioni qui
 contenute sono approvate: non vanno reinterpretate senza un motivo concreto
@@ -22,48 +22,55 @@ versione corrente**. I precedenti vivono in `git log`, che è fatto per quello.
 del documento prima che cominciasse a parlare del progetto — e dentro c'erano
 istruzioni rovesciate che nessuno rileggeva.*
 
-**Novità della v80** (vincolanti, seconda sessione del 28/08/2026):
+**Novità della v81** (vincolanti, terza sessione del 28/08/2026):
 
-*La v79 di stamattina resta valida in tutto: decisioni **(MM) (NN) (OO) (PP)**,
-il 4b in quattro passaggi, il 4b-2a fatto e provato dal vivo, la misura sui dati
-veri verde. Questa versione **non contiene una riga di codice**: registra la
-lettura fatta prima di scrivere il 4b-2 e la decisione che quella lettura ha
-reso necessaria.*
+*La v80 di poche ore fa registrava una lettura e una decisione. Questa registra
+il **codice scritto, provato dal vivo sul sito pubblicato, e i difetti che la
+prova ha fatto uscire**. ⚠️ Due voci della v80 sono diventate false e sono
+corrette qui: il 4b-2 non è più «da fare», e il `fieldset` non è più agganciato
+a `inModifica`.*
 
-⚠️ **TRASLOCO DICHIARATO, non una sparizione.** La regola nata stamattina — *le
-prove che toccano il **prezzo** si fanno sugli **articoli di prova**, mai su un
-articolo del menu* — viveva **soltanto** nel blocco Novità della v79, e la
-disciplina del blocco l'avrebbe cancellata scrivendo questa versione. È stata
-**spostata nel corpo di §63-64**, accanto all'altra regola di metodo sulle prove
-dal vivo, dove nessuna sostituzione futura la tocca. *Verificato prima di
-sostituire il blocco: era l'unica delle dieci voci della v79 a non vivere già
-nel corpo del documento.*
-
-1. §63-64 — ⚠️ **(QQ) LA FOTOGRAFIA DELLE OPZIONI SI SCATTA DOPO LA TRADUZIONE,
-   IN FORMA MODULO.** *Decisione di Andrea del 28/08, presa sulla lettura del
-   codice.* È la condizione per costruire la nozione di «opzioni toccate» che il
-   4b-2 richiede.
-2. §63-64 — ⚠️ **IL 4b-2 SI FA IN UN PASSAGGIO SOLO**, per decisione di Andrea:
-   blocco acceso, cinque controlli rimessi, «opzioni toccate» e **seconda metà
-   di (PP)** insieme. *Scartato lo spezzarlo in due tempi con due prove dal
-   vivo.*
-3. §63-64 — ⚠️ **CINQUE FATTI SUL CODICE, letti il 28/08 e non supposti**, fra
-   cui due che correggono questa spec: il `fieldset` oggi è agganciato a
-   `inModifica`, non a `opzioniLette`; e il commento che il 4b-2 deve riscrivere
-   ne nomina **quattro** mentre i controlli sono **cinque**.
-4. §63-64 — ⚠️ **LO SCHEMA DEL DATABASE NON È NEL REPO.** *Limite noto: i nomi
-   delle colonne delle quattro tabelle delle opzioni si leggono da chi le
-   scrive, non da una `CREATE TABLE`. Una colonna esistente che nessun file del
-   repo scrive arriverebbe comunque nella fotografia, che è un `select("*")`, e
-   nessuna lettura del repo la vedrebbe.* **Con (QQ) non serve**, perché la
-   forma database esce dal giro.
+1. §63-64 — ✅ **IL 4b-2 È FATTO, PUBBLICATO E PROVATO DAL VIVO SUL SITO.**
+   Quattro commit: `9baa54a` e `34f6dac` (la fotografia e il confronto),
+   `d3c371e` e `aa9d825` (il blocco, i cinque controlli, (PP) e le mancanze).
+   **Restano 36 suite e 1760 prove, zero fallite**, misurate eseguendole.
+2. §63-64 — ⚠️⚠️ **LA FINESTRA MUTA FRA IL 4b-2 E IL 4b-3, TROVATA DA ANDREA
+   PROVANDO.** Oggi si può toccare un'opzione, premere Salva, **ricevere un
+   salvataggio riuscito e vedere la modifica sparire**, senza nessun avviso.
+   *È il guasto muto che questo progetto insegue da settimane, e adesso è vivo
+   sul sito pubblicato.* **Si chiude solo col 4b-3**, ed è la ragione per cui
+   il 4b-3 non va rimandato.
+3. §63-64 — ⚠️ **IL PANNELLO PUÒ SERVIRE IL CODICE VECCHIO DOPO UNA
+   PUBBLICAZIONE**, misurato il 28/08: la scheda della Cheesecake si è aperta
+   **senza l'avviso di (PP)** e con una frase falsa, finché il browser non è
+   stato ricaricato a fondo. *Non è un difetto del codice: è la cache. Ma il
+   giorno dell'apertura fa sembrare rotto un sito che funziona, e falsa
+   qualunque prova dal vivo fatta subito dopo un push.*
+4. §6b — ⚠️ **IL SALVA SPENTO È INDISTINGUIBILE DALL'ACCESO**: resta arancione
+   pieno, `opacity: 1`, cambia solo il cursore. *Difetto **preesistente**, non
+   creato dal 4b-2 — ma tutto il 4b-2 serve a spegnere quel pulsante, e se non
+   si vede spento il lavoro si vede a metà.* **Aperto, non ancora fatto.**
+5. §63-64 — ⚠️ **LE MANCANZE SONO UN ELENCO, NON UNA RIGA**, e nessun
+   separatore dentro la riga poteva funzionare.
+6. §63-64 — ⚠️ **GLI ARTICOLI DI PROVA SONO OTTO**, non sette.
+7. §63-64 — ⚠️ **`mostraGruppiOpzioni` RIPETE LA CONDIZIONE DEL `fieldset`
+   SCRITTA AL ROVESCIO**, in un altro punto del file. *Oggi sono d'accordo. Sono
+   il tipo di coppia che un giorno diverge.* Registrato, non aperto.
+8. **METODO** — ⚠️ **myers e `--patience` danno numeri diversi sullo stesso
+   file**: il riepilogo che git stampa dopo un commit usa myers. Il 28/08:
+   128/53 contro 126/51 sulla spec, 201/350 contro 194/343 sull'handoff.
+   **Netto identico in tutti i casi.** *La lezione `bo` diceva che le zone
+   dipendono dall'algoritmo; il 28/08 si è visto che dipendono anche i più e i
+   meno.*
+9. **NEL MENU** — `Il turco` è scritto con la **t minuscola**, mentre gli altri
+   Roll hanno l'iniziale maiuscola. *Lo vedono i clienti. È un dato, non
+   codice: si corregge quando si vuole.*
 
 *Il conteggio delle condizioni di apertura non cambia: **quattro chiuse, cinque
 aperte**.*
 
-⚠️ *Suite e prove **invariate a 34 e 1678**: questa sessione non ha scritto
-codice, quindi non c'è niente da rimisurare. Il numero resta quello misurato
-eseguendole stamattina.*
+⚠️ *Suite **36**, prove **1760**, zero fallite, misurate eseguendole. Le prove
+nuove di oggi sono 39 sul confronto delle opzioni e 43 sul blocco e sul salva.*
 
 ## 1. Visione del progetto
 
@@ -4114,6 +4121,20 @@ nei blocchi v77 e v78.*
   *Filtrare quelle non disegnabili aggiungerebbe codice per un caso che la
   misura e il tipo della colonna dicono impossibile.*
 
+#### ⚠️ LO SCHEMA DEL DATABASE NON È NEL REPO — limite noto
+
+I nomi di colonna delle quattro tabelle delle opzioni **non si leggono da una
+`CREATE TABLE`**: lo schema è stato creato nel SQL editor di Supabase e nel
+repository quelle tabelle sono solo nominate. Si leggono da **chi le scrive**,
+`lib/menu-options-editor.js`. ⚠️ *E siccome il lettore fa `select("*")`, una
+colonna che esistesse in Supabase e che nessun file del repo scrive
+**arriverebbe comunque** nella fotografia, e nessuna lettura del repository la
+vedrebbe.* **Con (QQ) il problema non tocca il 4b**, perché la forma database
+esce dal giro — ma resta vero per chiunque legga quelle tabelle.
+
+*Portato qui dal blocco Novità della v80 in v81, dove viveva solo e la
+disciplina del blocco l'avrebbe cancellato.*
+
 #### ⚠️ Cinque fatti letti dal codice il 28/08 — due correggono questa spec
 
 *Ognuno con il posto da cui è stato letto. **Non riverificarli**; e non dedurre
@@ -4121,10 +4142,13 @@ niente dai nomi: `ProductForm` e `ProductEditForm` **stanno nello stesso file**,
 e un terzo componente, `AllergensEditForm`, contiene variabili con gli stessi
 nomi.*
 
-* ⚠️ **IL `fieldset` OGGI È AGGANCIATO A `inModifica`, NON a `opzioniLette`.**
-  `app/staff/page.js:2378`, ed è **l'unico `fieldset` del file**. *Questa spec
-  diceva su cosa **andrà** agganciato e non su cosa **è**: oggi è spento su ogni
-  articolo esistente e acceso solo in creazione. Il 4b-2 cambia quell'aggancio.*
+* ✅ **IL `fieldset` È ORA AGGANCIATO A `opzioniLette`**, cambiato dal 4b-2 la
+  sera del 28/08: `disabled={inModifica && !opzioniLette}`. *Fino a quel momento
+  era su `inModifica`, e questa spec lo registrava come lo stato di allora: la
+  riga è stata corretta in v81 invece di lasciarla a dire una cosa scaduta.*
+  ⚠️ **Resta l'unico `fieldset` del file**, e il `select` della categoria resta
+  spento in modifica per **(HH)**: sono due cose diverse e una prova le
+  sorveglia separatamente.
 * ⚠️ **IL COMMENTO DA RISCRIVERE NE NOMINA QUATTRO, E SONO CINQUE.**
   `app/staff/page.js:1901-1930`. *L'elenco dice "accompagnamenti" una volta
   sola, ma sono due condizioni distinte — lista vuota su una Bowl, e voce con
@@ -4156,16 +4180,51 @@ disegnabili **(PP)**. *Non può far partire nessuna richiesta: può solo spegner
 un pulsante. **Rischio zero sui dati.*** Commit `7624498` (pannello) e `7acd543`
 (prove), pubblicati.
 
-**⚠️ 4b-2 — ACCENDERE IL BLOCCO E RIMETTERE I CONTROLLI**, col commento già
-riscritto da chiudere. ⚠️ *I controlli sulle opzioni **non si possono rimettere
-prima** di accendere il blocco: un controllo che diventasse rosso a campi ancora
-spenti lascerebbe il pulsante spento **senza nessun modo di correggerlo**. Vanno
-insieme, ed è per questo che stanno nello stesso passaggio.* Qui va anche la
-**seconda metà di (PP)**: il Salva che non tenta quando le opzioni sono state
-toccate su un articolo con scelte non rappresentabili.
+**✅ 4b-2 — ACCENDERE IL BLOCCO E RIMETTERE I CONTROLLI. FATTO, PUBBLICATO,
+PROVATO DAL VIVO SUL SITO** la sera del 28/08. Scritto **in due pezzi** per
+tenere piccolo il diff pericoloso: prima la fotografia e il ricordo, che nessuno
+leggeva e non potevano rompere niente (`9baa54a`, `34f6dac`); poi il blocco
+acceso, i cinque controlli, la seconda metà di **(PP)** e il commento riscritto
+(`d3c371e`, `aa9d825`). *L'ordine dentro il secondo pezzo non era libero: prima
+il blocco, poi i controlli — al contrario, un controllo rosso a campi ancora
+spenti avrebbe lasciato il pulsante spento **senza nessun modo di correggerlo**.*
+
+⚠️ **Il confronto vive in `lib/menu-options-snapshot.js`, non nel pannello**, e
+la ragione è che le suite leggono `app/staff/page.js` come testo e non lo
+eseguono: dentro il pannello quella funzione **non sarebbe stata provabile**.
+Spostata, ha 39 prove che la eseguono.
+
+⚠️ **La fotografia sta in una `ref`, non in uno stato**, e viene **azzerata al
+cambio di articolo**: senza, la fotografia di un articolo sarebbe rimasta valida
+sul successivo. *L'azzeramento è iniziativa di Code, non era stato chiesto.*
+
+**Le cinque prove dal vivo di Andrea, sul sito pubblicato**: il blocco si accende
+con un'attesa che **non dà fastidio** (era la voce «un po' lenta», registrata
+prima che si vedesse — ora vista e chiusa); toccare e rimettere non spegne il
+Salva; una rimozione senza etichetta lo spegne; sulla Cheesecake l'avviso compare,
+il nome resta modificabile e **toccare un'opzione spegne il Salva** — è l'unico
+posto dove si vede a occhio che il ricordo funziona; **la creazione è intatta**,
+provata salvando davvero.
 
 **⚠️ 4b-3 — LA CHIAMATA.** Il pezzo pericoloso, con l'impalcatura attorno già
-provata dal vivo.
+provata dal vivo. ⚠️⚠️ **E adesso non è più solo l'ultimo passo: è la chiusura
+di una finestra muta che è VIVA sul sito pubblicato** — vedi il blocco della
+v81, voce 2.
+
+#### ⚠️ La forma delle mancanze — elenco, non riga (v81, 28/08/2026)
+
+Quando manca **più di una** cosa, le voci vanno **su righe separate**. ⚠️ *Non è
+una questione di gusto: le voci contengono già virgole (cinque di esse), due
+punti, parentesi e virgolette basse — la voce di (PP) ne ha di tre tipi insieme
+— quindi **qualunque separatore dentro la riga compare anche dentro le voci**.
+Un punto e virgola oggi funzionerebbe, ma è una garanzia che scade alla prima
+voce nuova.* **Con una voce sola resta la frase di prima, parola per parola.**
+
+*L'elenco ha **14 voci** in tutto; insieme se ne possono vedere al massimo
+**10**, per quattro esclusioni reciproche lette nel codice. La forma però è
+progettata per tutte e 14, perché quel massimo è una lettura e non una misura
+eseguita.* Una prova sorveglia la forma e cade se qualcuno rimette le voci su
+una riga sola.
 
 #### ✅ Le tre prove dal vivo di Andrea — sera del 27/08/2026
 
@@ -4212,11 +4271,15 @@ risulterebbero come cose che nessuno ha visto.*
   che dichiara che di un dolce **nome, prezzo e allergeni restano
   modificabili**.*
 
-#### ⚠️ GLI ARTICOLI DI PROVA SONO SETTE (aggiornato in v79)
+#### ⚠️ GLI ARTICOLI DI PROVA SONO OTTO (aggiornato in v81)
 
 `Roll prova`, `Roll di prova 2`, `Roll di prova 3`, `Roll di prova 4`,
-`Roll di prova 5`, `Roll di prova 6`, `Roll di prova 7`. *Il 4 e il 5 sono nati
-dalle prove dal vivo del 4b-1, il 6 e il 7 da quelle del 4b-2a.* Si cancellano
+`Roll di prova 5`, `Roll di prova 6`, `Roll di prova 7`, `Roll di prova 8`.
+*Il 4 e il 5 sono nati dalle prove dal vivo del 4b-1, il 6 e il 7 da quelle del
+4b-2a, l'**8** dalla prova sulla creazione del 4b-2.* ⚠️ *Il conto è stato
+corretto perché Code ha trovato **70 articoli invece di 69** riaprendo il
+pannello e non l'ha dato per scontato: è andato nel registro del server a
+stabilire che la scrittura non era sua.* Si cancellano
 **tutti insieme dopo il 4b**: `Roll prova` ha le opzioni ed è il caso su cui il
 4b si prova, quindi resta fino all'ultimo.
 
