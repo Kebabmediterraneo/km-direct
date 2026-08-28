@@ -931,19 +931,37 @@ function corpiDi(blocco) {
     "pp3) (PP) è l'avviso e NON la riparazione: il blocco delle opzioni resta legato alla sola lettura riuscita, e l'avviso non lo nasconde"
   );
 
-  // ⚠️ Il divieto del passo 4b-1: la rotta che SALVA le opzioni non viene
-  // chiamata. La sonda guarda le chiamate, non i commenti — nel pannello quel
-  // nome compare anche in un commento che spiega da dove arrivano le opzioni.
+  // ⚠️⚠️ RISCRITTA NEL 4b-3 (28/08/2026), E IL MOTIVO VA DETTO.
+  //
+  // Fino a ieri questa prova sorvegliava il **divieto del 4b-1**: la rotta che
+  // SALVA le opzioni non viene chiamata. Era giusta, ed è **scaduta nel momento
+  // in cui il 4b-3 ha attaccato la chiamata** — è diventata rossa per il motivo
+  // giusto, cioè perché il lavoro che aspettava è stato fatto.
+  //
+  // ⚠️ *Non è stata cancellata né allentata: al suo posto c'è l'asserzione
+  // opposta e più stretta — le chiamate sono DUE, una per verso, e la scrittura
+  // è dentro `if (opzioniToccate)`, che è (KK). Una prova scaduta si sostituisce
+  // con ciò che ora è vero, non si toglie: toglierla lascerebbe scoperta la
+  // stessa riga che sorvegliava.*
+  //
+  // La sonda guarda le chiamate, non i commenti — nel pannello quel nome compare
+  // anche in un commento che spiega da dove arrivano le opzioni.
   const chiamate = codicePannello.match(/fetch\([^)]*product-options[^)]*\)/g) ?? [];
+  const primaDellaPost = codicePannello.slice(
+    0,
+    codicePannello.indexOf('"/api/staff/menu/product-options"')
+  );
   assert(
-    chiamate.length === 1 && !/method:\s*"POST"[\s\S]{0,80}product-options/.test(codicePannello),
-    "pp4) ⚠️ il pannello chiama `product-options` UNA volta sola, ed è la GET del lettore: il salvataggio delle opzioni non è ancora attaccato"
+    chiamate.length === 2 &&
+      /fetch\(`\/api\/staff\/menu\/product-options\/\$\{articolo\.id\}`\)/.test(codicePannello) &&
+      /if \(opzioniToccate\) \{/.test(primaDellaPost),
+    `pp4) ⚠️ il pannello chiama \`product-options\` DUE volte: la GET del lettore e la POST del 4b-3, e la scrittura sta dentro \`if (opzioniToccate)\` — è (KK) (chiamate trovate: ${chiamate.length})`
   );
 
   const conPost = 'await fetch("/api/staff/menu/product-options", { method: "POST" });';
   assert(
     (conPost.match(/fetch\([^)]*product-options[^)]*\)/g) ?? []).length === 1,
-    "pp5) ⚠️ CONTROPROVA: la sonda pp4 conta anche una chiamata di scrittura — quando dice «una sola» sta contando davvero"
+    "pp5) ⚠️ CONTROPROVA: la sonda pp4 conta anche una chiamata di SCRITTURA — quando dice quante ne trova sta contando davvero, non guardando solo la lettura"
   );
 }
 
