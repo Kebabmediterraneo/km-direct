@@ -877,260 +877,109 @@ ricontrollare comunque**: `analytics_events`, `coupons`, `staff_settings`,
 
 ## 12) To-do / prossimi passi (in ordine)
 
-### FATTA — §46, il confronto fra prezzo mostrato e prezzo addebitato
+### ✅ I lavori chiusi — una riga ciascuno, il racconto sta nel punto citato
 
-**Chiusa il 02/08/2026**, verificata dal vivo. È la **seconda** condizione di
-apertura che si chiude, dopo Persistenza (§36-40) il 30/07. Il racconto sta ai
-punti **11b** (il modulo), **11c** (la fotografia), **11d** (il riordino della
-route), **11e** (l'aggancio al server) e **11f** (il lato sito).
+*⚠️ Fino al 28/08/2026 questa sezione portava per intero il testo che aveva
+quando erano lavori DA FARE, comprese due voci marcate «chiuso, testo storico».
+Sfoltita: resta ciò che è ancora vero.*
 
-Cinque tappe, tutte chiuse: il modulo che decide · la rete di sicurezza · il
-riordino della route da 691 a 332 righe · l'aggancio al server · il lato sito.
-⚠️ **Resta aperta la tappa 3b**, che non era parte della condizione: tempo di
-preparazione, griglia dei quarti d'ora, e unificazione delle due costruzioni
-delle finestre orarie. *Vive nel percorso di pagamento, e vale la regola di
-sempre: non si riapre quel file per una cosa sola.*
+- ✅ **Persistenza del carrello e del checkout** (§36-40, §41-45) — chiusa il
+  **30/07/2026**, punti **10** e **10b**. ⚠️ *Due fatti sul codice che vivono
+  solo qui:* `classifyScheduledSelection` copriva la **sola Delivery** e la
+  validità del Ritiro era calcolata **in linea** dentro `app/page.js`, estratta
+  col commit `36218f7`; e la guardia contro il salvataggio prematuro del
+  checkout **si fa con uno stato, non con un `useRef`** — il meccanismo del
+  carrello **non si trasferisce** (lezione `al`).
+- ✅ **§46, il confronto fra prezzo mostrato e prezzo addebitato** — chiusa il
+  **02/08/2026**, punti **11b**–**11f**. ⚠️ **Resta aperta la tappa 3b**, che
+  non era parte della condizione: tempo di preparazione, **griglia dei quarti
+  d'ora** e unificazione delle **due costruzioni delle finestre orarie**. *Vive
+  nel percorso di pagamento, e vale la regola di sempre.* ⚠️ *Da fare senza
+  ancorarla a una scadenza futura: quella frase è già invecchiata due volte.*
+- ✅ **Spec allineata al codice** (v43, 31/07/2026, `d254612`) — manutenzione
+  della verità, **nessuna decisione nuova**: sette frasi della spec
+  descrivevano uno stato superato. ⚠️ *Due delle sette dichiaravano aperta una
+  condizione chiusa il giorno prima — lezione `aj`.*
+- ✅ **Fase 3, creazione di articoli semplici** — chiusa il **06/08/2026**,
+  punto **21**. ⚠️ *Due fatti da non perdere:* la tendina delle categorie **si
+  legge dal database e non si compila a mano** — `products.category` è un tipo
+  chiuso, e ricopiarne i valori creerebbe una seconda copia che diverge —
+  escludendo `menu_combo`; le regole di **`slug` e collisioni** sono **decise**,
+  non osservate, in spec §63-64 v54.
+- ✅ **"Togli dal menu"** — fatto il **07/08/2026**, colonna **`is_in_menu`**,
+  punto **23**.
+- ✅ **GIVEMEFIVE nel checkout** — chiuso l'**11/08/2026**, punto **29**,
+  decisioni in spec §14 v68.
+- ✅ **Prefisso internazionale e indirizzo nella scheda ordine** — fatti il
+  **12/08/2026**, punto **31**.
+- ✅ **Fase 4, creazione di Roll e Bowl con le loro opzioni** — fatta il
+  **12/08/2026**, punto **32**. ⚠️ **NON RESTA PIÙ NESSUNA FASE PRE-GO-LIVE.**
 
-⚠️ **Ciò che questo lavoro NON ha chiuso** è elencato in §11f.g e vive in spec
-§46, non qui.
+⚠️ **REGOLA DI ANDREA (01/08/2026), VINCOLANTE: l'aggiornamento dei documenti è
+parte della tappa, non un lavoro a parte.** Una tappa non è chiusa finché spec e
+handoff non sono aggiornati, e l'ordine è **prima la spec, poi l'handoff**,
+perché la spec tiene le decisioni e l'handoff le cita. *Il costo di rimandare
+cresce più che proporzionalmente: cinque commit di ritardo non costano cinque
+volte uno, perché lo stato va ricostruito a memoria invece che raccontato mentre
+è fresco.*
 
-### FATTA — Persistenza dei dati del checkout (§36-40, §41-45)
-
-**Chiusa il 30/07/2026**, tre commit, sei prove dal vivo superate. Il racconto
-completo è al **punto 10b**; qui restano solo le correzioni a ciò che questo
-elenco diceva quando era un to-do, perché sono errori del tipo che si ripete:
-
-⚠️ **"Le funzioni per la riverifica esistono già e non vanno riscritte" era
-vero a metà.** Vero per la zona (`isPointInPolygon`). **Falso per l'orario di
-Ritiro**: `classifyScheduledSelection` copriva la sola Delivery, e per il
-Ritiro la validità era calcolata **in linea** dentro `app/page.js`. È stato il
-passo 1 del lavoro (`36218f7`) a estrarla, ed era lavoro che nessuno dei due
-documenti aveva previsto.
-
-⚠️ **"La stessa guardia idratato del carrello" era sbagliato**, ed è diventato
-la lezione `al`: quel meccanismo **non si trasferisce**. Serve una guardia
-indipendente, e va fatta con uno **stato**, non con un `useRef`.
-
-### FATTA — Spec allineata al codice (v43, 31/07/2026, `d254612`)
-
-Lavoro di sola manutenzione della verità: **nessuna decisione nuova**. Sette
-frasi del corpo della spec descrivevano uno stato superato e sono state
-riscritte — il carrello che "non sopravvive" e il calcolo del prezzo "da
-estrarre" (§36-40, entrambi fatti il 30/07), l'editor menu dato ancora "in
-sviluppo" mentre venti righe più sotto la stessa sezione lo dichiarava alle
-Fasi 1-2B (§63-64), il toggle disponibile/esaurito dato per non loggato mentre
-lo è dalla v28 (§66), le salse senza flag dietetico contate 3 invece di 2
-(§67), il conteggio delle righe cliente uscito dalla spec per finire qui (§65)
-e la costante dell'extra carne descritta come ancora nel codice (§22). In più
-§46b cita ora **per intero** la validazione dell'orario, invece della sola
-prima riga.
-
-⚠️ **Due delle sette frasi dichiaravano aperta una condizione di apertura
-chiusa il giorno prima**: chi avesse contato le condizioni leggendo la sola
-spec ne avrebbe trovate otto invece di sei. È la lezione `aj` vista una seconda
-volta, ed è il motivo per cui questo lavoro è stato fatto prima del resto.
-
-*I blocchi "Novità" delle versioni passate non sono stati toccati: sono il
-diario delle decisioni di allora, non affermazioni sull'oggi.*
-
-### PROSSIMO — a scelta fra i due qui sotto
-
-Restano **cinque** condizioni di apertura (elenco più sotto): quattro dell'elenco
-storico — Stripe live, dominio, analytics §65, pulizia dei residui — più la
-procedura mensile di §69. ⚠️ **Una sola richiede di scrivere codice**: le
-analytics di §65, cioè una dozzina di eventi da tracciare più la pagina dei
-carrelli abbandonati. Le altre sono da procurare, configurare o eseguire, e
-possono camminare in parallelo.
-
-⚠️ **Questo blocco è stato trovato falso il 04/08/2026 e riscritto.** Diceva
-"cinque condizioni" quando erano sei, e dava per **ancora da scrivere** il
-collegamento all'informativa privacy nel checkout — che era stato committato il
-03/08 con `c69642e`, cioè il lavoro appena concluso quando quella frase è stata
-riletta. *È la lezione `aj` per la terza volta: una nota di stato lasciata
-indietro non invecchia in silenzio, mente con l'autorità del documento. Chi
-avesse letto solo questo blocco sarebbe ripartito a costruire una cosa già
-costruita.*
-
-*§46 era però l'unica che richiedesse di **costruire una funzione nuova**, ed è
-questa la differenza che contava. ⚠️ Fino alla v50 questa riga diceva "§46 è
-l'unica che richieda di scrivere codice": era imprecisa, ed è la seconda volta
-che questo punto viene scritto male — fino alla v42 diceva "le prime due sono
-lavoro di codice", in contraddizione con la frase successiva.*
-
-**I lavori pre-go-live, nell'ordine deciso da Andrea il 06/08/2026** (⚠️ *la
-prima voce è stata aggiunta il 10/08/2026: mancava da questo elenco pur essendo
-il lavoro in corso — chi avesse letto solo qui sarebbe ripartito dalla Fase 4*):
-
-- ✅ **I DUE LAVORI CHIESTI DA ANDREA l'11/08 SONO FATTI** il 12/08 e provati
-  dal vivo: il **prefisso internazionale** e l'**indirizzo nella scheda
-  ordine**. Racconto al punto **31**, decisioni in spec §41-45, §52-56 e
-  §57-61.
-- ✅ **GIVEMEFIVE nel checkout — CHIUSO l'11/08/2026**, cinque commit, provato
-  dal vivo da Andrea. Racconto al punto **29**. *Il testo qui sotto è quello di
-  ieri e si legge come storia, non come lavoro da fare.*
-- ⬜ *(chiuso, testo storico)* **GIVEMEFIVE nel checkout.** Decisioni per
-  intero in **spec §14 v68**, racconto al punto **28**. ⚠️ **La catena è
-  obbligata e non è cambiata con il ridisegno**: prima il campo del checkout
-  funziona, **poi** il carrello smette di nominare lo sconto. Il pulsante del
-  carrello è oggi l'**unico interruttore** che accende GIVEMEFIVE: toglierlo
-  prima che il sostituto esista lo spegnerebbe **in silenzio**, senza che
-  nessun errore compaia. **Primo mattone: il ricalcolo della soglia lato
-  server**, perché è lì che sta tutta la difesa.
-
-
-- ✅ **"Togli dal menu" — FATTO il 07/08/2026**, sei pezzi, provato dal vivo da
-  Andrea in ogni sua parte. Colonna **`is_in_menu`**. Esito e prove in **spec
-  §63-64 v63**; racconto della giornata al punto **23** di questo documento.
-- ✅ **Fase 4 — FATTA il 12/08/2026**, in sei commit e provata dal vivo.
-  Racconto al punto **32**, decisioni in spec §63-64. ⚠️ **NON RESTA PIÙ NESSUNA
-  FASE PRE-GO-LIVE.** *Resta però la **modifica** delle opzioni di un articolo
-  esistente, chiesta da Andrea il 12/08: è il prossimo lavoro.*
-- ⬜ *(chiuso, testo storico)* **Fase 4 — creazione/editing di Roll e Bowl con le loro opzioni**,
-  **scegliendo fra le proteine già esistenti**. ⚠️ **Spostata a prima del
-  go-live il 06/08/2026** (Andrea): inserire e sospendere Roll è per lui
-  attività **frequente**. *Fino alla v58 stava fra i lavori del dopo go-live, su
-  una frequenza d'uso presunta e mai chiesta.* **Primo passo obbligato**:
-  accertare sul codice se il residuo label→id di §25 tocchi davvero una Fase 4
-  ristretta alla scelta da elenco chiuso — verosimile che non la tocchi, **non
-  accertato**.
-- ⬜ **Tappa 3b di §46** — riverifica del tempo di preparazione e della
-  **griglia dei quarti d'ora** (§46b, lavoro registrato), e unificazione delle
-  **due costruzioni delle finestre orarie**. *Non era parte della condizione di
-  apertura, ma vive nel percorso di pagamento: vale la regola di sempre, non si
-  riapre quel file per una cosa sola.* ⚠️ **Da fare senza ancorarlo a una
-  scadenza futura**: quella frase è già invecchiata due volte (spec §46b, v51).
-
-⚠️ **L'aggiornamento dei documenti è parte della tappa, non un lavoro a parte**
-(regola di Andrea, 01/08/2026): una tappa non è chiusa finché spec e handoff non
-sono aggiornati, e l'ordine è **prima la spec, poi l'handoff**, perché la spec
-tiene le decisioni e l'handoff le cita. *Il costo di rimandare cresce più che
-proporzionalmente: cinque commit di ritardo non costano cinque volte uno, perché
-lo stato va ricostruito a memoria invece che raccontato mentre è fresco — è da
-lì che sono usciti gli errori sui numeri del 01/08.*
-
-*Non si rimaneggia il percorso del pagamento insieme ad altro: se si apre, si
-apre per **tutti** i lavori registrati al punto 16.* ⚠️ **Fino al 05/08/2026
-questa riga diceva "tutti e quattro"**, mentre il punto 16 ne elenca **cinque**
-(la quinta condizionata) **più la ri-verifica della chiave `service_role`**, che
-in quell'elenco mancava del tutto. Il conto tornava solo escludendo la voce
-condizionale, cosa che nessuna delle due frasi diceva. *Un numero scritto in un
-posto e un elenco scritto in un altro divergono sempre: qui il numero è stato
-tolto e resta il rimando all'elenco, che è l'unica fonte.*
-
-⚠️ **Perché prima della Fase 3**, motivo registrato: §46 è l'unica delle sei
-condizioni che dipenda da noi e non da terzi, ed è il punto in cui si incassa
-il denaro — quello che meno di tutti va fatto sotto la pressione dell'apertura.
-In più la Fase 3 crea articoli, e un articolo ha un prezzo: costruire il modo
-di aggiungere prezzi nuovi prima del controllo che il prezzo mostrato sia
-quello addebitato è l'ordine sbagliato.
-
-### FATTA — Fase 3: creazione di articoli semplici
-
-✅ **Chiusa il 06/08/2026**, costruita in tre commit, **provata dal vivo da
-Andrea con sette prove a schermo** e ripulita lo stesso giorno. Il racconto sta
-al **punto 21**; qui restano le sole correzioni a ciò che questo elenco diceva
-quando era un to-do.
-
-Prodotti (fritti, sides, dolci, drink) **e salse**, che ora sono la stessa cosa.
-Dichiarazione allergeni obbligatoria alla creazione: o gli allergeni, o la
-casella "nessuno dei 14".
-
-⚠️ **La tendina delle categorie NON si compila a mano.** `products.category` è
-un **tipo chiuso nel database**: ricopiarne i valori nel form creerebbe una
-seconda copia di un elenco che esiste già, e due copie divergono. L'elenco va
-**letto**, escludendo `menu_combo` (§63-64 v54). *Fino al 04/08/2026 questo
-blocco diceva l'opposto — "va compilata a mano con le 8 categorie reali" — ed è
-stato corretto perché era un'istruzione rovesciata, non una nota invecchiata.
-Anche il numero 8 va verificato leggendo, non ripreso da qui.* *La regola v30
-che escludeva anche `salse` è decaduta con l'unificazione: ora è la categoria
-giusta.*
-
-✅ **Dal 05/08/2026 anche la spec è allineata (v56).** Fino alla v55 §63-64
-conteneva **entrambe** le istruzioni, opposte, a centottanta righe di distanza:
-quella vecchia in alto e quella corretta della v54 in basso. Chi avesse letto la
-sezione dall'alto avrebbe incontrato per prima la sbagliata. *La correzione del
-04/08 era stata portata qui e non nella fonte di verità: è la lezione `aj`
-arrivata dentro la spec, ed è stata trovata da Code confrontando le due
-occorrenze, non rileggendo il ragionamento.*
-
-✅ **Le decisioni su `slug` e collisioni sono PRESE il 04/08/2026** e stanno in
-**spec §63-64 v54**: lo slug si genera dal nome con sei regole dichiarate, in
-collisione il pannello si ferma invece di aggiungere un numero, e la regola vive
-in un modulo unico sotto `lib/`. ⚠️ *La convenzione "osservata sui 62 articoli"
-che stava scritta qui era per metà non verificata: le sette salse esercitano
-minuscolo, spazi e apostrofi, ma **accenti, "&" e numeri non erano esercitati da
-nulla**, e nessun codice del repository ha mai generato uno slug (ricognizione
-del 04/08). Con la v54 tutte e sei sono decise, non osservate.*
+⚠️ **NON SI RIMANEGGIA IL PERCORSO DEL PAGAMENTO INSIEME AD ALTRO**: se si apre,
+si apre per **tutti** i lavori registrati al **punto 16**, che è l'unica fonte di
+quell'elenco. *Un numero scritto in un posto e un elenco scritto in un altro
+divergono sempre: qui il numero è stato tolto e resta il rimando.*
 
 ### Da valutare — campo codice sconto generico
 
-*Annotato dall'utente il 30/07/2026.* Oggi il meccanismo di sconto è cablato
-sul solo **GIVEMEFIVE**, con la regola di §14 (un utilizzo per cliente). Parte
-dell'impianto esiste già: la tabella `coupons` (vuota) e `promo_redemptions`
-che registra gli utilizzi.
+*Annotato da Andrea il 30/07/2026.* Oggi il meccanismo è cablato sul solo
+**GIVEMEFIVE**, con la regola di §14 (un utilizzo per cliente). Parte
+dell'impianto esiste già: la tabella `coupons` (vuota) e `promo_redemptions`.
 
 ⚠️ **Va pensato in concomitanza con GIVEMEFIVE, non dopo**: i due meccanismi
-coesisterebbero, quindi va deciso anche se sono **cumulabili** o se si
-escludono, e con quale precedenza. Da decidere inoltre: chi crea i codici e da
-dove, se hanno scadenza, importo fisso o percentuale, soglia minima, se valgono
-una volta per cliente o una volta in assoluto.
+coesisterebbero, quindi va deciso se sono **cumulabili** o se si escludono, e con
+quale precedenza. Da decidere inoltre: chi crea i codici e da dove, se hanno
+scadenza, importo fisso o percentuale, soglia minima, se valgono una volta per
+cliente o una volta in assoluto.
 
 *Si incrocia con la regola di §46 v37 sul prezzo di riga negativo*: con codici
-liberi accanto a uno sconto fisso, il caso "lo sconto supera il prezzo" smette
-di essere teorico. Va verificato dove agisce lo sconto — oggi sul **totale del
-carrello**, non sulla riga.
+liberi accanto a uno sconto fisso, il caso "lo sconto supera il prezzo" smette di
+essere teorico. Oggi lo sconto agisce sul **totale del carrello**, non sulla riga.
 
 ✅ **Aggiornamento del 10/08/2026 — la FACCIATA è decisa, il SISTEMA no.** Il
-campo *"Hai un codice sconto?"* nel checkout si costruisce adesso, ma dietro
-c'è la sola regola cablata di GIVEMEFIVE (spec §14 v68). Il giorno dei codici
-veri cambia **chi risponde**, non il campo, il gesto, il pedaggio né le frasi:
-è per questo che si può partire senza aver deciso il resto. ⚠️ **Le domande
-elencate qui sopra restano tutte aperte**, cumulabilità compresa. *E i tre
-esempi fatti da Andrea non sono la stessa cosa: 5 € fissi è ciò che il sistema
-fa già, una percentuale apre il caso "lo sconto supera il prezzo" qui sopra, e
-**un omaggio non è uno sconto** ma una riga in più nell'ordine — tocca
-carrello, documento per lo staff e Stripe, ed è un lavoro a sé.*
+campo *"Hai un codice sconto?"* nel checkout è costruito, ma dietro c'è la sola
+regola cablata di GIVEMEFIVE (spec §14 v68). Il giorno dei codici veri cambia
+**chi risponde**, non il campo né le frasi. ⚠️ **Le domande qui sopra restano
+tutte aperte.** *E i tre esempi fatti da Andrea non sono la stessa cosa: 5 €
+fissi è ciò che il sistema fa già, una percentuale apre il caso "lo sconto supera
+il prezzo", e **un omaggio non è uno sconto** ma una riga in più nell'ordine —
+tocca carrello, documento per lo staff e Stripe, ed è un lavoro a sé.*
 
 ### Residui minori aperti
 
 - **La nota Planted** (§23) confronta una stringa scritta nel codice
-  (`app/page.js`, `protein.id === "planted"`). Ultimo caso rimasto del tipo
-  curato in v37 e v38 sull'extra carne; meno rischioso perché riguarda un testo
-  informativo.
-- ✅ **FATTO il 01/08/2026** — *Rendere verificabile il calcolo dentro la route
-  di pagamento* estraendolo in `lib/` (§46 v38). Eseguito in cinque commit
-  (§11d): da 691 a 332 righe, comportamento verificato identico. Le regole di
-  forma sono in **spec §46 v46**. ⚠️ *L'estrazione si è fermata alla logica:
-  la sequenza delle scritture resta nella route e proseguire richiede prima una
-  decisione in spec (§11d.f).*
+  (`app/page.js`, `protein.id === "planted"`). Ultimo caso del tipo curato in
+  v37 e v38 sull'extra carne; meno rischioso perché è un testo informativo.
+- ✅ **FATTO il 01/08/2026** — *rendere verificabile il calcolo dentro la route
+  di pagamento* estraendolo in `lib/` (§46 v38): da 691 a 332 righe,
+  comportamento identico, regole di forma in spec §46 v46. ⚠️ *L'estrazione si è
+  fermata alla logica: la **sequenza delle scritture** resta nella route, e
+  proseguire richiede prima una decisione in spec (§11d.f).*
 - **Il server non riverifica il tempo di preparazione né i quarti d'ora**
   (§46b v40), su **entrambe** le modalità: controlla che l'orario non sia
-  passato e che il locale sia aperto, ma non i 15 minuti del Ritiro (§12b) né
-  i 60 della Delivery (§12), e **non impone la griglia dei quarti d'ora**,
-  quindi `12:07` passa. Una richiesta costruita a mano può prenotare un ritiro
-  "fra un minuto". **Non è una condizione di apertura** (decisione di Andrea
-  del 30/07/2026): il cliente onesto non può raggiungerlo. *Il motivo per cui
-  va comunque chiuso non è il furbo di turno — è che il server è la rete sotto
-  agli errori del sito: se un domani il client sbagliasse a gestire uno slot
-  scaduto, oggi non ci sarebbe nulla a fermarlo.*
-
-  ⚠️ **Correzione del 30/07/2026 (lezione `ak`), ora in spec**: questo punto
-  diceva che il server accetta un orario **"in qualunque forma `HH:MM`"**. È
-  troppo largo e **falso**. La validazione sta su **due** righe, non una: alla
-  regex `/^\\d{2}:\\d{2}$/` segue un controllo che rifiuta ore oltre 23 e minuti
-  oltre 59, quindi `24:00` e `12:60` **non passano**. Verificato eseguendo le
-  due funzioni su tredici ingressi: zero divergenze rispetto al modulo di
-  persistenza. *Il buco registrato resta vero — `12:07` passa davvero — ma
-  nasceva da una citazione parziale della sola prima riga.* **La v43 ha portato
-  la citazione per intero dentro §46b**: la verità non vive più soltanto qui.
+  passato e che il locale sia aperto, ma non i 15 minuti del Ritiro né i 60
+  della Delivery, e **non impone la griglia**, quindi **`12:07` passa**. Una
+  richiesta costruita a mano può prenotare un ritiro "fra un minuto".
+  **Non è una condizione di apertura** (decisione di Andrea del 30/07/2026): il
+  cliente onesto non può raggiungerlo. *Il motivo per cui va comunque chiuso non
+  è il furbo di turno — è che il server è la rete sotto agli errori del sito.*
+  ⚠️ *La validazione dell'orario è citata **per intero** in spec §46b dalla v43:
+  sono **due** righe, non una, e `24:00` e `12:60` non passano. La verità non
+  vive più soltanto qui.*
 - **Le finestre orarie si costruiscono in due punti** (§46b v40): uno alimenta
-  il guard, l'altro genera gli slot offerti al cliente. Confrontati riga per
-  riga il 30/07/2026, oggi danno lo stesso risultato e l'unica differenza non
-  è osservabile. **Non è la doppia implementazione vietata da §46b** — il
-  calcolo di finestre ed eccezioni è davvero condiviso — ma sono due copie, e
-  due copie divergono. Da unificare quando si toccherà una delle due.
-- **Il sito non filtra per store** (§46 v38): da fare quando i locali saranno
-  due.
+  il guard, l'altro genera gli slot offerti al cliente. Confrontati riga per riga
+  il 30/07, oggi danno lo stesso risultato. **Non è la doppia implementazione
+  vietata da §46b**, ma sono due copie, e due copie divergono. Da unificare
+  quando si toccherà una delle due.
+- **Il sito non filtra per store** (§46 v38): da fare quando i locali saranno due.
 
 ### Dopo il go-live (§63-64)
 
@@ -1145,75 +994,57 @@ carrello, documento per lo staff e Stripe, ed è un lavoro a sé.*
 
 ### Condizioni di apertura — **quattro chiuse, cinque aperte**
 
-- ✅ **Persistenza** (§36-40): **CHIUSA il 30/07/2026.** Carrello (punto 10) e
-  dati del checkout (punto 10b), entrambi verificati dal vivo. *È la prima
-  condizione di apertura che si chiude.*
-- ✅ **Confronto prezzo mostrato vs prezzo addebitato** al checkout (§46):
-  **CHIUSA il 02/08/2026**, verificata dal vivo (§11f). *È la **seconda** che si
-  chiude.* Cinque tappe: il modulo, la rete di sicurezza, il riordino della
-  route, l'aggancio al server, il lato sito.
+⚠️ *Questa intestazione va riletta ogni volta che l'elenco cambia: è già rimasta
+indietro due volte rispetto alle voci.*
+
+**Chiuse:**
+
+- ✅ **Persistenza** (§36-40): **CHIUSA il 30/07/2026**, carrello e dati del
+  checkout, entrambi verificati dal vivo. *La prima che si chiude.*
+- ✅ **Confronto prezzo mostrato vs addebitato** (§46): **CHIUSA il 02/08/2026**,
+  verificata dal vivo (§11f). *La seconda.*
 - ✅ **Informativa privacy** (§41-45): **CHIUSA il 03/08/2026**, commit
-  `c69642e` (punto 14). Documento in versione **1.2**, pubblicato come pagina
-  statica su `/privacy` e collegato da **tre punti**: le parole "informativa
-  privacy" nella casella del checkout, il fondo della home, il fondo della
-  pagina di conferma. *È la **terza** che si chiude.*
+  `c69642e` (punto 14). Versione **1.2**, pagina statica su `/privacy`,
+  collegata da **tre punti**: la casella del checkout, il fondo della home, il
+  fondo della pagina di conferma. *La terza.*
   ⚠️ **Un pezzo è verificato solo per lettura**: l'apertura in scheda nuova è
-  accertata negli attributi del DOM servito, non osservata dal vivo — l'ambiente
-  di prova non onora `target="_blank"`. **Da riprovare da telefono** (punto 17).
-  ⚠️ Resta inoltre da salvare in database la stringa `informativa-v1.2`, che si
-  fa quando si riapre il file del checkout (punto 16): **non è una condizione di
-  apertura**, è un lavoro registrato.
+  accertata negli attributi del DOM, non osservata dal vivo — **da riprovare da
+  telefono** (punto 17). ⚠️ *E resta da salvare in database la stringa
+  `informativa-v1.2`, che si fa quando si riapre il file del checkout (punto
+  16): non è una condizione di apertura, è un lavoro registrato.*
+- ✅ **Piano Supabase Pro**: **CHIUSA il 04/08/2026** (punto 18). Piano attivo,
+  Spend Cap acceso, backup ripristinabili dal 28/07. *La quarta.*
+
+**Aperte, cinque:**
+
 - **Stripe live** (oggi sandbox).
-- **Dominio** `ordina.kebabmediterraneo.it` — ⚠️ **APERTA, MA FATTA A METÀ
-  (27/08/2026).** ✅ *Il DNS è **puntato e funzionante dal 26/08**: il sito
-  risponde sul dominio vero, e ogni pubblicazione esce ora su **due indirizzi**
-  (l'altro è `km-direct.vercel.app`).* ⚠️ **Resta da restringere la chiave API
-  di Google**, oggi senza restrizioni, e la voce è **scaduta**: la spec dice
-  "contestualmente all'attivazione del dominio vero", e il dominio è attivo.
+- **Dominio** `ordina.kebabmediterraneo.it` — ⚠️ **APERTA, MA FATTA A METÀ.**
+  ✅ *Il DNS è puntato e funzionante dal **26/08**: il sito risponde sul dominio
+  vero, e ogni pubblicazione esce su **due indirizzi**.* ⚠️ **Resta da
+  restringere la chiave API di Google**, oggi senza restrizioni, e la voce è
+  **scaduta**: la spec dice "contestualmente all'attivazione del dominio vero".
   ⚠️⚠️ *Con due indirizzi vivi, **restringerla al solo dominio nuovo spegne il
   completamento dell'indirizzo sull'altro** — e non con un errore, con un campo
   che smette di suggerire. Vedi spec §66.*
-  ⚠️ **Questa condizione NON si chiude con il DNS**: si chiude quando il DNS
-  funziona **e** la chiave è ristretta. *Sono la stessa voce apposta: separarle
-  vorrebbe dire dichiarare chiusa una cosa fatta a metà.*
+  ⚠️ **Non si chiude col DNS**: si chiude quando il DNS funziona **e** la chiave
+  è ristretta. *Sono la stessa voce apposta: separarle vorrebbe dire dichiarare
+  chiusa una cosa fatta a metà.*
 - **Analytics** (§65). ⚠️ *È **lavoro di codice**, non configurazione: una
-  dozzina di eventi da tracciare più la pagina dei carrelli abbandonati nel
-  pannello staff.* Ora con i vincoli dichiarati nell'informativa e il limite dei
-  **30 giorni** (§65, §69).
+  dozzina di eventi da tracciare più la pagina dei carrelli abbandonati.* Coi
+  vincoli dell'informativa e il limite dei **30 giorni** (§65, §69).
 - **Pulizia dei residui di test** (punto 11) — da **rileggere** dal database,
   mai ricopiare da qui.
-
-⚠️ **Restano cinque voci aperte in tutto**: le **quattro** dell'elenco storico —
-Stripe live, dominio, analytics, pulizia dei residui — più la **procedura
-mensile** di §69. La sesta, il piano Supabase Pro, è chiusa il 04/08/2026.
-*Delle cinque, una sola richiede di scrivere codice: le analytics di §65. §46 era
-però l'unica che richiedesse di **costruire una funzione nuova**.*
-
-⚠️ *Questa intestazione e questo conteggio vanno riletti ogni volta che
-l'elenco cambia: è la seconda volta che restano indietro rispetto alle voci.*
-
-**Le due voci nate dal giro privacy** (punto 14), fuori dall'elenco storico ma
-prima dell'apertura — la prima ora chiusa:
-
-- ✅ **Piano Supabase Pro**: **CHIUSA il 04/08/2026** (punto 18). Il piano è
-  attivo, lo Spend Cap è acceso e i backup sono ripristinabili dal 28/07. Il
-  punto 11.7 dell'informativa, che era falso, è ora vero senza toccare il
-  documento. *È la **quarta** condizione che si chiude.*
 - **Procedura mensile di pulizia** degli ordini mai pagati oltre i 30 giorni
   (§69). ⚠️ **Lo strumento esiste**: `sql/pulizia_mensile_ordini_mai_pagati.sql`,
-  committato il 04/08 con `f54c29d` e mai eseguito. ✅ **La cadenza è fissata il
-  05/08/2026: il primo di ogni mese, prima di aprire il locale** (spec §69 v56).
-  **Resta la sola prima esecuzione**, di Andrea. Finché non c'è, il punto 11.2
-  dell'informativa è una promessa senza precedente.
-  *Al 05/08 quello strumento non avrebbe nulla da cancellare — zero ordini e
-  zero clienti oltre i trenta giorni — il che rende questo il momento più sicuro
-  possibile per provarlo, con il limite dichiarato che dimostrerebbe che parte,
-  non che cancella le cose giuste. Andrea ha deciso il 05/08 di non farlo ora.*
+  committato il 04/08 con `f54c29d` e **mai eseguito**. ✅ *Cadenza fissata: il
+  primo di ogni mese, prima di aprire il locale (spec §69 v56).* **Resta la sola
+  prima esecuzione**, di Andrea. Finché non c'è, il punto 11.2 dell'informativa
+  è una promessa senza precedente.
+
+*Delle cinque, **una sola richiede di scrivere codice**: le analytics di §65.*
 
 *Non è una condizione di apertura*: **WhatsApp**, che la spec colloca in
-**fase 1.1** (§71) e che §52-56 dichiara esplicitamente fuori dalla specifica
-attuale. Compariva in questo elenco fino alla v39, in contraddizione con la
-spec; tolto in v40.
+**fase 1.1** (§71) e che §52-56 dichiara fuori dalla specifica attuale.
 
 ---
 
