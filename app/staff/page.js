@@ -1954,13 +1954,37 @@ function ProductForm({ products, allergensCatalog, articolo, onSaved, onCancel }
   // con cui confrontare. Rispondere «toccato» in quel caso significherebbe dire
   // che è cambiato qualcosa proprio quando non si sa nemmeno cosa ci fosse.
   //
-  // ⚠️⚠️ **IN QUESTO PASSO NESSUNO LA LEGGE, ed è voluto**: il pezzo 1 crea la
-  // nozione, il pezzo 2 la usa. A schermo non cambia niente.
   const opzioniToccate =
     inModifica &&
     fotoOpzioni.current !== null &&
     istantaneaOpzioni({ proteine, titoloScelta, rimozioni, accompagnamenti, extra }) !==
       fotoOpzioni.current;
+
+  // ⚠️⚠️ (PP) SECONDA METÀ — SUGLI ARTICOLI CON SCELTE NON RAPPRESENTABILI IL
+  // SALVA NON PROVA NEMMENO.
+  //
+  // La prima metà di (PP) è l'avviso, già a schermo dal 4b-1: sui due dolci con
+  // i gusti (§31) la scheda dice che l'articolo ha scelte che da qui non si
+  // vedono. Questa è la seconda: **se quelle opzioni vengono toccate, il Salva
+  // si spegne**. *Meglio spento che una richiesta destinata a fallire: il cuore
+  // che salva sostituisce, e manderebbe quattro gruppi che non contengono le
+  // scelte vere — cioè le cancellerebbe rispondendo 200.*
+  //
+  // ⚠️⚠️ **È `opzioniToccate` A FARE LA DIFFERENZA, E NON È UN DETTAGLIO.** Su
+  // un dolce con i gusti **nome, prezzo e allergeni DEVONO restare
+  // modificabili**: lo dice la spec a chiare lettere. Spegnere il Salva per il
+  // solo fatto che l'articolo ha scelte non rappresentabili la contraddirebbe —
+  // un dolce col prezzo sbagliato diventerebbe incorreggibile. *Il pulsante si
+  // spegne **appena si toccano le opzioni**, non prima.*
+  //
+  // ⚠️ Sotto c'è il conteggio di `scelteNonRappresentabili`, che vale zero
+  // finché il catalogo non è arrivato (vedi il blocco PP più sopra): con il
+  // catalogo in viaggio questa condizione è falsa, cioè non spegne niente.
+  // *Non spegnere per ignoranza è la stessa regola che (MM) applica al
+  // contrario, e le due non si contraddicono: (MM) spegne perché non sa cosa
+  // c'è, questa non spegne perché non sa ancora se c'è un problema — e finché
+  // (MM) tiene spento il Salva, nessuno può salvare comunque.*
+  const opzioniNonSalvabili = opzioniToccate && scelteNonRappresentabili.length > 0;
 
   // ⚠️ IL PULSANTE SI SPEGNE PRIMA, invece di far partire una richiesta che il
   // server rifiuterebbe. Le due condizioni sono quelle che `menu-allergens.js`
@@ -1975,19 +1999,42 @@ function ProductForm({ products, allergensCatalog, articolo, onSaved, onCancel }
 
   // ⚠️ IN MODIFICA IL PULSANTE GUARDA SOLO CIÒ CHE PARTE DAVVERO.
   //
-  // Il blocco spento — le opzioni — non si salva da questa scheda (il
-  // salvataggio delle opzioni è il 4b, e non è ancora attaccato) e **non deve
-  // poterla bloccare**: una Bowl esistente, il cui blocco opzioni qui è spento e
-  // vuoto, sarebbe altrimenti impossibile da salvare per la mancanza di
-  // accompagnamenti che nessuno le sta togliendo.
-  // ⚠️⚠️ **QUESTO COMMENTO SCADE NEL PASSO IN CUI LE OPZIONI COMINCIANO A
-  // PARTIRE**: da quel momento i controlli della creazione — sovrapprezzo della
-  // proteina, extra incompleti, rimozioni vuote, accompagnamenti — vanno rimessi
-  // qui dentro, e questa spiegazione va riscritta invece che lasciata a
-  // giustificare in modo convincente un'assenza che non ha più ragione (spec
-  // §63-64 v77, ed è la forma del difetto del 12/08, lezione `de`).
-  // *Le condizioni della creazione restano identiche, parola per parola: sono
-  // l'altro ramo di questa scelta, non una versione modificata.*
+  // ✅ **RISCRITTO NEL 4b-2 (28/08/2026), e il vecchio testo è scaduto qui.**
+  // Fino a ieri questo commento spiegava perché i controlli sulle opzioni NON
+  // erano in questa condizione: il blocco era spento, quindi non doveva poter
+  // bloccare il salvataggio — una Bowl esistente col blocco spento e vuoto
+  // sarebbe stata impossibile da salvare per la mancanza di accompagnamenti che
+  // nessuno le stava togliendo. *Era vero, e ha smesso di esserlo nel momento
+  // esatto in cui il `fieldset` si è acceso su `opzioniLette`.*
+  //
+  // ⚠️⚠️ **ERA LA FORMA DEL DIFETTO DEL 12/08 (lezione `de`)**: non un fatto
+  // ignoto, ma un paragrafo che diceva il vero in un altro momento e restava lì
+  // a giustificare in modo convincente un'assenza che non aveva più ragione.
+  // Per questo il vecchio testo non è stato cancellato ma **datato**: chi legge
+  // deve poter vedere che è stato sostituito, non trovare il posto vuoto.
+  //
+  // ⚠️ **I CONTROLLI SULLE OPZIONI SONO CINQUE, NON QUATTRO.** Il commento che
+  // stava qui ne nominava quattro — «sovrapprezzo della proteina, extra
+  // incompleti, rimozioni vuote, accompagnamenti» — perché contava gli
+  // accompagnamenti una volta sola. Sono **due condizioni distinte e non
+  // sovrapposte**: `accompagnamentiMancanti` guarda che la lista non sia
+  // **vuota** (e solo sulle Bowl), `accompagnamentiVuoti` che nessuna voce abbia
+  // **l'etichetta vuota** (su qualunque categoria). Su una lista vuota il
+  // secondo è falso e il primo vero. *L'errore stava dentro il commento, ed è
+  // registrato in spec fra i cinque fatti letti il 28/08.*
+  //
+  // ⚠️ **SONO LE STESSE CINQUE VARIABILI DELLA CREAZIONE, non una copia**:
+  // `accompagnamentiMancanti`, `proteineSenzaPrezzo`, `extraIncompleti`,
+  // `rimozioniVuote`, `accompagnamentiVuoti` nascono una volta sola più sopra e
+  // i due rami leggono quelle. *Due espressioni gemelle sarebbero due cose che
+  // un giorno non lo saranno; qui non c'è niente da tenere d'accordo.* Il ramo
+  // della creazione qui sotto **non è stato toccato**.
+  //
+  // ⚠️ **PRIMA IL BLOCCO, POI I CONTROLLI, e in quest'ordine per forza.** Un
+  // controllo che diventasse rosso a campi ancora spenti lascerebbe il pulsante
+  // spento **senza nessun modo di correggerlo**: campi intoccabili e Salva
+  // morto. Per questo il `fieldset` si accende nello stesso passaggio, e non in
+  // uno successivo.
   //
   // ⚠️⚠️ (MM, Andrea 27/08/2026) — FINCHÉ LE OPZIONI NON SONO STATE LETTE, IL
   // SALVA È SPENTO: né gli scalari, né gli allergeni. Se non sai cosa c'è, non
@@ -2010,7 +2057,13 @@ function ProductForm({ products, allergensCatalog, articolo, onSaved, onCancel }
     prezzoValido &&
     ordineValido &&
     !dietaryMancante &&
-    !allergeniIncompleti;
+    !allergeniIncompleti &&
+    !accompagnamentiMancanti &&
+    !proteineSenzaPrezzo &&
+    !extraIncompleti &&
+    !rimozioniVuote &&
+    !accompagnamentiVuoti &&
+    !opzioniNonSalvabili;
   const canSave = inModifica
     ? canSaveModifica
     : categoriaScelta &&
@@ -2031,6 +2084,14 @@ function ProductForm({ products, allergensCatalog, articolo, onSaved, onCancel }
   // ⚠️ In modifica si elencano solo le mancanze che spengono davvero il
   // pulsante: dire «mancano gli allergeni» accanto a un blocco spento manderebbe
   // a cercare l'errore proprio dove non si può fare niente.
+  //
+  // ⚠️⚠️ **AGGIORNATO NEL 4b-2**: le cinque righe sulle opzioni avevano un
+  // `!inModifica &&` davanti, perché in modifica quei controlli non spegnevano
+  // niente. Ora lo fanno, e il vincolo è caduto **per necessità**: lasciarlo
+  // avrebbe dato un pulsante spento e muto su un campo che si può correggere,
+  // cioè il caso peggiore fra tutti — chi guarda cerca il guasto altrove.
+  // *L'allergene resta invece riservato alla creazione: in modifica ha le sue
+  // due righe in fondo, `dietaryMancante` e `allergeniIncompleti`.*
   const mancanti = [
     // ⚠️ (MM) detto in chiaro. Il blocco delle opzioni annuncia già da sé
     // l'attesa e il guasto, ma **solo dove si disegna**: su una bevanda
@@ -2042,17 +2103,20 @@ function ProductForm({ products, allergensCatalog, articolo, onSaved, onCancel }
     !prezzoValido && "un prezzo maggiore di zero",
     !ordineValido && "un ordinamento intero",
     !inModifica && !allergeniValidi && "gli allergeni, oppure la casella «nessuno dei 14»",
-    !inModifica &&
-      accompagnamentiMancanti &&
+    accompagnamentiMancanti &&
       "almeno un accompagnamento: una Bowl senza non è ordinabile dal cliente",
-    !inModifica &&
-      proteineSenzaPrezzo &&
-      "il sovrapprezzo di ogni proteina scelta (scrivi 0 se non costa nulla)",
-    !inModifica && rimozioniVuote && "l'etichetta di ogni rimozione aggiunta",
-    !inModifica && accompagnamentiVuoti && "l'etichetta di ogni accompagnamento",
-    !inModifica && extraIncompleti && "etichetta e prezzo di ogni extra aggiunto",
+    proteineSenzaPrezzo && "il sovrapprezzo di ogni proteina scelta (scrivi 0 se non costa nulla)",
+    rimozioniVuote && "l'etichetta di ogni rimozione aggiunta",
+    accompagnamentiVuoti && "l'etichetta di ogni accompagnamento",
+    extraIncompleti && "etichetta e prezzo di ogni extra aggiunto",
     dietaryMancante && "il tipo dietetico, che è obbligatorio per salvare gli allergeni",
     allergeniIncompleti && "almeno un allergene, oppure la casella «nessuno dei 14»",
+    // ⚠️ (PP) seconda metà, detta in chiaro. Senza questa riga il Salva si
+    // spegnerebbe appena si tocca un'opzione su un dolce coi gusti, e l'avviso
+    // sopra il blocco spiega **perché le scelte non si vedono**, non perché il
+    // pulsante è morto. Sono due cose diverse e vanno dette tutte e due.
+    opzioniNonSalvabili &&
+      "che le opzioni tornino com'erano: questo articolo ha scelte che da questa scheda non si vedono, e salvarle così le cancellerebbe",
   ].filter(Boolean);
 
   // ⚠️ LA CONFERMA SUL PREZZO, copiata da `ProductEditForm` e non reinventata.
@@ -2447,10 +2511,27 @@ function ProductForm({ products, allergensCatalog, articolo, onSaved, onCancel }
           accompagnamenti solo sulle Bowl.
           =================================================================== */}
       {mostraOpzioni && (
-        // ⚠️ Passo 4a: da questa scheda le opzioni dell'articolo SI VEDONO —
-        // lette dalla rotta `product-options/[id]` — ma restano spente: si
-        // salveranno al passo 4b.
-        <fieldset disabled={inModifica} style={bloccoStyle}>
+        // ⚠️⚠️ PASSO 4b-2 — IL BLOCCO SI ACCENDE, e si accende su `opzioniLette`,
+        // NON togliendo il vincolo.
+        //
+        // `disabled` vuole il ROVESCIO di «è pronto», ed è la riga in cui è più
+        // facile sbagliare senso. Cosa fa, nei tre casi:
+        //   * CREAZIONE — `inModifica` è falso, quindi `disabled` è **falso**:
+        //     il blocco è ACCESO, esattamente come prima di questo passo. *È il
+        //     pezzo che Andrea ha provato dal vivo, e non cambia di una virgola.*
+        //   * MODIFICA, opzioni non ancora arrivate o lettura guasta —
+        //     `opzioniLette` è falso, quindi `disabled` è **vero**: il blocco è
+        //     SPENTO. ⚠️ *Un blocco acceso troppo presto mostrerebbe quattro
+        //     liste vuote su un articolo che le opzioni ce l'ha, e il cuore che
+        //     salva non aggiusta: sostituisce. Vuoto significa cancella.*
+        //   * MODIFICA, opzioni arrivate — `disabled` è **falso**: ACCESO.
+        //
+        // ⚠️ È la STESSA variabile che spegne il Salva (`canSaveModifica`): un
+        // guasto di lettura tiene spenti tutti e due, e non esiste lo stato in
+        // cui i campi si toccano ma il pulsante non parte, né il suo rovescio.
+        // ⚠️ Conseguenza visibile, registrata in spec prima di vederla: il
+        // blocco resta grigio per il tempo dell'attesa.
+        <fieldset disabled={inModifica && !opzioniLette} style={bloccoStyle}>
           <hr style={{ border: "none", borderTop: "1px solid var(--card-border)", margin: "4px 0" }} />
           {inModifica &&
             (opzioniError ? (
@@ -2720,11 +2801,43 @@ function ProductForm({ products, allergensCatalog, articolo, onSaved, onCancel }
 
       {error && <p style={{ fontSize: 13, color: "#C0392B", margin: 0 }}>{error}</p>}
 
-      {mancanti.length > 0 && (
-        <p style={{ fontSize: 12, color: "var(--text-on-dark)", margin: 0 }}>
-          Per salvare manca ancora: {mancanti.join(", ")}.
-        </p>
-      )}
+      {/* ⚠️ DUE MANCANZE NON SI INCOLLANO CON UNA VIRGOLA — misurato dal vivo
+          sulla Cheesecake il 28/08/2026, e la frase che ne è uscita era
+          illeggibile: «…(scrivi 0 se non costa nulla), che le opzioni tornino
+          com'erano: questo articolo ha…».
+
+          ⚠️⚠️ Il difetto NON è la virgola: è che **nessun separatore messo
+          dentro la riga può funzionare**. Le voci di questo elenco contengono
+          già virgole (cinque), due punti (due), parentesi e virgolette basse —
+          la voce di (PP) ne ha di tre tipi insieme. Qualunque segno si scelga
+          come separatore, quello stesso segno compare dentro le voci, e il
+          lettore non ha modo di sapere dove finisce una e comincia l'altra.
+          *Un punto e virgola oggi non compare in nessuna voce, ma sarebbe una
+          garanzia che scade alla prima voce nuova.*
+
+          L'unica forma che regge è **uscire dalla riga**: una voce per riga, e
+          il confine lo fa l'elenco, non la punteggiatura. Le voci possono
+          essere fino a quattordici — dieci insieme, per quanto si riesce a
+          leggere dalle esclusioni reciproche — e la forma vale per tutte.
+
+          ⚠️ CON UNA VOCE SOLA RESTA LA FRASE DI PRIMA, parola per parola: è il
+          caso più comune di gran lunga, e un elenco puntato di un elemento solo
+          lo renderebbe goffo per servire il caso raro. */}
+      {mancanti.length > 0 &&
+        (mancanti.length === 1 ? (
+          <p style={{ fontSize: 12, color: "var(--text-on-dark)", margin: 0 }}>
+            Per salvare manca ancora: {mancanti[0]}.
+          </p>
+        ) : (
+          <div style={{ fontSize: 12, color: "var(--text-on-dark)", margin: 0 }}>
+            Per salvare mancano ancora {mancanti.length} cose:
+            <ul style={{ margin: "4px 0 0", paddingLeft: 18 }}>
+              {mancanti.map((m) => (
+                <li key={m}>{m}</li>
+              ))}
+            </ul>
+          </div>
+        ))}
 
       {/* ⚠️ LA CONFERMA SUL PREZZO, nella forma della scheda di modifica: non una
           finestra sopra la pagina, ma la fila dei pulsanti che SI SOSTITUISCE.
