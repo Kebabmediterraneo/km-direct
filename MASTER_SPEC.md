@@ -1,6 +1,6 @@
 # KM DIRECT — MASTER SPECIFICATION
 
-**Versione 79** — sostituisce la v78.
+**Versione 80** — sostituisce la v79.
 
 Documento di riferimento definitivo per lo sviluppo. Le decisioni qui
 contenute sono approvate: non vanno reinterpretate senza un motivo concreto
@@ -22,62 +22,48 @@ versione corrente**. I precedenti vivono in `git log`, che è fatto per quello.
 del documento prima che cominciasse a parlare del progetto — e dentro c'erano
 istruzioni rovesciate che nessuno rileggeva.*
 
-**Novità della v79** (vincolanti, dalla giornata del 28/08/2026):
+**Novità della v80** (vincolanti, seconda sessione del 28/08/2026):
 
-*La v78 di ieri sera resta valida in tutto: decisioni **(MM) (NN) (OO) (PP)**,
-il 4b in tre passaggi, il 4b-1 fatto e provato. Questa versione registra la
-giornata spesa a **misurare prima di scrivere**, e il passaggio nuovo che quella
-misura ha reso necessario.*
+*La v79 di stamattina resta valida in tutto: decisioni **(MM) (NN) (OO) (PP)**,
+il 4b in quattro passaggi, il 4b-2a fatto e provato dal vivo, la misura sui dati
+veri verde. Questa versione **non contiene una riga di codice**: registra la
+lettura fatta prima di scrivere il 4b-2 e la decisione che quella lettura ha
+reso necessaria.*
 
-1. §63-64 — ⚠️ **IL 4b HA UN PASSAGGIO IN PIÙ, IL 4b-2a, E VIENE PRIMA DEL
-   4b-2.** *Nato da un difetto trovato leggendo: il pulsante «Conferma e salva»
-   del riquadro del prezzo **non guardava `canSave`**. Senza chiuderlo, i
-   controlli che il 4b-2 mette nel Salva sarebbero saltabili proprio sulla
-   strada in cui si cambia un prezzo, e la spec direbbe una cosa vera a metà.*
-2. §63-64 — ✅ **4b-2a FATTO, PUBBLICATO E PROVATO DAL VIVO SUL SITO.** Commit
-   `8422ef8` (pannello) e `f8de6ea` (prove). Tre righe di sostanza, nove sonde
-   nuove.
-3. §63-64 — ✅ **LA MISURA SUI DATI VERI, eseguita da Andrea il 28/08**: nessuno
-   dei cinque controlli della creazione scatterebbe da solo su nessun articolo
-   esistente. ⚠️ *Era la condizione per poter fare il 4b-2 senza rendere non
-   salvabile un articolo sano, ed è verde.*
-4. §63-64 — ⚠️ **I CONTROLLI SULLE OPZIONI SONO CINQUE, NON QUATTRO.** Gli
-   accompagnamenti sono **due controlli distinti**: uno guarda che la lista non
-   sia vuota (solo Bowl), l'altro che nessuna voce abbia l'etichetta vuota (ogni
-   categoria). *Il vecchio commento nel codice, e questa spec, ne nominavano
-   quattro.*
-5. §63-64 — ⚠️ **`proteineSenzaPrezzo` NON PUÒ SCATTARE SUI DATI LETTI DAL
-   DATABASE**, perché la colonna è `numeric not null`. *Il timore che i gusti
-   dei dolci spegnessero il Salva sulla Cheesecake **non ha fondamento**, e non
-   per una misura: per il tipo della colonna. La misura ha poi confermato il
-   presupposto.*
-6. §63-64 — ⚠️ **IL BLOCCO DELLE OPZIONI SI ACCENDE CAMBIANDO UN INTERRUTTORE
-   SOLO** — un `fieldset disabled` che governa diciotto controlli, misurato.
-   **E si accende su `opzioniLette`, non togliendo il vincolo**: in modifica le
-   quattro liste partono **vuote** e si riempiono dopo, quindi un blocco acceso
-   troppo presto mostrerebbe liste vuote su un articolo che opzioni ne ha.
-7. §63-64 — ⚠️ **L'ORDINE DI PROVA DEL RIQUADRO DEL PREZZO, trovato da Andrea
-   provando.** Non si può cambiare il prezzo *e* svuotare il nome prima di
-   premere Salva: col nome vuoto il Salva è spento e il riquadro non compare
-   mai. *L'ordine giusto è: cambia il prezzo → premi Salva → **poi** svuota il
-   nome.* **Serve ogni volta che si tocca quel riquadro.**
-8. §63-64 — ⚠️ **TRE COSE REGISTRATE E NON APERTE SUL RIQUADRO DEL PREZZO.**
-   Sono tre facce dello stesso pezzo di scheda e si aprono insieme, non a pezzi.
-9. ⚠️ **REGOLA DI METODO NUOVA**: le prove che toccano il **prezzo** si fanno
-   sugli **articoli di prova**, mai su un articolo del menu. *Il 28/08 la prova
-   è stata fatta sul Turco e il prezzo è stato rimesso a mano: con un database
-   solo e il sito raggiungibile, nulla ricorda di rimetterlo e nessun controllo
-   lo vede.*
-10. ⚠️ **GLI ARTICOLI DI PROVA DA CANCELLARE SONO SETTE**: `Roll prova`,
-    `Roll di prova 2, 3, 4, 5, 6, 7`. *I due nuovi sono nati dalle prove dal
-    vivo del 4b-2a.*
+⚠️ **TRASLOCO DICHIARATO, non una sparizione.** La regola nata stamattina — *le
+prove che toccano il **prezzo** si fanno sugli **articoli di prova**, mai su un
+articolo del menu* — viveva **soltanto** nel blocco Novità della v79, e la
+disciplina del blocco l'avrebbe cancellata scrivendo questa versione. È stata
+**spostata nel corpo di §63-64**, accanto all'altra regola di metodo sulle prove
+dal vivo, dove nessuna sostituzione futura la tocca. *Verificato prima di
+sostituire il blocco: era l'unica delle dieci voci della v79 a non vivere già
+nel corpo del documento.*
+
+1. §63-64 — ⚠️ **(QQ) LA FOTOGRAFIA DELLE OPZIONI SI SCATTA DOPO LA TRADUZIONE,
+   IN FORMA MODULO.** *Decisione di Andrea del 28/08, presa sulla lettura del
+   codice.* È la condizione per costruire la nozione di «opzioni toccate» che il
+   4b-2 richiede.
+2. §63-64 — ⚠️ **IL 4b-2 SI FA IN UN PASSAGGIO SOLO**, per decisione di Andrea:
+   blocco acceso, cinque controlli rimessi, «opzioni toccate» e **seconda metà
+   di (PP)** insieme. *Scartato lo spezzarlo in due tempi con due prove dal
+   vivo.*
+3. §63-64 — ⚠️ **CINQUE FATTI SUL CODICE, letti il 28/08 e non supposti**, fra
+   cui due che correggono questa spec: il `fieldset` oggi è agganciato a
+   `inModifica`, non a `opzioniLette`; e il commento che il 4b-2 deve riscrivere
+   ne nomina **quattro** mentre i controlli sono **cinque**.
+4. §63-64 — ⚠️ **LO SCHEMA DEL DATABASE NON È NEL REPO.** *Limite noto: i nomi
+   delle colonne delle quattro tabelle delle opzioni si leggono da chi le
+   scrive, non da una `CREATE TABLE`. Una colonna esistente che nessun file del
+   repo scrive arriverebbe comunque nella fotografia, che è un `select("*")`, e
+   nessuna lettura del repo la vedrebbe.* **Con (QQ) non serve**, perché la
+   forma database esce dal giro.
 
 *Il conteggio delle condizioni di apertura non cambia: **quattro chiuse, cinque
 aperte**.*
 
-⚠️ *Suite invariate a **34**, prove da 1669 a **1678** (+9, tutte sul 4b-2a).
-Misurate eseguendole. Le suite **non dovevano** muoversi: le prove nuove sono
-andate in una suite esistente.*
+⚠️ *Suite e prove **invariate a 34 e 1678**: questa sessione non ha scritto
+codice, quindi non c'è niente da rimisurare. Il numero resta quello misurato
+eseguendole stamattina.*
 
 ## 1. Visione del progetto
 
@@ -4127,6 +4113,37 @@ nei blocchi v77 e v78.*
 * **I cinque controlli guardano tutte le righe in memoria, senza filtrare.**
   *Filtrare quelle non disegnabili aggiungerebbe codice per un caso che la
   misura e il tipo della colonna dicono impossibile.*
+
+#### ⚠️ Cinque fatti letti dal codice il 28/08 — due correggono questa spec
+
+*Ognuno con il posto da cui è stato letto. **Non riverificarli**; e non dedurre
+niente dai nomi: `ProductForm` e `ProductEditForm` **stanno nello stesso file**,
+e un terzo componente, `AllergensEditForm`, contiene variabili con gli stessi
+nomi.*
+
+* ⚠️ **IL `fieldset` OGGI È AGGANCIATO A `inModifica`, NON a `opzioniLette`.**
+  `app/staff/page.js:2378`, ed è **l'unico `fieldset` del file**. *Questa spec
+  diceva su cosa **andrà** agganciato e non su cosa **è**: oggi è spento su ogni
+  articolo esistente e acceso solo in creazione. Il 4b-2 cambia quell'aggancio.*
+* ⚠️ **IL COMMENTO DA RISCRIVERE NE NOMINA QUATTRO, E SONO CINQUE.**
+  `app/staff/page.js:1901-1930`. *L'elenco dice "accompagnamenti" una volta
+  sola, ma sono due condizioni distinte — lista vuota su una Bowl, e voce con
+  etichetta vuota su qualunque categoria. Riscrivere quel commento fa parte del
+  4b-2, e la spec lo dice già: qui si registra che l'errore è **dentro il
+  commento stesso**.*
+* **I CONFINI VERI DEI DUE COMPONENTI**: `ProductEditForm` **963-1210**,
+  `ProductForm` **1493-2722**, verificati sulle definizioni che li seguono.
+  ⚠️ *L'handoff, punto 39j, ne riporta altri (963-1221 e 1493-2710): va corretto
+  lì, non qui.*
+* **LA TRADUZIONE È UNA SOLA**, `app/staff/page.js:1632-1668`, col commento a
+  1621-1631 che la dichiara l'unico punto dove i nomi combaciano. *È la riga che
+  **(QQ)** protegge, ed è la ragione per cui la seconda traduzione è stata
+  scartata.*
+* **LA NOZIONE DI «OPZIONI TOCCATE» NON ESISTE DAVVERO**, verificato nei due
+  versi: nessuna variabile con quel senso in tutto il file, mentre la stessa
+  sonda trova `allergeniToccati` cinque volte. *La fotografia in forma database
+  esiste già in memoria ma **non viene mai confrontata con lo stato**: serve
+  solo per sapere se è arrivata, per un conteggio e per un filtro.*
 ### ⚠️ IL 4b SI FA IN TRE PASSAGGI — 4b-1 FATTO (v78, sera del 27/08/2026)
 
 **L'ordine non è prudenza, è necessità: le protezioni devono esistere PRIMA che
@@ -4345,6 +4362,56 @@ applicata: se la scheda non sa rappresentare le opzioni, non le salva.*
 è lo stesso blocco di scheda, e aprirlo due volte è il lavoro doppio che questo
 progetto evita già altrove.
 
+**(QQ) LA FOTOGRAFIA DELLE OPZIONI SI SCATTA DOPO LA TRADUZIONE, IN FORMA
+MODULO.** *Decisione di Andrea, 28/08/2026.* La nozione di «opzioni toccate»
+confronta lo stato a schermo con una fotografia di partenza presa **nello stesso
+momento e nella stessa forma** in cui la traduzione riempie i campi — non con la
+fotografia in forma database che arriva dal lettore.
+
+⚠️⚠️ **La ragione è che le due forme NON sono confrontabili, e il modo in cui si
+rompe è muto.** Fra la forma database e la forma modulo c'è una traduzione, ed è
+**l'unico punto del progetto dove i nomi delle colonne e i nomi del modulo si
+fanno combaciare** — così dichiara il commento che le sta sopra. Quella
+traduzione **butta cinque cose** (`id`, `product_id`, `sort_order` consumato per
+ordinare, l'etichetta della proteina che nel modulo viene dal catalogo, e il
+titolo per riga che collassa in **una** stringa sola) e **ne converte sei** (i
+prezzi da numero a stringa, `requires_protein` da `null` a `""`, `max_quantity`
+assente che diventa `"1"`, le rimozioni da righe a stringhe nude, tre caselle
+forzate a booleano). *Un confronto in forma database non fallirebbe
+rumorosamente: direbbe **«toccato» su ogni articolo, sempre**, e nessuno se ne
+accorgerebbe finché il 4b-3 non cominciasse a scrivere opzioni che nessuno ha
+toccato.*
+
+⚠️ **SCARTATA — tradurre lo stato all'indietro** e confrontarlo con la
+fotografia in forma database. *Vorrebbe dire scrivere una **seconda**
+traduzione, cioè un secondo posto in cui i nomi devono combaciare, contro quanto
+il commento della prima dichiara di essere. Due traduzioni che devono restare
+d'accordo sono due cose che un giorno non lo saranno.*
+
+⚠️ **SCARTATA — segnare «toccato» a mano su ogni campo che si modifica.**
+*Sarebbero diciotto controlli: dimenticarne uno **non dà nessun errore**, dà un
+Salva che parte quando non doveva. E direbbe «toccato» anche a chi cambia una
+cosa e poi la rimette com'era, cioè al caso più comune di tutti.*
+
+⚠️ **QUANDO SI SCATTA — non all'apertura della scheda.** In modifica le quattro
+liste **partono vuote** e si riempiono dopo: una fotografia scattata all'apertura
+sarebbe vuota, i campi si riempirebbero da soli e **tutto risulterebbe toccato**.
+Va scattata nel punto in cui la traduzione riempie i campi. *È la stessa ragione
+per cui il blocco si accende su `opzioniLette` e non prima.*
+
+⚠️ **COME SI CONFRONTA — non basta copiare la forma di `allergeniToccati`.**
+Quello confronta numeri, parole e una lunghezza: bastano un `!==` e un
+conteggio. Le opzioni sono **elenchi di oggetti e una mappa**, e un `!==` fra due
+elenchi con lo stesso contenuto **è vero**. *Un confronto scritto per somiglianza
+compila, non protesta e dice sempre «toccato». Il modello da copiare è nello
+stesso file poche righe sopra, ed è per questo che l'avviso sta qui.*
+
+⚠️ **IL 4b-2 SI FA IN UN PASSAGGIO SOLO**, per decisione di Andrea del 28/08:
+blocco acceso, cinque controlli rimessi, «opzioni toccate» e **seconda metà di
+(PP)** insieme. *Scartato lo spezzarlo in due tempi — prima blocco e controlli
+con la loro prova dal vivo, poi il resto: le prime due non si possono separare
+comunque, e il resto è lo stesso pezzo di scheda.*
+
 **I CONTROLLI SULLE OPZIONI VANNO RIMESSI NEL PULSANTE SALVA, E IL COMMENTO VA
 RISCRITTO.** ⚠️⚠️ *Oggi la condizione del Salva in modifica **non contiene
 nessuno** dei controlli che la creazione ha — prezzo della proteina, extra
@@ -4390,6 +4457,14 @@ Andrea ha guardato il sito pubblicato, che serviva ancora il codice vecchio, e
 tre prove hanno controllato nulla — compresa quella sulla creazione, che era la
 più importante. **Chi chiede la prova ha un'informazione che chi la esegue non
 ha: dichiararla è parte della richiesta, non un di più.***
+
+⚠️ **REGOLA DI METODO, NATA IL 28/08 E VINCOLANTE: le prove che toccano il
+PREZZO si fanno sugli ARTICOLI DI PROVA, mai su un articolo del menu.** *La
+prima tornata del 4b-2a è stata fatta sul **Turco**, un articolo vero, e il
+prezzo è stato rimesso a mano. Con un database solo e il sito raggiungibile,
+**niente ricorda di rimetterlo e nessun controllo lo vede**: un residuo così si
+scopre da un cliente.* **Portata qui dal blocco Novità della v79 in v80**, dove
+viveva sola e la disciplina del blocco l'avrebbe cancellata.
 
 #### Registrato e NON aperto — l'inserimento dei gusti in creazione
 
