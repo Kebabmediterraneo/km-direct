@@ -849,6 +849,11 @@ function corpiDi(blocco) {
     extraIncompleti: false,
     rimozioniVuote: false,
     accompagnamentiVuoti: false,
+    // ⚠️ Aggiunto nel 4b-2: l'espressione VERA del pannello ora nomina anche
+    // questa (seconda metà di PP). Senza il legame `new Function` esplode e la
+    // suite muore invece di misurare. *Nessuna asserzione qui sotto cambia:
+    // cambia solo il banco su cui il testo vero viene eseguito.*
+    opzioniNonSalvabili: false,
   };
 
   // Valuta le espressioni VERE del pannello. `varianti` permette alle
@@ -1046,6 +1051,11 @@ function corpiDi(blocco) {
     extraIncompleti: false,
     rimozioniVuote: false,
     accompagnamentiVuoti: false,
+    // ⚠️ Aggiunto nel 4b-2: l'espressione VERA del pannello ora nomina anche
+    // questa (seconda metà di PP). Senza il legame `new Function` esplode e la
+    // suite muore invece di misurare. *Nessuna asserzione qui sotto cambia:
+    // cambia solo il banco su cui il testo vero viene eseguito.*
+    opzioniNonSalvabili: false,
   };
   const catena = (vars) => {
     const nomi = Object.keys(vars);
