@@ -2429,19 +2429,6 @@ dello sconto lì, suggerimento 20-25 € ancora presente col testo nuovo; e infi
 l'unico modo per sapere che l'intenzione arriva a destinazione ora che il
 carrello non la accende più.
 
-### 29c) Cosa resta aperto
-
-* ⚠️ **`promo_redemptions` contiene ancora i riscatti di prova**: quei telefoni
-  continuano a sentirsi dire *"Hai già utilizzato questo codice sconto."*
-  Cancellarli è **DDL, quindi di Andrea nel SQL editor**, con la migrazione in
-  `sql/`.
-* ⚠️ **Il caso del rientro sotto soglia resta scoperto per scelta** (§14 v69):
-  chi torna al carrello, scende sotto i 25 € e rientra non vede alcuna
-  spiegazione. **Deciso di non coprirlo.**
-* **I due eventi delle statistiche** legati al carrello sparito (§65) e **i sei
-  lavori del punto 16**, tutti dove erano.
-* **La Fase 4** resta l'ultimo lavoro pre-go-live.
-
 ### 29d) Quattro lezioni
 
 **cq. ⚠️ UN DIVIETO SCRITTO IN CIMA NON SI VEDE DAL PUNTO CHE LO CONTRADDICE.**
@@ -2672,17 +2659,6 @@ guardando due righe una sotto l'altra. *Come la regola sui cellulari a 9 cifre
 dell'11/08: le prove verificano la coerenza del codice con sé stesso, non con il
 mondo.*
 
-### 31g) Cosa resta aperto
-
-* ⚠️ **La tendina non è mai stata vista su un telefono**: le bandiere e la
-  larghezza si giudicano lì, e in locale Andrea non può accedere da telefono.
-  Da guardare sul sito pubblicato.
-* **Lo Storico** (`HistoryRow`) non mostra l'indirizzo: non era chiesto.
-* **Gli ordini già in database** hanno il numero senza prefisso: ricaricandone
-  uno su Glovo uscirebbe senza `+39`. Sono di prova.
-* **La Fase 4** resta l'ultimo lavoro pre-go-live, e **le tre voci di §6c**
-  fuori dal codice.
-
 ---
 
 ## 32) La Fase 4: il pannello crea Roll e Bowl complete (12/08/2026, sera)
@@ -2780,27 +2756,6 @@ tendina: per il checkout, che cerca per nome, sono due rimozioni diverse, e
 accorparle farebbe **sceglierne una credendo di sceglierne un'altra**. *Una
 "pulizia" ovvia che sarebbe stata un difetto.*
 
-### 32f) Cosa resta aperto
-
-* ⚠️ **La MODIFICA delle opzioni di un articolo esistente** — chiesta da Andrea,
-  è il prossimo lavoro. *È anche il posto dove la regola DD verrà messa alla
-  prova: cosa succede a un carrello aperto se si toglie una proteina.*
-* ⚠️ **Il rifiuto lato server della proteina non l'ha osservato nessuno**: le
-  prove leggono il testo del codice, e `checkout-resolve.js` non è eseguibile
-  senza database. La verifica naturale sarà il primo articolo creato senza
-  preselezione.
-* **Il contorno del combo ha lo stesso ripiego** della proteina, non toccato: la
-  decisione parlava di proteine.
-* **`extra_dose_included` e `max_quantity` non sono lette da nessuna riga di
-  codice**: il pannello le scrive, ma perché servano dovrà leggerle chi calcola
-  il prezzo.
-* **Le CATEGORIE**, discusse e non aperte: crearne di nuove, spegnerle quando
-  sono vuote, ordinarle. ⚠️ *Sono **tre facce dello stesso lavoro** — tutte e
-  tre richiedono che le categorie escano dal codice e vivano in una tabella — e
-  la domanda difficile sarà come una categoria nuova sappia **che tipo di
-  categoria è**: le bevande sono esentate dagli allergeni, le Bowl pretendono
-  l'accompagnamento.*
-
 ---
 
 ## 33) La modifica delle opzioni: cuore e rotta (13/08/2026)
@@ -2894,20 +2849,6 @@ esisteva già e bastava leggerla. *La domanda "come si fa" viene dopo la domanda
 gli accenti. Riparato riga per riga e verificato. **Da non usare su questo
 progetto**: i commenti sono pieni di accenti e di ⚠️.*
 
-### 33f) Cosa resta aperto
-
-* ⚠️ **LA SCHERMATA** — fondere modifica e creazione in un modulo solo
-  (decisione BB di Andrea). *Il rischio non è la modifica: è la **creazione**,
-  che funziona. Se si rompe, il sintomo non è un errore ma un campo che smette
-  di arrivare, e si vede solo riprovando a creare un Roll intero.*
-* **La conferma esplicita sul sovrapprezzo di una proteina**, decisa e da
-  realizzare con la schermata.
-* ⚠️ **La rete sul conteggio in 30 suite su 33.**
-* **Lo store**, quando aprirà il secondo negozio.
-* **Le CATEGORIE**, discusse il 12/08 e non aperte.
-* ⚠️ **Nessuno ha provato dal vivo cuore e rotta**: le prove leggono il codice,
-  la prima chiamata vera sarà con la schermata.
-
 ---
 
 ## 34) La rete prima della fusione: i ventuno campi del corpo di creazione (24/08/2026)
@@ -2997,24 +2938,6 @@ git **21/08** e il suo messaggio dice *"stato al 13/08"*: otto giorni. ⚠️ *I
 documenti di questo progetto datano **la giornata di lavoro**, non il
 salvataggio. Non è un difetto e non va corretto — ma va saputo da chi confronta
 `git log` con questi testi, o li troverà in contraddizione.*
-
-### 34f) Cosa resta aperto
-
-* ⚠️ **LA SCHERMATA** — fondere modifica e creazione in un modulo solo
-  (decisione BB). ✅ *Ora ha la sua rete.* **Va cominciata da fresca, come primo
-  lavoro di una sessione**: aprirla in coda significa lasciarla a metà.
-* **La conferma esplicita sul sovrapprezzo di una proteina**, da realizzare
-  insieme alla schermata. ⚠️ *Resta da decidere QUANDO compare: a ogni
-  salvataggio che cambia un sovrapprezzo, o solo quando lo si alza.*
-* **Cosa fa il modulo unico su bevande e salse**, che opzioni non ne hanno.
-  *Oggi per loro creazione e modifica sono due schermate diverse. Mai discusso.*
-* ⚠️ **La rete sul conteggio in 30 suite su 33** — e `menu-create-form`, quella
-  estesa oggi, è una delle trenta.
-* ⚠️ **Nessuno ha ancora chiamato dal vivo cuore e rotta** delle opzioni: la
-  prima chiamata vera sarà con la schermata.
-* **Lo store** non verificato su nessuna delle sette rotte del pannello, da
-  chiudere tutte insieme il giorno del secondo negozio.
-* **Le CATEGORIE**, discusse il 12/08 e non aperte.
 
 ---
 
@@ -3122,21 +3045,6 @@ parola `Versione`.*
 come contesto. Con `--patience`, `--histogram` o `--minimal` il conto tornava
 esatto.* **Un divario di una riga per parte, con contenuto identico, è quasi
 sempre questo — ma va verificato, non supposto.**
-
-### 35g) Cosa resta aperto — aggiorna il punto 34f
-
-* ⚠️ **LA SCHERMATA UNICA**: si comincia dal **passo 1** dei sette in spec
-  §63-64 — la scheda che crea, con la sonda dei ventuno campi che **deve restare
-  verde senza che nessuno tocchi l'elenco**.
-* ⚠️ **La rete sul conteggio in 30 suite su 33.**
-* **Lo store** non verificato, e con esso il conteggio a sette o otto rotte.
-* **Le CATEGORIE**, discusse il 12/08 e non aperte. *Da non confondere con (HH),
-  che è il cambio di categoria di un singolo articolo.*
-* ⚠️ *Una sigla scomoda ma non sbagliata:* **(HH)**. Nella forma con le parentesi
-  non collide con niente, ma `HH` senza parentesi compare 8 volte nella spec come
-  **formato dell'ora** (`HH:MM`). *Chi cercasse `HH` troverebbe gli orari di
-  apertura. Lasciata così perché nella forma usata è univoca: da cambiare solo
-  se un giorno dà davvero fastidio.*
 
 ---
 
@@ -3267,32 +3175,6 @@ Confermato due volte: l'algoritmo predefinito conta **una riga vuota** come
 tolta+aggiunta. *Il divario è sempre di uno per parte, e il contenuto è
 identico — ma va verificato, non supposto.*
 
-### 36g) Cosa resta aperto — aggiorna il punto 35g
-
-* ⚠️⚠️ **IL PASSO 4b: SALVARE LE OPZIONI.** *È il pezzo pericoloso — quello che
-  sbagliato cancella rimozioni ed extra in silenzio — e sarà la **prima
-  chiamata dal vivo** a `POST product-options`, che nessuno ha mai chiamato.*
-  **VA APERTO DA FRESCO, COME PRIMO LAVORO DI UNA SESSIONE.**
-  ⚠️ *Due asimmetrie già accertate e da tenere presenti: il corpo della modifica
-  è **piatto** dove quello della creazione è annidato sotto `options`, e il
-  titolo delle proteine lì è **un campo a sé** (`choiceLabel`) mentre in
-  creazione viaggia **ripetuto su ogni riga**.*
-* **Poi i passi 5, 6 e 7**: la conferma sul sovrapprezzo (FF), la sparizione di
-  `ProductEditForm`, e il cambio di categoria (HH).
-* ⚠️ **TRE ARTICOLI DI PROVA DA CANCELLARE**: `Roll prova`, `Roll di prova 2`,
-  `Roll di prova 3`. *Da fare in SQL editor con la migrazione in `sql/`, e ⚠️
-  **non prima del 4b**: `Roll prova` ha le opzioni ed è il caso su cui il 4b si
-  prova. Un Roll con opzioni ha righe su **quattro tabelle** oltre a `products`
-  e agli allergeni: vanno tolte tutte, nell'ordine giusto.*
-* ⚠️ **La rete sul conteggio**: ora **30 suite su 34** non ce l'hanno.
-  ⚠️ *Il numero **non è salito** benché le suite siano una in più: la suite
-  nuova del lettore **la rete ce l'ha già**, copiata da quella del cuore che
-  salva. Misurato, non ottenuto sommando uno al numero di ieri — che è
-  l'errore commesso scrivendo questo punto la prima volta.*
-* **Lo store** non verificato, e con esso il conteggio a sette o otto rotte —
-  che con la rotta nuova del lettore sono diventate **nove**.
-* **Le CATEGORIE**, discusse il 12/08 e non aperte.
-
 ---
 
 ## 37) Il giorno in cui non si è scritto niente: il 4b letto per intero (27/08/2026)
@@ -3406,45 +3288,6 @@ ostacoli. *Se il muro delle etichette fosse esistito, sarebbe stato trovato
 **dopo** aver scritto il 4b, e sarebbe stato cercato nel codice nuovo — dove non
 era.*
 
-### 37f) Cosa resta aperto — sostituisce il punto 36g
-
-* ⚠️⚠️ **IL PASSO 4b: SALVARE LE OPZIONI. LETTO E DECISO, NON SCRITTO.** ⚠️ *È
-  **un passaggio con tre cose dentro, non una**: la chiamata alla rotta, i
-  controlli da rimettere nel Salva **con il commento riscritto**, e la
-  riparazione **(PP)** del blocco che oggi mente sui dolci.* Le decisioni sono
-  **(MM)**, **(NN)**, **(OO)**, **(PP)** in spec §63-64 v77: **non
-  ricostruirle, leggerle.**
-* ⚠️ **Prima della prova dal vivo del 4b, decidere se caricare `Roll prova` di
-  rimozioni ed extra dal pannello.** *Dalla misura risultano 71 rimozioni su 15
-  articoli contro le 70 su 14 del 29/07: **una sola rimozione** su tutti e tre i
-  Roll di prova. Il 4b va provato proprio sul gruppo che sparisce in silenzio, e
-  con una sola riga si vedrebbe poco.*
-* ⚠️ **LA CHIAVE API DI GOOGLE — scaduta il 26/08, non fatta.** Non è lavoro di
-  Code e non tocca il repo: è un intervento di Andrea nella console Google
-  Cloud. ⚠️ **Da non fare mentre il 4b è in corso**, per non mescolare due cose
-  che possono rompersi. *E con due indirizzi vivi, la restrizione al singolare
-  romperebbe il completamento dell'indirizzo sull'altro.*
-* **L'inserimento dei gusti in creazione**, registrato e **non aperto**: non è
-  accertato che oggi funzioni, `lib/menu-create.js` non è mai stato letto.
-  *Non è una cosa che il 4b rompe: è una cosa che il 4b non risolve.*
-* **Poi i passi 5, 6 e 7**: la conferma sul sovrapprezzo (FF), la sparizione di
-  `ProductEditForm`, e il cambio di categoria (HH).
-* ⚠️ **TRE ARTICOLI DI PROVA DA CANCELLARE**: `Roll prova`, `Roll di prova 2`,
-  `Roll di prova 3` — **non prima del 4b**. *Un Roll con opzioni ha righe su
-  quattro tabelle oltre a `products` e agli allergeni.*
-* ⚠️ **La rete sul conteggio**: **30 suite su 34** non ce l'hanno.
-* ⚠️ **La rete dei ventuno campi potrebbe essere cieca alla scorciatoia**
-  (`key,` invece di `key: key,`), che è il difetto che è nata per vedere.
-  *Non affermato: da guardare il giorno che la si tocca.*
-* **Lo store** non verificato. ⚠️ *E il conteggio "nove rotte" è **ereditato**,
-  non misurato: veniva da un "sette o otto" a cui è stato sommato uno. Il giorno
-  che si apre quel lavoro, si misura.*
-* **Le CATEGORIE**, discusse il 12/08 e non aperte.
-* ⚠️ **Il tetto delle righe dell'editor SQL è stato cambiato da Andrea il 27/08
-  e il suo valore vero NON è misurato.** *Si sa cosa dichiara il pannello, non
-  cosa fa lo strumento. La spec non dichiara più una cifra, dichiara la regola:
-  un'interrogazione lunga annuncia in cima quante righe deve avere il referto.*
-
 ---
 
 ## 38) Il 4b-1: le difese prima della chiamata, e tre prove che non controllavano niente (sera del 27/08/2026)
@@ -3540,41 +3383,6 @@ descriveva) e la seconda metà di **(PP)** (poggia su "opzioni toccate", che
 nasce col salvataggio; spegnere sempre contraddirebbe la spec). ✅ *Il commento
 che scade è però stato **riscritto subito**: è la metà del lavoro che si poteva
 fare, ed è quella che protegge dalla lezione `de`.*
-
-### 38f) Cosa resta aperto — SUPERATO dal punto 39j (28/08/2026)
-
-* ⚠️⚠️ **4b-2: ACCENDERE IL BLOCCO E RIMETTERE I CONTROLLI**, insieme, nello
-  stesso passaggio. ⚠️ *I controlli **non si possono rimettere prima** di
-  accendere il blocco: un controllo rosso a campi spenti lascerebbe il pulsante
-  spento **senza nessun modo di correggerlo**.* Qui va anche la seconda metà di
-  **(PP)**. **È il passaggio in cui una Bowl può diventare non salvabile.**
-* ⚠️ **4b-3: LA CHIAMATA.** Il pezzo pericoloso, con l'impalcatura già provata.
-* ⚠️ **Prima della prova dal vivo del 4b-3, decidere se caricare `Roll prova` di
-  rimozioni ed extra dal pannello.** *Ne ha **una sola**: il gruppo che sparisce
-  in silenzio va provato con più di una riga.*
-* ⚠️ **L'attesa "un po' lenta"** all'apertura della scheda: registrata, non
-  aperta. Diventa rilevante col 4b-2.
-* ⚠️ **LA CHIAVE API DI GOOGLE — scaduta il 26/08, non fatta.** Intervento di
-  Andrea nella console, non lavoro di Code. ⚠️ *Con due indirizzi vivi, la
-  restrizione al singolare romperebbe il completamento dell'indirizzo
-  sull'altro.*
-* ⚠️ **Il font**: la voce di §6c **non è chiusa**. Andrea ha guardato il sito e
-  gli è sembrato a posto, ma la prova sta nell'**elenco domini del pannello
-  Adobe**, non nel sito.
-* **L'inserimento dei gusti in creazione**, registrato e **non aperto**:
-  `lib/menu-create.js` non è mai stato letto.
-* **Poi i passi 5, 6 e 7**: conferma sul sovrapprezzo (FF), sparizione di
-  `ProductEditForm`, cambio di categoria (HH).
-* ⚠️ **CINQUE ARTICOLI DI PROVA DA CANCELLARE**, non tre: `Roll prova`,
-  `Roll di prova 2`, `3`, `4`, `5`. *I due nuovi sono nati dalle prove dal vivo
-  di stasera.* **Non prima del 4b**: `Roll prova` è il caso su cui si prova.
-* ⚠️ **La rete sul conteggio**: **30 suite su 34** non ce l'hanno.
-* ⚠️ **La rete dei ventuno campi potrebbe essere cieca alla scorciatoia**
-  (`key,` invece di `key: key,`), che è il difetto che è nata per vedere.
-* **Lo store** non verificato, e il "nove rotte" è **ereditato**, non misurato.
-* **Le CATEGORIE**, discusse il 12/08 e non aperte.
-* ⚠️ **Il tetto delle righe dell'editor SQL** è stato cambiato il 27/08 e il suo
-  valore vero **non è misurato**.
 
 ---
 
@@ -3744,7 +3552,7 @@ versione integra delle lezioni è al commit `254ffad`. **`254ffad` precede
 `fce1323`**, che è l'ultimo commit a contenerle. Le contengono entrambi
 identiche, ma il puntatore va a un commit più vecchio del necessario.
 
-### 39j) Cosa resta aperto — sostituisce il punto 38f
+### 39j) Cosa resta aperto — ⚠️ L'UNICO ELENCO. I nove blocchi precedenti sono stati tolti il 28/08 e le voci ancora vive sono state portate qui.
 
 * ⚠️⚠️ **4b-2: ACCENDERE IL BLOCCO E RIMETTERE I CONTROLLI**, insieme. I
   controlli sono **cinque, non quattro**; il blocco si accende **su
@@ -3778,10 +3586,25 @@ identiche, ma il puntatore va a un commit più vecchio del necessario.
   `app/staff/page.js`, righe 1493-2710 e 963-1221.*
 * ⚠️ **SETTE ARTICOLI DI PROVA DA CANCELLARE**: `Roll prova`, `Roll di prova 2`,
   `3`, `4`, `5`, `6`, `7`. **Non prima del 4b.**
+* ⚠️ **VOCI RECUPERATE dai vecchi elenchi (28/08)**, che nessun elenco più
+  recente aveva ripreso: la **tendina dei prefissi non è mai stata vista su un
+  telefono** (bandiere e larghezza si giudicano lì, sul sito pubblicato); lo
+  **Storico (`HistoryRow`) non mostra l'indirizzo** (non era chiesto); il
+  **rifiuto lato server della proteina non l'ha osservato nessuno**, perché
+  `checkout-resolve.js` non è eseguibile senza database; il **contorno del combo
+  ha lo stesso ripiego** della proteina, non toccato perché la decisione parlava
+  di proteine; ⚠️ **`extra_dose_included` e `max_quantity` non sono lette da
+  nessuna riga di codice** — il pannello le scrive, ma perché servano dovrà
+  leggerle chi calcola il prezzo.
 * ⚠️ **La rete sul conteggio**: **30 suite su 34** non ce l'hanno.
 * ⚠️ **La rete dei ventuno campi potrebbe essere cieca alla scorciatoia**
   (`key,` invece di `key: key,`), che è il difetto che è nata per vedere.
 * **Lo store** non verificato, e il "nove rotte" è **ereditato**, non misurato.
-* **Le CATEGORIE**, discusse il 12/08 e non aperte.
+* **Le CATEGORIE**, discusse il 12/08 e non aperte: crearne di nuove, spegnerle
+  quando sono vuote, ordinarle. ⚠️ *Sono **tre facce dello stesso lavoro** —
+  tutte e tre richiedono che le categorie escano dal codice e vivano in una
+  tabella — e la domanda difficile sarà come una categoria nuova sappia **che
+  tipo di categoria è**: le bevande sono esentate dagli allergeni, le Bowl
+  pretendono l'accompagnamento.*
 * ⚠️ **Il tetto delle righe dell'editor SQL** è stato cambiato il 27/08 e il suo
   valore vero **non è misurato**.
