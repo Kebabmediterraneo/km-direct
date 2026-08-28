@@ -22,11 +22,21 @@ nessuno se ne ricorda.*
 
 ## 2) Stato git
 
-- Branch **`main`**, working tree **pulita**, allineata a `origin/main`.
-- HEAD: **`f8de6ea`** — le prove del 4b-2a (28/08/2026).
+- Branch **`main`**, working tree **pulita**.
+- HEAD locale: **`e9ad192`**; `origin/main` a **`512d46d`**, cioè **un commit
+  indietro** al momento in cui questa riga è stata scritta.
+- ⚠️ *Questa riga non può nominare il commit che la contiene, e il push deciso
+  per la fine della sfoltitura la rende vecchia di due commit. **Chi la legge
+  chieda a git lo stato vero invece di fidarsi di qui**: quello che serve
+  ricordare è che i commit sotto ci sono tutti.*
 - Ultimi commit (dal più recente):
 
 ```
+e9ad192 handoff: sfoltite le giornate 18-25 da 714 a 565 righe, la lezione bp doppia sciolta in ee, la verifica della service_role dichiarata scaduta
+512d46d handoff: sfoltita 2 - il to-do riscritto, coi lavori chiusi a una riga e i cinque fatti sul codice che vivevano solo dentro il racconto tenuti per intero
+9f34b12 handoff: sfoltita 1 - i nove elenchi di cose aperte superati spariscono e ne resta uno solo, con dentro le cinque voci che stavano solo li' e che nessun elenco piu' recente aveva ripreso
+f843cce handoff: punto 39, il 4b-2a provato dal vivo sul sito, la giornata spesa a misurare prima di scrivere e le tre lezioni nuove
+fc48341 docs: v79 - il 4b-2a col pulsante della conferma prezzo che non guardava canSave, la misura che dice che nessun articolo diventa non salvabile, i controlli che sono cinque e non quattro, e l'ordine di prova del riquadro
 f8de6ea prove: le nove sonde che eseguono le espressioni vere dei due pulsanti e li confrontano sugli stessi valori, con la controprova che l'annulla del riquadro non e' sorvegliato da nessuna
 8422ef8 pannello: il pulsante conferma e salva guarda canSave come il salva, perche' chiama salvaModifica dritta e la guardia di handleSubmit non sta sulla sua strada
 b21cb50 handoff: punto 38, il 4b-1 e le tre prove che non controllavano niente
@@ -310,7 +320,7 @@ documentale", e `w` e `av` la stessa regola a undici mesi di distanza.
 lettera: chi cerca la lezione `bc` deve trovarla. **Il testo però è uno per
 famiglia**, e l'episodio che l'ha generata resta solo dove insegna qualcosa che
 la regola generale non dice. *Le versioni per esteso sono nel deposito, ultima
-integra al commit `254ffad`.*
+integra al commit `fce1323`; misurato il 28/08 (vedi 39i).*
 
 ---
 
@@ -532,8 +542,13 @@ riceve l'elenco di ciò che **deve restare**, non solo di ciò che deve sparire.
 Il racconto giorno per giorno vive in `git log` e nei messaggi di commit. Qui
 resta ciò che serve a chi lavora domani: **cosa è chiuso, i divieti, i limiti
 noti, ciò che è stato verificato solo leggendo.** *Nulla è andato perso: le
-sedici sezioni originali sono nel deposito, ultima versione integra al commit
-`254ffad`.*
+**dodici** sezioni originali — undici giornate più lo Stato dei dati, che è
+stato **riscritto e non tolto** — sono nel deposito, ultima versione integra al
+commit `254ffad`. ⚠️ **Non `fce1323`**, che è un'altra correzione e riguarda le
+lezioni (vedi 39i): verificato il 28/08 contando le dodici intestazioni esatte
+su tutti i 298 commit del deposito, con le controprove nei due versi. La
+sostituzione sta in `fce1323`, che git data **06/08 01:47**, non il 05/08: sul
+05/08 ci sono due commit al file e nessuno dei due tocca il diario.*
 
 ### Cosa è stato chiuso, in una riga per giornata
 
@@ -3229,10 +3244,20 @@ giro ne trovava 10 su 17. Non ha riferito il 10: è andato a vedere dove fossero
 finite le sette, ha trovato la terza forma e ha rifatto tutto. **È il verso
 giusto: uno zero che sorprende si indaga, non si riferisce.***
 
-⚠️ **Una correzione, misurata da Code**: questo documento dice che l'ultima
-versione integra delle lezioni è al commit `254ffad`. **`254ffad` precede
-`fce1323`**, che è l'ultimo commit a contenerle. Le contengono entrambi
-identiche, ma il puntatore va a un commit più vecchio del necessario.
+⚠️ **Una correzione, misurata da Code e APPLICATA il 28/08.** Il documento
+diceva che l'ultima versione integra **delle lezioni** è al commit `254ffad`:
+**`254ffad` precede `fce1323`**, che è l'ultimo a contenerle. Le contengono
+entrambi identiche, ma il puntatore andava a un commit più vecchio del
+necessario. Corretto in un punto solo, nel punto 4.
+
+⚠️ **E una che NON andava corretta, misurata il 28/08 prima di toccarla.** La
+stessa impronta `254ffad` compare una seconda volta, nel punto 6-11f, e lì
+**è giusta**: parla delle sezioni di **diario**, non delle lezioni, e `254ffad`
+è davvero l'ultimo commit a contenerle — verificato su tutti i 298 commit del
+deposito, con le controprove nei due versi. *Due frasi che puntavano allo stesso
+commit per due ragioni diverse, una sbagliata e una esatta: chi avesse contato
+le occorrenze della stringa invece di leggere cosa dicevano le due frasi avrebbe
+rotto quella giusta. È la famiglia della lezione `bp`.*
 
 ### 39j) Cosa resta aperto — ⚠️ L'UNICO ELENCO. I nove blocchi precedenti sono stati tolti il 28/08 e le voci ancora vive sono state portate qui.
 
@@ -3244,13 +3269,22 @@ identiche, ma il puntatore va a un commit più vecchio del necessario.
 * ⚠️ **4b-3: LA CHIAMATA.** Il pezzo pericoloso, con l'impalcatura già provata.
 * ⚠️ **IL RIQUADRO DELLA CONFERMA SUL PREZZO — tre difetti, un lavoro solo.**
   Vedi 39g. *Nessuno tocca i dati oggi; il secondo aggira §46.*
-* ⚠️ **LA SFOLTITURA DEI DUE DOCUMENTI**, decisa da Andrea il 28/08 e **non
-  fatta**. *Il modello è la consolidazione del 06/08: da ~150 righe a ~30 senza
-  perdere un rimando. Si toglie il racconto e si tiene la decisione con la sua
-  ragione; **non si toccano** le lezioni, le alternative scartate con la loro
-  ragione, i divieti vivi, lo stato dei dati e ciò che è dichiarato aperto.*
-  ⚠️ *Va fatta **da sola**: mescolata a un aggiornamento, il diff non è più
-  verificabile.*
+* ✅ **LA SFOLTITURA DEI DUE DOCUMENTI — CHIUSA il 28/08 da Andrea, e non
+  perché sia finita: perché è stata MISURATA e non rende.** Fatte le giornate
+  **18-25**, da **714 a 565** righe (−21%). Poi misurate due prove prima di
+  proseguire: le giornate **26-27** danno **169 → 159** (−6%), la giornata
+  **39** dà **222 → 198** (−11%). ⚠️ *Le giornate dal 26 in poi sono già
+  scritte nella forma stretta: quasi tutto quello che contengono sono lezioni
+  con la lettera, avvisi vivi e misure, che il criterio vieta di toccare.
+  Continuare valeva circa centocinquanta righe su millecinquecento, in sette
+  consegne e sette commit, con ogni consegna un'occasione di perdere una riga
+  portante.* **Il documento pesa 3292 righe e il peso NON sta nelle giornate.**
+  *Se qualcuno la riaprisse: il criterio è la consolidazione del 06/08, da ~150
+  righe a ~30 senza perdere un rimando — si toglie il racconto e si tiene la
+  decisione con la sua ragione; **non si toccano** le lezioni, le alternative
+  scartate con la loro ragione, i divieti vivi, lo stato dei dati e ciò che è
+  dichiarato aperto.* ⚠️ *E va fatta **da sola**: mescolata a un aggiornamento,
+  il diff non è più verificabile.*
 * ⚠️ **Prima della prova dal vivo del 4b-3, decidere se caricare `Roll prova` di
   rimozioni ed extra dal pannello.** *Ne ha **una sola**.*
 * ⚠️ **L'attesa «un po' lenta»** all'apertura della scheda: registrata, non
