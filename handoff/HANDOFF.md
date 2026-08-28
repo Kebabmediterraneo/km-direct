@@ -23,10 +23,19 @@ nessuno se ne ricorda.*
 ## 2) Stato git
 
 - Branch **`main`**, working tree **pulita**, allineata a `origin/main`.
-- HEAD: **`905c4a0`** — la spec v76 (26/08/2026).
+- HEAD: **`f8de6ea`** — le prove del 4b-2a (28/08/2026).
 - Ultimi commit (dal più recente):
 
 ```
+f8de6ea prove: le nove sonde che eseguono le espressioni vere dei due pulsanti e li confrontano sugli stessi valori, con la controprova che l'annulla del riquadro non e' sorvegliato da nessuna
+8422ef8 pannello: il pulsante conferma e salva guarda canSave come il salva, perche' chiama salvaModifica dritta e la guardia di handleSubmit non sta sulla sua strada
+b21cb50 handoff: punto 38, il 4b-1 e le tre prove che non controllavano niente
+6918988 spec v78: 4b-1 fatto e provato dal vivo, il 4b in tre passaggi
+7acd543 prove 4b-1: sei sonde sul salva spento e cinque sull'avviso
+7624498 pannello 4b-1: salva spento finche' le opzioni non sono lette, avviso sulle scelte non disegnabili
+4d85965 handoff: punto 37, il 4b letto per intero senza scrivere codice
+e788ee1 spec v77: decisioni del passo 4b, misura sui dati veri, dominio e chiave Google
+6fca3ba handoff: stato al 26/08 — quattro passi della fusione in un giorno, il guasto evitato leggendo il cuore prima di scrivere la scheda, e le due reti
 905c4a0 docs: v76 — i passi 1, 2, 3 e 4a fatti e provati dal vivo, la ragione grave per cui il passo 4 e' spezzato in due, e la decisione LL sulla rotta che legge le opzioni
 b22f23e pannello: la scheda mostra le opzioni che l'articolo ha gia', lette dalla rotta nuova, spente e coi tre esiti tenuti distinti a schermo
 18388db prove: d1 smette di vietare una parola e sorveglia la regola vera, che il pannello non tocchi il database, con le controprove nei due versi
@@ -3532,7 +3541,7 @@ nasce col salvataggio; spegnere sempre contraddirebbe la spec). ✅ *Il commento
 che scade è però stato **riscritto subito**: è la metà del lavoro che si poteva
 fare, ed è quella che protegge dalla lezione `de`.*
 
-### 38f) Cosa resta aperto — sostituisce il punto 37f
+### 38f) Cosa resta aperto — SUPERATO dal punto 39j (28/08/2026)
 
 * ⚠️⚠️ **4b-2: ACCENDERE IL BLOCCO E RIMETTERE I CONTROLLI**, insieme, nello
   stesso passaggio. ⚠️ *I controlli **non si possono rimettere prima** di
@@ -3559,6 +3568,216 @@ fare, ed è quella che protegge dalla lezione `de`.*
 * ⚠️ **CINQUE ARTICOLI DI PROVA DA CANCELLARE**, non tre: `Roll prova`,
   `Roll di prova 2`, `3`, `4`, `5`. *I due nuovi sono nati dalle prove dal vivo
   di stasera.* **Non prima del 4b**: `Roll prova` è il caso su cui si prova.
+* ⚠️ **La rete sul conteggio**: **30 suite su 34** non ce l'hanno.
+* ⚠️ **La rete dei ventuno campi potrebbe essere cieca alla scorciatoia**
+  (`key,` invece di `key: key,`), che è il difetto che è nata per vedere.
+* **Lo store** non verificato, e il "nove rotte" è **ereditato**, non misurato.
+* **Le CATEGORIE**, discusse il 12/08 e non aperte.
+* ⚠️ **Il tetto delle righe dell'editor SQL** è stato cambiato il 27/08 e il suo
+  valore vero **non è misurato**.
+
+---
+
+## 39) Il 4b-2a: il pulsante che non guardava niente, e una giornata di misure prima di scrivere (28/08/2026)
+
+**Un difetto trovato leggendo, riparato in tre caratteri di sostanza, e provato
+dal vivo sul sito.** Prima però quattro ricognizioni e una misura sui dati veri:
+il codice è stato l'ultima cosa della giornata, non la prima.
+
+Commit `8422ef8` (pannello, `11 2`) e `f8de6ea` (prove, `125 0`), separati,
+pubblicati. ⚠️ *Suite invariate a **34**, prove da 1669 a **1678**: +9, e le
+suite **non dovevano** muoversi perché le prove nuove sono andate in una suite
+esistente.*
+
+*Le decisioni stanno in spec §63-64 (blocco della v79). **Non ricostruirle.***
+
+### 39a) ✅ Le prove dal vivo di Andrea — sul sito, col deploy verificato
+
+*Fatte prima su `localhost`, poi **rifatte su `ordina.kebabmediterraneo.it`**
+dopo aver controllato sulla dashboard Vercel che il deploy fosse concluso.*
+
+1. ✅ **Il pulsante si spegne**: «Conferma e salva» spento col nome svuotato, e
+   sopra *«Per salvare manca ancora: il nome»*.
+2. ✅ **E torna a funzionare**: rimesso il nome si riaccende, premuto **salva
+   davvero** e la modifica c'è. *È la prova che conta di più: storta, la
+   conferma sul prezzo sarebbe diventata un vicolo cieco su ogni articolo.*
+3. ✅ **La creazione è intatta**: `Roll di prova 7` creato e salvato.
+
+*Le prove sul sito sono state fatte su `Roll di prova 6`.*
+
+### 39b) ⚠️⚠️ IL DIFETTO: DUE PULSANTI CHE SALVANO, UNO SOLO SORVEGLIATO
+
+Il pulsante «Conferma e salva» — quello che **sostituisce** il Salva quando il
+riquadro della conferma sul prezzo è aperto — chiama `salvaModifica` **dritta**,
+con un `onClick`, e non passa dall'`onSubmit` dove sta la guardia su `canSave`.
+⚠️ *Non è una svista: è scritto nel file, con la sua ragione, per non ripassare
+dal controllo che ha acceso il riquadro.*
+
+**Fra la pressione e la prima chiamata di rete `canSave` non era guardato in
+nessun punto.** *Misurato contando le occorrenze, non concluso dal fatto che la
+guardia esistesse altrove.*
+
+E la strada esiste: **mentre il riquadro è aperto il resto della scheda resta
+modificabile.** Prezzo cambiato → Salva → riquadro → nome svuotato → partiva.
+
+⚠️ **Era un difetto già vivo, non creato dal 4b.** Ma lasciarlo avrebbe fatto
+scrivere in spec che i controlli stanno nel Salva: vero su una strada, falso
+sull'altra. *La lezione `de` costruita di nostra mano nel passaggio nato per
+evitarla.* Per questo è diventato un passaggio a sé, prima del 4b-2.
+
+### 39c) ⚠️ LA PROVA CHE AVEVO CHIESTO ERA IMPOSSIBILE DA ESEGUIRE
+
+Era stato chiesto: *«cambia il prezzo **e** svuota il nome, poi premi Salva»*.
+**Col nome vuoto il Salva è spento**, quindi non si preme, quindi il riquadro non
+compare mai.
+
+**L'ordine giusto l'ha trovato Andrea provando**: cambiare il prezzo → premere
+Salva → **poi** svuotare il nome. È l'unico che raggiunge quel pulsante nello
+stato che serve, e **vale ogni volta che si tocca quel riquadro**.
+
+**eb. ⚠️⚠️ UNA PROVA SI SCRIVE COME PERCORSO, NON COME FOTOGRAFIA DELLO STATO
+FINALE.** *Chi la scrive elenca le condizioni che vuole vedere insieme, e non si
+chiede se esista una sequenza di gesti che ci arriva. È la quindicesima volta che
+un comando contiene una prova non eseguibile, e la forma è sempre questa.*
+
+### 39d) ⚠️ LE PROVE SUL PREZZO SI FANNO SUGLI ARTICOLI DI PROVA
+
+La prima tornata è stata fatta sul **Turco**, un articolo vero del menu. Andrea
+ha rimesso il prezzo a mano.
+
+**ec. ⚠️ UNA PROVA SUL PREZZO DI UN ARTICOLO VERO LASCIA IL DATABASE SPORCO
+FINCHÉ QUALCUNO NON LO RIMETTE A MANO.** *Con un database solo e il sito
+raggiungibile, **niente lo ricorda e nessun controllo lo vede**: un residuo così
+si scopre da un cliente. Le prove che toccano il prezzo si fanno sugli articoli
+di prova.*
+
+### 39e) ✅ La misura prima di scrivere — otto righe su otto
+
+*Interrogazione di sola lettura, scritta da Code ed eseguita da Andrea nel SQL
+editor. Le decisioni e i numeri stanno in spec §63-64.* **Nessuno dei cinque
+controlli scatterebbe da solo su nessun articolo esistente.**
+
+⚠️ **I due controlli incrociati che rendono valido il referto**: 98 = 72+21+5 e
+50 = 45+5. *Se un'interrogazione avesse guardato nella tabella sbagliata, quelle
+somme non tornerebbero.*
+
+⚠️ **Il timore da cui la misura è nata si è sciolto per una ragione più forte
+della misura**: `price_delta` è `numeric not null`, quindi `proteineSenzaPrezzo`
+non può scattare sui dati letti dal database. *Il ragionamento sulla Cheesecake
+era giusto nella forma e sbagliato nel fatto, e il fatto stava in una riga di
+schema che nessuno aveva chiesto.*
+
+### 39f) Le tre obiezioni di Code all'interrogazione, tutte accolte
+
+*Nessuna era un dettaglio, e una correggeva un errore di chi ragionava.*
+
+1. **`proteineSenzaPrezzo` non si può tradurre in SQL** e resta fuori: guarda uno
+   stato dell'interfaccia, non un dato.
+2. **La metà «prezzo» di `extraIncompleti` è sempre falsa** per il tipo della
+   colonna, quindi la riga che resta **vale il controllo intero, non una metà.**
+3. ⚠️ **Le chiavi del catalogo sono QUATTRO, non tre** — `nessuna` compresa.
+   *Chi ragionava aveva preso il «tre» dalla misura del 27/08, dove è una
+   **fotografia dei dati**, non la regola. La regola sta in `lib/menu-options.js`
+   e Code è andato a leggerla.*
+
+⚠️ **E una asimmetria trovata rileggendo**: Code aveva dichiarato che lo schema
+è *il documento, non il database* per pretendere la verifica sulle etichette, e
+poi si era fidato dello stesso documento per le due colonne numeriche. *Le due
+righe di verifica sono state aggiunte prima di eseguire, così la misura si è
+lanciata una volta sola.*
+
+### 39g) ⚠️ Tre cose registrate e NON aperte, tutte sullo stesso riquadro
+
+*Tre facce dello stesso pezzo di scheda: si aprono insieme.*
+
+1. **Il riquadro non si richiude da solo** se si rimette il prezzo com'era, e
+   continua a mostrare *«8,50 € → 8,50 €. Confermi?»*.
+2. **«Annulla» non ripristina il prezzo**: chiude e lascia il valore nuovo nel
+   campo. ⚠️ *È la strada che aggira la conferma di §46.*
+3. **«Annulla» non è sorvegliato da nessuna prova.** ⚠️ *Misurato sporcando il
+   file vero: mettendogli `!canSave` addosso — che chiuderebbe l'utente dentro
+   il riquadro con tutti e due i pulsanti spenti — **nessuna prova su 1678
+   diventa rossa**. Oggi è scritto giusto; manca la sorveglianza. E il pulsante
+   accanto è appena diventato il modello da cui si copia.*
+
+### 39h) Le controprove del 4b-2a
+
+Sul file vero, con impronta riverificata dopo ogni ripristino, **tre** volte su
+tre. ⚠️ *La terza è nata da un errore del comando, che chiedeva di sporcare «un
+pulsante della creazione» — che non esiste: il submit è **uno solo** e cambia
+soltanto l'etichetta. Code non ha adattato la risposta, ha fatto una sporcatura
+in più e ha detto cosa stava al posto di cosa.*
+
+* tolto `!canSave` dal «Conferma e salva» → **5 rosse**;
+* tolto dal submit → **2 rosse**;
+* messo sull'«Annulla», dove **non** deve stare → **0 rosse**, ed è il punto 39g.3.
+
+⚠️ *E gli ancoraggi del ritaglio sono stati scelti sul dato che caratterizza, non
+sulla posizione: nel pannello ci sono **quattro** `type="submit"` e **tre**
+«Conferma e salva», sparsi fra tre componenti. Un ancoraggio generico avrebbe
+ritagliato il pulsante sbagliato.*
+
+### 39i) ⚠️ Le sedici lezioni che sembravano perdute NON lo erano
+
+*Errore di chi ragionava, ripetuto tre volte nella stessa giornata, e istruttivo
+proprio per questo.*
+
+Contando le lezioni definite nel file con una ricerca costruita **sulla forma che
+ci si immaginava**, ne risultavano 66 (sono **88**) e 17 rimandi rotti (erano 16,
+poi **zero**). Le lezioni si scrivono in **tre forme diverse** nel file, e ogni
+sonda vedeva solo la sua.
+
+**La sfoltita del 06/08 non ha perso niente**: ha raccolto le lettere in **nove
+famiglie**, e ogni famiglia porta le proprie lettere nell'intestazione. Chi cerca
+`az` la trova nella famiglia 2, con la regola dentro. *Ciò che si è perso è
+l'episodio, non la regola, ed era una scelta dichiarata.*
+
+**ed. ⚠️⚠️ UNA SONDA COSTRUITA SU COME CI SI IMMAGINA IL TESTO MISURA LE PROPRIE
+ASPETTATIVE — E CHI RAGIONA CI CASCA COME CHI ESEGUE.** *La stessa cosa è
+capitata a Code nello stesso giorno, cercando le lezioni nella storia: il primo
+giro ne trovava 10 su 17. Non ha riferito il 10: è andato a vedere dove fossero
+finite le sette, ha trovato la terza forma e ha rifatto tutto. **È il verso
+giusto: uno zero che sorprende si indaga, non si riferisce.***
+
+⚠️ **Una correzione, misurata da Code**: questo documento dice che l'ultima
+versione integra delle lezioni è al commit `254ffad`. **`254ffad` precede
+`fce1323`**, che è l'ultimo commit a contenerle. Le contengono entrambi
+identiche, ma il puntatore va a un commit più vecchio del necessario.
+
+### 39j) Cosa resta aperto — sostituisce il punto 38f
+
+* ⚠️⚠️ **4b-2: ACCENDERE IL BLOCCO E RIMETTERE I CONTROLLI**, insieme. I
+  controlli sono **cinque, non quattro**; il blocco si accende **su
+  `opzioniLette`**, non togliendo il vincolo; e va creata la nozione di
+  **opzioni toccate**, che non esiste. Qui va anche la seconda metà di **(PP)**.
+  **Non la chiamata: quella è il 4b-3.** *Tutto in spec §63-64 v79.*
+* ⚠️ **4b-3: LA CHIAMATA.** Il pezzo pericoloso, con l'impalcatura già provata.
+* ⚠️ **IL RIQUADRO DELLA CONFERMA SUL PREZZO — tre difetti, un lavoro solo.**
+  Vedi 39g. *Nessuno tocca i dati oggi; il secondo aggira §46.*
+* ⚠️ **LA SFOLTITURA DEI DUE DOCUMENTI**, decisa da Andrea il 28/08 e **non
+  fatta**. *Il modello è la consolidazione del 06/08: da ~150 righe a ~30 senza
+  perdere un rimando. Si toglie il racconto e si tiene la decisione con la sua
+  ragione; **non si toccano** le lezioni, le alternative scartate con la loro
+  ragione, i divieti vivi, lo stato dei dati e ciò che è dichiarato aperto.*
+  ⚠️ *Va fatta **da sola**: mescolata a un aggiornamento, il diff non è più
+  verificabile.*
+* ⚠️ **Prima della prova dal vivo del 4b-3, decidere se caricare `Roll prova` di
+  rimozioni ed extra dal pannello.** *Ne ha **una sola**.*
+* ⚠️ **L'attesa «un po' lenta»** all'apertura della scheda: registrata, non
+  aperta. **Diventa visibile col 4b-2**, come blocco grigio.
+* ⚠️ **LA CHIAVE API DI GOOGLE — scaduta il 26/08, non fatta.** Intervento di
+  Andrea nella console. ⚠️ *Con due indirizzi vivi, la restrizione al singolare
+  romperebbe il completamento dell'indirizzo sull'altro.*
+* ⚠️ **Il font**: la voce di §6c **non è chiusa**. *La prova sta nell'elenco
+  domini del pannello Adobe, non nel sito.*
+* **L'inserimento dei gusti in creazione**, registrato e non aperto:
+  `lib/menu-create.js` non è mai stato letto.
+* **Poi i passi 5, 6 e 7**: conferma sul sovrapprezzo (FF), sparizione di
+  `ProductEditForm`, cambio di categoria (HH). ⚠️ *Da tenere per il passo 6:
+  `ProductForm` e `ProductEditForm` **stanno nello stesso file**,
+  `app/staff/page.js`, righe 1493-2710 e 963-1221.*
+* ⚠️ **SETTE ARTICOLI DI PROVA DA CANCELLARE**: `Roll prova`, `Roll di prova 2`,
+  `3`, `4`, `5`, `6`, `7`. **Non prima del 4b.**
 * ⚠️ **La rete sul conteggio**: **30 suite su 34** non ce l'hanno.
 * ⚠️ **La rete dei ventuno campi potrebbe essere cieca alla scorciatoia**
   (`key,` invece di `key: key,`), che è il difetto che è nata per vedere.
