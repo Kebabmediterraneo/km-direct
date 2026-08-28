@@ -1189,13 +1189,9 @@ Analogamente su `app/page.js`: cancellazione di `km_direct_checkout` a ordine co
 
 ## 18) Il giro su infrastruttura e database (04/08/2026)
 
-Sessione **senza una riga di codice applicativo**: acquisti e configurazione nella dashboard, cinque query di sola lettura eseguite da Andrea, una ricognizione di Code sul repository, e l'aggiornamento dei due documenti. Le decisioni stanno in **spec §63-64, §65, §66 e §69 v54**; qui c'è lo stato.
-
-### 18a) Cosa è stato fatto, e da chi
-
-Tutto quanto segue è **di Andrea**, nella dashboard: attivazione del piano **Pro** sull'organizzazione *Kebab Mediterraneo*, passaggio della taglia di calcolo da **Nano a Micro**, e l'esecuzione delle query. Code è intervenuto una volta sola, per la ricognizione sugli slug, e una seconda per la copia della spec.
-
-### 18b) I fatti verificati, con la fonte
+Nessuna riga di codice: configurazione nella dashboard, cinque query di sola
+lettura, una ricognizione sul repository. **Le sette decisioni stanno in spec
+§63-64, §65, §66 e §69**; qui i fatti e ciò che è rimasto aperto.
 
 | fatto | fonte |
 |---|---|
@@ -1209,20 +1205,30 @@ Tutto quanto segue è **di Andrea**, nella dashboard: attivazione del piano **Pr
 | `orders.privacy_accepted_at` **obbligatoria**: nessun ordine senza consenso | definizione della colonna |
 | **nessuno slug è mai stato generato da codice** | ricognizione di Code |
 
-**Conteggi al 04/08/2026**, letti dal database: `orders` **30** (26 mai pagati, 4 `succeeded` in sandbox), `customers` **40**, `promo_redemptions` **1**, `analytics_events` **0**, `staff_action_log` **70** di cui **43** di prova. ⚠️ **SUPERATI il 05/08**: la rilettura ha trovato un ordine di prova in più, creato lo stesso 04/08 alle 13:07. **I numeri validi stanno al punto 11**, e questi restano solo come fotografia di quel momento.
+⚠️ **I conteggi letti quel giorno sono superati dal 05/08** — la rilettura ha
+trovato un ordine di prova in più: **i numeri validi stanno al punto 11.**
 
-### 18c) Le sette decisioni prese
+### 18a) Cosa questo giro NON ha chiuso
 
-Pulizia in **due strumenti separati** invece di uno (rovescia §69 v53) · ordini **`failed` trattati come i `pending`** · nella pulizia mensile log staff ed eventi statistici **perdono il riferimento, non la riga** · i **codici promo tornano utilizzabili** solo a chi non ha mai pagato · lo **slug si genera dal nome** con sei regole dichiarate · in **collisione il pannello si ferma** invece di aggiungere un numero · la regola vive in un **modulo unico**.
+* ⚠️ **La chiave `service_role`: verifica FATTA, e SCADUTA.** Scavalca ogni RLS,
+  e tutta la protezione regge sul fatto che non finisca nel browser. **Non ci
+  finisce**, accertato il 04/08 **per quattro vie** (spec §66, punto 17). Ma la
+  spec dichiara che l'esito **vale per il codice di oggi**: va rifatta quando si
+  riapre `app/api/checkout/route.js` e **quando si costruisce la Fase 3**. Il
+  file del checkout non è mai stato riaperto — al punto 28 è stata scelta la
+  strada che non lo tocca, e i sei lavori di chi lo riaprirà stanno al punto 16.
+  ⚠️ **La Fase 3 invece è stata costruita il 06/08** (punto 21): la condizione è
+  scattata, e **in nessuno dei due documenti risulta che la verifica sia stata
+  rifatta**. *Questa voce sostituisce, il 28/08, una riga che dichiarava la
+  verifica mai fatta: era falsa già il giorno in cui è stata scritta.*
+* **`analytics_events` ha già un elenco chiuso di tipi di evento** nel database,
+  mai letto da nessuno. Va confrontato con la dozzina di §65 **prima** di
+  scrivere codice.
+* **Le altre affermazioni dell'informativa sull'infrastruttura** — hosting,
+  cookie, strumenti di analisi — non sono state passate in rassegna una per una,
+  come è stato fatto per la regione.
 
-### 18d) Cosa questo giro NON ha chiuso
-
-* ⚠️ **La chiave `service_role` scavalca ogni RLS**, e nessuno ha verificato che non finisca nel browser. È una domanda sul codice, ed è la prima da fare a Code.
-* **`analytics_events` ha già un elenco chiuso di tipi di evento** nel database, mai letto da nessuno. Va confrontato con la dozzina di §65 **prima** di scrivere codice.
-* **Gli script di pulizia non esistono ancora.** Le regole ci sono, il codice no.
-* **Le altre affermazioni dell'informativa sull'infrastruttura** — hosting, cookie, strumenti di analisi — non sono state passate in rassegna una per una, come è stato fatto per la regione.
-
-### 18e) Due lezioni di metodo
+### 18b) Tre lezioni
 
 **bg. ⚠️ Una frase di un fornitore non è un dato da cui calcolare.** La pagina dei backup dice che le copie si prendono "intorno alla mezzanotte della regione del progetto". Gli orari erano le 07:36 UTC, che in Irlanda non è mezzanotte: da lì è nata l'ipotesi che il database fosse negli Stati Uniti, con l'informativa che avrebbe dichiarato il falso in due punti. **Il campo Region diceva Irlanda.** La frase era approssimativa. *È la famiglia delle lezioni `ap` e `av` in forma nuova: là la sonda era costruita sulla forma attesa di un file, qui il calcolo era costruito sulla frase di un'interfaccia. Il rimedio è lo stesso — si legge il campo, non si deduce dall'orario — e il costo è stato due messaggi, perché l'ipotesi era stata dichiarata come ipotesi e non come fatto.*
 
@@ -1234,9 +1240,9 @@ Pulizia in **due strumenti separati** invece di uno (rovescia §69 v53) · ordin
 
 ## 19) Gli script di pulizia dati (04/08/2026, seconda metà)
 
-Seguito diretto del punto 18: con il referto sui collegamenti in mano, §69 si è sbloccata e i tre strumenti sono stati scritti. Commit **`f54c29d`**. **Nessuno dei tre è mai stato eseguito.**
-
-### 19a) I tre file
+Con il referto sui collegamenti in mano, §69 si è sbloccata e i tre strumenti
+sono stati scritti. Commit **`f54c29d`**. ⚠️ **Nessuno dei tre è mai stato
+eseguito.** Decisioni e chiarimenti in **spec §69 e §66**.
 
 | file | cosa fa | quando si esegue |
 |---|---|---|
@@ -1244,15 +1250,29 @@ Seguito diretto del punto 18: con il referto sui collegamenti in mano, §69 si �
 | `sql/ESEGUIRE_UNA_VOLTA_SOLA_prima_del_golive_CANCELLA_TUTTI_GLI_ORDINI.sql` | azzera ordini, clienti, riscatti, eventi | una volta sola, al go-live |
 | `sql/pulizia_mensile_ordini_mai_pagati.sql` | rimuove i mai pagati oltre 30 giorni | ogni mese, per sempre |
 
-Il nome in maiuscolo è voluto: nell'elenco della cartella, fra nove migrazioni datate e minuscole, quel file si stacca da solo. **Il pericolo non è che qualcuno esegua quello sbagliato di proposito: è che li confonda.**
+Il nome in maiuscolo è voluto: fra nove migrazioni datate e minuscole quel file
+si stacca da solo. **Il pericolo non è che qualcuno esegua quello sbagliato di
+proposito: è che li confonda.**
 
-⚠️ **Lo script del go-live si cancella dal deposito subito dopo l'uso** — passo 5 della sequenza di apertura (spec §66 v55). Non è una buona intenzione: è che il momento della cancellazione coincide con quello in cui si è stanchi e contenti, a sito appena aperto.
+⚠️ **Lo script del go-live si cancella dal deposito subito dopo l'uso** — passo
+5 della sequenza di apertura (spec §66). Non è una buona intenzione: è che il
+momento della cancellazione coincide con quello in cui si è stanchi e contenti,
+a sito appena aperto.
 
-### 19b) Le sette decisioni e i chiarimenti della v55
+### 19a) Ciò che gli script NON risolvono
 
-Due strumenti separati · `failed` come `pending` · staccare invece di cancellare, **anche al go-live** per le sole righe da conservare · codici promo riutilizzabili solo da chi non ha mai pagato · **le due frasi contraddittorie di §69 v54 sulle righe cliente sono state unificate** nella più stretta · i trenta giorni di una riga cliente si contano da `customers.created_at` · **fino al go-live dichiarato da Andrea ogni ordine è una prova** (regola generale, spec §66).
+* ⚠️ **La spec non definisce come si riconosce un'azione di prova nel registro
+  staff.** `staff_identifier` è testo libero; nel file del go-live il criterio è
+  un **parametro compilato a mano**, letto dal referto e non ricordato, con due
+  controlli che bloccano se resta vuoto o non corrisponde a nulla. *Limite noto
+  e non sanato: quello script si esegue una volta e sparisce, e la pulizia
+  mensile non tocca mai il registro per identificatore.*
+* **Resta la prima esecuzione della pulizia mensile.** Il **giorno** è stato
+  fissato il 05/08 — il primo del mese, prima di aprire (punto 20) — ma nessuno
+  dei tre file è mai stato eseguito, e quello del go-live per sua natura si
+  prova una volta sola.
 
-### 19c) Due errori trovati leggendo i file, non il referto che li descriveva
+### 19b) Due difetti trovati leggendo i file, non il referto che li descriveva
 
 **bi. ⚠️ Un freno che scatta a torto insegna ad aggirarlo.** Il referto dei conteggi stampava la data dell'ultimo ordine **troncata ai secondi**, ma `created_at` ha precisione al microsecondo: copiata nel freno, l'ordine più recente risultava successivo a sé stesso e l'arresto sarebbe scattato al primo tentativo. Chi si fosse trovato davanti a quell'arresto avrebbe visto una data identica al referto, e l'unica mossa che sblocca era proprio quella vietata in maiuscolo — spostare la data in avanti. *Corretto con i microsecondi e **verificato**: su `max(created_at) = 2026-08-04 13:07:01.471525+00`, zero ordini oltre il valore nuovo e uno oltre quello vecchio. Lo zero conta perché la stessa sonda cambia risposta col formato vecchio.*
 
@@ -1260,34 +1280,19 @@ Due strumenti separati · `failed` come `pending` · staccare invece di cancella
 
 **Una terza, sul metodo di chi legge:** entrambi questi difetti sono stati trovati **leggendo i file**, non i referti che li descrivevano. I referti erano corretti e dettagliati, ma descrivevano controlli, non li mostravano. *Un referto che descrive un file non è il file.*
 
-### 19d) Ciò che gli script NON risolvono, e va saputo
-
-* ⚠️ **La spec non definisce come si riconosce un'azione di prova nel registro staff.** `staff_identifier` è testo libero. Nel file del go-live il criterio è un **parametro compilato a mano**, letto dal referto e non ricordato, con due controlli che bloccano se resta vuoto o non corrisponde a nulla. *Registrato come limite noto e non sanato: quello script si esegue una volta e sparisce, e la pulizia mensile non tocca mai il registro per identificatore.*
-* **La cadenza mensile non esiste ancora.** Lo strumento c'è, il giorno del mese no.
-* **Nessuno dei tre file è stato eseguito**, e quello del go-live per sua natura si prova una volta sola.
-
-### 19e) Note di metodo rimaste in coda — ✅ inserite il 05/08/2026
-
-Erano due, e **non sono più in coda**: la prima è diventata la lezione `bn`
-(il browser non sovrascrive da solo i file scaricati, e la trappola si è
-riarmata puntualmente con la v56), la seconda era la lezione `ak` vista dal
-lato di chi scrive i comandi ed è ora citata al punto 18e, dove il caso è
-raccontato per esteso. *Nulla è andato perso, ed è la ragione per cui questo
-blocco è stato scritto invece di fidarsi della memoria.*
-
 ---
 
 ## 20) La ricognizione su §62b e la spec v56 (05/08/2026)
 
-Giornata **senza una riga di codice applicativo**: una ricognizione di sola
-lettura di Code sul repository, il primo referto dei conteggi eseguito da
-Andrea, quattro decisioni, e la spec portata alla **v56** (commit `1f74e8f`).
+Nessuna riga di codice: una ricognizione di sola lettura, il primo referto dei
+conteggi eseguito da Andrea, quattro decisioni, e la spec portata alla **v56**
+(commit `1f74e8f`).
 
 ### 20a) Il difetto trovato, che era in spec e non nel codice
 
 ⚠️ **§62b affermava una cosa falsa sul codice, e ci era stato costruito sopra
-un ragionamento.** Vedi la lezione `bk` per il metodo; qui i fatti, letti da
-Code sul codice eseguibile e confermati da Andrea sul database vivo:
+un ragionamento** (metodo: lezione `bk`). I fatti, letti sul codice eseguibile e
+confermati sul database vivo:
 
 | motivo | dove finisce davvero |
 |---|---|
@@ -1307,75 +1312,51 @@ Due fatti collaterali emersi dalla stessa lettura:
   `annullato` solo a partire da `problema`, mentre la spec descriveva due
   azioni indipendenti.
 
-### 20b) Le quattro decisioni di Andrea
+### 20b) Le decisioni
 
-1. **Il motivo si conserva, non si mostra.** Nessuna vista del pannello lo
-   mostrerà, e §65 si intende soddisfatta dalla conservazione. *Scritto in spec
-   con la clausola che impedisce a qualcuno, fra un anno, di costruire la pagina
-   leggendo §65 e trovandola "mancante".*
-2. **Il passaggio obbligato da `problema` resta**: si corregge la spec, non il
-   codice.
-3. **Pulizia mensile il primo di ogni mese, prima di aprire il locale.** Il
-   primo perché esiste in tutti i mesi.
-4. **La pulizia mensile non si prova ora**, benché oggi non avrebbe nulla da
-   cancellare.
-
-### 20c) Le due decisioni di §65 — chiuse
-
-* ✅ **i tempi fra le fasi** si ricavano da `order_status_history`, colonna
-  **`changed_at`**, nome letto dal database vivo. Prima era una convinzione;
-* ✅ **il motivo dell'annullamento non va nel `payload`**: esiste già in due
-  posti permanenti e la statistica lo legge da `staff_action_log` filtrando
-  `action`. **L'istruzione della v54 di "decidere come si chiama quella voce"
-  decade**, perché poggiava sull'errore di §62b.
+**Il motivo si conserva, non si mostra** — nessuna vista del pannello lo
+mostrerà, e §65 si intende soddisfatta dalla conservazione, *con la clausola che
+impedisce a qualcuno, fra un anno, di costruire la pagina leggendo §65 e
+trovandola "mancante"* · **il passaggio obbligato da `problema` resta**: si
+corregge la spec, non il codice · **pulizia mensile il primo di ogni mese**,
+prima di aprire, perché il primo esiste in tutti i mesi, e **non si prova ora** ·
+✅ **i tempi fra le fasi** si leggono da `order_status_history.changed_at`, nome
+letto dal database vivo · ✅ **il motivo dell'annullamento non va nel
+`payload`**: esiste già in due posti permanenti e la statistica lo legge da
+`staff_action_log` filtrando `action`.
 
 ⚠️ **Le statistiche non hanno più decisioni bloccanti**: è lavoro da fare, non
 da decidere.
 
-### 20d) Ciò che questo giro ha verificato con quattro sonde
+⚠️ **Nessun codice scrive in `analytics_events`**, e il no è dimostrato: quattro
+sonde indipendenti — la parola, tutti i punti in cui il codice nomina una
+tabella (**84 occorrenze, di cui 9 non letterali risolte una per una**), le vie
+che scavalcano il client, gli undici nomi degli eventi — ognuna
+con la propria controprova su un dato che c'è di sicuro (lezioni `ap`, `aq`,
+`av`).
 
-La domanda "esiste già codice che scrive in `analytics_events`?" ha risposta
-**no**, ed è un no dimostrato: quattro sonde indipendenti — la parola, tutti i
-punti in cui il codice nomina una tabella (84 occorrenze, di cui 9 non
-letterali risolte una per una), le vie che scavalcano il client, e gli undici
-nomi degli eventi — ognuna con la propria controprova su un dato che c'è di
-sicuro. *È il modo in cui un risultato vuoto smette di essere ambiguo (lezioni
-`ap`, `aq`, `av`).*
+### 20c) Cosa questo giro NON ha chiuso
 
-### 20e) Cosa questo giro NON ha chiuso
-
-* **la prima esecuzione della pulizia mensile**, decisa e rimandata;
-* **l'accesso al DNS del dominio `kebabmediterraneo.it`**: il dominio è di
-  proprietà, ma nessuno del progetto ha accesso al pannello. `ordina.` è un
-  **sottodominio**, non si acquista e non costa nulla: serve solo chi ha le
-  chiavi. ⚠️ *Va preso l'accesso, non chiesto il favore: la sequenza di apertura
-  (§66) mette il dominio al primo posto proprio perché il webhook di Stripe
-  deve puntare all'indirizzo definitivo, e dipendere da terzi in quel momento
-  significa sito fermo. In quello stesso pannello vivono anche i record della
-  posta elettronica del locale: chi ci mette le mani aggiunge una riga e non
-  tocca il resto;*
 * **dove è ospitato il sito**, che la spec dichiara essere Vercel senza che
-  nessuno l'abbia verificato alla fonte — è una delle affermazioni
-  dell'informativa sull'infrastruttura ancora non passate in rassegna (punto
-  18d). Va accertata prima del passo 2 della sequenza di apertura;
-* **l'asimmetria della risoluzione**, che non scrive nel registro azioni
-  mentre segnalazione e annullamento sì. Registrata in spec §62b v56 come
-  limite noto, fuori dai lavori pre-go-live.
+  nessuno l'abbia verificato alla fonte: una delle affermazioni
+  dell'informativa ancora non passate in rassegna (punto 18). Va accertata
+  prima del passo 2 della sequenza di apertura;
+* **l'asimmetria della risoluzione**, che non scrive nel registro azioni mentre
+  segnalazione e annullamento sì. Registrata in spec §62b come limite noto,
+  fuori dai lavori pre-go-live.
+
+*L'accesso al DNS del dominio, che questa giornata elencava fra le cose aperte,
+è stato ottenuto: **lo stato vivo di quella voce è al punto 12**.*
 
 ---
 
 ## 21) La Fase 3, dalla costruzione alla pulizia (06/08/2026)
 
-### 21a) Cosa è stato costruito
-
-Tre commit, nella forma che §63-64 già imponeva: modulo puro sotto `lib/`, rotta
-sottile, form **in linea** nella sezione Menu del pannello.
-
-* `lib/menu-slug.js` — generazione dello slug, con le sue prove;
-* `lib/menu-create.js` — il cuore della creazione, con le sue prove; accanto,
-  `lib/menu-categories.js` e `lib/menu-dietary.js`, che diventano la **fonte
-  unica** di elenco categorie e tabella dietetica;
-* `app/api/staff/menu/create/route.js` più il modulo a schermo nel pannello.
+Tre commit nella forma che §63-64 imponeva — modulo puro sotto `lib/`, rotta
+sottile, form in linea nella sezione Menu: `lib/menu-slug.js`,
+`lib/menu-create.js`, e accanto `lib/menu-categories.js` e `lib/menu-dietary.js`
+come **fonte unica** di categorie e tabella dietetica, più
+`app/api/staff/menu/create/route.js`. **Sette prove dal vivo, tutte superate.**
 
 ⚠️ **Il debito che questa fase ha reso visibile, e che va saputo prima di
 toccare Fase 1 o Fase 2A**: `lib/menu-create.js` riceve il client del database
@@ -1385,32 +1366,19 @@ perché importano `supabase-admin.js`**, che crea il client al caricamento del
 modulo. *Sistemarlo sbloccherebbe le prove di due fasi già in produzione: non è
 un abbellimento.*
 
-### 21b) Le prove dal vivo
+### 21a) Le decisioni di Andrea (tutte in spec v59)
 
-Sette, tutte superate, eseguite da Andrea sul server di sviluppo: modulo vuoto
-col pulsante spento; comparsa di allergeni e selettore dietetico scegliendo una
-categoria di cibo; loro **sparizione** scegliendo una bevanda; **collisione
-dello slug rifiutata senza lasciare traccia**; bevanda creata e ritrovata **in
-fondo** alla sua categoria; articolo di cibo creato con allergeni e ritrovato
-sul sito cliente; riapertura dal modulo allergeni con le caselle come lasciate.
+La **Fase 4 spostata a prima del go-live** — inserire e sospendere Roll è
+attività frequente, e la collocazione precedente nasceva da una frequenza
+**presunta e mai chiesta** · la Fase 4 **sceglie fra le proteine esistenti** ·
+prima della Fase 4 si costruisce **"togli dal menu"** · ⚠️ **le bevande sono
+esentate dagli allergeni anche in creazione — prezzo accettato**: una birra
+creata dal pannello non porta l'informazione sul glutine.
 
-### 21c) Le decisioni nuove di Andrea (tutte del 06/08/2026, tutte in spec v59)
+### 21b) Cosa ha lasciato la pulizia degli articoli di prova
 
-* **La Fase 4 si sposta a prima del go-live** — inserire e sospendere Roll è
-  attività frequente. La collocazione precedente nasceva da una frequenza d'uso
-  **presunta e mai chiesta**.
-* **La Fase 4 sceglie fra le proteine già esistenti**, non ne crea di nuove.
-* **Prima della Fase 4 si costruisce "togli dal menu"**, che è indipendente e
-  molto più piccolo.
-* **Le bevande sono esentate dagli allergeni anche in creazione** — prezzo
-  accettato: una birra creata dal pannello non porta l'informazione sul glutine.
-
-### 21d) La pulizia degli articoli di prova
-
-I due articoli creati sono stati cancellati con uno script **usa-e-getta**, in
-tre passaggi: ricognizione di sola lettura, anteprima che non scrive,
-cancellazione. ⚠️ **Non è stato salvato in `sql/`**, come §69 impone per gli
-strumenti che cancellano articoli.
+⚠️ Lo script usa-e-getta **non è stato salvato in `sql/`**, come §69 impone per
+gli strumenti che cancellano articoli.
 
 * **Gli agganci a `products` sono OTTO, non sei**: ai cinque delle opzioni e
   agli allergeni si aggiungono `combo_drink_options.drink_product_id` e
@@ -1425,9 +1393,9 @@ strumenti che cancellano articoli.
   posto da guardare quando si aprirà la Fase 4 e si andrà a cercare il residuo
   label→id.*
 
-### 21e) Due lezioni di metodo
+### 21c) Tre lezioni
 
-**bp. ⚠️ Fra il riquadro dell'editor SQL e il database, un testo lungo può
+**ee. ⚠️ Fra il riquadro dell'editor SQL e il database, un testo lungo può
 arrivare tronco.** Il primo invio dello script di cancellazione è stato
 rifiutato per un blocco "mai chiuso": il testo ricevuto si interrompeva a metà
 riga, con in coda i commenti che la dashboard aggiunge. Il secondo invio dello
@@ -1451,28 +1419,16 @@ attesa va scritta nel comando, sempre.*
 
 ## 22) La disponibilità della bibita nel menu combo (06/08/2026, sera)
 
-### 22a) Il difetto, trovato cercando altro
-
-Nato da una domanda di Andrea sulla gestione del combo dal pannello. **Una
-bibita segnata esaurita restava scegliibile dentro il menu combo, e il pagamento
-la accetta**: la tendina filtrava sulla colonna della tabella del combo — che
+Una **bibita esaurita restava scegliibile dentro il menu combo, e il pagamento
+la accettava**: la tendina filtrava sulla colonna della tabella del combo — che
 **nessuna schermata può scrivere** — invece che sulla disponibilità del
-prodotto, che non veniva nemmeno portata al browser. Contorni e Roll erano
-invece già a posto.
+prodotto. Contorni e Roll erano già a posto. ⚠️ **Il buco era aperto per
+costruzione, non per una svista**: sul database vivo tutte le righe di
+`combo_drink_options` erano a `is_available = true`, perché nessuno le scrive
+mai. Decisioni e forma in **spec §23-26**.
 
-⚠️ **Il buco era aperto per costruzione, non per una svista su una riga**: sul
-database vivo tutte le righe di `combo_drink_options` erano a `is_available =
-true`, perché nessuno le scrive mai. Le decisioni e la forma stanno in **spec
-§23-26 v60 e v61**.
+### 22a) Cosa NON è stato provato, e perché
 
-### 22b) Cosa è stato scritto, e cosa NON è stato provato
-
-Due commit: la correzione nei tre punti — tendina, risolutore del pagamento,
-carrello — e la guardia sulle scelte vuote. Provate dal vivo da Andrea con sette
-prove a schermo, guardia compresa.
-
-* **Provato dalle prove automatiche**: il solo carrello, che vive in un modulo
-  puro. Otto prove nuove.
 * ⚠️ **NON provato, e registrato come tale**: il controllo sul pagamento. È la
   decima lettura da database di un modulo che le prove del progetto dichiarano
   già scoperte. **Un caso finto sarebbe stato peggio di nessun caso**: un
@@ -1484,7 +1440,7 @@ prove a schermo, guardia compresa.
   in un file da quasi 4000 righe. Verificata **leggendo** la proprietà che conta
   — che stia dopo l'unico hook.
 
-### 22c) Tre cose trovate scrivendo, che il piano non prevedeva
+### 22b) Tre cose trovate scrivendo, che il piano non prevedeva
 
 * ⚠️ **Filtrare la lista unica avrebbe rotto il carrello in silenzio.** Il codice
   lo dichiarava già in un commento: il ripristino deve **vedere** gli articoli
@@ -1496,7 +1452,7 @@ prove a schermo, guardia compresa.
 * ⚠️ **Lo shortcut "Fallo combo" non esiste nel codice**, ed era descritto come
   costruito in **due** punti della spec. Cercato, non dedotto. Corretto in v61.
 
-### 22d) Il difetto preesistente che la guardia ha chiuso
+### 22c) Il difetto preesistente che la guardia ha chiuso
 
 ⚠️ **Segnare esauriti tutti e sette i Roll rompeva il builder del combo già
 prima di questo lavoro.** Non è un danno introdotto dalla correzione della
@@ -1504,7 +1460,7 @@ bibita, ed è scritto qui perché fra un mese lo sembrerebbe. La prova dal vivo 
 06/08 — sette Roll esauriti e rimessi — ha verificato **insieme** la guardia
 nuova e l'esistenza del guasto che copre.
 
-### 22e) Tre lezioni
+### 22d) Tre lezioni
 
 **bs. ⚠️ Una prova può ESPLODERE invece di fallire, e nascondere quelle dopo di
 sé.** Togliendo il controllo per verificare che le prove nuove potessero
@@ -1536,64 +1492,32 @@ in cui non si può tornare.*
 
 ## 23) "Togli dal menu", dalla migrazione alle prove dal vivo (07/08/2026)
 
-### 23a) Cosa è stato fatto
+Colonna **`is_in_menu`** (boolean not null default true su `products`),
+migrazione eseguita nel SQL editor. Il cuore è `lib/menu-visibility.js` con la
+rotta sottile `app/api/staff/menu/visibility/route.js`, nella forma provabile
+inaugurata dalla Fase 3: **il client si passa come parametro**. 37 prove sul
+solo cuore. Toccati anche `app/staff/page.js`, `app/page.js`,
+`lib/checkout-resolve.js` e `lib/cart-persistence.js`; prove da **648** a
+**669**. **Decisioni e forma in spec §63-64, §23-26 e §46.**
 
-**Sei pezzi, cinque commit più la migrazione**, tutti spinti. La colonna è
-`is_in_menu` (boolean not null default true su `products`), migrazione eseguita
-da Andrea nel SQL editor — 62 articoli nel menu, 0 fuori al momento
-dell'esecuzione.
+### 23a) Le quattro cose cambiate rispetto al piano, tutte da chi ha guardato invece di ricordare
 
-Il cuore è `lib/menu-visibility.js` con la rotta sottile
-`app/api/staff/menu/visibility/route.js`, nella forma provabile inaugurata dalla
-Fase 3: **il client si passa come parametro**. 37 prove sul solo cuore. Il
-pulsante occhio e lo stato spento in `app/staff/page.js`, il sito cliente in
-`app/page.js`, il pagamento in `lib/checkout-resolve.js`, il carrello in
-`lib/cart-persistence.js`. Prove: da **648** a **669**.
+* **Il rientro rimette anche `is_available`.** Un articolo tolto dal menu
+  **mentre era esaurito** sarebbe rientrato esaurito, e col pulsante Disponibile
+  spento **nessuna schermata avrebbe più potuto cambiarlo**.
+* ⚠️ **Le birre ricevono la lista PIENA, non la filtrata.** Il comando diceva il
+  contrario. Quella lista non disegna nulla: serve a riconoscere se c'è una
+  birra nel carrello, e da lì dipende la casella **«sono maggiorenne»**. Con la
+  filtrata sarebbe sparita da sé **sbloccando il pagamento**.
+* **Il messaggio del combo nomina la bibita**, e **le due liste nel sito
+  cliente** contro la strada facile del filtro unico.
 
-**Decisioni e forma stanno in spec §63-64, §23-26 e §46 v63.** Qui resta solo
-ciò che il racconto aggiunge.
-
-### 23b) Le quattro cose cambiate rispetto al piano iniziale
-
-Nessuna delle quattro era nel piano approvato la mattina. Tutte e quattro sono
-nate da qualcuno che ha **guardato** invece di ricordare.
-
-* **Il rientro rimette anche `is_available`.** Il piano scriveva una colonna
-  sola. Un articolo tolto dal menu **mentre era esaurito** sarebbe rientrato
-  esaurito, e col pulsante Disponibile spento nessuna schermata avrebbe più
-  potuto cambiarlo.
-* ⚠️ **Le birre ricevono la lista PIENA, non la filtrata.** Il comando dato a
-  Code diceva il contrario, e veniva da un elenco di sola lettura che
-  classificava le birre fra ciò che "non deve vedere un fuori menu". **Code si
-  è fermato e ha spiegato prima di eseguire**: quella lista non disegna nulla,
-  serve a riconoscere se c'è una birra nel carrello, e da lì dipende la casella
-  **«sono maggiorenne»**. Con la filtrata sarebbe sparita da sé sbloccando il
-  pagamento.
-* **Il messaggio del combo nomina la bibita**, allargamento di perimetro voluto
-  da Andrea che tocca anche il comportamento scritto la sera prima.
-* **Le due liste nel sito cliente**, contro la strada facile del filtro unico.
-
-### 23c) I due elenchi sbagliati, e come sono venuti fuori
-
-⚠️ **Un referto di sola lettura ha prodotto due verdetti falsi, e le righe erano
-giuste.** Lo stesso documento dichiarava prima **cinque** consumatori di una
-variabile e poi, eseguendo la ricerca, ne trovava **diciassette**; e in un altro
-punto dichiarava **nove** aiuti trovati mentre la tabella ne elencava **sette**.
-
-*Entrambi sono stati scoperti contando, non leggendo. Il rimedio applicato è
-diventato regola: quando si chiede un elenco, si chiede **completo** — tutti i
-punti, non i soli cambiati — perché è il confronto fra il totale e la tabella a
-far cadere l'errore.*
-
-### 23d) Il numero delle prove che è cambiato da solo
+### 23b) Il metro delle prove, scritto una volta sola
 
 ⚠️ **Il conteggio è passato da 648 a 664 senza che nessuno avesse scritto una
 prova.** La spiegazione data — "è solo un modo diverso di contare" — era falsa:
 il comando cercava `PASS` in qualunque punto della riga, e l'ultima riga di ogni
-suite è `TUTTI I TEST PASSATI`, che contiene `PASS`. **Sedici suite, sedici
-striscioni contati come prove.**
-
-**Il metro, scritto una volta sola:**
+suite è `TUTTI I TEST PASSATI`, che contiene `PASS`.
 
 ```
 for f in tests/*.test.mjs; do node "$f"; done 2>/dev/null | grep -c '^PASS — '
@@ -1602,7 +1526,7 @@ for f in tests/*.test.mjs; do node "$f"; done 2>/dev/null | grep -c '^PASS — '
 *Se il numero sale, qualcuno ha scritto prove nuove. Se scende, qualcosa si è
 rotto.*
 
-### 23e) La prova che non poteva fallire, due volte in un giorno
+### 23c) Come si provano dal vivo il sito e il pagamento
 
 * ⚠️ **Guardare il sito cliente con 62 articoli dentro e 0 fuori non è una prova
   blanda: non è una prova.** Le due liste sono identiche e il sito sembra giusto
@@ -1617,7 +1541,7 @@ rotto.*
   che il controllo gira quando si preme il pulsante, non quando si è già su
   Stripe.*
 
-### 23f) Ciò che questo lavoro NON ha chiuso
+### 23d) Ciò che questo lavoro NON ha chiuso
 
 * ⚠️ **La finestra del pagamento** (spec §46 v63): dopo che il cliente è su
   Stripe non c'è più alcun controllo, e il webhook non legge `products`. Vale
@@ -1627,9 +1551,8 @@ rotto.*
   trovato per caso. Da accertare se sia raggiungibile da fuori.
 * ⚠️ **Il piano di hosting Hobby**, da verificare sulle condizioni di Vercel.
 * **Il viewport e lo schermo mobile del sito cliente**, invariato.
-* **La Fase 4**, unico lavoro pre-go-live rimasto.
 
-### 23g) Cinque lezioni
+### 23e) Cinque lezioni
 
 **bv. ⚠️ Un elenco si chiede COMPLETO, non solo nelle voci che cambiano.** Due
 elenchi sbagliati nello stesso giorno sono caduti perché qualcuno ha confrontato
@@ -1669,103 +1592,61 @@ eseguire o di correggere in silenzio.*
 
 ## 24) Font, ritocchi al sito e il cuore dello sconto (08/08/2026)
 
-Giornata su tre fronti: il **font** dell'immagine coordinata, **quattro
-ritocchi** nati dall'uso vero del sito, e il **riordino dello sconto**. Le
-decisioni e la forma stanno in **spec §6b, §12c, §14 e §52-56 v64**; qui c'è
-solo ciò che il racconto aggiunge.
+Decisioni e forma in **spec §6b, §12c, §14 e §52-56**.
 
 ### 24a) Il font
 
-Termina da Adobe Fonts, progetto `jth6flt`, quattro pesi. **Cambiarlo è stata
-una riga**, perché un punto unico esisteva già e i `fontFamily: "inherit"`
-sparsi erano la toppa che lo rendeva davvero unico: chi le aveva scritte aveva
-già fatto il lavoro difficile.
+Termina da Adobe Fonts, progetto **`jth6flt`**, quattro pesi. Cambiarlo è stata
+una riga, perché un punto unico esisteva già. ⚠️ **Ma i `fontFamily: "inherit"`
+sparsi coprivano 47 punti su 121**: pulsanti, campi e tendine restavano col
+carattere di sistema, e **non si notava soltanto perché il font della pagina
+*era* quello di sistema**. Il cambio non ha creato il difetto, l'ha reso
+visibile. Chiuso con una regola sola. *Nel commento sopra quella riga c'è
+scritto «questa riga sembra non fare niente, e invece regge tre quarti del sito
+— non toglierla».*
 
-⚠️ **Ma non bastavano.** Coprivano 47 punti su 121: pulsanti, campi e tendine
-restavano col carattere di sistema, e **non si notava soltanto perché il font
-della pagina *era* quello di sistema**. Il cambio non ha creato il difetto,
-l'ha reso visibile. Chiuso con una regola sola.
+**Cinque prove dal vivo**, telefono compreso, in quest'ordine: se qualcosa esce
+dai bordi, se i titoli sono il font vero o un grassetto fabbricato, se il testo
+salta al caricamento, se mancano lettere particolari — **e solo alla fine se
+piace**.
 
-*Nel commento sopra quella riga c'è scritto «questa riga sembra non fare
-niente, e invece regge tre quarti del sito — non toglierla», perché è
-esattamente l'errore che farebbe chi la leggesse fra sei mesi.*
+### 24b) Due fatti emersi dai ritocchi
 
-**Cinque prove dal vivo di Andrea**, telefono compreso, in questo ordine: se
-qualcosa esce dai bordi, se i titoli sono il font vero o un grassetto
-fabbricato, se il testo salta al caricamento, se le lettere particolari
-mancano — **e solo alla fine se piace**.
-
-### 24b) I quattro ritocchi, e le due voci che non erano difetti
-
-Andrea ha portato sette osservazioni raccolte **usando il sito**. Quattro erano
-lavori, **due erano già a posto** e una si è rivelata più grossa di come era
-stata descritta.
-
-⚠️ **Le due cadute vengono dallo stesso equivoco: il sito era stato guardato a
-locale chiuso**, dove "prima possibile" sparisce e resta la sola programmata.
-La lezione non è che l'osservazione fosse sbagliata — è che *guardare il sito
-in una condizione e dedurne la regola* produce diagnosi false, e la conferma
-costa una lettura.
-
-⚠️ **Un testo proposto per l'invito sull'indirizzo era falso**, e il lavoro si
-è fermato prima di scriverlo. Diceva che senza indirizzo non si vedono menu e
-tempi: entrambe le letture partono al caricamento della pagina e non sanno
-nulla dell'indirizzo. *L'ha scritto chi guida, non chi esegue, e chi esegue si
-è fermato perché il comando gli chiedeva di verificarlo. La frase finale è di
-Andrea ed è migliore di quelle proposte, perché **consiglia invece di
-descrivere**: un consiglio non può essere falso.*
+* ⚠️ **Menu e tempi partono al caricamento della pagina e non sanno nulla
+  dell'indirizzo.** Un testo proposto per l'invito sull'indirizzo diceva il
+  contrario ed era falso. *La frase finale è di Andrea ed è migliore, perché
+  **consiglia invece di descrivere**: un consiglio non può essere falso.*
+* ⚠️ **Il push è l'unica azione che esce verso l'esterno**, perché ripubblica il
+  sito.
 
 ### 24c) Lo sconto: prima la rete, poi lo spostamento
 
-Lo spostamento di GIVEMEFIVE era pronto per essere scritto. **Non è stato
-scritto**, e per due ragioni trovate una dopo l'altra.
+La logica di GIVEMEFIVE è stata estratta in `lib/` e provata **prima** di
+toccarla — 32 prove, comportamento identico su **112 casi** contro il codice
+vecchio preso da git — perché nessuna prova la copriva (lezione `cd`).
 
-**La prima: la catena era scoperta.** Una ricognizione ha trovato **108
-occorrenze in tredici file**, e il verdetto era che *le prove sapevano solo che
-lo sconto non viene salvato male — che venga concesso a chi spetta, tolto a chi
-non spetta, contato bene e consumato una volta sola, non lo verificava
-nessuno*. Da qui il riordino: cuore in `lib/`, 32 prove, comportamento
-verificato identico su **112 casi** contro il codice vecchio **preso da git**.
+⚠️ **E l'ordine dei lavori non era libero.** Il pulsante del carrello che il
+comando chiedeva di togliere per primo era **l'unico interruttore** che accende
+lo sconto in tutto il progetto: eseguendo nell'ordine scritto, GIVEMEFIVE si
+sarebbe spento **in silenzio**, senza un errore da nessuna parte.
 
-**La seconda: il freno non esiste**, e senza freno la rotta che dice se un
-numero è già cliente non si può aprire. §14 ha il dettaglio.
+*Il disegno dello spostamento è cambiato il 10/08: questa giornata e la v65
+restano leggibili ma sono **superate** (punto 28).*
 
-⚠️ **E l'ordine dei lavori non era libero.** Il comando dato chiedeva di
-togliere il pulsante del carrello e di costruire il sostituto. Ma quel pulsante
-è **l'unico interruttore** che accende lo sconto in tutto il progetto:
-eseguendo nell'ordine scritto, GIVEMEFIVE si sarebbe spento **in silenzio**,
-senza un errore da nessuna parte. *Trovato perché il comando chiedeva di
-cercare il freno **per primo**, e da lì è emerso che tutto il resto ci passava.*
-
-### 24d) Un comando che diceva due cose opposte
-
-Un blocco conteneva **"non spingere" in testa e "poi spingi" nel corpo** — un
-residuo del comando precedente ricopiato senza rileggerlo. Chi eseguiva **si è
-fermato e ha chiesto**, invece di scegliere: il push è l'unica azione di quel
-giro che esce verso l'esterno, perché ripubblica il sito.
-
-### 24e) Cosa resta di questa giornata
+### 24d) Cosa resta di questa giornata
 
 * ⚠️ **Il collegamento Adobe da autorizzare sul dominio vero** (§6b) — la cosa
   più facile da dimenticare, perché quando succederà sembrerà un guasto.
-* ✅ **Lo spostamento di GIVEMEFIVE**, deciso e **sbloccato la sera stessa**
-  (spec §14 v65, punto **25**). Resta da costruire.
 * ⚠️ **Il guasto di lettura che concede lo sconto** invece di negarlo, fissato
   dalla prova `g` (§14).
-* ⚠️ **Le due copie delle costanti dello sconto**, che nessuna prova confronta.
 * **Il consumo e il rilascio** dello sconto, ancora senza cuore e senza prove.
-* **La pulizia dei 17 `fontFamily: "inherit"` ridondanti**, lavoro a sé.
-* **La frase del preordine**, scritta e pubblicata ma **mai vista dal vivo**:
+* ⚠️ **La frase del preordine**, scritta e pubblicata ma **mai vista dal vivo**:
   compare solo in Delivery a semaforo non verde.
 
-⚠️ **Questo elenco è la fotografia dell'08/08 e da allora si è mosso** (nota del
-10/08/2026, per non farlo mentire con l'autorità del documento): le **due copie
-delle costanti** sono chiuse dalla v66 (punto 26), i **17 `fontFamily`** dalla
-v67 (punto 27), e lo **spostamento di GIVEMEFIVE** è stato **ridisegnato** il
-10/08 — resta da costruire, ma non nella forma scritta qui (spec §14 v68, punto
-28). Le altre voci sono ancora vere.
+*Le due copie delle costanti e i diciassette `fontFamily` ridondanti, aperti
+quel giorno, sono chiusi ai punti 26 e 27.*
 
-### 24f) Quattro lezioni
+### 24e) Quattro lezioni
 
 **ca. ⚠️ Un elenco di lavori da fare non è un ordine di esecuzione.** Un
 comando in sei punti numerati chiedeva di smontare l'interruttore esistente
@@ -1792,41 +1673,28 @@ assunta.** La logica dello sconto è stata estratta e provata **prima** di
 toccarla, perché una ricognizione aveva accertato che nessuna prova la
 copriva. *L'ordine inverso — spostare e poi provare — non avrebbe dato alcun
 segnale in caso di rottura: il denaro sbagliato non si vede, si incassa.*
+
 ---
 
-## 25) La decisione sul freno, e lo stato ritrovato (08/08/2026, sera)
+## 25) La decisione sul freno, e i numeri dell'08/08 (08/08/2026, sera)
 
-Sessione di **sola decisione**: nessuna riga di codice scritta, nessun commit
-di codice. Le decisioni stanno in **spec §14 v65**; qui c'è solo ciò che il
-racconto aggiunge.
+Sessione di **sola decisione**: nessuna riga di codice, nessun commit di codice.
 
 ### 25a) Il freno: deciso di NON costruirlo
 
-Deciso che **non nasce alcun freno a conteggio**. La rotta che dice se lo
-sconto spetta **non risponderà su un numero di telefono**, ma solo a un
-checkout compilato: non c'è nulla da martellare, quindi non c'è nulla da
-contare. Motivo e alternative scartate per intero in spec §14.
-
-⚠️ **La domanda, com'era scritta, era mal posta — ed è questo che ha tenuto
-fermo il lavoro, non la difficoltà del problema.** La v64 chiedeva "su cosa si
-frena" e nella stessa frase mescolava **due domande diverse**: *su cosa* si
-frena, e *dove* si tiene il conto. Delle tre strade che nominava ne demoliva
-**due da sola**, lasciandone in piedi una, cara. Chi la leggeva credeva di
-avere una scelta a tre e ne aveva una sola.
-
-*Separate le due domande, è comparsa una quarta strada che nessuna delle due
-nominava. Non è stata inventata: era già mezza scritta nelle decisioni di
-Andrea dell'08/08 — "lo sconto compare solo a dati obbligatori completi".
-Portata fino in fondo, quella frase **è** il freno.*
+**Non nasce alcun freno a conteggio.** La rotta che dice se lo sconto spetta
+**non risponderà su un numero di telefono**, ma solo a un checkout compilato:
+non c'è nulla da martellare, quindi non c'è nulla da contare. Motivo e
+alternative scartate per intero in **spec §14**. *La strada è comparsa separando
+due domande che la v64 teneva in una sola frase — **su cosa** si frena e
+**dove** si tiene il conto: è la lezione `ce`.*
 
 ### 25b) Ciò che l'osservazione di Andrea ha aggiunto
 
-Andrea, decidendo: *«non abbiamo un controllo che il numero di telefono sia
-reale»*. Vero, e non scritto da nessuna parte in nessuno dei due documenti.
-
-Conseguenza registrata in spec §14 come **"un utilizzo per numero di
-telefono"**, su sua indicazione e **senza farne una sezione**: il danno è
-limitato per costruzione, perché per prendersi i 5 € bisogna comporre e
+⚠️ **Non esiste un controllo che il numero di telefono sia reale**, e non era
+scritto da nessuna parte in nessuno dei due documenti. Registrato in spec §14
+come **"un utilizzo per numero di telefono"**, senza farne una sezione: il danno
+è limitato per costruzione, perché per prendersi i 5 € bisogna comporre e
 **pagare davvero** un ordine da 25 €. È margine perso su una vendita vera, non
 denaro che esce.
 
@@ -1836,42 +1704,26 @@ li hanno scritti per farsi consegnare la cena: sono veri quasi sempre, per
 forza. Confermare "questo numero ha già ordinato" resta una fuga. *È il motivo
 per cui la porta va chiusa comunque, anche avendo scartato il freno.*
 
-### 25c) La fotografia dello stato, e la sessione che non ha lasciato niente
+### 25c) Due numeri, e ciò che il secondo non dice
 
-Una sessione parallela era stata aperta sui **due lavori piccoli** (le costanti
-dello sconto, i diciassette `fontFamily`). Andrea l'ha chiusa senza che avesse
-finito. Verificato eseguendo: HEAD **`efabb37`**, allineato a `origin/main`,
-**albero pulito**, e le impronte `sha256` dei due documenti **identiche** a
-quelle in mano al ragionamento — quindi si è lavorato sulla verità, non su una
-copia vecchia.
-
-⚠️ **È l'albero pulito a dimostrare che non si è perso nulla**, non la memoria
-di nessuno: se quella sessione avesse scritto anche una riga, comparirebbe come
-modifica in sospeso. Non c'è. **I due lavori piccoli sono intatti e ancora da
-fare**, e il codice conferma il documento: nessun terzo modulo di costanti,
-soglia e importo ancora in due posti, diciassette `fontFamily` ancora lì.
-
-*Trovato di passaggio e registrato in spec §14: il **nome** del codice
-`GIVEMEFIVE` sta in **tre** copie — il modulo, il webhook di Stripe, la rotta
-di annullamento — mentre soglia e importo restano due.*
-
-### 25d) Il conteggio delle prove, e ciò che il conteggio non dice
-
-Rifatto tenendo anche l'errore standard: **17 file**, **701 righe `PASS`**,
-**86 righe di esito non-`PASS`**, e **nessuna di queste è un fallimento** —
-zero righe `FAIL`, zero `TEST FALLITI`, diciassette `TUTTI I TEST PASSATI`,
-zero file con codice di uscita diverso da zero. Il verdetto poggia su quattro
-riscontri indipendenti, non su uno.
+* Il **nome** del codice `GIVEMEFIVE` sta in **tre** copie — il modulo, il
+  webhook di Stripe, la rotta di annullamento. *Soglia e importo erano due e
+  sono stati unificati (punto 26); le **tre copie del nome** non risultano
+  misurate dopo.*
+* Le prove all'08/08: **17 file**, **701 righe `PASS`**, **86 righe di esito
+  non-`PASS`**, e **nessuna è un fallimento**: zero righe `FAIL`, zero
+  `TEST FALLITI`, diciassette `TUTTI I TEST PASSATI`, zero file con codice di
+  uscita diverso da zero. Quattro riscontri indipendenti, non uno.
 
 ⚠️ **La ripartizione delle 86 righe NON torna**: le tre voci in cui è stata
-spiegata fanno **88**. I tre numeri erano stati eseguiti davvero, uno per uno:
-a non tornare sono **le categorie, che si sovrappongono** — una stessa riga può
-cadere in due schemi e farsi contare due volte. E "quattro righe per suite" era
-una glossa, non una misura: le suite sono diciassette e quelle righe
-sessantaquattro. *Non intacca il verdetto, che poggia su altri quattro
-riscontri, ma è il tipo di numero che fra un mese viene citato come fatto.*
+spiegata fanno **88**. I tre numeri erano stati eseguiti davvero: a non tornare
+sono **le categorie, che si sovrappongono** — una stessa riga può cadere in due
+schemi e farsi contare due volte. E "quattro righe per suite" era una glossa,
+non una misura: le suite sono diciassette e quelle righe sessantaquattro. *Non
+intacca il verdetto, ma è il tipo di numero che fra un mese viene citato come
+fatto.*
 
-### 25e) Tre lezioni
+### 25d) Tre lezioni
 
 **ce. ⚠️ Una domanda mal posta ferma il lavoro più a lungo di un problema
 difficile.** Il freno non è stato bloccato dalla sua difficoltà: è stato
@@ -1897,7 +1749,6 @@ stretta. Il primo che l'ha letta se l'è attribuita e l'ha contestata: non fra
 sei mesi, subito. Il fatto era giusto, la frase no. In un documento che
 qualcun altro eredita, un soggetto sottinteso non è brevità: è un buco che il
 lettore riempie con sé stesso.*
-
 
 ---
 
