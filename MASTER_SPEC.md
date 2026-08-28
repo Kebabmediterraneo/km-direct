@@ -1,6 +1,6 @@
 # KM DIRECT — MASTER SPECIFICATION
 
-**Versione 82** — sostituisce la v81.
+**Versione 83** — sostituisce la v82.
 
 Documento di riferimento definitivo per lo sviluppo. Le decisioni qui
 contenute sono approvate: non vanno reinterpretate senza un motivo concreto
@@ -22,40 +22,44 @@ versione corrente**. I precedenti vivono in `git log`, che è fatto per quello.
 del documento prima che cominciasse a parlare del progetto — e dentro c'erano
 istruzioni rovesciate che nessuno rileggeva.*
 
-**Novità della v82** (vincolanti, notte fra il 28 e il 29/08/2026):
+**Novità della v83** (vincolanti, notte fra il 28 e il 29/08/2026, terza parte):
 
-*⚠️ **Nove voci della v81 non erano scritte nel corpo del documento**: vivevano
-solo dentro il blocco Novità, che la disciplina cancella a ogni versione. Sono
-state **portate nel corpo** in questa versione, in una sezione loro, invece di
-essere riscritte qui. È la terza volta in un giorno che quel blocco stava per
-mangiare qualcosa: chi scrive una versione nuova **controlli voce per voce**.*
+*Le voci di questa versione **non si riscrivono qui a ogni giro**: quelle che
+restano vive stanno in §63-64, sezione «REGISTRATO E NON APERTO», che dalla v82
+è la loro casa. Qui restano le novità della sessione.*
 
-1. §63-64 — ✅ **IL 4b È COMPLETO: il 4b-3 è FATTO, PUBBLICATO E PROVATO DAL
-   VIVO.** Commit `e826380` (pannello) e `21f44d0` (prove). **37 suite, 1783
-   prove, zero fallite.** *La finestra muta fra il 4b-2 e il 4b-3 è **chiusa**.*
-2. §63-64 — ✅ **(OO) VERIFICATA DAL VIVO**, ed era l'unica verifica possibile:
-   un `200` non dimostra niente su quel campo, perché col nome sbagliato la
-   risposta è `200` lo stesso e il titolo torna indietro in silenzio. *Andrea ha
-   cambiato il titolo, salvato, riaperto e l'ha trovato cambiato.*
-3. §63-64 — ✅ **(KK) VISTA ALL'OPERA NEL REGISTRO DEL SERVER**: quattro
-   `POST /product` contro **due** `POST /product-options`. *Nei due salvataggi
-   in cui le opzioni non erano state toccate, quella rotta non è partita
-   affatto.*
-4. §6b — ⚠️ **DUE COMANDI CHE NON DICONO IN CHE STATO SEI**, stessa famiglia,
-   entrambi **aperti**: il Salva spento indistinguibile dall'acceso, e il
-   pulsante dell'occhio, che mostra **l'azione che farebbe** e non lo stato in
-   cui l'articolo si trova. ⚠️ *Il secondo ha ingannato chi ragionava la notte
-   del 28/08, che questi documenti li aveva letti tutti. Di sabato sera lo
-   guarda qualcuno che non li ha letti.*
-5. §63-64 — ⚠️ **GLI OTTO ARTICOLI DI PROVA NON SI CANCELLANO ANCORA**, benché
-   il 4b sia finito e questa spec dicesse «dopo il 4b». *Il passo 5 tocca i
-   prezzi, e le prove sul prezzo si fanno sugli articoli di prova: cancellarli
-   ora vorrebbe dire ricrearli. Si cancellano **dopo il passo 7**.*
+1. §6b — ✅ **IL SALVA SPENTO SI VEDE SPENTO.** Commit `5c1c883` e `4a345d8`,
+   pubblicati e provati dal vivo. ⚠️ *Riusato `stileSpento`, **l'unico spento
+   che il pannello già aveva** — lo stesso grigio di «Esaurito» — invece di
+   inventarne un secondo: due spenti divergono alla prima modifica. Quattro
+   pulsanti cambiano aspetto, contati, e il conteggio è sorvegliato da una
+   prova.*
+2. §63-64 — ✅ **UN SALVATAGGIO CHE SI ROMPE A METÀ LASCIA UNA RIGA NEL
+   REGISTRO.** Commit `3b86f6f` e `c990b78`. *Prima restava solo una frase su
+   uno schermo, che si chiude.* La riga porta la **fase**, la **tabella** su cui
+   si è fermato, se lo scudo era alzato e se l'articolo era già fuori dal menu.
+3. §63-64 — ⚠️⚠️ **UNA RIGA DI QUESTA SPEC ERA FALSA, E HA FATTO SBAGLIARE.**
+   La v82 diceva che lo scudo «non copre gli articoli già fuori dal menu». **Non
+   è un buco**: lo scudo serve a impedire che il cliente veda un articolo con le
+   opzioni a metà, e per un articolo già fuori quella condizione **è già vera**,
+   prima, durante e dopo. *Chi ragionava ha letto il titolo invece della frase
+   che lo reggeva, e ha chiesto di costruire una protezione che esisteva già —
+   compreso un messaggio che era scritto da tre settimane. **Code si è fermato
+   prima di scrivere una riga e lo ha dimostrato leggendo il cuore.***
+4. §66 — ⚠️ **LE PROVE DEL PANNELLO LASCIANO RIGHE NEL REGISTRO STAFF**, e nel
+   registro **non si distinguono da quelle vere in nessun modo automatico**.
+   *Al 29/08 sono quattro `modifica_opzioni_prodotto`, misurate da Andrea in
+   Supabase, e ne nasceranno altre ai passi 5, 6 e 7.* Si legano al limite già
+   noto: il criterio è un parametro compilato a mano il giorno del go-live.
+5. §63-64 — ✅ **L'ELENCO DEI SUGGERIMENTI DELLE RIMOZIONI SI RICAVA DALLE
+   RIMOZIONI CHE ESISTONO**, verificato dal vivo da Andrea. **Deciso di non
+   toccarlo.**
+6. §63-64 — ✅ **IL PULSANTE DELL'OCCHIO RESTA COM'È, per decisione di Andrea.**
 
 *Il conteggio delle condizioni di apertura non cambia: **quattro chiuse, cinque
 aperte**.*
 
-⚠️ *Suite **37**, prove **1783**, zero fallite, misurate eseguendole.*
+⚠️ *Suite **38**, prove **1810**, zero fallite, misurate eseguendole.*
 
 ## 1. Visione del progetto
 
@@ -4227,7 +4231,10 @@ delle opzioni toccate. *Il conteggio della suite non è cambiato.*
 le opzioni la rotta **non parte**; una rimozione scritta e salvata **si
 ritrova** riaprendo la scheda; l'articolo **resta nel menu** dopo il
 salvataggio; e il **titolo cambiato si ritrova**, che è (OO). *Nel registro del
-server: due `POST /product-options`, entrambe `200`, ~1,4 secondi ciascuna. È la
+server: due `POST /product-options`, entrambe `200`, ~1,4 secondi ciascuna.
+✅ **E (KK) si è vista all'opera**: quattro `POST /product` contro **due**
+`POST /product-options` — nei due salvataggi in cui le opzioni non erano state
+toccate, quella rotta **non è partita affatto**. È la
 prima volta che quella rotta viene chiamata dal vivo — esisteva dal 13/08 e
 nessuna interfaccia la conosceva.*
 
@@ -4237,28 +4244,79 @@ nessuna interfaccia la conosceva.*
 disciplina del blocco li avrebbe cancellati. **Questa sezione è la loro casa**:
 non si riscrivono nei blocchi delle versioni future.*
 
-* ⚠️ **IL SALVA SPENTO È INDISTINGUIBILE DALL'ACCESO**: resta arancione pieno,
-  `opacity: 1`, sfondo identico. Cambia solo il cursore. *Difetto
-  **preesistente**, non creato dal 4b — ma tutto il 4b serve a spegnere quel
-  pulsante, e se non si vede spento il lavoro si vede a metà.*
-* ⚠️ **IL PULSANTE DELL'OCCHIO MOSTRA L'AZIONE, NON LO STATO**: occhio barrato
-  vuol dire che l'articolo **è visibile** e che premendo lo si spegne. *Ha
-  ingannato chi ragionava la notte del 28/08. Stessa famiglia del Salva: comandi
-  che non dicono in che stato sei.*
+* ✅ **IL SALVA SPENTO SI VEDE SPENTO** (chiuso il 28/08, `5c1c883`). *Era
+  arancione pieno e cambiava solo il cursore — che sul telefono non esiste.*
+  ⚠️ **Resta però il «Salva» di `ProductEditForm`**, che ha una **copia in linea
+  dello stesso stile** e non passa da `confirmBtn`: continua a vedersi arancione
+  anche da spento. *Non sistemato di proposito: **il passo 6 fa sparire quel
+  componente**, e sistemare ciò che si sta per togliere è lavoro buttato.*
+* ✅ **IL PULSANTE DELL'OCCHIO RESTA COM'È — decisione di Andrea, 28/08.**
+  Occhio barrato vuol dire che l'articolo **è visibile** e che premendo lo si
+  spegne. ⚠️ *La ragione della decisione, che vale più della correzione: **è
+  Andrea che lo usa**, e lo usa da settimane. Cambiarlo sposterebbe la
+  confusione dall'unica persona che non ce l'ha all'unica persona che lo usa.
+  **Scartato** rovesciare l'icona — sposterebbe l'ambiguità invece di toglierla
+  — e scartato metterci una parola di stato, perché in riga non c'è posto e quel
+  vincolo è misurato.*
+  ⚠️ **REGOLA CHE NE DISCENDE, VINCOLANTE**: chi chiede una prova su quel
+  pulsante **nomina lo stato dell'articolo, mai l'icona** — «l'articolo deve
+  essere visibile nel menu», non «l'occhio dev'essere barrato». *La notte del
+  28/08 una richiesta di prova ha detto il contrario di quel che intendeva, ed è
+  stato Andrea a correggerla. L'ambiguità non è del pulsante: è di chi scrive le
+  richieste.*
+  *Perché confonde chi non ci è abituato, misurato sui due pulsanti affiancati:
+  «Disponibile» mostra lo **stato** e l'occhio mostra l'**azione**, e i colori
+  corrono in direzioni opposte — un articolo che sta benissimo mostra
+  «Disponibile» in verde e l'occhio in rosso.*
 * ⚠️ **L'ORDINE DELLE PROTEINE PUÒ CAMBIARE IN SILENZIO.** Il corpo le manda
   nell'ordine della Map e il cuore usa l'indice come `sort_order`: togliere e
   rimettere una spunta sposta la proteina in fondo. *Da sola quella mossa non fa
   danno — «opzioni toccate» la ignora, perché la fotografia ordina per chiave —
   ma **insieme a un'altra modifica** l'ordine che il cliente vede cambia.*
-* ⚠️ **LO SCUDO (WW) NON COPRE GLI ARTICOLI GIÀ FUORI DAL MENU**: si alza solo
-  se l'articolo è dentro. Su uno già fuori, un guasto a metà delle quattro
-  tabelle lo lascia con le opzioni **rotte a metà, senza protezione**. *Fino al
-  4b-3 era teorico, perché nessuna interfaccia scriveva opzioni. Da adesso è
-  raggiungibile. Il pericolo non è che il cliente le veda — fuori dal menu non
-  le vede — è che qualcuno **lo rimetta dentro** senza sapere che sono rotte.*
-* ⚠️ **IL GUASTO A METÀ NON È MAI STATO ESERCITATO**: entrambe le chiamate dal
-  vivo sono andate bene, quindi il messaggio «l'articolo è rimasto FUORI DAL
-  MENU» **nessuno l'ha mai visto**.
+* ⚠️⚠️ **LO SCUDO SUGLI ARTICOLI GIÀ FUORI DAL MENU: NON È UN BUCO, e la v82
+  diceva il falso.** Lo scudo si alza solo se l'articolo è dentro, **ed è
+  corretto così**: serve a impedire che il cliente veda un articolo con le
+  opzioni a metà, e per un articolo già fuori dal menu quella condizione **è già
+  vera**, prima, durante e dopo. Non c'è niente da abbassare. *E il messaggio
+  per quel caso esiste dal 13/08: «L'articolo era già fuori dal menu e ci resta:
+  controlla le sue opzioni prima di rimetterlo dentro.»*
+  ⚠️ **Il pericolo vero, che resta**: qualcuno **lo rimette dentro** senza sapere
+  che le opzioni sono rotte. *Non si chiude con una protezione — si chiude
+  lasciando una traccia, ed è quello che fa la riga di registro sul guasto.*
+  ⚠️ *Questa riga, nella forma sbagliata della v82, ha fatto chiedere a Code di
+  costruire una protezione che esisteva già. **Chi legge una voce di questo
+  elenco legga la frase, non il titolo.***
+* ✅ **UN GUASTO LASCIA UNA TRACCIA DUREVOLE** (chiuso il 28/08, `3b86f6f`).
+  Il registro si scriveva **solo a salvataggio riuscito**; sui rami di errore
+  c'era un `console.error` che nessuno legge, quindi l'unica traccia era una
+  frase su uno schermo, che si chiude. Ora tre dei quattro punti di uscita per
+  errore scrivono una riga con la **fase** e la **tabella**.
+  ⚠️ *Il quarto — il guasto dello scudo — **è escluso di proposito**: lì non è
+  stato scritto niente e il messaggio dice già «NESSUNA MODIFICA». Registrare un
+  danno che non c'è rende il registro meno leggibile, non più.*
+  ⚠️ **È un RICORDO, non una protezione**: non impedisce a nessuno di rimettere
+  in menu un articolo con le opzioni rotte. Lo rende **scopribile**, non
+  impossibile. *E nessuna schermata mostra `staff_action_log`: quella riga oggi
+  si legge solo cercandola nel database.*
+  ✅ *Verificato da Andrea in Supabase che la strada del successo **non** la
+  scrive: quattro righe `modifica_opzioni_prodotto`, **zero** di guasto.*
+  ✅ *E `action` non ha vincoli sui valori: sulla tabella ci sono due soli
+  vincoli, chiave primaria e collegamento agli ordini. Misurato, non presunto.*
+* ✅ **L'ELENCO DEI SUGGERIMENTI DELLE RIMOZIONI SI RICAVA DALLE RIMOZIONI CHE
+  ESISTONO.** *Verificato dal vivo da Andrea il 28/08 — cancellata la rimozione,
+  la parola sparisce dall'elenco — non dedotto dal codice.* **Deciso di non
+  toccarlo**, e la ragione è che è il comportamento giusto: si riusano le stesse
+  parole invece di riscriverle, e un errore di battitura si corregge cancellando
+  e riscrivendo, **senza lasciare residui**. *Conseguenza: gli articoli di prova
+  si cancellano e le loro rimozioni spariscono da sole — lo script del go-live
+  non deve toccare niente in più.*
+* ⚠️ **IL GUASTO A METÀ NON È MAI STATO ESERCITATO DAL VIVO**, e non lo sarà:
+  per vederlo bisognerebbe far fallire apposta una scrittura su un database che
+  è **uno solo e senza copia di prova**. *Il messaggio «l'articolo è rimasto
+  FUORI DAL MENU» nessuno l'ha mai visto a schermo.* ✅ **Nelle prove invece è
+  esercitato davvero**, non letto: il finto client inietta il guasto e il codice
+  del cuore gira. *Anche il caso dell'articolo già fuori dal menu più il guasto,
+  che prima del 28/08 nessuna prova copriva.*
 * ⚠️ **`mostraGruppiOpzioni` RIPETE LA CONDIZIONE DEL `fieldset` SCRITTA AL
   ROVESCIO**, in un altro punto del file. *Oggi sono d'accordo. È il tipo di
   coppia che un giorno diverge.*
