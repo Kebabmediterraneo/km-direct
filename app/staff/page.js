@@ -11,6 +11,14 @@ import { PRODUCT_CATEGORIES, isBevanda } from "../../lib/menu-categories";
 // e non qui perché è il cuore di «opzioni toccate», e un cuore dentro il
 // pannello nessuna prova può eseguirlo: le suite leggono questo file come testo.
 import { istantaneaOpzioni } from "../../lib/menu-options-snapshot";
+// §63-64 (passo 5-1) — la normalizzazione dei prezzi. ⚠️ Vive in `lib/` per la
+// stessa ragione: qui dentro nessuna prova potrebbe eseguirla. *Era scritta in
+// linea in due punti; le due copie sono state chiuse al 5-2a, perché due
+// espressioni scritte a mano divergono alla prima modifica.*
+// ⚠️ `cambiDaConfermare` è il cuore della conferma sui prezzi (passo 5-2b): sta
+// nello stesso modulo perché è la stessa materia, e fuori di qui per la stessa
+// ragione — una condizione scritta nel pannello nessuna prova la esegue.
+import { normalizzaPrezzo, cambiDaConfermare } from "../../lib/menu-price-changes";
 
 const POLL_INTERVAL_MS = 12000;
 
@@ -59,6 +67,18 @@ const STATUS_LABEL = {
 function formatPrice(value) {
   const rounded = Math.round(Number(value) * 100) / 100;
   return Number.isInteger(rounded) ? `${rounded} €` : `${rounded.toFixed(2).replace(".", ",")} €`;
+}
+
+// §63-64 (passo 5-2b) — un valore di prezzo come lo legge chi conferma.
+// ⚠️⚠️ **NON SI PUÒ USARE `formatPrice` DA SOLA QUI**, ed è il punto che tutta la
+// sessione del passo 5 ha difeso: `Number("")` vale `0`, quindi un sovrapprezzo
+// MAI SCRITTO comparirebbe nel riquadro come «0 €» — cioè come se qualcuno
+// avesse deciso che non costa nulla. *Sono due cose diverse, e il riquadro serve
+// proprio a far vedere quale delle due sta cambiando.*
+// ⚠️ E ciò che non è un numero si mostra com'è scritto, invece di «NaN €».
+function prezzoInChiaro(valore) {
+  if (valore === "") return "non impostato";
+  return Number.isFinite(Number(valore)) ? formatPrice(valore) : `«${valore}»`;
 }
 
 function formatTime(isoString) {
@@ -1548,7 +1568,7 @@ function ProductForm({ products, allergensCatalog, articolo, onSaved, onCancel }
   const [category, setCategory] = useState(articolo?.category ?? "");
   const [name, setName] = useState(articolo?.name ?? "");
   const [description, setDescription] = useState(articolo?.description ?? "");
-  const [price, setPrice] = useState(articolo ? String(articolo.base_price ?? "") : "");
+  const [price, setPrice] = useState(articolo ? normalizzaPrezzo(articolo.base_price) : "");
   const [badge, setBadge] = useState(articolo?.badge ?? "");
   const [spiceLevel, setSpiceLevel] = useState(articolo ? String(articolo.spice_level ?? 0) : "0");
   // Nessuna proposta finché non c'è una categoria: un posto "dopo l'ultimo"
@@ -1687,7 +1707,7 @@ function ProductForm({ products, allergensCatalog, articolo, onSaved, onCancel }
           proteineDb.map((r) => [
             r.choice_key,
             {
-              price_delta: String(r.price_delta ?? ""),
+              price_delta: normalizzaPrezzo(r.price_delta),
               is_default: r.is_default === true,
               extra_dose_included: r.extra_dose_included === true,
             },
@@ -1932,7 +1952,7 @@ function ProductForm({ products, allergensCatalog, articolo, onSaved, onCancel }
   // ⚠️ Zero è un valore valido: si guarda che il campo sia COMPILATO, non che
   // sia diverso da zero. `!p.price_delta` avrebbe trattato lo 0 come vuoto.
   const proteineSenzaPrezzo = [...proteine.values()].some(
-    (p) => String(p.price_delta ?? "").trim() === ""
+    (p) => normalizzaPrezzo(p.price_delta).trim() === ""
   );
   const extraIncompleti = extra.some(
     (e) => e.label.trim() === "" || String(e.price ?? "").trim() === ""
@@ -2140,11 +2160,53 @@ function ProductForm({ products, allergensCatalog, articolo, onSaved, onCancel }
       "che le opzioni tornino com'erano: questo articolo ha scelte che da questa scheda non si vedono, e salvarle così le cancellerebbe",
   ].filter(Boolean);
 
-  // ⚠️ LA CONFERMA SUL PREZZO, copiata da `ProductEditForm` e non reinventata.
-  // La condizione è una **disuguaglianza**: scatta anche quando il prezzo si
-  // ABBASSA, perché un ribasso per sbaglio non lo segnala nessuno. In creazione
-  // resta sempre falsa — non c'è nessun prezzo precedente da confrontare.
-  const prezzoCambiato = inModifica && Number(price) !== Number(articolo.base_price);
+  // -------------------------------------------------------------------------
+  // ⚠️⚠️ LA CONFERMA SUI PREZZI — DECISIONI 1 e 3 DEL PASSO 5 (5-2b, 29/08).
+  //
+  // ⚠️ **`prezzoCambiato` NON ESISTE PIÙ COME CONDIZIONE PROPRIA.** Era
+  // `inModifica && Number(price) !== Number(articolo.base_price)`, e affiancarle
+  // una seconda condizione per i sovrapprezzi avrebbe fatto **due condizioni
+  // scritte a mano**, che è ciò che la decisione 3 vieta. La conferma che
+  // esisteva non viene affiancata: **viene allargata**.
+  //
+  // ⚠️ Il cuore sta in `lib/menu-price-changes.js` e non qui, per la ragione già
+  // scritta per la fotografia delle opzioni: le suite leggono questo file come
+  // TESTO e non lo eseguono, quindi un confronto scritto qui dentro non sarebbe
+  // provabile — e sbagliarlo non somiglia a un errore, somiglia a un riquadro
+  // che compare da solo o che non compare mai.
+  //
+  // ⚠️ I valori VECCHI vengono da `opzioniArticolo`, la risposta grezza del
+  // server, **non** dalla fotografia delle opzioni: quella è una stringa sola con
+  // le proteine riordinate per chiave, e smontarla sarebbe una traduzione
+  // all'indietro (deciso in spec, §63-64).
+  //
+  // ⚠️ In CREAZIONE l'elenco è sempre vuoto: senza `articolo` non c'è nessun
+  // valore precedente da confrontare, ed è la stessa ragione per cui la conferma
+  // sul prezzo non è mai esistita nel ramo della creazione.
+  // -------------------------------------------------------------------------
+  const cambiPrezzo = inModifica
+    ? cambiDaConfermare({
+        prezzoVecchio: articolo.base_price,
+        prezzoNuovo: price,
+        proteineVecchie: opzioniArticolo?.product_choice_options,
+        proteineNuove: proteine,
+        etichette: new Map((cataloghi?.proteins ?? []).map((p) => [p.key, p.label])),
+      })
+    : [];
+  // ⚠️ **LA CONDIZIONE È SCRITTA QUI, UNA VOLTA SOLA.** La accende in
+  // `handleSubmit`, la spegne l'effetto qui sotto e la disegna il riquadro: tre
+  // usi, una definizione. *Due copie divergono alla prima modifica.*
+  const cambiPresenti = cambiPrezzo.length > 0;
+
+  // ⚠️ DECISIONE 3 — IL RIQUADRO SI SPEGNE DA SOLO. Riportato il prezzo al valore
+  // di partenza mentre il riquadro è aperto, non resta a schermo un riquadro che
+  // non ha più niente da dire. *Si spegne lo STATO e non solo il disegno: se si
+  // nascondesse soltanto, il riquadro tornerebbe a comparire al cambio
+  // successivo **senza che nessuno abbia premuto Salva**, e il primo gesto deve
+  // accendere il riquadro (modello (FF)).*
+  useEffect(() => {
+    if (!cambiPresenti) setConfermaPrezzo(false);
+  }, [cambiPresenti]);
 
   // ⚠️⚠️ (KK) UN SALVA SOLO, CHE CHIAMA IN FILA LE ROTTE DEI PEZZI TOCCATI.
   //
@@ -2354,7 +2416,7 @@ function ProductForm({ products, allergensCatalog, articolo, onSaved, onCancel }
     // prezzo se è cambiato, poi le rotte dei pezzi toccati. Il corpo della
     // CREAZIONE qui sotto non viene nemmeno composto.
     if (inModifica) {
-      if (prezzoCambiato && !confermaPrezzo) {
+      if (cambiPresenti && !confermaPrezzo) {
         setConfermaPrezzo(true);
         return;
       }
@@ -2979,10 +3041,16 @@ function ProductForm({ products, allergensCatalog, articolo, onSaved, onCancel }
           </div>
         ))}
 
-      {/* ⚠️ LA CONFERMA SUL PREZZO, nella forma della scheda di modifica: non una
+      {/* ⚠️ LA CONFERMA SUI PREZZI, nella forma della scheda di modifica: non una
           finestra sopra la pagina, ma la fila dei pulsanti che SI SOSTITUISCE.
-          Finché si conferma, «Salva» non esiste. */}
-      {confermaPrezzo ? (
+          Finché si conferma, «Salva» non esiste.
+          ⚠️ DECISIONE 1 — UN RIQUADRO SOLO: prezzo dell'articolo e sovrapprezzi
+          delle proteine stanno nello STESSO elenco, con un solo «Conferma e
+          salva» e un solo «Annulla». *Due schermate in fila si cliccano via.*
+          ⚠️ `cambiPresenti` è la stessa variabile che accende il riquadro in
+          `handleSubmit` e che l'effetto usa per spegnerlo: non è una seconda
+          condizione, è la stessa letta una terza volta. */}
+      {confermaPrezzo && cambiPresenti ? (
         <div
           style={{
             display: "flex",
@@ -2995,9 +3063,20 @@ function ProductForm({ products, allergensCatalog, articolo, onSaved, onCancel }
           }}
         >
           <span style={{ fontSize: 13, color: "var(--navy)" }}>
-            Stai cambiando il prezzo: <strong>{formatPrice(articolo.base_price)}</strong> →{" "}
-            <strong>{formatPrice(Number(price))}</strong>. Confermi?
+            {cambiPrezzo.length === 1 ? "Stai cambiando un prezzo:" : "Stai cambiando questi prezzi:"}
           </span>
+          {/* ⚠️ Una riga per cambio, vecchio → nuovo in chiaro, nell'ordine che
+              il modulo decide: il prezzo dell'articolo per primo, poi le
+              proteine come il server le ha mandate. */}
+          <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13, color: "var(--navy)" }}>
+            {cambiPrezzo.map((c) => (
+              <li key={c.tipo === "prezzo" ? "prezzo-articolo" : `sovrapprezzo-${c.chiave}`}>
+                {c.tipo === "prezzo" ? "Prezzo dell'articolo" : `Sovrapprezzo ${c.etichetta}`}:{" "}
+                <strong>{prezzoInChiaro(c.vecchio)}</strong> → <strong>{prezzoInChiaro(c.nuovo)}</strong>
+              </li>
+            ))}
+          </ul>
+          <span style={{ fontSize: 13, color: "var(--navy)" }}>Confermi?</span>
           <div style={{ display: "flex", gap: 8 }}>
             {/* ⚠️ QUESTO PULSANTE CHIAMA `salvaModifica` DRITTA, senza ripassare da
                 `handleSubmit`: la guardia `if (isSubmitting || !canSave) return;` non
