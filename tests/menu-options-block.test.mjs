@@ -408,6 +408,163 @@ prova("le mancanze su righe separate", () => {
   );
 });
 
+// ===========================================================================
+// ⚠️⚠️ «ANNULLA» DEL RIQUADRO DEI PREZZI — DECISIONE 4 DEL PASSO 5 (5-3, 29/08).
+//
+// ⚠️ **PERCHÉ QUESTA SUITE ESISTE, misurato e non supposto**: il 28/08 quel
+// pulsante è stato sporcato mettendogli addosso `!canSave`, e **ZERO prove su
+// 1678 sono diventate rosse**. Non era sorvegliato da nessuno. Dal 5-3 fa una
+// cosa in più — rimette i prezzi di partenza — e senza queste prove il difetto
+// 2 potrebbe tornare senza che nulla se ne accorga.
+//
+// ⚠️ **SI ESERCITA COSA FA, NON COME È SCRITTO.** Il corpo di `annullaConferma`
+// si ritaglia dal pannello vero e si ESEGUE con setter finti che registrano le
+// chiamate. *Una sonda di testo qui ripeterebbe l'errore della vecchia g4: ne
+// sorveglierebbe la forma, e chi la riscrivesse in un altro modo la
+// spegnerebbe.*
+//
+// ⚠️ Il ritaglio è a GRAFFE BILANCIATE e non fino al primo `;`: il corpo
+// contiene punti e virgola, e un ritaglio a `;` prenderebbe la prima riga sola e
+// misurerebbe un pezzo di funzione dichiarandolo tutta.
+// ===========================================================================
+const ritagliaFunzione = (testo, firma) => {
+  const i = testo.indexOf(firma);
+  if (i === -1) return null;
+  const apre = testo.indexOf("{", i);
+  if (apre === -1) return null;
+  let n = 0;
+  for (let j = apre; j < testo.length; j++) {
+    if (testo[j] === "{") n++;
+    else if (testo[j] === "}") {
+      n--;
+      if (n === 0) return testo.slice(i, j + 1);
+    }
+  }
+  return null;
+};
+
+const corpoAnnulla = ritagliaFunzione(codice, "function annullaConferma(");
+
+// Esegue `annullaConferma` con setter finti. Restituisce che cosa è stato
+// toccato, così le prove guardano gli EFFETTI e non il testo.
+// ⚠️ I setter che NON devono essere chiamati si passano lo stesso: se un giorno
+// qualcuno ci mettesse dentro `setName("")`, verrebbe chiamato davvero e le
+// prove sotto lo vedrebbero. *Non passarli renderebbe la funzione incapace di
+// sbagliare in quel modo: esploderebbe e sembrerebbe un guasto del ritaglio.*
+const eseguiAnnulla = (cambiPrezzo, proteineIniziali) => {
+  const tocchi = { price: [], proteine: null, conferma: [], altri: [] };
+  const registra = (nome) => (v) => tocchi.altri.push([nome, v]);
+  const nomi = {
+    cambiPrezzo,
+    setPrice: (v) => tocchi.price.push(v),
+    setProteine: (fn) => {
+      tocchi.proteine = typeof fn === "function" ? fn(new Map(proteineIniziali)) : fn;
+    },
+    setConfermaPrezzo: (v) => tocchi.conferma.push(v),
+    setName: registra("setName"),
+    setDescription: registra("setDescription"),
+    setSortOrder: registra("setSortOrder"),
+    setBadge: registra("setBadge"),
+    setSpiceLevel: registra("setSpiceLevel"),
+    setSelected: registra("setSelected"),
+    setNoAllergens: registra("setNoAllergens"),
+    setDietary: registra("setDietary"),
+    setRimozioni: registra("setRimozioni"),
+    setAccompagnamenti: registra("setAccompagnamenti"),
+    setExtra: registra("setExtra"),
+    setTitoloScelta: registra("setTitoloScelta"),
+  };
+  const chiavi = Object.keys(nomi);
+  new Function(...chiavi, `${corpoAnnulla}\nannullaConferma();`)(...chiavi.map((k) => nomi[k]));
+  return tocchi;
+};
+
+// I due cambi che il riquadro sta mostrando, nella forma che il modulo produce.
+const cambioPrezzo = { tipo: "prezzo", chiave: null, etichetta: null, vecchio: "8.5", nuovo: "9" };
+const cambioManzo = { tipo: "sovrapprezzo", chiave: "manzo", etichetta: "Manzo", vecchio: "2", nuovo: "3" };
+const proteineToccate = () =>
+  new Map([
+    ["pollo", { price_delta: "0", is_default: true, extra_dose_included: false }],
+    ["manzo", { price_delta: "3", is_default: false, extra_dose_included: true }],
+  ]);
+
+prova("il ritaglio di «Annulla»", () => {
+  assert(
+    corpoAnnulla !== null,
+    "b43) il corpo di `annullaConferma` si ritaglia dal pannello — se questa cade, le b44-b50 non stanno misurando niente"
+  );
+  // ⚠️ CONTROPROVA: lo stesso ritaglio su una funzione inventata torna null.
+  assert(
+    ritagliaFunzione(codice, "function nonEsisteQuestaFunzione(") === null,
+    "b44) CONTROPROVA: lo stesso ritaglio, su una firma inventata, torna null"
+  );
+});
+
+prova("«Annulla» rimette i valori di partenza", () => {
+  const t = eseguiAnnulla([cambioPrezzo, cambioManzo], proteineToccate());
+  assert(
+    t.price.length === 1 && t.price[0] === "8.5",
+    "b45) ⚠️ rimette il PREZZO DELL'ARTICOLO al valore di partenza, quello che il riquadro mostra a sinistra"
+  );
+  assert(
+    t.proteine instanceof Map && t.proteine.get("manzo").price_delta === "2",
+    "b46) ⚠️ e rimette il SOVRAPPREZZO della proteina al suo valore di partenza"
+  );
+  assert(
+    t.conferma.length === 1 && t.conferma[0] === false,
+    "b47) e chiude il riquadro"
+  );
+});
+
+prova("«Annulla» rimette i prezzi e NON annulla la modifica", () => {
+  const t = eseguiAnnulla([cambioPrezzo, cambioManzo], proteineToccate());
+  assert(
+    t.altri.length === 0,
+    `b48) ⚠️⚠️ non tocca NIENTE che non sia un prezzo: nome, descrizione, allergeni, rimozioni e il resto restano come sono (toccati invece: ${JSON.stringify(t.altri)})`
+  );
+  assert(
+    t.proteine.get("pollo").price_delta === "0" &&
+      t.proteine.get("manzo").is_default === false &&
+      t.proteine.get("manzo").extra_dose_included === true,
+    "b49) e delle proteine cambia SOLO il sovrapprezzo: la preselezione, la dose extra e le altre voci passano intatte"
+  );
+  assert(
+    t.proteine.size === 2 && t.proteine.has("pollo") && t.proteine.has("manzo"),
+    "b50) nessuna proteina viene aggiunta o tolta: spuntarle e toglierle è un cambio delle opzioni, non un cambio di prezzo"
+  );
+});
+
+prova("«Annulla» tocca solo ciò che è nell'elenco", () => {
+  // Solo il prezzo dell'articolo cambia: le proteine non si toccano affatto.
+  const soloPrezzo = eseguiAnnulla([cambioPrezzo], proteineToccate());
+  assert(
+    soloPrezzo.price[0] === "8.5" && soloPrezzo.proteine === null,
+    "b51) col solo prezzo nell'elenco, `setProteine` non viene chiamato affatto"
+  );
+  // Solo un sovrapprezzo cambia: il prezzo dell'articolo non si tocca.
+  const soloProteina = eseguiAnnulla([cambioManzo], proteineToccate());
+  assert(
+    soloProteina.price.length === 0 && soloProteina.proteine.get("manzo").price_delta === "2",
+    "b52) col solo sovrapprezzo nell'elenco, `setPrice` non viene chiamato affatto"
+  );
+  // ⚠️ Elenco vuoto: non deve rimettere niente, e deve comunque chiudere.
+  const vuoto = eseguiAnnulla([], proteineToccate());
+  assert(
+    vuoto.price.length === 0 && vuoto.proteine === null && vuoto.conferma[0] === false,
+    "b53) con l'elenco vuoto non rimette niente e chiude lo stesso, senza esplodere"
+  );
+});
+
+prova("«Annulla» non reinventa una proteina tolta nel frattempo", () => {
+  // Il cambio dice «manzo», ma nella mappa il manzo non c'è più.
+  const senzaManzo = new Map([["pollo", { price_delta: "0", is_default: true, extra_dose_included: false }]]);
+  const t = eseguiAnnulla([cambioManzo], senzaManzo);
+  assert(
+    t.proteine.size === 1 && !t.proteine.has("manzo"),
+    "b54) la proteina tolta resta tolta: rimetterla sarebbe una modifica, non un ripristino"
+  );
+});
+
 // ---------------------------------------------------------------------------
 // ESECUZIONE. ⚠️ Ogni prova gira dentro il suo try: un'eccezione conta come
 // fallimento e NON interrompe le altre, così il conteggio finale arriva sempre.
