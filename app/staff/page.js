@@ -2208,6 +2208,52 @@ function ProductForm({ products, allergensCatalog, articolo, onSaved, onCancel }
     if (!cambiPresenti) setConfermaPrezzo(false);
   }, [cambiPresenti]);
 
+  // -------------------------------------------------------------------------
+  // ⚠️⚠️ DECISIONE 2 DEL PASSO 5 (5-3) — «ANNULLA» RIMETTE I VALORI DI PARTENZA.
+  //
+  // *Perché è quello che quella parola vuol dire.* Prima lasciava nel campo il
+  // numero digitato e chiudeva soltanto il riquadro: Andrea l'ha visto dal vivo
+  // il 29/08, ed è il difetto 2.
+  //
+  // ⚠️ **I VALORI VECCHI NON SI RICORDANO DA NESSUNA PARTE: si leggono da
+  // `cambiPrezzo`**, che è la stessa lista che il riquadro sta disegnando —
+  // `c.vecchio` è, letteralmente, la colonna di sinistra che chi preme Annulla
+  // ha davanti agli occhi. *Una seconda memoria del valore di partenza sarebbe
+  // una copia, e le copie divergono; qui non serve perché il dato è già in mano.*
+  //
+  // ⚠️ **RIMETTE I PREZZI, NON ANNULLA LA MODIFICA.** Nome, descrizione,
+  // ordinamento, badge, piccantezza, allergeni, rimozioni, accompagnamenti,
+  // extra e le proteine spuntate o tolte **restano come sono**: chi preme
+  // Annulla nel riquadro dei prezzi sta rifiutando i prezzi nuovi, non buttando
+  // via il lavoro fatto sulla scheda. *Per buttare via tutto c'è l'Annulla della
+  // scheda, che è un altro pulsante.*
+  //
+  // ⚠️ La Map si ricostruisce invece di essere modificata sul posto: le altre
+  // voci passano intatte, e `is_default` ed `extra_dose_included` con loro —
+  // sono le due che una scrittura distratta cancellerebbe.
+  // -------------------------------------------------------------------------
+  function annullaConferma() {
+    for (const c of cambiPrezzo) {
+      if (c.tipo === "prezzo") setPrice(c.vecchio);
+    }
+    const sovrapprezziDaRimettere = cambiPrezzo.filter((c) => c.tipo === "sovrapprezzo");
+    if (sovrapprezziDaRimettere.length > 0) {
+      setProteine((prev) => {
+        const next = new Map(prev);
+        for (const c of sovrapprezziDaRimettere) {
+          const voce = next.get(c.chiave);
+          // Se nel frattempo la proteina è stata tolta non si reinventa: non
+          // c'è più niente da rimettere, e rimetterla sarebbe una modifica.
+          if (voce) next.set(c.chiave, { ...voce, price_delta: c.vecchio });
+        }
+        return next;
+      });
+    }
+    // ⚠️ Il riquadro si chiude DOPO aver rimesso i valori, e l'ordine conta:
+    // chiuderlo prima lascerebbe `cambiPrezzo` già ricalcolato sotto i piedi.
+    setConfermaPrezzo(false);
+  }
+
   // ⚠️⚠️ (KK) UN SALVA SOLO, CHE CHIAMA IN FILA LE ROTTE DEI PEZZI TOCCATI.
   //
   // Passo 2: i sei campi scalari sulla rotta `product`. Passo 3: gli allergeni
@@ -3095,9 +3141,14 @@ function ProductForm({ products, allergensCatalog, articolo, onSaved, onCancel }
             >
               {isSubmitting ? "Salvataggio…" : "Conferma e salva"}
             </button>
+            {/* ⚠️ DECISIONE 2 — rimette i prezzi di partenza e POI chiude. Il
+                corpo sta in `annullaConferma`, in una funzione sua e non qui in
+                linea, perché una prova possa ritagliarlo ed ESEGUIRLO: fino al
+                29/08 questo pulsante non era sorvegliato da nessuno — sporcarlo
+                lasciava verdi tutte e 1678 le prove. */}
             <button
               type="button"
-              onClick={() => setConfermaPrezzo(false)}
+              onClick={annullaConferma}
               disabled={isSubmitting}
               style={secondaryBtn}
             >
