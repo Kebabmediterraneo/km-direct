@@ -10,6 +10,11 @@
 //   ha ancora creato un articolo da questa schermata, e finché non lo si fa dal
 //   vivo "TUTTI I TEST PASSATI" non vuol dire che il modulo funzioni.
 import { readRemovalCatalog } from "../lib/removal-catalog.js";
+// §63-64 (passo 5-2a) — serve a g4-g10, che RITAGLIANO dal pannello il calcolo
+// di `proteineSenzaPrezzo` e lo ESEGUONO. ⚠️ Si importa quella VERA, non una
+// gemella scritta qui: il calcolo la chiama, e una copia di prova misurerebbe la
+// copia invece del pannello.
+import { normalizzaPrezzo } from "../lib/menu-price-changes.js";
 
 let failures = 0;
 function assert(cond, msg) {
@@ -738,11 +743,91 @@ function corpiDi(blocco) {
     /non è ordinabile dal cliente/.test(pannello),
     "g3) dicendo perché, invece di lasciare un pulsante spento senza spiegazione"
   );
-  // ⚠️ Lo zero del sovrapprezzo è un valore: si guarda che il campo sia
-  // compilato, non che sia diverso da zero.
+  // -------------------------------------------------------------------------
+  // ⚠️⚠️ g4-g10 — IL SOVRAPPREZZO SI CONTROLLA COME CAMPO COMPILATO.
+  //
+  // ⚠️ **LA VECCHIA g4 ERA UNA SONDA DI TESTO E NON C'È PIÙ** (sostituita il
+  // 29/08, passo 5-2a). Cercava l'espressione *scritta alla lettera*
+  // `String(p.price_delta ?? "").trim() === ""`, e quando il 5-2a l'ha
+  // sostituita con la chiamata al modulo è diventata rossa — pur non essendo
+  // cambiato nessun comportamento. *Aggiornarla alla forma nuova l'avrebbe
+  // riportata verde **mettendola a tacere**: avrebbe sorvegliato di nuovo la
+  // forma scritta, e il calcolo sarebbe rimasto scoperto come lo era prima.*
+  //
+  // ⚠️ **QUESTE PROVE NON GUARDANO IL TESTO: LO ESEGUONO.** Il calcolo si
+  // ritaglia dal pannello vero e si valuta con `new Function`, come mm0-mm5,
+  // cs1-cs8 e l'intera `menu-options-block`. *Misurato prima di scriverle: di
+  // tutte le prove del progetto, nessuna esercitava questo calcolo — quella che
+  // pone `proteineSenzaPrezzo: true` misura come la condizione USA il flag, non
+  // come il flag viene CALCOLATO, e sono due cose diverse.*
+  // -------------------------------------------------------------------------
+  const ritagliaCalcolo = (testo, inizio) => {
+    const i = testo.indexOf(inizio);
+    if (i === -1) return null;
+    const fine = testo.indexOf(";", i);
+    return fine === -1 ? null : testo.slice(i, fine + 1);
+  };
+  const esprSenzaPrezzo = ritagliaCalcolo(codicePannello, "const proteineSenzaPrezzo =");
+
   assert(
-    /String\(p\.price_delta \?\? ""\)\.trim\(\) === ""/.test(codicePannello),
-    "g4) ⚠️ e il sovrapprezzo si controlla come CAMPO COMPILATO: `!p.price_delta` avrebbe trattato lo 0 come vuoto"
+    esprSenzaPrezzo !== null,
+    "g4) il calcolo di `proteineSenzaPrezzo` si ritaglia dal pannello — se questa cade, le g6-g10 non stanno misurando niente"
+  );
+  // ⚠️ CONTROPROVA del ritaglio: lo stesso, su un nome inventato, non trova
+  // niente. Senza, g4 passerebbe anche con un ritaglio che accetta qualunque cosa.
+  assert(
+    ritagliaCalcolo(codicePannello, "const nonEsisteQuestoCalcolo =") === null,
+    "g5) CONTROPROVA: lo stesso ritaglio, su un nome inventato, torna null"
+  );
+
+  // ⚠️ `normalizzaPrezzo` è quella VERA, importata dal modulo: il calcolo la
+  // chiama, e passarne una finta misurerebbe la finta.
+  // ⚠️ Il try non è decorazione: questa suite non ha il `prova()` che cattura le
+  // eccezioni, quindi un ritaglio che esplodesse ucciderebbe tutte le prove che
+  // vengono dopo. Un guasto qui deve contarsi come rosso, non come silenzio.
+  const senzaPrezzo = (voci) => {
+    try {
+      return new Function(
+        "proteine",
+        "normalizzaPrezzo",
+        `${esprSenzaPrezzo}\nreturn proteineSenzaPrezzo;`
+      )(new Map(voci), normalizzaPrezzo);
+    } catch (err) {
+      return `ESPLOSA: ${err?.message ?? err}`;
+    }
+  };
+
+  assert(
+    senzaPrezzo([["manzo", { price_delta: "" }]]) === true,
+    "g6) col sovrapprezzo lasciato VUOTO il flag è VERO, e il Salva si spegne"
+  );
+  assert(
+    senzaPrezzo([["manzo", { price_delta: "2" }]]) === false,
+    "g7) col sovrapprezzo SCRITTO il flag è FALSO — così g6 non passa per un motivo qualsiasi"
+  );
+  // ⚠️⚠️ IL CASO CHE LA VECCHIA g4 DICEVA DI PROTEGGERE, e che non esercitava:
+  // «`!p.price_delta` avrebbe trattato lo 0 come vuoto». Adesso è misurato.
+  assert(
+    senzaPrezzo([["manzo", { price_delta: "0" }]]) === false,
+    "g8) ⚠️⚠️ lo ZERO SCRITTO non è un campo vuoto: `0` è un valore che qualcuno ha scelto, e il Salva resta acceso"
+  );
+  assert(
+    senzaPrezzo([["manzo", { price_delta: null }]]) === true,
+    "g9) il nullo invece è vuoto: nessuno l'ha scritto"
+  );
+  // Tre casi che il `.trim()` regge da solo, e che senza di lui passerebbero.
+  assert(
+    senzaPrezzo([["manzo", { price_delta: "   " }]]) === true,
+    "g10) e nemmeno i soli spazi sono un campo compilato"
+  );
+  assert(
+    senzaPrezzo([["pollo", { price_delta: "1" }], ["manzo", { price_delta: "" }]]) === true &&
+      senzaPrezzo([["pollo", { price_delta: "1" }], ["manzo", { price_delta: "2" }]]) === false,
+    "g11) basta UNA proteina senza sovrapprezzo fra tante perché il flag sia vero, e nessuna perché sia falso"
+  );
+  assert(
+    senzaPrezzo([]) === false,
+    "g12) senza nessuna proteina non manca niente: il flag è falso, non vero per il vuoto"
   );
 }
 
