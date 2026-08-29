@@ -1,6 +1,6 @@
 # KM DIRECT — MASTER SPECIFICATION
 
-**Versione 83** — sostituisce la v82.
+**Versione 84** — sostituisce la v83.
 
 Documento di riferimento definitivo per lo sviluppo. Le decisioni qui
 contenute sono approvate: non vanno reinterpretate senza un motivo concreto
@@ -22,44 +22,50 @@ versione corrente**. I precedenti vivono in `git log`, che è fatto per quello.
 del documento prima che cominciasse a parlare del progetto — e dentro c'erano
 istruzioni rovesciate che nessuno rileggeva.*
 
-**Novità della v83** (vincolanti, notte fra il 28 e il 29/08/2026, terza parte):
+**Novità della v84** (vincolanti, 29/08/2026):
 
 *Le voci di questa versione **non si riscrivono qui a ogni giro**: quelle che
 restano vive stanno in §63-64, sezione «REGISTRATO E NON APERTO», che dalla v82
 è la loro casa. Qui restano le novità della sessione.*
 
-1. §6b — ✅ **IL SALVA SPENTO SI VEDE SPENTO.** Commit `5c1c883` e `4a345d8`,
-   pubblicati e provati dal vivo. ⚠️ *Riusato `stileSpento`, **l'unico spento
-   che il pannello già aveva** — lo stesso grigio di «Esaurito» — invece di
-   inventarne un secondo: due spenti divergono alla prima modifica. Quattro
-   pulsanti cambiano aspetto, contati, e il conteggio è sorvegliato da una
-   prova.*
-2. §63-64 — ✅ **UN SALVATAGGIO CHE SI ROMPE A METÀ LASCIA UNA RIGA NEL
-   REGISTRO.** Commit `3b86f6f` e `c990b78`. *Prima restava solo una frase su
-   uno schermo, che si chiude.* La riga porta la **fase**, la **tabella** su cui
-   si è fermato, se lo scudo era alzato e se l'articolo era già fuori dal menu.
-3. §63-64 — ⚠️⚠️ **UNA RIGA DI QUESTA SPEC ERA FALSA, E HA FATTO SBAGLIARE.**
-   La v82 diceva che lo scudo «non copre gli articoli già fuori dal menu». **Non
-   è un buco**: lo scudo serve a impedire che il cliente veda un articolo con le
-   opzioni a metà, e per un articolo già fuori quella condizione **è già vera**,
-   prima, durante e dopo. *Chi ragionava ha letto il titolo invece della frase
-   che lo reggeva, e ha chiesto di costruire una protezione che esisteva già —
-   compreso un messaggio che era scritto da tre settimane. **Code si è fermato
-   prima di scrivere una riga e lo ha dimostrato leggendo il cuore.***
-4. §66 — ⚠️ **LE PROVE DEL PANNELLO LASCIANO RIGHE NEL REGISTRO STAFF**, e nel
-   registro **non si distinguono da quelle vere in nessun modo automatico**.
-   *Al 29/08 sono quattro `modifica_opzioni_prodotto`, misurate da Andrea in
-   Supabase, e ne nasceranno altre ai passi 5, 6 e 7.* Si legano al limite già
-   noto: il criterio è un parametro compilato a mano il giorno del go-live.
-5. §63-64 — ✅ **L'ELENCO DEI SUGGERIMENTI DELLE RIMOZIONI SI RICAVA DALLE
-   RIMOZIONI CHE ESISTONO**, verificato dal vivo da Andrea. **Deciso di non
-   toccarlo.**
-6. §63-64 — ✅ **IL PULSANTE DELL'OCCHIO RESTA COM'È, per decisione di Andrea.**
+⚠️ **Le sei voci della v83 sono state controllate una per una prima di
+sostituire questo blocco.** Quattro vivevano già nel corpo; **due no**, e sono
+state portate in §63-64 invece che perse: i dettagli di `stileSpento` e dei
+quattro pulsanti contati, e **l'intera voce sulle righe di prova nel registro
+staff**, che viveva solo qui.
+
+1. §63-64 — ⚠️ **IL PASSO 5 È LETTO, MISURATO E DECISO, E NON È ANCORA
+   SCRITTO.** *In questa sessione **non è stata toccata una riga di codice**:
+   tre referti di sola lettura e quattro prove dal vivo di Andrea.* Le decisioni
+   stanno in §63-64, sezione «IL PASSO 5». **Non ricostruirle: leggerle.**
+2. §63-64 — ⚠️⚠️ **UN'ALTRA RIGA DI QUESTA SPEC ERA FALSA, E LE PROVE DI
+   ANDREA L'HANNO SMENTITA.** La v79 scriveva che «Annulla» è *«la strada che
+   aggira la conferma di §46»*. **Non lo è**: al salvataggio successivo il
+   riquadro **si riapre**, perché la condizione si ricalcola a ogni disegno
+   della scheda. *Seconda volta in due giorni, e la forma dell'errore è la
+   stessa dello scudo: la conseguenza che ci si immaginava premendo il pulsante,
+   scritta senza premerlo.* **Il difetto resta, il pericolo dichiarato no.**
+3. §63-64 — ✅ **I RIQUADRI DI CONFERMA SUL PREZZO SONO DUE, NON TRE.** *Il
+   terzo pulsante con la stessa etichetta sorveglia la **rimozione degli
+   allergeni**.* La frase dell'handoff — «tre “Conferma e salva” fra tre
+   componenti» — è vera come conteggio e fa concludere il falso.
+4. §63-64 — ✅ **`ProductEditForm` NON SI APRE PIÙ CON NESSUN GESTO**, misurato
+   nei due versi e in tutto il progetto. **È codice morto in attesa del passo
+   6**, e ne discende che il suo «Salva» arancione **non lo vede nessuno**.
+5. §63-64 — ⚠️ **I CONFINI DEI DUE COMPONENTI: TRE NUMERI, NESSUNO GIUSTO.**
+   Questa spec ne dichiarava due, l'handoff altri due, la misura di oggi un
+   terzo paio. **Corretti qui con la misura**, e l'handoff resta da correggere.
+6. §63-64 — ✅ **IL SOVRAPPREZZO VECCHIO ESISTE, MA NON DOVE SEMBRAVA.** È
+   dentro la fotografia delle opzioni, **appiattito in un testo unico e
+   riordinato**: quella fotografia risponde sì/no. Il valore per proteina si
+   legge invece da `opzioniArticolo`, che tiene la risposta grezza del server.
 
 *Il conteggio delle condizioni di apertura non cambia: **quattro chiuse, cinque
 aperte**.*
 
-⚠️ *Suite **38**, prove **1810**, zero fallite, misurate eseguendole.*
+⚠️ *Suite **38**, prove **1810**, zero fallite: **numero della v83, NON
+rimisurato**. In questa sessione è stata eseguita **una sola** suite,
+`menu-options-snapshot`, passata. Chi ha bisogno del totale lo rimisuri.*
 
 ## 1. Visione del progetto
 
@@ -3917,6 +3923,113 @@ qualunque scrittura, non una parola. E distingue la `delete()` del database da
 `next.delete(id)` **dalla forma della chiamata** — senza argomenti contro con
 argomenti — non da una lista di eccezioni da tenere aggiornata.*
 
+### ⚠️ IL PASSO 5 — LETTO, MISURATO, DECISO E NON ANCORA SCRITTO (v84, 29/08/2026)
+
+**In questa sessione non è stata toccata una riga di codice.** Tre referti di
+sola lettura di Code e quattro prove dal vivo di Andrea. *Il passo 5 tocca i
+prezzi su un database solo e col sito raggiungibile su due indirizzi: qui si
+scrivono le decisioni, il codice viene dopo.*
+
+**Il passo 5 è la conferma sul sovrapprezzo (FF)**, quinto dei sette
+dell'ordine vincolante. ⚠️ *La decisione **(FF)** e il modello del riquadro
+stanno già scritti più sotto, nelle decisioni del 25/08: **non si ricostruiscono
+qui**. Questa sezione aggiunge solo ciò che è stato misurato dopo.*
+
+#### Ciò che è stato ACCERTATO, e non va riverificato
+
+* **I riquadri di conferma SUL PREZZO sono DUE, non tre**: uno in
+  `ProductEditForm`, uno in `ProductForm`. ⚠️ *Il terzo pulsante «Conferma e
+  salva» sta in `AllergensEditForm` e sorveglia la **rimozione degli
+  allergeni**: stessa etichetta e stessa forma, argomento diverso.* **E le
+  occorrenze grezze della stringa sono quattro**, perché la quarta è dentro un
+  commento. *L'handoff dice «tre fra tre componenti»: vero come conteggio dei
+  pulsanti, e fa concludere che i riquadri del prezzo siano tre. **È la forma
+  d'errore di 42d, in un documento invece che in un titolo.***
+* **Solo la scheda nuova va toccata**, perché la vecchia non si apre più (voce
+  nei limiti noti). ⚠️ *Non è più un calcolo di convenienza come per il Salva
+  arancione: nell'altra non c'è niente da sistemare, perché nessuno può vederla.*
+* **Una conferma sui sovrapprezzi NON esiste in nessuna forma, nemmeno
+  parziale.** *Misurato nei due versi con la stessa sonda cambiando il solo
+  bersaglio: 17 righe sul prezzo dell'articolo, **zero** sul sovrapprezzo. Gli
+  interruttori di conferma in tutto il file sono tre e nessuno è suo.*
+* **Il campo esiste ed è già modificabile a schermo**, e la strada dal campo al
+  salvataggio è **diretta**: si scrive nella Map e basta. *L'unico controllo che
+  il file fa oggi sul sovrapprezzo è che **non sia vuoto** — condizione di
+  salvabilità, che alimenta l'elenco delle mancanze, non una conferma.*
+
+#### ⚠️ DOVE STA IL VALORE VECCHIO — due strade, e la scelta
+
+Per mostrare *«2,00 € → 2,50 €»* su una proteina serve il valore **di quando
+l'articolo è stato aperto**. Esiste, in due posti diversi:
+
+* **La fotografia delle opzioni** lo contiene davvero — misurato leggendo il
+  punto in cui viene riempita, non il nome né il commento, e **in un altro file**
+  da quello in cui viene assegnata. ⚠️ **Ma è inservibile per questo scopo**:
+  ogni proteina è una **tupla in posizione**, non un oggetto; le tuple sono
+  **riordinate per chiave**, quindi nemmeno l'ordine è quello di schermo; e il
+  tutto è avvolto in **una stringa sola**. *Quella fotografia è progettata per
+  rispondere «qualcosa è cambiato, sì o no?», ed è la domanda che le pone
+  «opzioni toccate»: un confronto fra due stringhe intere, che non sa dire quale
+  proteina né da quanto a quanto.*
+* **`opzioniArticolo`** tiene la **risposta grezza del server**, quindi i
+  sovrapprezzi vecchi **per proteina, in forma navigabile**. *Oggi il file lo usa
+  solo per contare e per accendere blocchi, mai per confrontare valori.*
+
+✅ **DECISO: i valori vecchi si leggono da `opzioniArticolo`, non dalla
+fotografia.** ⚠️ *La ragione è la stessa già scritta per **(QQ)**: smontare una
+cosa costruita per essere confrontata in blocco è una traduzione all'indietro, e
+le traduzioni all'indietro si scartano **quando sono evitabili**. Lì era
+evitabile e fu scartata; qui è evitabile perché il dato grezzo è già in memoria.*
+
+⚠️⚠️ **LA TRAPPOLA DI QUESTA SCELTA, DICHIARATA PRIMA DI SCRIVERE.** Nel
+database un sovrapprezzo può essere il **numero** `2`; nel modulo lo stesso
+valore è il **testo** `"2.00"`. Confrontati così **sembrano diversi**, e la
+conferma comparirebbe **anche senza che nessuno abbia toccato niente**. Il valore
+vecchio va quindi normalizzato **con la stessa espressione che il file usa già**
+nel punto in cui i valori arrivano dal server — quella, **estratta e non
+riscritta a mano**, per la stessa ragione per cui il 4b-2a incollò l'espressione
+del Salva invece di ricopiarla. *E il valore nullo in database diventa stringa
+vuota, non `"0"`: è un terzo caso, non due.*
+
+#### ✅ LA FORMA DEL PASSO 5 — quattro decisioni
+
+1. **UN RIQUADRO SOLO, CHE ELENCA TUTTO CIÒ CHE CAMBIA.** Se cambiano insieme il
+   prezzo dell'articolo e uno o più sovrapprezzi, compare **un elenco unico**,
+   vecchio → nuovo riga per riga, con un solo *Conferma e salva* e un solo
+   *Annulla*. ⚠️ *Scartate due schermate in fila: **due schermate si cliccano
+   via**. E la conferma sul prezzo che esiste già non viene affiancata da una
+   seconda — **viene allargata**.*
+2. **«ANNULLA» RIMETTE I VALORI DI PARTENZA**, prezzo e sovrapprezzi. *Perché è
+   quello che quella parola vuol dire.* Chiude il difetto 2 alla radice.
+3. **IL RIQUADRO SI SPEGNE DA SOLO QUANDO NON C'È PIÙ NIENTE DA CONFERMARE.**
+   Chiude il difetto 1. *Viene quasi gratis se la condizione è scritta **una
+   volta sola** invece che copiata in due punti: due copie divergono alla prima
+   modifica.*
+4. **UNA PROVA SORVEGLIA «ANNULLA».** Chiude il difetto 3. *Oggi si può rompere
+   senza che nessuna prova diventi rossa, ed è stato misurato sporcando il file
+   vero.*
+
+⚠️ **LA CONFERMA RIGUARDA SOLO LE PROTEINE CHE C'ERANO GIÀ.** *Una proteina
+aggiunta adesso non ha un valore vecchio da mostrare, e una tolta nemmeno:
+aggiungere e togliere resta un cambio delle **opzioni** come gli altri, non un
+cambio di prezzo.*
+
+#### ✅ Le quattro prove dal vivo di Andrea — 29/08/2026, sito pubblicato
+
+*Fatte su `Roll di prova 6`, mai su un articolo del menu, come impone la regola
+sulle prove che toccano il prezzo. **Nessun salvataggio è mai stato confermato**,
+quindi il database non è stato toccato.*
+
+1. ✅ **Il riquadro compare** cambiando il prezzo e premendo Salva.
+2. ✅ **«Annulla» lascia nel campo il numero nuovo**, quello digitato. È il
+   difetto 2, visto e non più solo letto.
+3. ✅ **Salvando poi per un altro motivo il riquadro SI RIAPRE.** ⚠️ *È la prova
+   che ha smentito questa spec: cambiato il solo nome e premuto Salva, la
+   conferma è ricomparsa. Il prezzo non passa di nascosto.*
+4. ✅ **«Annulla» del riquadro più «Annulla» della scheda riportano tutto
+   com'era**, nome e prezzo. *Trovato da Andrea provando, non chiesto: la scheda
+   sa già buttare via le modifiche non salvate.*
+
 ### ✅ IL 4b-2a — IL PULSANTE CHE NON GUARDAVA NIENTE (v79, 28/08/2026)
 
 **Il 4b ha quattro passaggi, non tre: 4b-1, 4b-2a, 4b-2, 4b-3.** *Il 4b-2a non
@@ -4008,17 +4121,40 @@ Andrea. *Con un database solo e il sito raggiungibile, **niente ricorda di
 rimetterlo e nessun controllo lo vede**: un residuo così si scopre da un
 cliente.*
 
-#### ⚠️ TRE COSE REGISTRATE E NON APERTE, TUTTE SULLO STESSO RIQUADRO
+#### ✅ TRE COSE REGISTRATE, E APERTE IN V84 DENTRO IL PASSO 5
 
 *Sono tre facce dello stesso pezzo di scheda: si aprono insieme, non a pezzi.*
+**Decisione di Andrea del 29/08: si sistemano tutte e tre dentro il passo 5**,
+che quel riquadro lo tocca comunque. *Copiarlo com'è avrebbe messo gli stessi
+tre difetti in un secondo posto.*
 
 1. **Il riquadro non si richiude da solo.** Se si rimette il prezzo al valore di
    partenza, continua a mostrare *«8,50 € → 8,50 €. Confermi?»*. ⚠️ *Misurato:
    nessuna delle righe che lo spengono è raggiunta da quel gesto, e nessun
-   effetto ha il prezzo fra le dipendenze.*
+   effetto ha il prezzo fra le dipendenze.* ✅ **Confermato in v84 sui due
+   riquadri**, esaurendo i punti di scrittura dell'interruttore.
 2. **«Annulla» non ripristina il prezzo.** Chiude il riquadro e lascia nel campo
-   il valore nuovo. ⚠️ *È la strada che aggira la conferma di §46: se poi si
-   salva per un'altra ragione, si salva anche quel prezzo.*
+   il valore nuovo. ✅ **Provato dal vivo da Andrea il 29/08.**
+   ⚠⚠ **LA RAGIONE CHE QUESTA SPEC DAVA ERA FALSA, ed è stata corretta in
+   v84.** Diceva: *«è la strada che aggira la conferma di §46: se poi si salva
+   per un'altra ragione, si salva anche quel prezzo»*. **Non è vero.** Andrea
+   ha percorso esattamente quella strada — Annulla, poi cambiato il solo nome,
+   poi Salva — e **il riquadro si è riaperto**: la condizione si ricalcola a
+   ogni disegno della scheda, quindi il prezzo **non passa in silenzio**.
+   ⚠️ *Seconda riga falsa in due giorni dopo quella sullo scudo, e la forma è
+   la stessa: la conseguenza che ci si immagina premendo il pulsante, scritta
+   senza premerlo. **Chi registra un difetto scriva ciò che ha visto, e tenga
+   separato ciò che teme.***
+   **Il difetto resta, ridimensionato**: «Annulla» non annulla, lascia in mano
+   un numero che nessuno ha voluto, e tocca a chi sta modificando ricordarsi di
+   rimettere quello di prima. *Il pericolo che ne resta è più stretto: al
+   salvataggio dopo, il riquadro si riapre e chi sta salvando un nome può
+   premere «Conferma e salva» per abitudine.*
+   ✅ **E una via d'uscita esiste già, trovata da Andrea provando**: «Annulla»
+   del riquadro seguito da «Annulla» della scheda riporta tutto com'era. *La
+   scheda intera sa già buttare le modifiche non salvate; quello che manca è un
+   modo che costi un gesto solo e che si chiami come il pulsante che si sta
+   premendo.*
 3. **«Annulla» non è sorvegliato da nessuna prova.** ⚠️ *Misurato sporcando il
    file vero: mettendogli addosso `!canSave` — che chiuderebbe l'utente dentro
    il riquadro, con tutti e due i pulsanti spenti — **nessuna prova su 1678
@@ -4144,10 +4280,15 @@ nomi.*
   etichetta vuota su qualunque categoria. Riscrivere quel commento fa parte del
   4b-2, e la spec lo dice già: qui si registra che l'errore è **dentro il
   commento stesso**.*
-* **I CONFINI VERI DEI DUE COMPONENTI**: `ProductEditForm` **963-1210**,
-  `ProductForm` **1493-2722**, verificati sulle definizioni che li seguono.
-  ⚠️ *L'handoff, punto 39j, ne riporta altri (963-1221 e 1493-2710): va corretto
-  lì, non qui.*
+* **I CONFINI DEI DUE COMPONENTI** — ⚠️ **numeri rifatti in v84, perché i
+  precedenti erano sbagliati.** La misura del 29/08, presa dalla definizione
+  alla chiusura sul file vero: `ProductEditForm` **967-1209**, `ProductForm`
+  **1518-3047**, su un file di **3681** righe. *La v81 dichiarava 963-1210 e
+  1493-2722; l'handoff, punto 39j, 963-1221 e 1493-2710. **Tre numeri diversi
+  per lo stesso confine e nessuno dei tre coincide con la misura**: il file è
+  cresciuto col 4b-2 e col 4b-3 e nessuno dei due documenti è stato rifatto.*
+  ⚠️ **L'handoff resta da correggere**, e chiunque abbia bisogno di questi
+  numeri li rimisuri: invecchiano a ogni commit sul pannello.
 * **LA TRADUZIONE È UNA SOLA**, `app/staff/page.js:1632-1668`, col commento a
   1621-1631 che la dichiara l'unico punto dove i nomi combaciano. *È la riga che
   **(QQ)** protegge, ed è la ragione per cui la seconda traduzione è stata
@@ -4246,10 +4387,19 @@ non si riscrivono nei blocchi delle versioni future.*
 
 * ✅ **IL SALVA SPENTO SI VEDE SPENTO** (chiuso il 28/08, `5c1c883`). *Era
   arancione pieno e cambiava solo il cursore — che sul telefono non esiste.*
+  ⚠️ **È stato riusato `stileSpento`, l'unico spento che il pannello già
+  aveva** — lo stesso grigio di «Esaurito» — invece di inventarne un secondo:
+  *due spenti divergono alla prima modifica.* **Quattro pulsanti cambiano
+  aspetto, contati**, e il conteggio è sorvegliato da una prova. *Dettagli
+  portati qui dal blocco Novità della v83 in v84, dove vivevano soli.*
   ⚠️ **Resta però il «Salva» di `ProductEditForm`**, che ha una **copia in linea
   dello stesso stile** e non passa da `confirmBtn`: continua a vedersi arancione
   anche da spento. *Non sistemato di proposito: **il passo 6 fa sparire quel
   componente**, e sistemare ciò che si sta per togliere è lavoro buttato.*
+  ✅ **E dalla v84 quel pulsante NON LO VEDE NESSUNO**: `ProductEditForm` non è
+  raggiungibile da nessun gesto (misurato il 29/08, voce sotto). *La voce resta
+  scritta perché il testo è ancora nel file, ma non descrive più niente che stia
+  su uno schermo.*
 * ✅ **IL PULSANTE DELL'OCCHIO RESTA COM'È — decisione di Andrea, 28/08.**
   Occhio barrato vuol dire che l'articolo **è visibile** e che premendo lo si
   spegne. ⚠️ *La ragione della decisione, che vale più della correzione: **è
@@ -4326,6 +4476,23 @@ non si riscrivono nei blocchi delle versioni future.*
   cache. Ma falsa qualunque prova dal vivo fatta subito dopo un push, ed è la
   seconda volta che una prova guarda il codice sbagliato.* **Chi chiede una
   prova dopo un push dica anche di ricaricare a fondo.**
+* ⚠️ **LE PROVE DAL VIVO DEL PANNELLO LASCIANO RIGHE NEL REGISTRO STAFF**, e
+  nel registro **non si distinguono da quelle vere in nessun modo automatico**.
+  *Al 29/08 sono quattro `modifica_opzioni_prodotto`, misurate da Andrea in
+  Supabase, e **ne nasceranno altre ai passi 5, 6 e 7**.* Si lega al limite già
+  noto di §69: il criterio che distingue un'azione di prova è un **parametro
+  compilato a mano** il giorno del go-live, e va letto dal referto dei conteggi,
+  non ricordato. *Portata qui dal blocco Novità della v83 in v84, dove viveva
+  sola: nel corpo esisteva il limite sul criterio, non il fatto che il numero
+  delle righe di prova stia crescendo.*
+* ✅ **`ProductEditForm` NON SI APRE PIÙ CON NESSUN GESTO** (misurato il
+  29/08). «Modifica» apre la **scheda unica precompilata**, e la catena è
+  interamente ritagliata dal file: nessun ternario sceglie fra le due, il tag
+  della scheda vecchia **non compare più da nessuna parte**. *Verificato nei due
+  versi con la stessa sonda — due usi della scheda nuova, zero della vecchia —
+  e poi anche sugli usi indiretti (alias, array, `createElement`) e su tutto il
+  progetto: fuori da questo file il nome vive solo nei due documenti e in tre
+  commenti di una suite.* **È codice morto in attesa del passo 6.**
 * **`Il turco` è scritto con la t minuscola** nel menu, mentre gli altri Roll
   hanno l'iniziale maiuscola. *Lo vedono i clienti. È un dato, non codice.*
 
