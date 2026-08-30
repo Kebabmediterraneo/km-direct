@@ -3833,3 +3833,192 @@ stessa prova: il secondo dice che online gira il codice nuovo.*
   nella vecchia restano, e nessuno può vederli.
 
 ---
+
+## 44) Il passo 6: la vecchia scheda sparisce, e una dipendenza che nessuno aveva cercato (30/08/2026)
+
+**Passo 6 fatto e pubblicato in tre commit, più uno di documenti.** `ProductEditForm`
+non esiste più: `app/staff/page.js` da **3813** a **3566** righe. Prove **1873**,
+zero fallite. *Le decisioni stanno in spec §63-64, sezione «IL PASSO 6». **Non
+ricostruirle.*** HEAD alla chiusura: `540e05d`.
+
+⚠️ **La giornata si è aperta con la frase falsa nel pannello**, chiusa prima di
+toccare il passo 6: *un lavoro corto va chiuso prima di aprirne uno grosso,
+altrimenti resta lì per giorni.*
+
+### 44a) La frase che il pannello diceva a chi lo usa — `3a30561`
+
+*«Queste sono le opzioni che l'articolo ha già: si vedono, ma da qui non si
+salvano ancora»*: falsa dal 4b-3. **Tolta, non riscritta** — *un testo che
+racconta a che punto è il lavoro invecchia da solo dentro un pannello che si usa
+ogni giorno.*
+
+⚠️ **Una previsione sbagliata, e trattata bene.** Il comando avvertiva che la
+frase sarebbe stata *spezzata da un a-capo* e ordinava una sonda robusta. **Non
+lo era**: la sonda ingenua dava 1. *Code ha usato lo stesso quella robusta, e ha
+detto che non aveva trovato niente in più — è il modo giusto di trattare una
+precauzione che si rivela inutile.*
+
+⚠️⚠️ **E il commento che l'ha sostituita, al primo tentativo, stava
+ricreando il difetto.** Riportava la frase **per intero**, su una riga che il
+filtro `soloCodice` delle suite non avrebbe scartato: *una sonda di testo
+l'avrebbe ritrovata nel commento e scambiata per codice vivo.* **Code se n'è
+accorto, l'ha corretto e l'ha dichiarato.** *È la lezione della sonda della
+rinomina, già scritta — e stava per essere rifatta nell'atto stesso di
+riparare.*
+
+✅ **Nessuna prova sorvegliava quella frase**, misurato prima di toccarla, con la
+controprova nei due versi: la stessa sonda **trova** due altre frasi del pannello
+nelle suite. ⚠️ **E ha scoperto altro: le due frasi sorelle dello stesso
+ternario non sono sorvegliate da nessuno.** *Quel blocco di messaggi è scoperto
+per intero — registrato, non aperto.*
+
+### 44b) Il primo giro: dove stava il rischio, e dove no
+
+Il componente non lo apriva nessun gesto: **cancellarlo non poteva togliere una
+funzione a nessuno**. Il rischio era l'opposto — **un pezzo condiviso nato lì
+dentro** e riusato altrove.
+
+✅ **Non c'era, e la risposta non è un campione di sonde ma il perimetro dello
+scope**: l'unica cosa definita a livello di modulo fra quelle righe era il
+componente stesso. *Tutti i nomi che comparivano fuori erano **omonimi** con la
+propria definizione — ventisei usi di uno di essi non c'entravano nulla con
+questo componente.*
+
+⚠️ **Due sonde cieche corrette in un giro solo:**
+* il ritaglio a graffe che dichiarava la funzione lunga **una riga**, perché
+  prendeva la graffa della **destrutturazione dei parametri**;
+* una sonda `awk` che dava **zero su tutto, anche dentro**, perché `\<` non
+  esiste in awk BSD. *È la forma peggiore: uno zero che non distingue «non c'è»
+  da «non guardo».*
+
+⚠️ **E dal primo errore è uscita una fragilità in codice pubblicato il giorno
+prima**: `ritagliaFunzione`, scritto per la prova su «Annulla», ha la stessa
+debolezza. *Oggi è verde perché quella firma non ha destrutturazione: verde per
+caso, non per costruzione.* **Registrato in spec, non aperto.**
+
+### 44c) ⚠️⚠️ La quarta categoria: due prove rosse dopo il taglio
+
+Erano state cercate **tre** categorie di dipendenza — prove che **nominano**,
+prove che **contano**, e gli **ancoraggi** — tutte e tre trovate e messe in
+salvo. **Ne mancava una quarta:**
+
+> **una prova che prende in prestito una RIGA DI CODICE dal file, senza nominare
+> il componente in cui quella riga vive.**
+
+`id: product.id,` non conteneva il nome del componente, non era un ancoraggio,
+non era un conteggio. **Nessuna delle tre sonde poteva vederla.**
+
+⚠️ *La mancanza è di tutti e due: i tre giri di ricerca li aveva ordinati chi
+ragiona, e nessuno puntava lì. **Code lo ha detto senza attenuanti**: «ho scritto
+che nessuna prova sarebbe diventata rossa e mi mancava una categoria».*
+
+✅ **E si è fermato senza toccarle**, elencando tre strade e prendendone
+nessuna. *Ripristinare, cancellare o rattoppare erano tutte sbagliate, e la
+lettura lo ha mostrato.*
+
+### 44d) ✅ Non avevano perso il materiale: avevano perso l'indirizzo
+
+Un giro di sola lettura sulle due prove, prima di decidere. **La riga esisteva
+ancora**: cambiava solo il nome della prop — `product` era diventato `articolo`.
+
+⚠️ **E il rischio che quella controprova descrive È AUMENTATO col passo 6.**
+*Prima quella riga viveva in un componente morto che nessuno apriva; adesso vive
+**dentro lo stesso componente che fa anche la creazione**, a poche decine di
+righe di distanza. I due corpi sono diventati vicini di casa.* **La controprova
+serve oggi più di ieri.**
+
+**Ripuntate con intenzione**, che è la parola che quelle prove usano nel proprio
+messaggio quando dicono cosa fare se diventano rosse. *Il cuore generico della
+controprova non è stato toccato: cambia solo quale riga si va a prendere.*
+
+⚠️ **Di righe identiche adesso ce ne sono TRE, e l'aggancio deve dire quale.**
+*Prenderne una a caso funzionerebbe oggi e si romperebbe alla prima modifica di
+una delle altre due — che è il modo in cui questo problema è nato.* Scelto
+l'aggancio sul **seguito** della riga, con un lookahead per non alterare il
+materiale innestato.
+
+✅ **Verificato PER PARTIZIONE, non per successo: 1+1+1 = 3.** *Un `1, 0, 0` non
+avrebbe saputo distinguere «le esclude» da «non le vede». È la regola degli
+insiemi contro i totali, applicata a un aggancio.* ✅ **E la verifica è stata
+messa DENTRO la suite**, non lasciata in un referto: *altrimenti sarebbe una
+misura fatta una volta sola.*
+
+⚠️ **Code ha anche detto che una delle due cade *di riflesso*, non di suo**: è
+una catena — la prima è la guardia, la seconda il carico. *Poteva contarla come
+rossa indipendente e stare zitto.*
+
+### 44e) I tre commit, e i conteggi rimisurati invece che decrementati
+
+| | | commit |
+|---|---|---|
+| il taglio | 247 righe via, nient'altro | `05c1ad2` |
+| le prove | ripuntate, più la controprova sull'aggancio | `74948fd` |
+| i commenti | i tre che descrivevano un componente sparito | `540e05d` |
+
+*Tre tipi di lavoro, tre commit: se il pannello si rompe, il diff del taglio si
+legge da solo.*
+
+⚠️ **I commenti sono stati riscritti, non cancellati**: la ragione che
+spiegavano resta valida — per gli ancoraggi il posto da evitare adesso è uno
+solo invece di due. ✅ **E i conteggi dentro di essi sono stati RIMISURATI, non
+decrementati a mente**: *il vecchio testo diceva tre «Conferma e salva» quando le
+occorrenze grezze erano quattro; sottrarre avrebbe propagato un numero già
+impreciso.* **Un conteggio aggiornato per sottrazione è un conteggio non
+misurato.**
+
+✅ **In nessuno dei tre commenti è stato riportato il nome del componente
+cancellato**, per non farlo ritrovare a una sonda di testo. *Controprova: la
+stessa sonda sui documenti dà dieci e dieci, dove il nome deve restare perché è
+la storia del progetto.*
+
+### 44f) ✅ Le prove dal vivo di Andrea, e perché erano indispensabili
+
+**Cinque percorsi su localhost, tre sul sito pubblicato**, tutti verdi. ⚠️ *Le
+suite leggono `app/staff/page.js` come **testo** e non lo eseguono mai: né il
+verde né la compilazione dimostrano che il pannello si apra. Erano state
+cancellate 247 righe dal file da cui dipende tutto.*
+
+**Due dei cinque percorsi erano lì apposta** — gli allergeni e la creazione —
+*perché sono le strade che col componente cancellato non c'entravano: servivano
+a sapere che non fosse caduto niente intorno.*
+
+### 44g) ⚠️ Il 500 che la premessa ha intercettato
+
+Prima dello spegnimento la porta ha risposto **500**, non 200. **La premessa
+della lezione `bx` non è una formalità**: senza quel controllo la sessione si
+sarebbe chiusa lasciando un errore non spiegato su un pannello appena
+pubblicato, e domani qualcuno l'avrebbe attribuito al taglio.
+
+**Causa**: `next build` eseguito **mentre il server di sviluppo girava** — il
+build riscrive `.next` sotto i piedi del server, che comincia a rispondere
+`MODULE_NOT_FOUND`. ✅ **Non ipotizzata ma dimostrata**, riavviando pulito: 200 e
+zero errori.
+
+⚠️ **Lezione operativa: `next build` come compile-check non si esegue mentre il
+dev server gira.** *Produce 500 che sembrano difetti del codice appena scritto e
+non lo sono.*
+
+### 44h) ⚠️ Il terzo errore di chi ragiona in tre giorni
+
+Per un'intera sessione l'orario è stato **dedotto dagli screenshot notturni** e
+mai rimesso in discussione, fino a proporre ad Andrea di fermarsi *«alle quattro
+e mezza del mattino»* mentre era il **primo pomeriggio del giorno dopo**.
+*L'ha corretto lui.*
+
+⚠️ **È una deduzione spacciata per fatto — esattamente ciò che chi ragiona ha
+il compito di smascherare nei referti altrui.** *I tre errori di questi giorni
+hanno la stessa forma: **una fotografia presa una volta e mai più rimisurata**.
+Il criterio ineseguibile, l'atteso sui numeri del diff, l'orario.*
+
+### 44i) Cosa resta
+
+* **Il passo 7, il cambio di categoria (HH)**: l'ultimo dei sette.
+* ⚠️ **`ritagliaFunzione` è fragile su una firma con destrutturazione**, in
+  codice pubblicato. Registrato, non aperto.
+* ⚠️ **Le due frasi sorelle del pannello non sono sorvegliate da nessuna
+  prova.** Registrato, non aperto.
+* ⚠️ **Le due normalizzazioni del 5-2a restano senza prove di comportamento.**
+* **Gli otto articoli di prova restano in piedi**: si cancellano **dopo il passo
+  7**, non prima.
+
+---

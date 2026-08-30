@@ -1,6 +1,6 @@
 # KM DIRECT — MASTER SPECIFICATION
 
-**Versione 85** — sostituisce la v84.
+**Versione 86** — sostituisce la v85.
 
 Documento di riferimento definitivo per lo sviluppo. Le decisioni qui
 contenute sono approvate: non vanno reinterpretate senza un motivo concreto
@@ -22,49 +22,52 @@ versione corrente**. I precedenti vivono in `git log`, che è fatto per quello.
 del documento prima che cominciasse a parlare del progetto — e dentro c'erano
 istruzioni rovesciate che nessuno rileggeva.*
 
-**Novità della v85** (vincolanti, 29/08/2026, seconda parte):
+**Novità della v86** (vincolanti, 30/08/2026):
 
 *Le voci di questa versione **non si riscrivono qui a ogni giro**: quelle che
 restano vive stanno in §63-64, sezione «REGISTRATO E NON APERTO», che dalla v82
 è la loro casa. Qui restano le novità della sessione.*
 
-⚠️ **Le sei voci della v84 sono state controllate una per una prima di
-sostituire questo blocco**, e **tutte e sei vivevano già nel corpo**: nella
-sezione del passo 5 e nei limiti noti. *Nessuna è stata portata, perché nessuna
-viveva sola. La v84 ne aveva portate due.*
+⚠️ **Le sei voci della v85 sono state controllate una per una prima di
+sostituire questo blocco, e vivono tutte**: quattro nel corpo di questa spec,
+**tre nell'handoff ai punti 43e, 43f e 43i** — la sentinella riscritta,
+l'ordine ineseguibile e l'atteso dichiarato senza misurarlo. *Le lezioni di
+metodo hanno casa nell'handoff, non qui: è dove sono sempre state.*
 
-1. §63-64 — ✅ **IL PASSO 5 È CHIUSO E PUBBLICATO**, tutte e quattro le
-   decisioni, in **cinque commit**. Suite da 38 a **39**, prove da **1810** a
-   **1872**, zero fallite, misurate eseguendole. *Il racconto sta nell'handoff,
-   punto 43; le decisioni stanno qui, in §63-64.*
-2. §63-64 — ⚠️⚠️ **UNA FRASE FALSA SI LEGGE NEL PANNELLO**, sopra le opzioni:
-   *«da qui non si salvano ancora»*. **Non è più vero dal 4b-3.** *Trovata in uno
-   screenshot di Andrea, non da una sonda: **la legge chi usa il pannello**.*
-   ✅ **È la prima cosa da chiudere dopo il passo 5.**
-3. §63-64 — ✅ **UN BUCO CHE NESSUNO CERCAVA È STATO TROVATO E CHIUSO**: il
-   calcolo che spegne il Salva sui sovrapprezzi vuoti **non era esercitato da
-   nessuna prova**. Lo sorvegliava una sonda di testo, che guardava com'era
-   *scritto* invece di cosa faceva. **Sostituita da nove prove che lo
-   eseguono**, non aggiornata. ⚠️ *Aggiornare una sentinella per farla tornare
-   verde è metterla a tacere e tenersi il buco.*
-4. §63-64 — ⚠️ **UN ORDINE ERA INESEGUIBILE ALLA LETTERA, e Code lo ha
-   dichiarato invece di adattarsi in silenzio.** Chiedeva due espressioni
-   identiche carattere per carattere, cosa impossibile fra una funzione e la sua
-   chiamata. *Ha isolato lo scarto, misurato che stava solo nell'argomento,
-   dimostrato che gli **involucri** erano identici, e **detto di aver
-   interpretato**.* ✅ **È la dichiarazione a valere, non la deduzione.**
-5. §63-64 — ⚠️ **UNA QUARTA FORMA DELLA SONDA CIECA**: il delimitatore di
-   stringa dato per scontato. *Undici prove contate invece di dodici, perché una
-   usa il backtick e la sonda cercava il doppio apice.*
-6. §63-64 — ⚠️ **DUE COSE RESTANO SENZA PROVE DI COMPORTAMENTO** dopo il
-   passo 5, ed è registrato: le due normalizzazioni sostituite nel 5-2a.
+1. §63-64 — ✅ **IL PASSO 6 È FATTO E PUBBLICATO**: la vecchia scheda di
+   modifica non esiste più. `app/staff/page.js` da **3813** a **3566** righe.
+   Prove **1873**, zero fallite. *Sei passi su sette; resta il **passo 7**, il
+   cambio di categoria (HH).*
+2. §63-64 — ⚠️⚠️ **UNA CATEGORIA DI DIPENDENZA CHE NESSUNO AVEVA CERCATO**:
+   una prova che **prende in prestito una riga di codice** dal file senza
+   nominare il componente in cui vive. *Non è una menzione, un conteggio o un
+   ancoraggio — le tre cose che erano state cercate.* **Due prove sono diventate
+   rosse, e Code si è fermato senza toccarle.** ✅ *Non erano invalidate: avevano
+   perso l'indirizzo, non il materiale.*
+3. §63-64 — ✅ **TRE COSE REGISTRATE SI SONO CHIUSE DA SOLE** sparendo col
+   componente: il «Salva» arancione da spento, la quarta copia della
+   normalizzazione, e le tre copie dei difetti del riquadro. *Nessuna è stata
+   sistemata: erano state lasciate in piedi apposta.*
+4. §63-64 — ✅ **LA FRASE FALSA NEL PANNELLO È STATA TOLTA**, non riscritta.
+   ⚠️ *Il commento che l'ha sostituita, al primo tentativo, la riportava per
+   intero fuori dal filtro delle suite: l'avrebbe fatta rivivere come falso
+   positivo.* **E resta scoperto ciò che la misura ha trovato: le due frasi
+   sorelle di quel punto non sono sorvegliate da nessuna prova.**
+5. §63-64 — ⚠️ **UNA FRAGILITÀ IN CODICE GIÀ PUBBLICATO**: `ritagliaFunzione`
+   si rompe su una firma con destrutturazione. *Oggi è verde per caso, non per
+   costruzione.* **Registrata e non aperta.**
+6. §63-64 — ⚠️ **`next build` NON SI ESEGUE MENTRE IL SERVER DI SVILUPPO
+   GIRA**: corrompe `.next` e produce **500** che sembrano difetti del codice.
+   ✅ *Intercettato dalla premessa della lezione `bx`, e la causa è stata
+   dimostrata riavviando pulito, non ipotizzata.*
 
-⚠️ **E UN ERRORE DI CHI RAGIONA, registrato perché è il secondo in due giorni.**
-Era stato dichiarato ad Andrea un atteso **mai misurato**: che dopo il commit i
-numeri del diff sarebbero stati diversi da quelli di `--patience`. *Su tutti e
-cinque i commit della giornata **hanno coinciso**. La lezione dice che possono
-divergere, non che divergano.* **La regola che si pretende da Code è stata
-violata da chi la scriveva.**
+⚠️ **E UN ERRORE DI CHI RAGIONA, il terzo in tre giorni.** *Per un'intera
+sessione l'orario è stato dedotto dagli screenshot notturni e mai rimesso in
+discussione, fino a proporre di fermarsi «alle quattro e mezza del mattino»
+mentre era il primo pomeriggio del giorno dopo.* **È una deduzione spacciata per
+fatto, cioè esattamente ciò che chi ragiona ha il compito di smascherare negli
+altri.** ⚠️ *L'ha corretto Andrea. Le tre volte hanno la stessa forma: una
+fotografia presa una volta e non più rimisurata.*
 
 *Il conteggio delle condizioni di apertura non cambia: **quattro chiuse, cinque
 aperte**.*
@@ -3925,6 +3928,72 @@ qualunque scrittura, non una parola. E distingue la `delete()` del database da
 `next.delete(id)` **dalla forma della chiamata** — senza argomenti contro con
 argomenti — non da una lista di eccezioni da tenere aggiornata.*
 
+### ✅ IL PASSO 6 — LA VECCHIA SCHEDA DI MODIFICA È SPARITA (v86, 30/08/2026)
+
+**Sesto dei sette passi, fatto e pubblicato in tre commit.** `ProductEditForm` è
+stato cancellato da `app/staff/page.js`, che passa da **3813** a **3566** righe
+(`wc -l`). *Con lui se ne sono andate la sua copia in linea dello stile del Salva
+e la quarta copia della normalizzazione dei prezzi: erano state lasciate in piedi
+apposta, perché sistemare ciò che si sta per togliere è lavoro buttato.*
+
+**È l'unico passo che toglie invece di aggiungere.** Prove: **1873**, zero
+fallite. Il racconto sta nell'handoff, punto 44.
+
+#### ⚠️ DOVE STAVA IL RISCHIO, e dove no
+
+Il componente non lo apriva nessun gesto, quindi cancellarlo **non poteva
+togliere una funzione a nessuno**. Il pericolo era l'opposto: **un pezzo
+condiviso NATO lÌ DENTRO** e riusato altrove, che sparendo avrebbe spento il
+pannello.
+
+✅ **Non c'era, e non per fortuna: per costruzione.** *L'unica cosa definita a
+livello di modulo fra quelle righe era il componente stesso; tutto il resto
+stava dentro il corpo della funzione, quindi non poteva essere visto da fuori.*
+⚠️ **Tutti i nomi che comparivano fuori erano OMONIMI con la propria
+definizione** — la trappola che questa spec segnalava da giorni: nel file
+convivevano componenti che usano gli stessi nomi di variabile.
+
+#### ⚠️⚠️ LA CATEGORIA DI DIPENDENZA CHE NESSUNO AVEVA CERCATO
+
+Prima di tagliare erano state cercate **tre** cose: le prove che **nominano** il
+componente, quelle che **contano** occorrenze, e gli **ancoraggi** dei ritagli.
+Tutte e tre trovate e messe in salvo. **Ne mancava una quarta, e due prove sono
+diventate rosse:**
+
+⚠️ **UNA PROVA CHE PRENDE IN PRESTITO UNA RIGA DI CODICE DAL FILE, SENZA
+NOMINARE IL COMPONENTE IN CUI QUELLA RIGA VIVE.** *Non è una menzione, non è un
+conteggio, non è un ancoraggio: è materiale vero preso in prestito, e nessuna
+delle tre sonde poteva vederlo.* **Va cercata prima di ogni cancellazione.**
+
+✅ **E quelle due prove non erano invalidate: avevano perso l'indirizzo, non il
+materiale.** *La riga esisteva ancora, cambiava solo il nome della prop —
+`product` era diventato `articolo`.* Sono state **ripuntate con intenzione**,
+lasciando intatto il cuore generico della controprova.
+
+⚠️ **E il rischio che quella controprova descrive È AUMENTATO col passo 6**:
+prima quella riga viveva in un componente morto, adesso vive **dentro lo stesso
+componente che fa anche la creazione**, a poche decine di righe di distanza.
+*I due corpi sono diventati vicini di casa: la controprova serve oggi più di
+ieri.*
+
+✅ **L'ancoraggio nuovo distingue fra TRE righe identiche**, ed è verificato
+**per partizione**: 1+1+1 fa 3. *Un `1, 0, 0` non avrebbe saputo distinguere «le
+esclude» da «non le vede».* La verifica sta **dentro la suite**, non in un
+referto: altrimenti sarebbe una misura fatta una volta sola.
+
+#### ✅ Le prove dal vivo di Andrea — 30/08/2026
+
+*Cinque percorsi su localhost, poi tre sul sito pubblicato dopo ricaricamento a
+fondo.* ⚠️ **Erano indispensabili: le suite leggono `app/staff/page.js` come
+TESTO e non lo eseguono mai, quindi né il verde né la compilazione dimostrano
+che il pannello si apra.**
+
+Provati: la sezione Menu che si popola; la scheda di modifica che si apre
+precompilata; il riquadro del prezzo che compare e «Annulla» che rimette il
+valore; **e due strade che col componente cancellato non c'entravano** — gli
+allergeni e la creazione di un articolo — per sapere che non fosse caduto
+niente intorno.
+
 ### ✅ IL PASSO 5 — DECISO, SCRITTO, PROVATO E PUBBLICATO (v84-v85, 29/08/2026)
 
 **✅ CHIUSO IN V85: tutte e quattro le decisioni sono scritte, provate dal vivo
@@ -4160,10 +4229,10 @@ cliente.*
 che quel riquadro lo tocca comunque. *Copiarlo com'è avrebbe messo gli stessi
 tre difetti in un secondo posto.*
 
-✅ **TUTTE E TRE CHIUSE, provate dal vivo e pubblicate.** ⚠️ **Ma solo nella
-scheda nuova**: in `ProductEditForm` restano tali e quali, e non li vede nessuno
-perché quel componente non si apre più. *La voce resta qui per il passo 6, che
-lo cancella.* Il racconto sta nel punto 43 dell'handoff.
+✅ **TUTTE E TRE CHIUSE, provate dal vivo e pubblicate.** *In v85 restavano
+ancora nella scheda vecchia, dove non li vedeva nessuno;* ✅ **dalla v86 non
+restano da nessuna parte: il passo 6 ha cancellato quel componente.** Il racconto
+sta nel punto 43 dell'handoff.
 
 1. **Il riquadro non si richiude da solo.** Se si rimette il prezzo al valore di
    partenza, continua a mostrare *«8,50 € → 8,50 €. Confermi?»*. ⚠️ *Misurato:
@@ -4433,10 +4502,10 @@ non si riscrivono nei blocchi delle versioni future.*
   dello stesso stile** e non passa da `confirmBtn`: continua a vedersi arancione
   anche da spento. *Non sistemato di proposito: **il passo 6 fa sparire quel
   componente**, e sistemare ciò che si sta per togliere è lavoro buttato.*
-  ✅ **E dalla v84 quel pulsante NON LO VEDE NESSUNO**: `ProductEditForm` non è
-  raggiungibile da nessun gesto (misurato il 29/08, voce sotto). *La voce resta
-  scritta perché il testo è ancora nel file, ma non descrive più niente che stia
-  su uno schermo.*
+  ✅✅ **CHIUSO IN V86 DAL PASSO 6, cancellando il componente.** *Non è stato
+  sistemato: se n'è andato insieme alla scheda che lo conteneva, ed è il motivo
+  per cui non era stato toccato.* **Nel pannello di oggi ogni Salva spento si
+  vede spento, senza eccezioni.**
 * ✅ **IL PULSANTE DELL'OCCHIO RESTA COM'È — decisione di Andrea, 28/08.**
   Occhio barrato vuol dire che l'articolo **è visibile** e che premendo lo si
   spegne. ⚠️ *La ragione della decisione, che vale più della correzione: **è
@@ -4522,31 +4591,54 @@ non si riscrivono nei blocchi delle versioni future.*
   non ricordato. *Portata qui dal blocco Novità della v83 in v84, dove viveva
   sola: nel corpo esisteva il limite sul criterio, non il fatto che il numero
   delle righe di prova stia crescendo.*
-* ✅ **`ProductEditForm` NON SI APRE PIÙ CON NESSUN GESTO** (misurato il
-  29/08). «Modifica» apre la **scheda unica precompilata**, e la catena è
-  interamente ritagliata dal file: nessun ternario sceglie fra le due, il tag
-  della scheda vecchia **non compare più da nessuna parte**. *Verificato nei due
-  versi con la stessa sonda — due usi della scheda nuova, zero della vecchia —
-  e poi anche sugli usi indiretti (alias, array, `createElement`) e su tutto il
-  progetto: fuori da questo file il nome vive solo nei due documenti e in tre
-  commenti di una suite.* **È codice morto in attesa del passo 6.**
+* ✅✅ **`ProductEditForm` NON ESISTE PIÙ** (cancellato il 30/08, passo 6,
+  `05c1ad2`). *Dal 29/08 era già codice morto: «Modifica» apre la scheda unica
+  precompilata, e la catena era interamente ritagliata dal file — nessun ternario
+  sceglieva fra le due. Verificato allora nei due versi, poi sugli usi indiretti
+  e su tutto il progetto.* **Nel codice il nome oggi dà zero ovunque**; vive solo
+  nei due documenti, dove deve restare perché è la storia del progetto.
 * ⚠️⚠️ **UNA FRASE FALSA SI LEGGE NEL PANNELLO, e la legge chi lo usa.** Sopra
   le opzioni, nella scheda dell'articolo, c'è scritto *«Queste sono le opzioni
   che l'articolo ha già: si vedono, ma da qui non si salvano ancora»*. **Non è
   più vero dal 4b-3**, che ha attaccato la chiamata: era vera durante il 4b-1 ed
   è rimasta lì. ⚠️ *È la lezione `de` in forma pura — un testo vero in un altro
   momento — e stavolta non la legge una prova: la legge Andrea. **Trovata in uno
-  screenshot suo il 29/08, non da una sonda.*** ✅ **È la prima cosa da chiudere
-  dopo il passo 5.**
+  screenshot suo il 29/08, non da una sonda.***
+  ✅ **TOLTA il 30/08 (`3a30561`), non riscritta**: *un testo che racconta a che
+  punto è il lavoro invecchia da solo dentro un pannello che si usa ogni giorno.*
+  ⚠️ **Il commento che l'ha sostituita, al primo tentativo, la riportava per
+  intero fuori dal filtro delle suite**: una sonda di testo l'avrebbe ritrovata e
+  scambiata per codice vivo. *Corretto da Code, che l'ha dichiarato.*
+  ⚠️ **E resta aperto ciò che la misura ha scoperto: le DUE FRASI SORELLE dello
+  stesso punto** — quella dell'articolo senza opzioni e quella dell'attesa —
+  **non sono sorvegliate da nessuna prova**, come non lo era questa. *Quel blocco
+  di messaggi è scoperto per intero: è il posto dove una frase può tornare a dire
+  il falso senza che nessuno se ne accorga.*
 * ⚠️ **LE DUE SOSTITUZIONI DEL 5-2a NON HANNO PROVE DI COMPORTAMENTO**: la
   normalizzazione del prezzo dell'articolo e quella dei sovrapprezzi che
   arrivano dal server. *Nessuna prova le sorvegliava prima e nessuna le
   sorveglia adesso — ed è esattamente il motivo per cui sostituirle non ha
   mosso un numero.* **Registrato e non aperto**: il terzo punto, quello dentro
   il controllo del Salva, è invece coperto da nove prove che lo eseguono.
-* **La quarta copia della normalizzazione**, `String(product.base_price ?? "")`
-  in `ProductEditForm`. *Non toccata di proposito: muore al passo 6 insieme al
-  componente.*
+* ✅ **La quarta copia della normalizzazione è sparita col passo 6**, insieme al
+  componente che la conteneva. *Era stata lasciata in piedi apposta.* **Nel
+  pannello di oggi la normalizzazione dei prezzi è una sola**, in `lib/`.
+* ⚠️ **`ritagliaFunzione` SI ROMPE SU UNA FIRMA CON DESTRUTTURAZIONE**, ed è
+  **codice già pubblicato** (scritto il 29/08 per la prova su «Annulla»).
+  *Ancorandosi alla prima graffa dopo il nome prende quella della
+  destrutturazione dei parametri — `({ a, b })` — che apre e chiude sulla stessa
+  riga, e dichiara la funzione lunga **una riga**.* **Oggi è verde e corretto**,
+  perché la funzione che ritaglia non ha destrutturazione: ⚠️ *è una trappola
+  per chi lo riuserà.* **L'ancoraggio giusto è a `") {"`**, misurato il 30/08
+  rompendocisi sopra. **Registrato e non aperto.**
+* ⚠️ **`next build` NON SI ESEGUE MENTRE IL SERVER DI SVILUPPO GIRA.** *Riscrive
+  la cartella `.next` sotto i piedi del server in esecuzione, che comincia a
+  rispondere **500** con `MODULE_NOT_FOUND`: sembrano difetti del codice appena
+  scritto e non lo sono.* ✅ **L'ha intercettato la premessa della lezione `bx`**
+  — il controllo che la porta rispondesse *prima* di spegnere — e senza quella
+  la sessione si sarebbe chiusa lasciando un 500 non spiegato su un pannello
+  appena pubblicato. *La causa non è stata ipotizzata ma dimostrata, riavviando
+  pulito: 200 e zero errori.*
 * **`Il turco` è scritto con la t minuscola** nel menu, mentre gli altri Roll
   hanno l'iniziale maiuscola. *Lo vedono i clienti. È un dato, non codice.*
 
