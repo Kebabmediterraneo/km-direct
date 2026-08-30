@@ -534,8 +534,12 @@ function estraiCampi(blocco) {
 // L'ANCORAGGIO SCELTO, e perché:
 // * **la funzione, per nome** (`async function salvaModifica() {`), che nel
 //   pannello compare **una volta sola**. *Le due `fetch` NON andavano bene come
-//   ancoraggio: le stesse due stringhe compaiono anche in `ProductEditForm` e in
-//   `AllergensEditForm`, e un `indexOf` avrebbe ritagliato quelle.*
+//   ancoraggio: le stesse due stringhe compaiono anche in `AllergensEditForm`,
+//   e un `indexOf` avrebbe ritagliato quelle.*
+//   ⚠️ *Fino al passo 6 i posti da evitare erano DUE: c'era anche la vecchia
+//   scheda di modifica, cancellata il 30/08. Adesso è uno solo — l'ancoraggio
+//   però non si allarga: vale ancora la ragione per cui fu scelto, e un posto
+//   in meno da evitare non è una ragione per smettere di distinguere.*
 // * **la fine**, la prima riga che è esattamente due spazi e una graffa: le
 //   chiusure interne stanno più rientrate. *Non si usa "la funzione dopo" come
 //   confine, così riordinare il file non sposta il ritaglio.*
@@ -1086,10 +1090,15 @@ function corpiDi(blocco) {
 // riga; non saprebbe dire che i due pulsanti si comportano uguale.*
 //
 // ⚠️ I RITAGLI SI ANCORANO A UN DATO CHE CARATTERIZZA, MAI ALLA POSIZIONE: nel
-// pannello ci sono QUATTRO `type="submit"` e TRE «Conferma e salva» — gli altri
-// stanno in `ProductEditForm` e `AllergensEditForm`, e un ancoraggio generico
-// ritaglierebbe quelli. I due ancoraggi usati compaiono UNA volta sola, e il
-// ritaglio si rifiuta di lavorare se ne trovasse due.
+// pannello ci sono TRE `type="submit"` e TRE «Conferma e salva» (due pulsanti e
+// una menzione in un commento) — gli altri stanno in `ReasonForm` e
+// `AllergensEditForm`, e un ancoraggio generico ritaglierebbe quelli. I due
+// ancoraggi usati compaiono UNA volta sola, e il ritaglio si rifiuta di lavorare
+// se ne trovasse due.
+// ⚠️ *I due conteggi erano QUATTRO e QUATTRO fino al passo 6: la vecchia scheda
+// di modifica, cancellata il 30/08, ne portava uno per ciascuno. **I numeri qui
+// sopra sono stati rimisurati sul file, non decrementati a mente**: un conteggio
+// aggiornato per sottrazione è un conteggio non misurato.*
 // ---------------------------------------------------------------------------
 {
   const bloccoPulsante = (ancora) => {

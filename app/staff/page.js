@@ -3080,9 +3080,10 @@ function MenuSection() {
                     }
                   />
                   {/* ⚠️ Passo 2: «Modifica» apre la SCHEDA UNICA, precompilata.
-                      `ProductEditForm` resta nel file e non la apre più nessuno:
-                      sparirà al passo 6, quando la scheda unica saprà fare tutto
-                      quello che sapeva fare lei. */}
+                      Fino al passo 6 il file conteneva ancora la vecchia scheda
+                      di modifica, che nessun gesto apriva più: è stata cancellata
+                      il 30/08, quando la scheda unica ha saputo fare tutto quello
+                      che sapeva fare lei. Adesso questa è l'unica strada. */}
                   {editingId === product.id && (
                     <ProductForm
                       products={products}
