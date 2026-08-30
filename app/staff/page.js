@@ -2797,10 +2797,12 @@ function ProductForm({ products, allergensCatalog, articolo, onSaved, onCancel }
             ) : quanteOpzioni === 0 ? (
               <p style={notaSpenta}>Questo articolo non ha nessuna opzione: nessuna proteina, nessuna rimozione, nessun extra.</p>
             ) : (
-              <p style={notaSpenta}>
-                Queste sono le opzioni che l'articolo ha già: si vedono, ma da qui non si salvano
-                ancora.
-              </p>
+              // ⚠️ Qui stava una nota che dichiarava le opzioni non salvabili da
+              // questa scheda: tolta il 30/08, diceva il falso dal 4b-3.
+              // ⚠️ La frase NON si ricopia qui: una sonda di testo la
+              // ritroverebbe nel commento e la scambierebbe per codice vivo —
+              // è la lezione della sonda della rinomina.
+              null
             ))}
 
           {/* ⚠️ (PP, Andrea 27/08/2026) — L'AVVISO SULLE SCELTE CHE QUESTA
