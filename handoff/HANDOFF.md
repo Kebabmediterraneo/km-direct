@@ -3222,6 +3222,14 @@ sulla posizione: nel pannello ci sono **quattro** `type="submit"` e **tre**
 «Conferma e salva», sparsi fra tre componenti. Un ancoraggio generico avrebbe
 ritagliato il pulsante sbagliato.*
 
+⚠️ **CORRETTA IL 29/08, perché questa frase è vera e fa concludere il falso.**
+I tre pulsanti ci sono, ma **i riquadri di conferma SUL PREZZO sono due**: il
+terzo, in `AllergensEditForm`, sorveglia la **rimozione degli allergeni**.
+*Stessa etichetta, stessa forma, argomento diverso. È la forma d'errore di 42d
+— il titolo letto senza la frase — dentro un documento invece che in una spec.*
+*E le occorrenze grezze della stringa sono **quattro**: la quarta è in un
+commento.*
+
 ### 39i) ⚠️ Le sedici lezioni che sembravano perdute NON lo erano
 
 *Errore di chi ragionava, ripetuto tre volte nella stessa giornata, e istruttivo
@@ -3299,12 +3307,20 @@ rotto quella giusta. È la famiglia della lezione `bp`.*
 * **Poi i passi 5, 6 e 7**: conferma sul sovrapprezzo (FF), sparizione di
   `ProductEditForm`, cambio di categoria (HH). ⚠️ *Da tenere per il passo 6:
   `ProductForm` e `ProductEditForm` **stanno nello stesso file**,
-  `app/staff/page.js`. ⚠️ *I confini scritti qui — 1493-2710 e 963-1221 — erano
-  **sbagliati**: sono 1493-2722 e 963-1210, verificati il 28/08 sulle
-  definizioni che li seguono. E si muovono a ogni lavoro sul pannello: si
-  rileggono, non si citano da qui.*
-* ⚠️ **SETTE ARTICOLI DI PROVA DA CANCELLARE**: `Roll prova`, `Roll di prova 2`,
-  `3`, `4`, `5`, `6`, `7`. **Non prima del 4b.**
+  `app/staff/page.js`. ⚠️ **I confini sono stati scritti sbagliati DUE VOLTE.**
+  *Prima 1493-2710 e 963-1221; poi 1493-2722 e 963-1210, corretti il 28/08 e
+  già scaduti il giorno dopo.* La misura del **29/08**, presa dalla definizione
+  alla chiusura: `ProductEditForm` **967-1209**, `ProductForm` **1518-3047**, su
+  un file di **3681** righe — e anche questa è invecchiata col passo 5.
+  ⚠️ **Non citarli da qui: rileggerli.** *Tre scritture sbagliate di fila sono
+  la prova che questi numeri non vanno in un documento; restano solo perché la
+  loro storia insegna a non fidarsene.*
+* ⚠️ **OTTO ARTICOLI DI PROVA DA CANCELLARE**: `Roll prova`, `Roll di prova 2`,
+  `3`, `4`, `5`, `6`, `7`, `8`. ⚠️ **NON PRIMA DEL PASSO 7** *(corretto il
+  29/08: qui era scritto «non prima del 4b», e il 4b è chiuso dal 29/08 mentre
+  gli otto servono ancora)*. **Il passo 5 tocca i prezzi e le prove sul prezzo
+  si fanno su di loro**: `Roll di prova 6` è l'articolo su cui è stato provato
+  tutto il passo 5, perché ha le proteine col sovrapprezzo.
 * ⚠️ **VOCI RECUPERATE dai vecchi elenchi (28/08)**, che nessun elenco più
   recente aveva ripreso: la **tendina dei prefissi non è mai stata vista su un
   telefono** (bandiere e larghezza si giudicano lì, sul sito pubblicato); lo
@@ -3627,5 +3643,193 @@ Ogni spegnimento del server di sviluppo ha dichiarato «failed with exit code
 144», e ogni volta i tre riscontri della lezione `bx` hanno detto che lo
 spegnimento era riuscito. *Cinque casi in un giorno: non è un'anomalia, è come
 funziona.*
+
+---
+
+## 43) Il passo 5: la conferma sul sovrapprezzo, e tre difetti chiusi invece che copiati (29/08/2026)
+
+**Passo 5 completo in tutte e quattro le decisioni, pubblicato in cinque commit
+più uno di spec.** *Le decisioni stanno in spec §63-64, sezione «IL PASSO 5».
+**Non ricostruirle.*** Da **1810** prove a **1872**, suite da 38 a **39**, zero
+fallite. HEAD alla chiusura: `4a8550f`.
+
+⚠️ **La giornata si è aperta con tre referti di sola lettura e nessuna riga di
+codice**, e non è stato tempo perso: quelle letture hanno rovesciato tre cose
+che i documenti davano per assodate, e una di queste avrebbe fatto scrivere il
+lavoro nel posto sbagliato.
+
+### 43a) La decisione di Andrea: i tre difetti dentro il passo 5
+
+Il riquadro da cui il passo 5 doveva copiare aveva **tre difetti registrati e
+non aperti**. Andrea li ha voluti chiusi **dentro** il passo 5, non dopo.
+*Copiare il modello com'era avrebbe messo gli stessi tre difetti in un secondo
+posto — ed è il motivo per cui la domanda gli è stata posta prima di scrivere.*
+
+### 43b) ⚠️ Tre cose che i documenti davano per assodate, e non erano
+
+1. **«Tre "Conferma e salva" fra tre componenti»** faceva concludere che i
+   riquadri del prezzo fossero tre. **Sono due**: il terzo sorveglia gli
+   allergeni. *Corretto al punto 39c.*
+2. **`ProductEditForm` era ancora considerato una scheda viva.** Non lo è: dal
+   passo 2 «Modifica» apre la scheda unica, e la vecchia **non è raggiungibile
+   da nessun gesto**. *Misurato nei due versi, poi sugli usi indiretti, poi su
+   tutto il progetto.* ⚠️ **Contava**: senza questa misura il lavoro sarebbe
+   stato scritto in una scheda che nessuno apre, o duplicato in due.
+3. **La spec diceva che «Annulla» aggirava la conferma**: *«se poi si salva per
+   un'altra ragione, si salva anche quel prezzo»*. **Falso**, e l'ha smentito
+   Andrea provando: al salvataggio dopo **il riquadro si riapre**.
+
+⚠️ **È la seconda riga falsa in due giorni**, dopo quella sullo scudo del 42d, e
+la forma è identica: *la conseguenza che ci si immagina premendo il pulsante,
+scritta senza premerlo.* **Chi registra un difetto scriva ciò che ha visto, e
+tenga separato ciò che teme.**
+
+### 43c) Dove stava il valore vecchio — e perché non nella fotografia
+
+Per mostrare *«2,00 € → 2,50 €»* serviva il sovrapprezzo com'era all'apertura.
+**C'era**, dentro la fotografia delle opzioni — ma **appiattito in una stringa
+sola, in tuple posizionali riordinate per chiave**: quella fotografia risponde
+sì/no, non *quale* e *da quanto a quanto*. **Scelto `opzioniArticolo`**, la
+risposta grezza del server, per la stessa ragione già scritta per **(QQ)**: le
+traduzioni all'indietro si scartano quando sono evitabili.
+
+⚠️ **La trappola è stata dichiarata prima di scrivere**, non scoperta dopo: in
+database un sovrapprezzo può essere il numero `2`, nel modulo il testo `"2.00"`.
+Confrontati senza normalizzare **sembrano diversi**, e la conferma sarebbe
+comparsa **senza che nessuno avesse toccato niente**.
+
+### 43d) ⚠️ Il debito delle copie: erano due, poi tre, e ne resta una
+
+Il modulo ha copiato l'espressione di normalizzazione dal pannello, ed è rimasta
+**in due posti** fino al 5-2a, che l'ha chiusa. *Code ha **dichiarato il debito
+invece di nasconderlo**, e l'ha scritto anche nel modulo.*
+
+Poi ne ha trovata **una terza** che nessuno aveva nominato — dentro il controllo
+che spegne il Salva sui sovrapprezzi vuoti — e **l'ha segnalata senza toccarla**,
+perché il comando ne nominava due. *È stata chiusa con un comando suo, trattata
+con più sospetto: lì l'espressione non produce un valore, **decide una
+condizione**.*
+
+**Ne resta una quarta**, in `ProductEditForm`: non toccata di proposito, perché
+quel componente muore al passo 6.
+
+### 43e) ⚠️⚠️ Un ordine ineseguibile alla lettera, e Code l'ha detto
+
+Il comando chiedeva di *«dimostrare che le espressioni sono identiche carattere
+per carattere»*. **Non possono esserlo mai**: nella funzione l'argomento è il
+parametro, nel pannello è il valore vero. *Il criterio era ineseguibile per
+costruzione, e chi lo aveva scritto non se n'era accorto.*
+
+Code **non si è adattato in silenzio**: ha isolato lo scarto prima di chiamarlo
+scarto, ha misurato che sta **solo nell'argomento**, ha dimostrato con un
+comando che gli **involucri** sono identici byte per byte, e **ha dichiarato di
+aver interpretato l'ordine invece di eseguirlo**. ⚠️ *È la dichiarazione a
+valere, non la deduzione: senza quella sarebbe stata una deviazione muta.*
+**Il comando successivo è stato riscritto giusto: ciò che deve essere identico
+è l'involucro, non l'espressione intera.**
+
+### 43f) ✅ Il buco che nessuno cercava: `g4` sorvegliava una frase, non un fatto
+
+Chiudendo la terza copia **una prova è diventata rossa**, e Code **si è fermato
+senza toccarla**. Era `g4`: una **sonda di testo**, che cercava l'espressione
+*scritta alla lettera* dentro il pannello letto come stringa. *Non segnalava un
+comportamento cambiato: segnalava che la riga era cambiata.*
+
+⚠️ **E rispondendo alla domanda su cosa la sorvegliasse è emerso il buco vero:
+il calcolo che spegne il Salva sui sovrapprezzi vuoti non era esercitato da
+nessuna prova.** *Ne esisteva una che verificava come la condizione **usa** il
+flag, valutandolo già calcolato — ma la riga che lo **produce** stava fuori.*
+
+**`g4` è stata sostituita, non aggiornata.** *Aggiornarla alla forma nuova
+sarebbe stato mettere a tacere una sentinella e tenersi il buco.* Al suo posto
+**nove prove che eseguono il calcolo** (`g4`–`g12`), ritagliandolo dal pannello e
+valutandolo — la stessa strada già usata altrove nel progetto, non una nuova.
+
+⚠️ **`g8` è il caso che la vecchia `g4` nominava nel proprio messaggio e non
+provava**: lo **zero scritto non è un campo vuoto**. *Diceva di proteggerlo, e
+non toccava nessuno zero.*
+
+**Controprova**: invertito un operatore, **sei rosse su sette**. *La vecchia `g4`
+su quella stessa sporcatura non sarebbe diventata rossa **nemmeno una volta**.*
+
+### 43g) Le quattro decisioni, e come sono state provate
+
+| | | commit |
+|---|---|---|
+| 1 | un riquadro solo che elenca tutti i cambi | `1e5ea52` |
+| 2 | «Annulla» rimette i valori di partenza | `4978387` |
+| 3 | il riquadro si spegne da solo | `1e5ea52` |
+| 4 | una prova sorveglia «Annulla» | `4a8550f` |
+
+⚠️ **Il verde non copriva niente di ciò che era cambiato, e Code lo ha detto
+lui:** tolta la condizione, riscritto ciò che accende il riquadro, cambiato il
+disegno — **e le prove sono passate da 1860 a 1860 senza muovere un numero**.
+*È la ragione per cui il 5-2b è stato provato dal vivo prima di essere
+committato.*
+
+**Il valore vecchio per «Annulla» si legge dall'elenco dei cambi**, cioè dalla
+colonna sinistra che il riquadro sta già disegnando: *nessuna seconda memoria
+creata, che era la condizione posta nel comando.*
+
+⚠️ **`b48` è la prova meglio costruita del passo**: per sorvegliare *«non tocca
+niente che non sia un prezzo»* passa al finto **anche i quattordici setter che
+non devono essere chiamati**. *Ometterli avrebbe reso quel difetto impossibile da
+commettere nella prova: sarebbe esplosa, sembrando un guasto del ritaglio.*
+
+**Controprova su «Annulla», col difetto vero** — quello che Andrea aveva visto:
+`setPrice(c.vecchio)` → `setPrice(c.nuovo)`. **Due rosse, exit 1.**
+
+| «Annulla» sporcato | il 28/08 | il 29/08 |
+|---|---|---|
+| prove che diventano rosse | **0 su 1678** | **2**, exit 1 |
+
+### 43h) ✅ Le prove dal vivo di Andrea — sette giri, localhost e sito pubblicato
+
+*Tutte su `Roll di prova 6`, mai su un articolo del menu.* Hanno verificato ciò
+che nessuna prova automatica copriva: il riquadro **unico** con due righe; lo
+spegnimento **da solo** rimettendo i valori; «Conferma e salva» che **salva
+davvero**, con l'articolo che resta **visibile nel menu**; «Annulla» che rimette
+i prezzi **lasciando intatto il resto della scheda**; il salvataggio senza
+cambi di prezzo che **non chiede niente**.
+
+⚠️ **E due cose le ha trovate senza che gliele chiedessi, spuntando una
+proteina in più**: che una proteina **aggiunta adesso non entra nell'elenco dei
+cambi** — la decisione, vista a schermo invece che dedotta — e che «Conferma e
+salva» **si spegne** con la frase delle mancanze, cioè che **la riparazione del
+4b-2a regge dentro il riquadro nuovo**. *Quel difetto rinasce ogni volta che il
+pulsante viene ricreato, e non è rinato.*
+
+⚠️ **Ogni pezzo è stato provato su localhost PRIMA del commit, e riprovato sul
+sito pubblicato DOPO**, con ricaricamento a fondo. *I due giri non sono la
+stessa prova: il secondo dice che online gira il codice nuovo.*
+
+### 43i) ⚠️ Due sonde cieche in un giorno, e una era del compagno di ragionamento
+
+* **La sonda che contava undici prove invece di dodici**: cercava col doppio
+  apice, e `b48` usa un **backtick** perché il suo messaggio compone i setter
+  toccati. *Quarta forma della stessa cecità — la sonda costruita su come ci si
+  immagina il testo. Le altre tre: la frase spezzata da un a-capo, la voce nella
+  forma aggiornata, la voce col segno di spunta.* **Code ha indagato lo scarto
+  invece di riferirlo.**
+* **Un atteso dichiarato senza misurarlo, da chi ragiona**: era stato scritto ad
+  Andrea che dopo il commit i numeri del diff *«daranno numeri diversi»* da
+  `--patience`. **Non era stato misurato**, e su tutti e cinque i commit della
+  giornata **hanno coinciso**. *La lezione dice che possono divergere, non che
+  divergano. **La stessa regola che si pretende da Code è stata violata da chi
+  la scriveva**, ed è la seconda volta in due giorni.*
+
+### 43j) Cosa resta aperto dal passo 5
+
+* ⚠️ **Una frase FALSA si legge nel pannello, e la legge Andrea**: sopra le
+  opzioni c'è scritto *«Queste sono le opzioni che l'articolo ha già: si vedono,
+  ma da qui non si salvano ancora»*. **Non è più vero dal 4b-3.** *Trovata in
+  uno screenshot di Andrea, non da una sonda. **È la prima cosa da chiudere.***
+* ⚠️ **Le due sostituzioni del 5-2a restano senza prove di comportamento**:
+  prezzo dell'articolo e sovrapprezzi dal server. *Nessuna le sorvegliava prima,
+  nessuna adesso — ed è il motivo per cui sostituirle non mosse un numero.*
+* **La quarta copia della normalizzazione**, in `ProductEditForm`: muore al
+  passo 6 insieme al componente.
+* **I tre difetti del riquadro sono chiusi**, ma **solo nella scheda nuova**:
+  nella vecchia restano, e nessuno può vederli.
 
 ---

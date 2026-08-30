@@ -1,6 +1,6 @@
 # KM DIRECT — MASTER SPECIFICATION
 
-**Versione 84** — sostituisce la v83.
+**Versione 85** — sostituisce la v84.
 
 Documento di riferimento definitivo per lo sviluppo. Le decisioni qui
 contenute sono approvate: non vanno reinterpretate senza un motivo concreto
@@ -22,50 +22,52 @@ versione corrente**. I precedenti vivono in `git log`, che è fatto per quello.
 del documento prima che cominciasse a parlare del progetto — e dentro c'erano
 istruzioni rovesciate che nessuno rileggeva.*
 
-**Novità della v84** (vincolanti, 29/08/2026):
+**Novità della v85** (vincolanti, 29/08/2026, seconda parte):
 
 *Le voci di questa versione **non si riscrivono qui a ogni giro**: quelle che
 restano vive stanno in §63-64, sezione «REGISTRATO E NON APERTO», che dalla v82
 è la loro casa. Qui restano le novità della sessione.*
 
-⚠️ **Le sei voci della v83 sono state controllate una per una prima di
-sostituire questo blocco.** Quattro vivevano già nel corpo; **due no**, e sono
-state portate in §63-64 invece che perse: i dettagli di `stileSpento` e dei
-quattro pulsanti contati, e **l'intera voce sulle righe di prova nel registro
-staff**, che viveva solo qui.
+⚠️ **Le sei voci della v84 sono state controllate una per una prima di
+sostituire questo blocco**, e **tutte e sei vivevano già nel corpo**: nella
+sezione del passo 5 e nei limiti noti. *Nessuna è stata portata, perché nessuna
+viveva sola. La v84 ne aveva portate due.*
 
-1. §63-64 — ⚠️ **IL PASSO 5 È LETTO, MISURATO E DECISO, E NON È ANCORA
-   SCRITTO.** *In questa sessione **non è stata toccata una riga di codice**:
-   tre referti di sola lettura e quattro prove dal vivo di Andrea.* Le decisioni
-   stanno in §63-64, sezione «IL PASSO 5». **Non ricostruirle: leggerle.**
-2. §63-64 — ⚠️⚠️ **UN'ALTRA RIGA DI QUESTA SPEC ERA FALSA, E LE PROVE DI
-   ANDREA L'HANNO SMENTITA.** La v79 scriveva che «Annulla» è *«la strada che
-   aggira la conferma di §46»*. **Non lo è**: al salvataggio successivo il
-   riquadro **si riapre**, perché la condizione si ricalcola a ogni disegno
-   della scheda. *Seconda volta in due giorni, e la forma dell'errore è la
-   stessa dello scudo: la conseguenza che ci si immaginava premendo il pulsante,
-   scritta senza premerlo.* **Il difetto resta, il pericolo dichiarato no.**
-3. §63-64 — ✅ **I RIQUADRI DI CONFERMA SUL PREZZO SONO DUE, NON TRE.** *Il
-   terzo pulsante con la stessa etichetta sorveglia la **rimozione degli
-   allergeni**.* La frase dell'handoff — «tre “Conferma e salva” fra tre
-   componenti» — è vera come conteggio e fa concludere il falso.
-4. §63-64 — ✅ **`ProductEditForm` NON SI APRE PIÙ CON NESSUN GESTO**, misurato
-   nei due versi e in tutto il progetto. **È codice morto in attesa del passo
-   6**, e ne discende che il suo «Salva» arancione **non lo vede nessuno**.
-5. §63-64 — ⚠️ **I CONFINI DEI DUE COMPONENTI: TRE NUMERI, NESSUNO GIUSTO.**
-   Questa spec ne dichiarava due, l'handoff altri due, la misura di oggi un
-   terzo paio. **Corretti qui con la misura**, e l'handoff resta da correggere.
-6. §63-64 — ✅ **IL SOVRAPPREZZO VECCHIO ESISTE, MA NON DOVE SEMBRAVA.** È
-   dentro la fotografia delle opzioni, **appiattito in un testo unico e
-   riordinato**: quella fotografia risponde sì/no. Il valore per proteina si
-   legge invece da `opzioniArticolo`, che tiene la risposta grezza del server.
+1. §63-64 — ✅ **IL PASSO 5 È CHIUSO E PUBBLICATO**, tutte e quattro le
+   decisioni, in **cinque commit**. Suite da 38 a **39**, prove da **1810** a
+   **1872**, zero fallite, misurate eseguendole. *Il racconto sta nell'handoff,
+   punto 43; le decisioni stanno qui, in §63-64.*
+2. §63-64 — ⚠️⚠️ **UNA FRASE FALSA SI LEGGE NEL PANNELLO**, sopra le opzioni:
+   *«da qui non si salvano ancora»*. **Non è più vero dal 4b-3.** *Trovata in uno
+   screenshot di Andrea, non da una sonda: **la legge chi usa il pannello**.*
+   ✅ **È la prima cosa da chiudere dopo il passo 5.**
+3. §63-64 — ✅ **UN BUCO CHE NESSUNO CERCAVA È STATO TROVATO E CHIUSO**: il
+   calcolo che spegne il Salva sui sovrapprezzi vuoti **non era esercitato da
+   nessuna prova**. Lo sorvegliava una sonda di testo, che guardava com'era
+   *scritto* invece di cosa faceva. **Sostituita da nove prove che lo
+   eseguono**, non aggiornata. ⚠️ *Aggiornare una sentinella per farla tornare
+   verde è metterla a tacere e tenersi il buco.*
+4. §63-64 — ⚠️ **UN ORDINE ERA INESEGUIBILE ALLA LETTERA, e Code lo ha
+   dichiarato invece di adattarsi in silenzio.** Chiedeva due espressioni
+   identiche carattere per carattere, cosa impossibile fra una funzione e la sua
+   chiamata. *Ha isolato lo scarto, misurato che stava solo nell'argomento,
+   dimostrato che gli **involucri** erano identici, e **detto di aver
+   interpretato**.* ✅ **È la dichiarazione a valere, non la deduzione.**
+5. §63-64 — ⚠️ **UNA QUARTA FORMA DELLA SONDA CIECA**: il delimitatore di
+   stringa dato per scontato. *Undici prove contate invece di dodici, perché una
+   usa il backtick e la sonda cercava il doppio apice.*
+6. §63-64 — ⚠️ **DUE COSE RESTANO SENZA PROVE DI COMPORTAMENTO** dopo il
+   passo 5, ed è registrato: le due normalizzazioni sostituite nel 5-2a.
+
+⚠️ **E UN ERRORE DI CHI RAGIONA, registrato perché è il secondo in due giorni.**
+Era stato dichiarato ad Andrea un atteso **mai misurato**: che dopo il commit i
+numeri del diff sarebbero stati diversi da quelli di `--patience`. *Su tutti e
+cinque i commit della giornata **hanno coinciso**. La lezione dice che possono
+divergere, non che divergano.* **La regola che si pretende da Code è stata
+violata da chi la scriveva.**
 
 *Il conteggio delle condizioni di apertura non cambia: **quattro chiuse, cinque
 aperte**.*
-
-⚠️ *Suite **38**, prove **1810**, zero fallite: **numero della v83, NON
-rimisurato**. In questa sessione è stata eseguita **una sola** suite,
-`menu-options-snapshot`, passata. Chi ha bisogno del totale lo rimisuri.*
 
 ## 1. Visione del progetto
 
@@ -3923,12 +3925,17 @@ qualunque scrittura, non una parola. E distingue la `delete()` del database da
 `next.delete(id)` **dalla forma della chiamata** — senza argomenti contro con
 argomenti — non da una lista di eccezioni da tenere aggiornata.*
 
-### ⚠️ IL PASSO 5 — LETTO, MISURATO, DECISO E NON ANCORA SCRITTO (v84, 29/08/2026)
+### ✅ IL PASSO 5 — DECISO, SCRITTO, PROVATO E PUBBLICATO (v84-v85, 29/08/2026)
 
-**In questa sessione non è stata toccata una riga di codice.** Tre referti di
-sola lettura di Code e quattro prove dal vivo di Andrea. *Il passo 5 tocca i
-prezzi su un database solo e col sito raggiungibile su due indirizzi: qui si
-scrivono le decisioni, il codice viene dopo.*
+**✅ CHIUSO IN V85: tutte e quattro le decisioni sono scritte, provate dal vivo
+e pubblicate**, in cinque commit. Da **1810** prove a **1872**, suite da 38 a
+**39**, zero fallite. *Il racconto della giornata sta nell'handoff, punto 43.*
+
+⚠️ **Le decisioni qui sotto restano la fonte, e vanno lette prima di toccare
+quel riquadro.** *La giornata si è aperta con tre referti di sola lettura e
+nessuna riga di codice: quelle letture hanno rovesciato tre cose che i documenti
+davano per assodate, e una avrebbe fatto scrivere il lavoro nella scheda
+sbagliata.*
 
 **Il passo 5 è la conferma sul sovrapprezzo (FF)**, quinto dei sette
 dell'ordine vincolante. ⚠️ *La decisione **(FF)** e il modello del riquadro
@@ -4009,6 +4016,19 @@ vuota, non `"0"`: è un terzo caso, non due.*
    senza che nessuna prova diventi rossa, ed è stato misurato sporcando il file
    vero.*
 
+✅ **TUTTE E QUATTRO SONO FATTE**: la 1 e la 3 nel commit `1e5ea52`, la 2 in
+`4978387`, la 4 in `4a8550f`, più il modulo `lib/menu-price-changes.js` che
+calcola l'elenco dei cambi e la chiusura di **tre copie in linea** della
+normalizzazione. *Una quarta copia resta in `ProductEditForm` e muore al passo 6.*
+
+⚠️ **IL VALORE VECCHIO PER «ANNULLA» SI LEGGE DALL'ELENCO DEI CAMBI**, cioè
+dalla colonna sinistra che il riquadro sta già disegnando davanti a chi preme il
+pulsante. *Nessuna seconda memoria: era la condizione posta prima di scrivere.*
+E «Annulla» **rimette i prezzi e chiude, in quest'ordine** — chiudere prima
+ricalcolerebbe l'elenco sotto i piedi — **senza toccare nient'altro**: nome,
+descrizione, allergeni, rimozioni, proteine spuntate, preselezione e dose extra
+restano come sono. *Rifiuta i prezzi nuovi, non butta via il lavoro.*
+
 ⚠️ **LA CONFERMA RIGUARDA SOLO LE PROTEINE CHE C'ERANO GIÀ.** *Una proteina
 aggiunta adesso non ha un valore vecchio da mostrare, e una tolta nemmeno:
 aggiungere e togliere resta un cambio delle **opzioni** come gli altri, non un
@@ -4029,6 +4049,18 @@ quindi il database non è stato toccato.*
 4. ✅ **«Annulla» del riquadro più «Annulla» della scheda riportano tutto
    com'era**, nome e prezzo. *Trovato da Andrea provando, non chiesto: la scheda
    sa già buttare via le modifiche non salvate.*
+
+#### ⚠️ UNA QUARTA FORMA DELLA SONDA CIECA, misurata il 29/08
+
+Una sonda che contava le prove nuove ne trovava **undici** invece di dodici:
+cercava il nome della prova **col doppio apice**, e una di esse usa un
+**backtick**, perché il suo messaggio compone i valori toccati. *Rifatta senza
+quel vincolo: dodici, come l'esecuzione stampa da sé.* ⚠️ **Lo zero è stato
+indagato invece che riferito**, ed è la regola che l'ha salvato.
+
+*Le tre forme già note: la frase spezzata da un a-capo, la voce viva nella sua
+forma aggiornata, la voce viva col segno di spunta invece che con l'avviso.*
+**Questa è la quarta: il delimitatore di stringa dato per scontato.**
 
 ### ✅ IL 4b-2a — IL PULSANTE CHE NON GUARDAVA NIENTE (v79, 28/08/2026)
 
@@ -4121,12 +4153,17 @@ Andrea. *Con un database solo e il sito raggiungibile, **niente ricorda di
 rimetterlo e nessun controllo lo vede**: un residuo così si scopre da un
 cliente.*
 
-#### ✅ TRE COSE REGISTRATE, E APERTE IN V84 DENTRO IL PASSO 5
+#### ✅ TRE COSE REGISTRATE, APERTE IN V84 E CHIUSE IN V85 DENTRO IL PASSO 5
 
 *Sono tre facce dello stesso pezzo di scheda: si aprono insieme, non a pezzi.*
 **Decisione di Andrea del 29/08: si sistemano tutte e tre dentro il passo 5**,
 che quel riquadro lo tocca comunque. *Copiarlo com'è avrebbe messo gli stessi
 tre difetti in un secondo posto.*
+
+✅ **TUTTE E TRE CHIUSE, provate dal vivo e pubblicate.** ⚠️ **Ma solo nella
+scheda nuova**: in `ProductEditForm` restano tali e quali, e non li vede nessuno
+perché quel componente non si apre più. *La voce resta qui per il passo 6, che
+lo cancella.* Il racconto sta nel punto 43 dell'handoff.
 
 1. **Il riquadro non si richiude da solo.** Se si rimette il prezzo al valore di
    partenza, continua a mostrare *«8,50 € → 8,50 €. Confermi?»*. ⚠️ *Misurato:
@@ -4493,6 +4530,23 @@ non si riscrivono nei blocchi delle versioni future.*
   e poi anche sugli usi indiretti (alias, array, `createElement`) e su tutto il
   progetto: fuori da questo file il nome vive solo nei due documenti e in tre
   commenti di una suite.* **È codice morto in attesa del passo 6.**
+* ⚠️⚠️ **UNA FRASE FALSA SI LEGGE NEL PANNELLO, e la legge chi lo usa.** Sopra
+  le opzioni, nella scheda dell'articolo, c'è scritto *«Queste sono le opzioni
+  che l'articolo ha già: si vedono, ma da qui non si salvano ancora»*. **Non è
+  più vero dal 4b-3**, che ha attaccato la chiamata: era vera durante il 4b-1 ed
+  è rimasta lì. ⚠️ *È la lezione `de` in forma pura — un testo vero in un altro
+  momento — e stavolta non la legge una prova: la legge Andrea. **Trovata in uno
+  screenshot suo il 29/08, non da una sonda.*** ✅ **È la prima cosa da chiudere
+  dopo il passo 5.**
+* ⚠️ **LE DUE SOSTITUZIONI DEL 5-2a NON HANNO PROVE DI COMPORTAMENTO**: la
+  normalizzazione del prezzo dell'articolo e quella dei sovrapprezzi che
+  arrivano dal server. *Nessuna prova le sorvegliava prima e nessuna le
+  sorveglia adesso — ed è esattamente il motivo per cui sostituirle non ha
+  mosso un numero.* **Registrato e non aperto**: il terzo punto, quello dentro
+  il controllo del Salva, è invece coperto da nove prove che lo eseguono.
+* **La quarta copia della normalizzazione**, `String(product.base_price ?? "")`
+  in `ProductEditForm`. *Non toccata di proposito: muore al passo 6 insieme al
+  componente.*
 * **`Il turco` è scritto con la t minuscola** nel menu, mentre gli altri Roll
   hanno l'iniziale maiuscola. *Lo vedono i clienti. È un dato, non codice.*
 
