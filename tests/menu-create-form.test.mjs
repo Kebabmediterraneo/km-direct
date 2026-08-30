@@ -467,11 +467,32 @@ function estraiCampi(blocco) {
     "eb8) CONTROPROVA: tolta quella riga dal blocco, `choice_label` sparisce davvero dall'insieme estratto — quindi eb3, quando dice «non manca niente», sta guardando"
   );
 
-  // 2) UN CAMPO IN PIÙ, ed è il caso vero della fusione: `ProductEditForm` manda
-  //    `id: product.id` e la creazione no. ⚠️ La riga NON è inventata qui: si
-  //    prende dal pannello, dove è già scritta.
-  const rigaId = /^[ \t]*id: product\.id,[ \t]*$/m.exec(codicePannello);
-  assert(rigaId !== null, "eb9) la riga `id: product.id,` del modulo di MODIFICA esiste nel pannello (è il materiale della controprova)");
+  // 2) UN CAMPO IN PIÙ, ed è il caso vero della fusione: salvando un articolo
+  //    ESISTENTE il pannello manda `id`, e la creazione no. ⚠️ La riga NON è
+  //    inventata qui: si prende dal pannello, dove è già scritta.
+  //
+  //    ⚠️⚠️ **LA RAGIONE DEL PRESTITO È PIÙ FORTE DI PRIMA, dal 30/08.** Fino al
+  //    passo 6 quella riga viveva nella vecchia scheda di modifica, che nessun
+  //    gesto apriva più: il pericolo era reale ma lontano. Adesso quella scheda
+  //    non esiste più, e la riga vive **dentro lo stesso componente che fa anche
+  //    la creazione**, a poche decine di righe dal corpo che eb3-eb5
+  //    sorvegliano. *Non è più un rischio di un altro file: è un vicino di casa.*
+  //
+  //    ⚠️ L'AGGANCIO NON È LA RIGA NUDA: nel pannello ce ne sono TRE identiche —
+  //    i sei scalari, gli allergeni e le opzioni — e prenderne una qualunque
+  //    sarebbe una coincidenza, non un aggancio. Si distingue per **ciò che la
+  //    segue**: solo nel corpo dei sei scalari `id` è seguito da `name,`, ed è
+  //    quello il corpo che eb4 sorveglia. Il seguito sta in un **lookahead**, che
+  //    non entra nel match: `rigaId[0]` resta la sola riga da innestare.
+  const rigaId = /^[ \t]*id: articolo\.id,[ \t]*$(?=\n[ \t]*name,[ \t]*$)/m.exec(codicePannello);
+  assert(rigaId !== null, "eb9) la riga `id: articolo.id,` del corpo dei sei scalari esiste nel pannello (è il materiale della controprova)");
+  // ⚠️ CONTROPROVA DELL'AGGANCIO: senza il seguito la stessa sonda ne trova TRE.
+  // Senza questa riga, eb9 passerebbe anche pescandone una a caso.
+  assert(
+    (codicePannello.match(/^[ \t]*id: articolo\.id,[ \t]*$/gm) ?? []).length === 3 &&
+      (codicePannello.match(/^[ \t]*id: articolo\.id,[ \t]*$(?=\n[ \t]*name,[ \t]*$)/gm) ?? []).length === 1,
+    "eb9b) ⚠️ CONTROPROVA: di righe `id: articolo.id,` ce ne sono TRE, e l'aggancio col seguito ne sceglie UNA — quindi eb9 non ne ha pescata una a caso"
+  );
   const conId = rigaId ? blocco.replace(APERTURA_CORPO, `${APERTURA_CORPO}\n${rigaId[0]}`) : blocco;
   assert(
     !trovati.includes("id") && estraiCampi(conId).includes("id"),
