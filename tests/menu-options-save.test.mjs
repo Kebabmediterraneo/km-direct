@@ -84,9 +84,17 @@ function ritagliaObj() {
 // Uno stato finto del modulo, nella forma che la traduzione di `page.js` mette
 // nello stato: proteine come Map, prezzi come TESTO, rimozioni come stringhe
 // nude, `requires_protein` vuoto quando non c'è legame.
+// ⚠️ **LE TRE VARIABILI DEL 7b (31/08) FANNO PARTE DELLO STATO.** Dal passo 7b
+// il corpo nomina `categoriaCambiata`, `diventaBevanda` ed `esceDaBowl`: chi
+// esegue il ritaglio deve fornirle, o il corpo esplode invece di misurare.
+// *Qui valgono tutte `false`, che è il caso base — nessun cambio di categoria —
+// così tutte le prove già scritte continuano a misurare quello che misuravano.
+// I casi in cui sono vere hanno le loro prove in fondo.*
+const SENZA_CAMBIO = { categoriaCambiata: false, diventaBevanda: false, esceDaBowl: false, category: "bowl" };
+
 function statoPieno() {
   return {
-    articolo: { id: "id-finto-123" },
+    articolo: { id: "id-finto-123", category: "bowl" },
     titoloScelta: "Come preferisci il tuo kebab?",
     proteine: new Map([
       ["pollo_tacchino", { price_delta: "0", is_default: true, extra_dose_included: false }],
@@ -95,17 +103,19 @@ function statoPieno() {
     rimozioni: ["Cipolla", "Salsa piccante"],
     accompagnamenti: [{ label: "Patatine", contains_gluten: false }],
     extra: [{ label: "Feta", price: "0.50", requires_protein: "", max_quantity: "2" }],
+    ...SENZA_CAMBIO,
   };
 }
 
 function statoVuoto() {
   return {
-    articolo: { id: "id-finto-123" },
+    articolo: { id: "id-finto-123", category: "bowl" },
     titoloScelta: "Come preferisci il tuo kebab?",
     proteine: new Map(),
     rimozioni: [],
     accompagnamenti: [],
     extra: [],
+    ...SENZA_CAMBIO,
   };
 }
 
@@ -278,9 +288,14 @@ prova("(KK) l'ordine e la condizione", () => {
     iProdotto !== -1 && iAllergeni !== -1 && iProdotto < iAllergeni && iAllergeni < iOpzioni,
     "v16) ⚠️ e viene per ULTIMA, dopo scalari e allergeni: se si rompe, nome prezzo e allergeni sono già a posto e le opzioni restano quelle di prima"
   );
+  // ⚠️ **AGGIORNATA CON INTENZIONE AL PASSO 7b (31/08).** La condizione era
+  // `if (opzioniToccate) {`; dal 7b è `if (opzioniToccate || categoriaCambiata)`
+  // — è (D5). *La rotta dei pezzi non toccati continua a non chiamarsi: si
+  // aggiunge un solo caso in cui parte lo stesso, ed è quello in cui la
+  // categoria è cambiata, perché è questa chiamata a portarla al server.*
   assert(
-    /if \(opzioniToccate\) \{/.test(corpoSalva.slice(0, iOpzioni)),
-    "v17) ed è dentro `if (opzioniToccate)`: la rotta dei pezzi non toccati non si chiama — è (KK)"
+    /if \(opzioniToccate \|\| categoriaCambiata\) \{/.test(corpoSalva.slice(0, iOpzioni)),
+    "v17) ed è dentro `if (opzioniToccate || categoriaCambiata)`: la rotta dei pezzi non toccati non si chiama, salvo quando porta la categoria — è (KK) più (D5)"
   );
   // ⚠️ CONTROPROVA di v16: la stessa sonda sull'ordine, chiesta al rovescio,
   // deve dire di no. Senza, v16 passerebbe anche con un confronto sempre vero.
@@ -315,6 +330,70 @@ prova("i messaggi", () => {
   assert(
     !/Le OPZIONI no\."\)/.test(codice),
     "v22) CONTROPROVA: la stessa sonda dice NO a un messaggio che chiudesse la frase senza riportare il server"
+  );
+});
+
+// ===========================================================================
+// ⚠️⚠️ (D9) LA RIPULITURA AL SALVA — PASSO 7b (31/08/2026).
+//
+// ⚠️ Queste prove ESEGUONO il corpo vero ritagliato dal pannello, come tutte
+// quelle qui sopra: si guarda che cosa PARTE, non che cosa è scritto.
+// ===========================================================================
+
+prova("il cambio di categoria nel corpo", () => {
+  // 1) Verso una bevanda: tutti e quattro i gruppi partono VUOTI.
+  const versoBevanda = costruisci({
+    ...statoPieno(),
+    categoriaCambiata: true,
+    diventaBevanda: true,
+    esceDaBowl: true,
+    category: "drink",
+  });
+  assert(
+    versoBevanda.proteins.length === 0 &&
+      versoBevanda.removals.length === 0 &&
+      versoBevanda.accompaniments.length === 0 &&
+      versoBevanda.addons.length === 0,
+    `v27) ⚠️⚠️ (D9) entrando in una bevanda partono TUTTI E QUATTRO i gruppi vuoti — proteine ${versoBevanda.proteins.length}, rimozioni ${versoBevanda.removals.length}, accompagnamenti ${versoBevanda.accompaniments.length}, extra ${versoBevanda.addons.length}`
+  );
+
+  // 2) Uscendo dalle Bowl verso una categoria food: SOLO gli accompagnamenti.
+  const fuoriDaBowl = costruisci({
+    ...statoPieno(),
+    categoriaCambiata: true,
+    diventaBevanda: false,
+    esceDaBowl: true,
+    category: "roll",
+  });
+  assert(
+    fuoriDaBowl.accompaniments.length === 0,
+    `v28) ⚠️ uscendo dalle Bowl gli accompagnamenti partono vuoti: fuori da bowl il server li rifiuta (ne sono partiti ${fuoriDaBowl.accompaniments.length})`
+  );
+  assert(
+    fuoriDaBowl.proteins.length === 2 &&
+      fuoriDaBowl.removals.length === 2 &&
+      fuoriDaBowl.addons.length === 1,
+    `v29) ⚠️ ma SOLO gli accompagnamenti: proteine, rimozioni ed extra restano — proteine ${fuoriDaBowl.proteins.length}, rimozioni ${fuoriDaBowl.removals.length}, extra ${fuoriDaBowl.addons.length}`
+  );
+
+  // 3) Il campo del cambio, nei due versi.
+  assert(
+    versoBevanda.cambioCategoria?.da === "bowl" && versoBevanda.cambioCategoria?.a === "drink",
+    `v30) il corpo porta \`cambioCategoria\` con la categoria dell'APERTURA come \`da\` (${JSON.stringify(versoBevanda.cambioCategoria)})`
+  );
+  const senzaCambio = costruisci(statoPieno());
+  assert(
+    !("cambioCategoria" in senzaCambio),
+    "v31) ⚠️ e senza cambio il campo NON c'è affatto: il server non riceve una richiesta che nessuno ha fatto"
+  );
+  assert(
+    !("category" in senzaCambio) && !("category" in versoBevanda),
+    "v32) ⚠️⚠️ (D2) in nessuno dei due casi compare `category`: la protezione che v11 sorveglia resta in piedi anche col cambio acceso"
+  );
+  // ⚠️ CONTROPROVA di v20: senza il cambio, gli stessi gruppi partono PIENI.
+  assert(
+    senzaCambio.proteins.length === 2 && senzaCambio.accompaniments.length === 1,
+    "v33) ⚠️ CONTROPROVA: sullo stesso stato, senza cambio di categoria i gruppi partono pieni — v20 e v21 non passano perché il corpo è sempre vuoto"
   );
 });
 

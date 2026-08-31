@@ -141,10 +141,14 @@ prova("il fieldset nei tre casi", () => {
     "b7) MODIFICA con le opzioni arrivate: il blocco è ACCESO — è il passo 4b-2"
   );
   // ⚠️ La sonda guarda IL FIELDSET, non tutto il file. La prima stesura cercava
-  // `disabled={inModifica}` ovunque ed era rossa: quella stringa esiste ancora,
-  // ma sul `select` della CATEGORIA, spento in modifica di proposito (decisione
-  // HH — la categoria di un articolo che esiste non si cambia da qui). *Una
-  // sonda costruita su come ci si immagina il file misura le proprie attese.*
+  // `disabled={inModifica}` ovunque ed era rossa: quella stringa esisteva anche
+  // sul `select` della CATEGORIA, spento in modifica di proposito. *Una sonda
+  // costruita su come ci si immagina il file misura le proprie attese.*
+  // ⚠️⚠️ **DAL PASSO 7b QUEL `select` NON È PIÙ SPENTO** (31/08): la decisione
+  // HH è stata attuata e la categoria di un articolo esistente si cambia. La
+  // sonda resta ristretta al fieldset lo stesso — non perché ci sia ancora
+  // qualcosa da evitare, ma perché era già il modo giusto di ancorarla, e
+  // allargarla adesso vorrebbe dire riscriverla per un motivo che non c'entra.
   assert(
     esprDisabled !== "inModifica",
     `b8) e il fieldset non porta più il vecchio aggancio \`disabled={inModifica}\`, che lo spegneva su OGNI articolo esistente (oggi: ${esprDisabled})`
@@ -162,14 +166,22 @@ prova("il fieldset nei tre casi", () => {
     senzaVincolo !== esprDisabled && spento({ inModifica: true, opzioniLette: false }, senzaVincolo) === false,
     "b10) ⚠️ CONTROPROVA di b6: tolto il vincolo, il blocco risulterebbe ACCESO con le opzioni non lette — b6 sa diventare rossa"
   );
-  // ⚠️ Trovata scrivendo b8, e vale la pena sorvegliarla: il `select` della
-  // CATEGORIA resta spento in modifica per la decisione (HH). Accendere quello
-  // insieme al blocco delle opzioni sarebbe stato un danno silenzioso —
-  // cambiare categoria a un articolo che esiste vuol dire poter rifare le sue
-  // opzioni, ed è un lavoro a sé.
+  // ⚠️⚠️ **b40 È STATA ROVESCIATA AL PASSO 7b (31/08), non cancellata.**
+  // Sorvegliava che il `select` della CATEGORIA restasse SPENTO in modifica: era
+  // la protezione della decisione (HH) finché il cambio non esisteva. Dal 7b la
+  // decisione è attuata e la tendina è accesa di proposito, quindi la vecchia
+  // asserzione pretendeva il contrario di ciò che il progetto vuole.
+  //
+  // ⚠️ **Ma lo spegnimento era una protezione, e una protezione che si toglie va
+  // sostituita, non semplicemente rimossa dalle prove.** Ciò che ha preso il suo
+  // posto è (D8): entrare in una bevanda svuota gli allergeni **mentre la
+  // categoria vecchia è ancora scritta**, perché un istante dopo il cuore
+  // rifiuterebbe le bevande in blocco e quegli allergeni non sarebbero più
+  // cancellabili da nessuna schermata. b40 sorveglia adesso quella.
   assert(
-    /onChange=\{\(e\) => changeCategory\(e\.target\.value\)\}\s*\n\s*disabled=\{inModifica\}/.test(codice),
-    "b40) il `select` della CATEGORIA resta spento in modifica (decisione HH): il 4b-2 ha acceso il blocco delle opzioni, non tutto il modulo"
+    !/onChange=\{\(e\) => changeCategory\(e\.target\.value\)\}\s*\n\s*disabled=\{inModifica\}/.test(codice) &&
+      /if \(allergeniToccati \|\| diventaBevanda\) \{/.test(codice),
+    "b40) il `select` della CATEGORIA non è più spento in modifica (HH attuata al 7b), e al suo posto c'è (D8): la seconda chiamata parte anche ad allergeni non toccati quando si entra in una bevanda"
   );
 });
 
@@ -562,6 +574,240 @@ prova("«Annulla» non reinventa una proteina tolta nel frattempo", () => {
   assert(
     t.proteine.size === 1 && !t.proteine.has("manzo"),
     "b54) la proteina tolta resta tolta: rimetterla sarebbe una modifica, non un ripristino"
+  );
+});
+
+// ===========================================================================
+// ⚠️⚠️ IL CAMBIO DI CATEGORIA NEL PANNELLO — PASSO 7b (31/08/2026).
+// Decisioni D5, D6, D8, D9.
+//
+// ⚠️ QUESTE PROVE ESEGUONO le espressioni vere ritagliate dal pannello, non le
+// leggono. *Una sonda di testo direbbe che `categoriaCambiata` compare nel file;
+// non saprebbe dire se è vera quando deve.*
+// ===========================================================================
+
+const esprCategoriaCambiata = ritaglia(codice, "const categoriaCambiata =");
+const esprDiventaBevanda = ritaglia(codice, "const diventaBevanda =");
+const esprEsceDaBowl = ritaglia(codice, "const esceDaBowl =");
+
+// Le tre si valutano insieme, perché la seconda e la terza dipendono dalla prima.
+const treVariabili = (vars) => {
+  const nomi = Object.keys(vars);
+  const corpo = `${esprCategoriaCambiata}\n${esprDiventaBevanda}\n${esprEsceDaBowl}\nreturn { categoriaCambiata, diventaBevanda, esceDaBowl };`;
+  return new Function(...nomi, "isBevanda", corpo)(...nomi.map((n) => vars[n]), (c) =>
+    ["drink", "birre"].includes(c)
+  );
+};
+
+prova("c1) i ritagli del 7b", () => {
+  assert(
+    esprCategoriaCambiata !== null && esprDiventaBevanda !== null && esprEsceDaBowl !== null,
+    "c1) le tre espressioni del cambio di categoria si ritagliano dal pannello — se questa cade, le c2-c9 non misurano niente"
+  );
+  assert(
+    ritaglia(codice, "const nonEsisteQuestaVariabile =") === null,
+    "c2) CONTROPROVA: lo stesso ritaglio, su un nome inventato, torna null"
+  );
+});
+
+prova("c3) categoriaCambiata: vera quando e solo quando cambia", () => {
+  assert(
+    treVariabili({ inModifica: true, category: "dolci", articolo: { category: "roll" } }).categoriaCambiata === true,
+    "c3) in modifica, categoria diversa da quella dell'apertura ⇒ VERA"
+  );
+  assert(
+    treVariabili({ inModifica: true, category: "roll", articolo: { category: "roll" } }).categoriaCambiata === false,
+    "c4) stessa categoria ⇒ FALSA: il campo non si manda su un salvataggio che non la tocca"
+  );
+  assert(
+    treVariabili({ inModifica: false, category: "dolci", articolo: { category: "roll" } }).categoriaCambiata === false,
+    "c5) ⚠️ in CREAZIONE è sempre falsa: non esiste una categoria di partenza da cambiare"
+  );
+});
+
+prova("c6) diventaBevanda ed esceDaBowl", () => {
+  const versoDrink = treVariabili({ inModifica: true, category: "drink", articolo: { category: "roll" } });
+  assert(versoDrink.diventaBevanda === true, "c6) ⚠️ verso `drink` ⇒ diventaBevanda VERA: è (D8), la finestra dello stato irreparabile");
+  const versoDolci = treVariabili({ inModifica: true, category: "dolci", articolo: { category: "roll" } });
+  assert(versoDolci.diventaBevanda === false, "c7) verso una categoria food ⇒ FALSA — così c6 non passa per un motivo qualsiasi");
+  const daBevandaABevanda = treVariabili({ inModifica: true, category: "birre", articolo: { category: "drink" } });
+  assert(daBevandaABevanda.diventaBevanda === true, "c8) e drink→birre è comunque un ingresso in bevanda");
+  const daBowl = treVariabili({ inModifica: true, category: "roll", articolo: { category: "bowl" } });
+  assert(daBowl.esceDaBowl === true, "c9) ⚠️ uscendo da `bowl` ⇒ esceDaBowl VERA: gli accompagnamenti vanno tolti o il server rifiuta");
+  const versoBowl = treVariabili({ inModifica: true, category: "bowl", articolo: { category: "roll" } });
+  assert(versoBowl.esceDaBowl === false, "c10) ed ENTRANDO in Bowl è falsa: non c'è niente da portare via");
+});
+
+prova("c11) le due condizioni che fanno partire le chiamate", () => {
+  // ⚠️⚠️ **LE CONDIZIONI SI RITAGLIANO DAL FILE, NON SI SCRIVONO QUI.** Prima
+  // stesura: le due espressioni erano stringhe costanti dentro questa prova, e
+  // sporcando il pannello restavano verdi — misuravano il testo che avevo
+  // scritto io, non il codice. *Una prova che porta con sé la risposta non è una
+  // prova.* L'ancoraggio è il nome della variabile che segue l'`if`, che nel
+  // pannello compare una volta sola per ciascuna delle due chiamate.
+  const condizioneDi = (primaVariabile) => {
+    const m = new RegExp(`if \\((${primaVariabile}[^)]*)\\) \\{`).exec(codice);
+    return m ? m[1] : null;
+  };
+  const eOpzioni = condizioneDi("opzioniToccate");
+  const eAllergeni = condizioneDi("allergeniToccati");
+  assert(
+    eOpzioni !== null && eAllergeni !== null,
+    `c11a) le due condizioni si ritagliano dal pannello (opzioni: ${eOpzioni}, allergeni: ${eAllergeni})`
+  );
+
+  const parte = (espr, vars) => {
+    const nomi = Object.keys(vars);
+    return new Function(...nomi, `return (${espr});`)(...nomi.map((n) => vars[n]));
+  };
+  assert(
+    parte(eOpzioni, { opzioniToccate: false, categoriaCambiata: true }) === true,
+    `c11) ⚠️ (D5) la TERZA chiamata parte a opzioni NON toccate se la categoria è cambiata — senza, la categoria non arriverebbe mai al database (condizione vera: ${eOpzioni})`
+  );
+  assert(
+    parte(eOpzioni, { opzioniToccate: false, categoriaCambiata: false }) === false,
+    "c12) e resta ferma se non è cambiato niente: nessuna chiamata inutile"
+  );
+  assert(
+    parte(eAllergeni, { allergeniToccati: false, diventaBevanda: true }) === true,
+    `c13) ⚠️ (D8) la SECONDA parte ad allergeni NON toccati quando si entra in una bevanda (condizione vera: ${eAllergeni})`
+  );
+  assert(
+    parte(eAllergeni, { allergeniToccati: false, diventaBevanda: false }) === false,
+    "c14) e resta ferma altrimenti"
+  );
+});
+
+prova("c21) il corpo porta `cambioCategoria` quando e solo quando serve", () => {
+  // Lo spread condizionale si ritaglia dal pannello e si ESEGUE nei due versi.
+  const i = codice.indexOf("...(categoriaCambiata");
+  assert(i !== -1, "c21) lo spread condizionale di `cambioCategoria` si trova nel corpo delle opzioni");
+  // ⚠️ Il ritaglio è a PARENTESI BILANCIATE. Prima stesura: `indexOf("}),")`,
+  // che tagliava una parentesi di troppo e faceva esplodere la prova con
+  // «Unexpected token '}'» — un ritaglio storto si vede subito, ed è meglio di
+  // uno storto che compila.
+  const apre = codice.indexOf("(", i);
+  let liv = 0;
+  let chiude = -1;
+  for (let j = apre; j < codice.length; j++) {
+    if (codice[j] === "(") liv++;
+    else if (codice[j] === ")") {
+      liv--;
+      if (liv === 0) { chiude = j; break; }
+    }
+  }
+  const espr = codice.slice(apre, chiude + 1);
+  const componi = (categoriaCambiata, articolo, category) =>
+    new Function(
+      "categoriaCambiata",
+      "articolo",
+      "category",
+      `return { ...${espr} };`
+    )(categoriaCambiata, articolo, category);
+
+  const con = componi(true, { category: "bowl" }, "roll");
+  assert(
+    con.cambioCategoria?.da === "bowl" && con.cambioCategoria?.a === "roll",
+    `c22) ⚠️ quando la categoria cambia il campo c'è, con \`da\` = quella dell'APERTURA e \`a\` = quella scelta (${JSON.stringify(con)})`
+  );
+  const senza = componi(false, { category: "roll" }, "roll");
+  assert(
+    !("cambioCategoria" in senza),
+    `c23) ⚠️ e quando non cambia il campo NON c'è affatto: il server non riceve una richiesta di cambio che nessuno ha fatto (${JSON.stringify(senza)})`
+  );
+  // ⚠️ (D2) il nome: `category` nel corpo delle opzioni resta vietato — lo
+  // sorveglia `v11` — e questa riga sorveglia che il campo nuovo non venga
+  // «semplificato» in quel nome, che disattiverebbe `v11` senza rompere niente.
+  assert(
+    !("category" in con) && "cambioCategoria" in con,
+    "c24) ⚠️⚠️ (D2) il campo si chiama `cambioCategoria` e NON `category`: la protezione di v11 resta in piedi"
+  );
+});
+
+// ---------------------------------------------------------------------------
+// ⚠️⚠️ (D6) `changeCategory` — DUE RAMI, E VANNO PROVATI COME DUE.
+// Il corpo si ritaglia a graffe bilanciate e si ESEGUE con setter finti che
+// registrano le chiamate: così si misura che cosa tocca, non che cosa sembra.
+// ⚠️ L'ancoraggio è a `") {"` e non alla prima graffa: la prima graffa di una
+// firma con destrutturazione è quella dei parametri.
+// ---------------------------------------------------------------------------
+const ritagliaFunzioneCat = (testo, firma) => {
+  const i = testo.indexOf(firma);
+  if (i === -1) return null;
+  const apre = testo.indexOf(") {", i) + 2;
+  let n = 0;
+  for (let j = apre; j < testo.length; j++) {
+    if (testo[j] === "{") n++;
+    else if (testo[j] === "}") {
+      n--;
+      if (n === 0) return testo.slice(i, j + 1);
+    }
+  }
+  return null;
+};
+const corpoChangeCategory = ritagliaFunzioneCat(codice, "function changeCategory(");
+
+const eseguiChangeCategory = (value, { inModifica }) => {
+  const tocchi = [];
+  const spia = (nome) => (v) => tocchi.push([nome, typeof v === "function" ? "updater" : v]);
+  const nomi = {
+    inModifica,
+    products: [{ category: "dolci", sort_order: 4 }],
+    prossimoPosto: () => 5,
+    isBevanda: (c) => ["drink", "birre"].includes(c),
+    ACCOMPAGNAMENTI_PROPOSTI: [{ label: "Bulgur", contains_gluten: true }],
+    setCategory: spia("setCategory"),
+    setSortOrder: spia("setSortOrder"),
+    setSelected: spia("setSelected"),
+    setNoAllergens: spia("setNoAllergens"),
+    setDietary: spia("setDietary"),
+    setProteine: spia("setProteine"),
+    setRimozioni: spia("setRimozioni"),
+    setAccompagnamenti: spia("setAccompagnamenti"),
+    setExtra: spia("setExtra"),
+  };
+  const chiavi = Object.keys(nomi);
+  new Function(...chiavi, `${corpoChangeCategory}\nchangeCategory(${JSON.stringify(value)});`)(
+    ...chiavi.map((k) => nomi[k])
+  );
+  return tocchi.map(([n]) => n);
+};
+
+prova("c15) in MODIFICA changeCategory non azzera e non propone", () => {
+  assert(corpoChangeCategory !== null, "c15) il corpo di `changeCategory` si ritaglia dal pannello");
+  const toccati = eseguiChangeCategory("drink", { inModifica: true });
+  assert(
+    toccati.join() === "setCategory,setSortOrder",
+    `c16) ⚠️⚠️ (D6) in modifica tocca SOLO categoria e posto: niente azzeramenti, niente proposte (ha toccato: ${toccati.join(", ")})`
+  );
+  const versoBowl = eseguiChangeCategory("bowl", { inModifica: true });
+  assert(
+    !versoBowl.includes("setAccompagnamenti"),
+    `c17) ⚠️ e nemmeno entrando in Bowl propone le tre voci: il campo resta vuoto e il Salva resta spento finché non si compila (ha toccato: ${versoBowl.join(", ")})`
+  );
+});
+
+prova("c18) in CREAZIONE changeCategory fa ancora tutto", () => {
+  const versoBevanda = eseguiChangeCategory("drink", { inModifica: false });
+  assert(
+    versoBevanda.includes("setSelected") &&
+      versoBevanda.includes("setProteine") &&
+      versoBevanda.includes("setExtra"),
+    `c18) ⚠️ in creazione verso una bevanda azzera ancora allergeni e opzioni (ha toccato: ${versoBevanda.join(", ")})`
+  );
+  const versoBowl = eseguiChangeCategory("bowl", { inModifica: false });
+  assert(
+    versoBowl.includes("setAccompagnamenti"),
+    `c19) e in creazione entrando in Bowl propone ancora le tre voci (ha toccato: ${versoBowl.join(", ")})`
+  );
+  // ⚠️ CONTROPROVA dei due rami: lo stesso valore, lo stesso codice, e i due
+  // rami si comportano in modo DIVERSO. Senza, c16 e c18 potrebbero passare
+  // entrambe su una funzione che ignora `inModifica`.
+  const inMod = eseguiChangeCategory("drink", { inModifica: true });
+  const inCrea = eseguiChangeCategory("drink", { inModifica: false });
+  assert(
+    inMod.length < inCrea.length,
+    `c20) ⚠️ CONTROPROVA: sullo STESSO valore la modifica tocca meno cose della creazione (${inMod.length} contro ${inCrea.length}) — i due rami sono davvero due`
   );
 });
 

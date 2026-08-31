@@ -681,7 +681,15 @@ function corpiDi(blocco) {
   // 1) UN CAMPO SPARITO. Si toglie la riga di `allergenIds`, che sta nel
   //    SECONDO corpo: così la controprova dimostra anche che i corpi letti sono
   //    due e non uno.
-  const rigaAllergeni = /^[ \t]*allergenIds: desiderati,[ \t]*$/m.exec(blocco);
+  //    ⚠️ **AGGIORNATA CON INTENZIONE AL PASSO 7b (31/08).** Cercava
+  //    `allergenIds: desiderati,` alla lettera; dal 7b quel campo porta
+  //    un'espressione — `diventaBevanda ? [] : desiderati` — perché (D8) manda
+  //    l'insieme vuoto quando l'articolo entra in una bevanda. *Il campo parte
+  //    ancora, ed è ciò che et6 sorveglia: qui si aggiorna la FORMA in cui la
+  //    controprova lo ritaglia, non ciò che pretende.* La regex resta ancorata
+  //    al nome del campo e non al valore, così non scade alla prossima
+  //    espressione.
+  const rigaAllergeni = /^[ \t]*allergenIds: .+,[ \t]*$/m.exec(blocco);
   assert(
     rigaAllergeni !== null,
     "et9) la riga di `allergenIds` esiste nel blocco (è il materiale della controprova)"
@@ -1061,11 +1069,17 @@ function corpiDi(blocco) {
     0,
     codicePannello.indexOf('"/api/staff/menu/product-options"')
   );
+  // ⚠️ **AGGIORNATA CON INTENZIONE AL PASSO 7b (31/08).** La condizione era
+  // `if (opzioniToccate) {`; dal 7b è `if (opzioniToccate || categoriaCambiata)`
+  // — è (D5), e senza di lei la categoria non arriverebbe mai al database nei
+  // venti passaggi B→B che non toccano nessuna opzione. *La prova continua a
+  // sorvegliare che la scrittura sia sotto una condizione e non incondizionata:
+  // cambia la condizione attesa, non ciò che si pretende da lei.*
   assert(
     chiamate.length === 2 &&
       /fetch\(`\/api\/staff\/menu\/product-options\/\$\{articolo\.id\}`\)/.test(codicePannello) &&
-      /if \(opzioniToccate\) \{/.test(primaDellaPost),
-    `pp4) ⚠️ il pannello chiama \`product-options\` DUE volte: la GET del lettore e la POST del 4b-3, e la scrittura sta dentro \`if (opzioniToccate)\` — è (KK) (chiamate trovate: ${chiamate.length})`
+      /if \(opzioniToccate \|\| categoriaCambiata\) \{/.test(primaDellaPost),
+    `pp4) ⚠️ il pannello chiama \`product-options\` DUE volte: la GET del lettore e la POST del 4b-3, e la scrittura sta dentro \`if (opzioniToccate || categoriaCambiata)\` — è (KK) più (D5) (chiamate trovate: ${chiamate.length})`
   );
 
   const conPost = 'await fetch("/api/staff/menu/product-options", { method: "POST" });';

@@ -1600,7 +1600,29 @@ function ProductForm({ products, allergensCatalog, articolo, onSaved, onCancel }
   // non si può nemmeno inviare, così non resta selezionato e invisibile.
   function changeCategory(value) {
     setCategory(value);
+    // ⚠️ (D7) IL POSTO SI RICALCOLA IN TUTTI E DUE I RAMI, modifica compresa: un
+    // numero calcolato su un'altra categoria non vuol dire niente. *Rischio
+    // dichiarato e accettato in spec: il posto parte con la prima chiamata e la
+    // categoria con la terza, quindi un guasto lascia un posto calcolato su
+    // un'altra categoria. È visibile — l'articolo è fuori dal menu — e si ripara
+    // risalvando.*
     setSortOrder(value === "" ? "" : String(prossimoPosto(products, value)));
+
+    // ⚠️⚠️ (D6) IN MODIFICA NON SI AZZERA E NON SI PROPONE NIENTE, e qui finisce.
+    // Quel che segue vale SOLO IN CREAZIONE.
+    //
+    // *È l'unica forma che rende sincero il riquadro del 7c: se l'azzeramento
+    // avvenisse alla tendina, quando il riquadro compare a dire «stai per
+    // perdere queste cose» la roba sarebbe **già distrutta**, e «Annulla» non
+    // avrebbe più niente da rimettere.* La ripulitura avviene al Salva (D9),
+    // nella composizione dei corpi, e non tocca lo stato del modulo.
+    //
+    // ⚠️ **Chi toglie un azzeramento deve chiedersi che cosa quell'azzeramento
+    // accendeva**: questo accendeva `allergeniToccati`, che era l'innesco della
+    // seconda chiamata. Senza (D8) le bevande resterebbero con gli allergeni
+    // addosso, e da lì non si tornerebbe indietro.
+    if (inModifica) return;
+
     if (value === "" || isBevanda(value)) {
       setSelected(new Set());
       setNoAllergens(false);
@@ -1609,6 +1631,10 @@ function ProductForm({ products, allergensCatalog, articolo, onSaved, onCancel }
       // bevanda il server le rifiuterebbe, e lasciarle compilate e invisibili
       // farebbe fallire il salvataggio con un messaggio che parla di campi che
       // chi salva non vede più.
+      // ⚠️⚠️ **DAL 7b QUESTO AZZERAMENTO VALE SOLO IN CREAZIONE** — il `return`
+      // qui sopra ferma la modifica prima di arrivarci. *In modifica la stessa
+      // pulizia esiste ancora, ma avviene al Salva (D9) nella composizione dei
+      // corpi: lì è reversibile finché non si preme, qui distruggerebbe subito.*
       setProteine(new Map());
       setRimozioni([]);
       setAccompagnamenti([]);
@@ -1718,6 +1744,27 @@ function ProductForm({ products, allergensCatalog, articolo, onSaved, onCancel }
   // Si confronta con lo stato di partenza, non si alza una bandierina al primo
   // clic: spuntare una casella e ripensarci lascia l'articolo com'era, e in quel
   // caso la rotta degli allergeni **non va chiamata** (KK).
+  // -------------------------------------------------------------------------
+  // ⚠️⚠️ IL CAMBIO DI CATEGORIA (passo 7b) — le tre variabili che lo governano.
+  //
+  // ⚠️ **`da` È LA CATEGORIA DELL'APERTURA, NON QUELLA NELLO STATO.** `articolo`
+  // è la fotografia con cui la scheda si è aperta e non cambia finché resta
+  // aperta; `category` è ciò che la tendina mostra adesso. Mandare `category`
+  // come `da` renderebbe il confronto del server (D3) sempre vero e vuoto: si
+  // confronterebbe il valore nuovo con sé stesso, e il controllo su chi ha
+  // cambiato l'articolo sotto non scatterebbe mai.
+  //
+  // ⚠️ In CREAZIONE `articolo` non esiste: tutte e tre restano false, e nessuna
+  // delle condizioni qui sotto cambia comportamento.
+  // -------------------------------------------------------------------------
+  const categoriaCambiata = inModifica && category !== articolo.category;
+  // (D8) Entrare in `drink`/`birre` è il caso che apre lo stato irreparabile:
+  // dopo, gli allergeni non sono più cancellabili da nessuna schermata.
+  const diventaBevanda = categoriaCambiata && isBevanda(category);
+  // (D9) Uscire dalle Bowl porta via gli accompagnamenti: fuori da `bowl` il
+  // server li rifiuta, quindi mandarli sarebbe un rifiuto garantito.
+  const esceDaBowl = categoriaCambiata && articolo.category === "bowl";
+
   const desiderati = noAllergens ? [] : [...selected];
   const allergeniToccati =
     inModifica &&
@@ -2066,17 +2113,41 @@ function ProductForm({ products, allergensCatalog, articolo, onSaved, onCancel }
     // 2) GLI ALLERGENI, solo se toccati. La forma del corpo è quella che manda
     // già `AllergensEditForm`: cinque campi, `kind` compreso — il cuore lo
     // pretende esattamente uguale a "product" e rifiuta qualunque altro valore.
-    if (allergeniToccati) {
+    // ⚠️⚠️ (D8) PARTE ANCHE AD ALLERGENI NON TOCCATI, se si entra in una bevanda.
+    // *È il gemello di (D5), e alla prima stesura della spec mancava: (D6) ha
+    // tolto l'azzeramento alla tendina, che era **anche l'innesco** di questa
+    // chiamata.*
+    //
+    // ⚠️ **L'ORDINE È QUELLO CHE LA RENDE POSSIBILE**: questa chiamata parte
+    // mentre in database c'è ancora la categoria VECCHIA (food), perché la
+    // nuova si scrive nella TERZA. Il cuore rifiuta le bevande in blocco
+    // (`menu-allergens.js:77`): un istante dopo, questo svuotamento non sarebbe
+    // più possibile da nessuna schermata.
+    if (allergeniToccati || diventaBevanda) {
       try {
+        // ⚠️ **SVUOTARE NON È MANDARE L'INSIEME VUOTO E BASTA.** Il cuore rifiuta
+        // zero allergeni senza la casella («Seleziona almeno un allergene oppure
+        // spunta "nessuno dei 14"», `menu-allergens.js:59-61`) e pretende un
+        // tipo dietetico fra le tre voci (`49-52`). Quindi lo svuotamento manda
+        // `noAllergens: true` e un `dietary` valido — quello scelto se c'è,
+        // `"none"` se il campo è rimasto vuoto. *Misurato leggendo il cuore.*
+        //
+        // ⚠️⚠️ **IL CORPO RESTA SCRITTO IN LINEA, e non è una preferenza.**
+        // Estrarlo in una variabile ha reso rosse CINQUE prove — `et4`, `et6`,
+        // `et10`, `eb9b`, `pp4` — che ritagliano i corpi dal file cercando
+        // `body: JSON.stringify({` e ne contano i campi. *Le prove avevano
+        // ragione: quelle sonde sorvegliano che nessun campo smetta di partire,
+        // e un corpo dietro un nome è un corpo che non sanno più leggere. Il
+        // codice si è adattato alle prove, non il contrario.*
         const response = await fetch("/api/staff/menu/allergens", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             kind: "product",
             id: articolo.id,
-            allergenIds: desiderati,
-            noAllergens,
-            dietary,
+            allergenIds: diventaBevanda ? [] : desiderati,
+            noAllergens: diventaBevanda ? true : noAllergens,
+            dietary: diventaBevanda && dietary === "" ? "none" : dietary,
           }),
         });
         const data = await response.json();
@@ -2119,7 +2190,11 @@ function ProductForm({ products, allergensCatalog, articolo, onSaved, onCancel }
     // non è innocuo a vuoto: alza lo scudo, cancella e riscrive le tabelle che
     // trova diverse. Chiamarlo senza motivo è lavoro vero sul database.*
     // -----------------------------------------------------------------------
-    if (opzioniToccate) {
+    // ⚠️ (D5) PARTE ANCHE A OPZIONI NON TOCCATE, se la categoria è cambiata: è
+    // questa chiamata che porta `cambioCategoria`, quindi senza di lei la
+    // categoria non arriverebbe mai al database. *Caso B→B: venti passaggi su
+    // cinquantasei non toccano nessuna opzione.*
+    if (opzioniToccate || categoriaCambiata) {
       try {
         // ⚠️⚠️ LA TRADUZIONE ALL'INDIETRO, dalla forma del modulo a quella della
         // rotta. **(QQ) l'aveva scartata PER IL CONFRONTO** — due traduzioni da
@@ -2158,26 +2233,57 @@ function ProductForm({ products, allergensCatalog, articolo, onSaved, onCancel }
         // ⚠️ `requires_protein` resta la stringa vuota del modulo: il validatore
         // tratta vuoto, `null` e assente allo stesso modo e li porta tutti e tre
         // a `null` — misurato. Convertirlo qui sarebbe una seconda regola.
+        // ⚠️⚠️ (D9) LA RIPULITURA AVVIENE QUI, AL SALVA, e non nello stato del
+        // modulo: verso una bevanda i quattro gruppi partono VUOTI, uscendo
+        // dalle Bowl partono vuoti i soli accompagnamenti. *Il riquadro del 7c
+        // si interporrà prima di questo punto e cambierà solo QUANDO, non COSA:
+        // finché non c'è, chi salva vede sparire le opzioni senza che nessuno
+        // glielo abbia chiesto, ed è la ragione per cui il 7c esiste.*
+        // ⚠️ Qui non si introducono alias di comodo. Una prima stesura aveva un
+        // `const svuotaTutto = …` dichiarato appena sopra, e faceva ESPLODERE
+        // `tests/menu-options-save.test.mjs`, che RITAGLIA questo oggetto e lo
+        // ESEGUE: la variabile stava fuori dal ritaglio. *Il corpo deve restare
+        // autonomo — chi lo ritaglia deve poterlo eseguire con le sole variabili
+        // che nomina al suo interno.*
         const corpoOpzioni = {
           id: articolo.id,
           choiceLabel: titoloScelta,
-          proteins: [...proteine].map(([key, voce]) => ({
-            key,
-            price_delta: voce.price_delta,
-            is_default: voce.is_default,
-            extra_dose_included: voce.extra_dose_included,
-          })),
-          removals: rimozioni.map((label) => ({ label })),
-          accompaniments: accompagnamenti.map((a) => ({
-            label: a.label,
-            contains_gluten: a.contains_gluten,
-          })),
-          addons: extra.map((e) => ({
-            label: e.label,
-            price: e.price,
-            requires_protein: e.requires_protein,
-            max_quantity: e.max_quantity,
-          })),
+          proteins: diventaBevanda
+            ? []
+            : [...proteine].map(([key, voce]) => ({
+                key,
+                price_delta: voce.price_delta,
+                is_default: voce.is_default,
+                extra_dose_included: voce.extra_dose_included,
+              })),
+          removals: diventaBevanda ? [] : rimozioni.map((label) => ({ label })),
+          // ⚠️ Gli accompagnamenti se ne vanno in DUE casi, non uno: entrando in
+          // una bevanda con tutto il resto, e uscendo dalle Bowl da soli. Fuori
+          // da `bowl` il server li rifiuta (`menu-options.js:371-376`), quindi
+          // mandarli sarebbe un rifiuto garantito su un gesto legittimo.
+          accompaniments:
+            diventaBevanda || esceDaBowl
+              ? []
+              : accompagnamenti.map((a) => ({
+                  label: a.label,
+                  contains_gluten: a.contains_gluten,
+                })),
+          addons: diventaBevanda
+            ? []
+            : extra.map((e) => ({
+                label: e.label,
+                price: e.price,
+                requires_protein: e.requires_protein,
+                max_quantity: e.max_quantity,
+              })),
+          // ⚠️ (D2) IL CAMPO SI CHIAMA `cambioCategoria`, MAI `category`, e si
+          // manda SOLO se la categoria è cambiata davvero: `v11` sorveglia che
+          // `category` non compaia in questo corpo, ed è una protezione che deve
+          // restare in piedi. `da` è la categoria dell'APERTURA — il valore che
+          // il server confronta col database (D3).
+          ...(categoriaCambiata
+            ? { cambioCategoria: { da: articolo.category, a: category } }
+            : {}),
         };
         const response = await fetch("/api/staff/menu/product-options", {
           method: "POST",
@@ -2341,13 +2447,23 @@ function ProductForm({ products, allergensCatalog, articolo, onSaved, onCancel }
 
       <label style={{ display: "flex", flexDirection: "column", gap: 4 }}>
         <span style={labelStyle}>Categoria</span>
-        {/* ⚠️ (HH): la categoria di un articolo che esiste non si cambia da qui.
-            È un lavoro a sé, dopo la fusione, perché cambiarla vuol dire poter
-            rifare le opzioni nello stesso gesto. */}
+        {/* ⚠️ (HH) — dal passo 7b la categoria di un articolo che esiste SI
+            CAMBIA da qui. Prima era spenta in modifica: cambiarla vuol dire
+            poter rifare le opzioni nello stesso gesto, ed era il lavoro a sé
+            che l'ordine dei sette passi teneva per ultimo.
+            ⚠️⚠️ **CIÒ CHE QUESTA TENDINA APRE, E CHE VA LETTO INSIEME A (D8).**
+            Accendendola diventa possibile portare un articolo food dentro
+            `drink`/`birre` **con gli allergeni ancora attaccati**: il cuore
+            degli allergeni rifiuta le bevande in blocco
+            (`lib/menu-allergens.js:77`), quindi una volta scritta la categoria
+            nuova quegli allergeni **non sarebbero più cancellabili da nessuna
+            schermata** — lo stato irreparabile. È la ragione per cui (D8)
+            esiste e per cui non è un dettaglio: la seconda chiamata parte
+            **anche ad allergeni non toccati** quando si entra in una bevanda, e
+            li svuota mentre la categoria vecchia è ancora quella scritta. */}
         <select
           value={category}
           onChange={(e) => changeCategory(e.target.value)}
-          disabled={inModifica}
           style={inputStyle}
         >
           {/* Voce vuota di partenza: la scelta è esplicita, mai ereditata. Le
@@ -2359,7 +2475,6 @@ function ProductForm({ products, allergensCatalog, articolo, onSaved, onCancel }
             </option>
           ))}
         </select>
-        {inModifica && <p style={notaSpenta}>La categoria non si cambia da qui: è un lavoro a parte.</p>}
       </label>
 
       <label style={{ display: "flex", flexDirection: "column", gap: 4 }}>
