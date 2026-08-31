@@ -1,6 +1,6 @@
 # KM DIRECT — MASTER SPECIFICATION
 
-**Versione 88** — sostituisce la v87.
+**Versione 89** — sostituisce la v88.
 
 Documento di riferimento definitivo per lo sviluppo. Le decisioni qui
 contenute sono approvate: non vanno reinterpretate senza un motivo concreto
@@ -22,52 +22,44 @@ versione corrente**. I precedenti vivono in `git log`, che è fatto per quello.
 del documento prima che cominciasse a parlare del progetto — e dentro c'erano
 istruzioni rovesciate che nessuno rileggeva.*
 
-**Novità della v88** (vincolanti, 31/08/2026):
+**Novità della v89** (vincolanti, 31/08/2026):
 
 *Le voci di questa versione **non si riscrivono qui a ogni giro**: quelle che
 restano vive stanno in §63-64, sezione «REGISTRATO E NON APERTO», che dalla v82
-è la loro casa. Qui restano le novità della sessione.*
+è la loro casa.*
 
-⚠️ **Le sette voci della v87 sono state controllate una per una prima di
-sostituire questo blocco, e vivono tutte nel corpo di questa spec.** *L'ottava
-voce — l'errore di chi ragiona su `et11`/`et12` — vive nell'handoff, al punto 45,
-che è la casa delle lezioni di metodo.*
+⚠️ **Le sette voci della v88 sono state controllate una per una prima di
+sostituire questo blocco, e vivono tutte nel corpo.** *La terza — la lezione
+sull'azzeramento — ha dato **zero** alla prima sonda e lo zero è stato indagato
+invece che riferito: vive dentro (D8), scritta senza la parola «anche» e spezzata
+da un a-capo. **È la cecità già registrata**, una sonda costruita su come ci si
+immagina il testo.*
 
-1. §63-64 — ✅✅ **IL PASSO 7 È FATTO, E CON LUI I SETTE PASSI.** Quattro pezzi,
-   cinque commit, **ognuno provato dal vivo da Andrea prima di essere
-   committato**. Prove **1988**, zero fallite. *L'ordine di costruzione
-   vincolante è chiuso.*
-2. §63-64 — ⚠️⚠️ **CINQUE COSE SCRITTE NELLA SPEC DEL PASSO 7 ERANO SBAGLIATE, e
-   le ha trovate l'esecuzione**: (D4) ineseguibile su un articolo già fuori dal
-   menu; un secondo sbarramento dentro il cuore che rendeva muto il caso più
-   frequente; (D8) che non bastava a svuotare gli allergeni; la Regola 1 che
-   bloccava un articolo con le proteine diventato bevanda; e la tabella dei 56
-   passaggi, che dopo la decisione di Andrea sul B→B diceva il falso.
-   ⚠️ *Quattro isolate da Code eseguendo ordini ineseguibili alla lettera. **La
-   quinta — la Regola 1 — l'ha trovata una prova dal vivo di Andrea**, e nessuna
-   misura l'aveva vista.*
-3. §63-64 — ⚠️ **LA LEZIONE CHE VALE OLTRE QUESTO PASSO: chi toglie un
-   azzeramento deve chiedersi anche CHE COSA QUELL'AZZERAMENTO ACCENDEVA.**
-   *(D6) toglieva l'azzeramento al cambio della tendina guardando solo il danno
-   che faceva, non il lavoro che faceva: era anche l'innesco della chiamata che
-   cancella gli allergeni.*
-4. §63-64 — ✅ **UN RIQUADRO SOLO, NON DUE IN FILA** (D11), perché due schermate
-   in sequenza si cliccano via. ⚠️ **Debito dichiarato e non chiuso**: lo stato
-   si chiama ancora `confermaPrezzo` e governa entrambe le conferme.
-5. §63-64 — ✅ **QUATTRO DECISIONI DI ANDREA, 31/08/2026**: il cambio completo fra
-   tutte e otto; il riquadro di conferma; il campo vuoto entrando nelle Bowl; e
-   **la rete sugli allergeni resta larga anche sui passaggi food→food**, perché
-   *il caso non si presenta* — un articolo si sposta solo dopo essere stato
-   salvato, e la creazione gli allergeni li pretende già. ⚠️ *Quindi il giorno
-   che quella rete scatta, sta segnalando un articolo che non doveva esistere.*
-6. §63-64 — ✅ **MISURATO: il `<select>` della categoria non ha nessuno
-   spegnimento e sta FUORI dal `fieldset`.** *La rete è altrove — il Salva resta
-   spento finché le opzioni non sono arrivate — e `b40` non la copriva.*
-7. §63-64 — ⚠️ **UNA RETE SOTTILE, DA SAPERE**: la sporcatura che «semplificherebbe»
-   (D10) allargandola a qualunque cambio di categoria fa cadere **una prova sola**,
-   `k32`.
+1. §63-64 — ✅ **GLI OTTO ARTICOLI DI PROVA NON ESISTONO PIÙ.** Cancellati dopo
+   il passo 7, come prescritto, con referto `rimasti = 0` e verifica dal vivo sul
+   sito. ⚠️ **L'elenco dei nomi è stato tolto, non aggiornato**, e conteneva un
+   nome sbagliato: diceva `Roll prova` mentre l'articolo si chiamava `Roll di
+   prova`. *Una cancellazione per nome non l'avrebbe trovato.*
+2. §63-64 — ⚠️ **DUE FATTI DEL DATABASE, LETTI E NON SUPPOSTI**: `products.name`
+   **non è unico** (l'unicità è su `slug`), e **`order_items` rifiuta** la
+   cancellazione di un articolo perché il vincolo non dichiara `on delete`.
+   ⚠️ *La colonna è `nullable` col commento «il prodotto potrebbe essere
+   eliminato in futuro», ma **nullable non è `ON DELETE SET NULL`**: l'intenzione
+   è nel commento, non nel vincolo.*
+3. §6c/§66 — ✅ **RISPOSTA DI ANDREA CHE CHIUDE UNA DOMANDA APERTA DAL 09/08: KM
+   DIRECT NON SARÀ L'UNICO CANALE.** Il locale è attivo da un anno su **Glovo,
+   Deliveroo e JustEat**. ⚠️ *La rete protegge dal non incassare, **non** dal
+   caso peggiore — un cliente che paga e in cucina non arriva niente.* **L'ordine
+   vero fatto da Andrea resta vincolante**; si ammorbidisce il resto.
+4. §63-64 — ⚠️ **UNA DECISIONE GIÀ PRESA È STATA RIAPERTA TRE VOLTE**, quella
+   sulla rete degli allergeni nei passaggi food→food. *La risposta era stata data
+   a voce a chi ragiona e **nel repository non c'era niente che lo dicesse**.*
+   ✅ **Ora è scritta come decisione, non come domanda.** ⚠️ *La lezione:
+   **ciò che è stato deciso a voce e non scritto verrà riaperto**, e chi lo
+   riapre non sta insistendo — sta leggendo ciò che c'è.*
 
 *Il conteggio delle condizioni di apertura non cambia: **quattro chiuse, cinque
+aperte**.*
 aperte**.*
 aperte**.*
 
@@ -278,12 +270,22 @@ webhook, che è il pezzo da cui dipende se un ordine pagato risulta pagato.
 *Fino a quel momento nessun euro si muove davvero, quindi il passaggio è anche
 il primo momento in cui un errore costa soldi veri.*
 
-⚠️ **Il passaggio a Stripe reale va provato a fondo prima dell'apertura, non il
-giorno stesso.** *Scritto nella forma prudente: alla data della stesura non è
-confermato se KM Direct sarà il primo canale d'ordine o se se ne aggiunge ad
-altri già attivi. Se fosse il primo, il giorno dell'apertura non esiste una
-rete sotto e questa riga è vincolante; se ce ne sono altri, si può ammorbidire.
-**Da confermare con Andrea.***
+⚠️ **Il passaggio a Stripe reale va provato prima dell'apertura, non il giorno
+stesso.**
+
+✅ **RISPOSTO DA ANDREA IL 31/08/2026, e la forma prudente decade: KM DIRECT NON
+SARÀ L'UNICO CANALE.** *Il locale è attivo da un anno su **Glovo, Deliveroo e
+JustEat**. Il giorno dell'apertura esiste quindi una rete sotto: se KM Direct ha
+un problema, il locale incassa lo stesso.*
+
+⚠️ **Ma la rete protegge dal NON INCASSARE, non dal caso peggiore**, che è un
+altro: **un cliente paga su KM Direct e in cucina non arriva niente.** Lì il
+cliente ha già pagato, aspetta, e nessun canale alternativo lo aiuta — non si
+sa nemmeno che sta succedendo finché non chiama. **Quindi il punto 3 della
+sequenza di apertura — l'ordine vero fatto da Andrea con la propria carta, fino
+alla comparsa in cucina — RESTA VINCOLANTE.** *Ciò che si ammorbidisce è il
+resto: non serve un collaudo lungo di Stripe prima di aprire. Un ordine vero
+verificato fino in fondo, e si apre.*
 
 ## 7. Stato del servizio
 
@@ -4711,20 +4713,33 @@ risulterebbero come cose che nessuno ha visto.*
   che dichiara che di un dolce **nome, prezzo e allergeni restano
   modificabili**.*
 
-#### ⚠️ GLI ARTICOLI DI PROVA SONO OTTO (aggiornato in v81)
+#### ✅ GLI ARTICOLI DI PROVA NON ESISTONO PIÙ (v89, 31/08/2026)
 
-`Roll prova`, `Roll di prova 2`, `Roll di prova 3`, `Roll di prova 4`,
-`Roll di prova 5`, `Roll di prova 6`, `Roll di prova 7`, `Roll di prova 8`.
-*Il 4 e il 5 sono nati dalle prove dal vivo del 4b-1, il 6 e il 7 da quelle del
-4b-2a, l'**8** dalla prova sulla creazione del 4b-2.* ⚠️ *Il conto è stato
-corretto perché Code ha trovato **70 articoli invece di 69** riaprendo il
-pannello e non l'ha dato per scontato: è andato nel registro del server a
-stabilire che la scrittura non era sua.* Si cancellano
-**tutti insieme DOPO IL PASSO 7**, non dopo il 4b. ⚠️ *La v81 diceva «dopo il
-4b» e quel momento è arrivato la notte del 28/08 — ma il **passo 5 tocca i
-prezzi**, e la regola vuole che le prove sul prezzo si facciano sugli articoli
-di prova. Cancellarli adesso vorrebbe dire ricrearli domani.* `Roll prova` ha le
-opzioni ed è il caso su cui il pannello si prova: resta fino all'ultimo.
+**Cancellati tutti e otto**, dopo il passo 7 come la spec prescriveva, con lo
+script `sql/cancella_articoli_di_prova_31ago2026.sql` eseguito da Andrea nel SQL
+editor: referto `rimasti = 0`, e menu del cliente e pannello verificati dal vivo
+sul sito pubblicato.
+
+⚠️ **L'elenco dei nomi è stato TOLTO, non aggiornato**: un elenco di articoli che
+non esistono più non serve a nessuno. *E conteneva un nome sbagliato — diceva
+`Roll prova` mentre il primo si chiamava `Roll di prova` — scoperto il 31/08
+chiedendolo al pannello. **Una cancellazione per nome non l'avrebbe trovato**, e
+quell'articolo sarebbe rimasto in mezzo ai Roll veri.*
+
+**Due cose lette dal database quel giorno, che restano vere:**
+
+* ⚠️ **`products.name` NON è unico**: l'unicità è su `unique (store_id, slug)`.
+  *Chiunque cancelli o cerchi articoli per nome sappia che due omonimi sono
+  legittimi. Lo script si è difeso pretendendo un conteggio esatto.*
+* ⚠️ **`order_items` RIFIUTA la cancellazione di un articolo**: il vincolo verso
+  `products` è dichiarato **senza `on delete`**, quindi vale NO ACTION. *La
+  colonna è `nullable` e il commento dice «il prodotto potrebbe essere eliminato
+  in futuro», ma **nullable non è `ON DELETE SET NULL`**: il database non azzera
+  niente da sé, rifiuta e basta.* **È la protezione giusta e resta in piedi**:
+  quelle righe sono la memoria di un acquisto, e toglierle riscriverebbe la
+  storia di un ordine. *Le altre sette tabelle che puntano a `products`
+  cancellano in cascata, comprese `combo_drink_options` e `combo_pricing`, che
+  nessuno script precedente nominava.*
 
 ### ⚠️ IL PASSO 4b — LETTO PER INTERO, DECISO (v77, 27/08/2026)
 
@@ -4996,12 +5011,10 @@ controllori e due idee diverse di cosa sia legittimo — girato al contrario.*
   nata per vedere. **Non affermato: da guardare il giorno che la si tocca.***
 * **Il "nove rotte del menu" è ereditato**, non misurato: veniva da un
   "sette o otto" a cui è stato sommato uno.
-* **Per la prova dal vivo del 4b, `Roll prova` è materiale magro sul gruppo che
-  conta**: dalla misura risultano 71 rimozioni su 15 articoli contro le 70 su 14
-  del 29/07, cioè **una sola rimozione** in più su tutti e tre i Roll di prova.
-  ⚠️ *Il 4b va provato proprio sul gruppo che sparisce in silenzio: se dopo il
-  salvataggio ne resta una, si è visto poco. **Prima della prova dal vivo va
-  deciso se caricare `Roll prova` di rimozioni ed extra dal pannello.***
+* ~~Per la prova dal vivo del 4b, `Roll prova` è materiale magro~~ — **decaduto
+  in v89: quegli articoli non esistono più.** *Resta il fatto di metodo che c'era
+  sotto: una prova va fatta sul gruppo che sparisce in silenzio, e se dopo il
+  salvataggio ne resta una si è visto poco.*
 
 ### ✅ LA SCHERMATA UNICA — le decisioni di Andrea del 25/08/2026 (v75)
 
@@ -5207,7 +5220,11 @@ omonime era infondato.*
   **Asimmetria dichiarata**: i **prezzi** tornano indietro (decisione 2 del passo
   5), la **categoria** no. *Sono materie diverse: i prezzi erano già scritti nei
   campi, la categoria è una scelta ancora da confermare.* Sorvegliata da `d35`.
-* ⚠️ **LA RETE SUGLI ALLERGENI RESTA LARGA ANCHE SUI PASSAGGI FOOD→FOOD.** *Un
+* ✅ **DECISO, NON PIÙ APERTO — LA RETE SUGLI ALLERGENI RESTA LARGA ANCHE SUI
+  PASSAGGI FOOD→FOOD.** ⚠️ *Questa riga è scritta così perché la domanda è stata
+  riaperta tre volte in tre referti dopo che Andrea aveva già risposto: la
+  risposta era stata data a voce a chi ragiona e **nel repository non c'era
+  niente che lo dicesse**. Chi legge qui trova la decisione, non la domanda.* *Un
   articolo senza allergeni dichiarati non si salva nemmeno passando da `roll` a
   `dolci`: sono i 20 passaggi B→B.* **La ragione è di Andrea e vale più della
   decisione: il caso non si presenta**, perché la creazione gli allergeni li
