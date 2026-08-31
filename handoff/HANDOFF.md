@@ -4220,3 +4220,86 @@ staff è **fuori dal progetto**.
   categoria durante le prove.*
 * **Le cinque condizioni di apertura ancora aperte**, che non dipendono dal
   codice.
+
+## 46) La pulizia degli articoli di prova, e una domanda aperta dal 09/08 (31/08/2026)
+
+*Coda della stessa sessione del punto 45, dopo la pubblicazione del passo 7.*
+
+### 46a) Prima di cancellare, due cose lette dal database
+
+**Nessuna query di cancellazione è stata scritta prima di sapere che cosa succede
+alle righe collegate.** Dallo schema — che ⚠️ **non sta in `sql/` ma in radice**,
+`km_direct_schema.sql`, e Code l'ha dichiarato invece di adattare la ricerca —
+risultano **otto** tabelle che puntano a `products`. Sette cancellano in cascata,
+comprese **`combo_drink_options` e `combo_pricing`**, che nessuno script
+precedente nominava e che hanno colonne dal nome **diverso**
+(`drink_product_id`, `roll_product_id`).
+
+⚠️ **L'ottava, `order_items`, RIFIUTA.** Il vincolo è dichiarato senza
+`on delete`, quindi vale NO ACTION. *La colonna è `nullable` col commento «il
+prodotto potrebbe essere eliminato in futuro» — ma **nullable non è
+`ON DELETE SET NULL`**: il database non azzera niente da sé, rifiuta e basta.
+L'intenzione è nel commento, non nel vincolo.* **È la protezione giusta**: lì c'è
+la memoria di un acquisto.
+
+⚠️ **E lo schema è del 29/07, con migrazioni posteriori che toccano `products`.**
+*Dichiarato come lettura DAL FILE e non dal database vivo* — per questo la misura
+che decideva è stata fatta da Andrea sul database vero: otto articoli, **zero**
+righe d'ordine per ognuno.
+
+### 46b) ⚠️ Il nome sbagliato che stava per far sopravvivere un articolo
+
+La spec elencava `Roll prova` **senza il «di»**; il pannello dice
+`Roll di prova`. *Chiesto ad Andrea invece di dedurlo, ed era la spec a
+sbagliare.* ⚠️ **Una cancellazione per nome non l'avrebbe trovato**, sarebbe
+riuscita, avrebbe detto di sì, e avrebbe lasciato un articolo finto in mezzo ai
+Roll veri.
+
+**Corollario emerso lì**: `products.name` **non è unico** — l'unicità è su
+`slug`. *Due omonimi sarebbero legittimi, e uno script per nome li porterebbe via
+entrambi.* Lo script si è difeso con un pre-check che pretende **esattamente
+otto** e annulla la transazione altrimenti. **Ed è stato scritto per nomi esatti,
+mai per prefisso**: `Roll di prova` è prefisso degli altri sette.
+
+### 46c) La cancellazione
+
+`sql/cancella_articoli_di_prova_31ago2026.sql`, scritto da Code copiando il
+modello del 12/08, **eseguito da Andrea** nel SQL editor: referto `rimasti = 0`.
+Poi la verifica che conta — menu del cliente e pannello sul **sito pubblicato** —
+perché il numero nel SQL editor dice che le righe non ci sono, non che il sito
+stia bene.
+
+### 46d) ⚠️ Una decisione già presa, riaperta tre volte
+
+Tre referti di fila hanno chiuso segnalando come **aperta** la decisione sulla
+rete degli allergeni nei passaggi food→food. Andrea aveva già risposto — ma
+**aveva risposto a chi ragiona, e nel repository non c'era niente che lo
+dicesse**.
+
+⚠️ **La lezione: CIÒ CHE È STATO DECISO A VOCE E NON SCRITTO VERRÀ RIAPERTO, e
+chi lo riapre non sta insistendo: sta leggendo ciò che c'è.** *Il difetto non era
+di Code, era di chi non aveva chiuso la decisione dalla sua parte.* Ora è scritta
+in spec **come decisione, non come domanda**.
+
+### 46e) ✅ Tre canali già attivi — una domanda aperta dal 09/08
+
+**KM Direct non sarà l'unico canale**: il locale è attivo da un anno su Glovo,
+Deliveroo e JustEat. *La spec era prudente per ignoranza, non per scelta, e lo
+dichiarava: «da confermare con Andrea».*
+
+⚠️ **Cambia meno di quanto sembri, e la differenza è precisa: la rete protegge
+dal NON INCASSARE, non dal caso peggiore** — un cliente che paga su KM Direct e
+in cucina non arriva niente. *Lì il cliente ha già pagato, aspetta, e nessun
+canale alternativo lo aiuta.* **Quindi l'ordine vero fatto da Andrea resta
+vincolante**; si ammorbidisce il collaudo lungo di Stripe.
+
+### 46f) Cosa resta
+
+* **Le cinque condizioni di apertura**, nella sequenza di §66: dominio **e chiave
+  Google ristretta su ENTRAMBI gli indirizzi**; font Termina autorizzato sul
+  dominio vero; piano di pubblicazione a Pro; Stripe reale col webhook
+  definitivo; ordine vero; pulizia dati; apertura.
+* ⚠️ **Non misurato, e serve prima di Stripe**: come il codice sceglie le chiavi.
+* ⚠️ **Il permesso `TRUNCATE` del ruolo `anon` su `products`**, mai accertato se
+  sia raggiungibile da fuori. *È l'unica cosa aperta che riguarda la sicurezza.*
+* **Il debito del nome `confermaPrezzo`.** Registrato, non aperto.
