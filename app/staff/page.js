@@ -1836,7 +1836,27 @@ function ProductForm({ products, allergensCatalog, articolo, onSaved, onCancel }
   // Valgono **solo se gli allergeni sono stati toccati**: chi cambia il solo
   // prezzo di una salsa senza flag dietetico deve poter salvare lo stesso.
   const dietaryMancante = allergeniToccati && dietary === "";
-  const allergeniIncompleti = allergeniToccati && !noAllergens && desiderati.length === 0;
+
+  // -------------------------------------------------------------------------
+  // ⚠️⚠️ PASSO 7d — LA RETE SUL CASO 6: CHI DIVENTA FOOD DEVE DICHIARARE.
+  //
+  // ⚠️ **MISURATO PRIMA DI SCRIVERE, eseguendo la condizione vera**: un articolo
+  // che esce da `drink` verso `roll` con zero allergeni e senza la casella
+  // «nessuno dei 14» aveva il Salva **ACCESO**. Diventava food senza nessuna
+  // dichiarazione, e nessuno glielo chiedeva. *È il caso 6 della tabella dei 56
+  // passaggi, dieci su cinquantasei, e il fatto 10 della spec.*
+  //
+  // ⚠️ **PERCHÉ NON BASTAVA `allergeniToccati`**: nessuno ha toccato quel blocco
+  // — l'articolo era una bevanda, e sulle bevande il blocco non si disegna
+  // nemmeno. La pretesa deve nascere dal **cambio di categoria**, non dal gesto.
+  //
+  // ⚠️ **E PERCHÉ NON SI PRETENDE VERSO LE BEVANDE**: lì gli allergeni non si
+  // possono dichiarare (il cuore le rifiuta in blocco, `menu-allergens.js:77`),
+  // quindi pretenderli bloccherebbe per sempre il passaggio inverso.
+  // -------------------------------------------------------------------------
+  const diventaFood = categoriaCambiata && !isBevanda(category);
+  const allergeniIncompleti =
+    (allergeniToccati || diventaFood) && !noAllergens && desiderati.length === 0;
 
   // ⚠️ IN MODIFICA IL PULSANTE GUARDA SOLO CIÒ CHE PARTE DAVVERO.
   //
@@ -1951,7 +1971,18 @@ function ProductForm({ products, allergensCatalog, articolo, onSaved, onCancel }
     accompagnamentiVuoti && "l'etichetta di ogni accompagnamento",
     extraIncompleti && "etichetta e prezzo di ogni extra aggiunto",
     dietaryMancante && "il tipo dietetico, che è obbligatorio per salvare gli allergeni",
-    allergeniIncompleti && "almeno un allergene, oppure la casella «nessuno dei 14»",
+    // ⚠️ (passo 7d) LA VOCE 13 COPRIVA GIÀ IL CASO NUOVO — si accende da sé,
+    // perché `allergeniIncompleti` è la stessa variabile — ma il testo non
+    // diceva PERCHÉ la richiesta compare adesso. *Chi porta un articolo fuori
+    // dalle bevande non ha toccato quel blocco: senza la coda leggerebbe «manca
+    // un allergene» su un campo che non ha sfiorato, e cercherebbe l'errore nel
+    // posto sbagliato.* **Non è una voce in più: è la stessa, che dice la
+    // ragione quando la ragione è diversa dal solito.**
+    allergeniIncompleti &&
+      "almeno un allergene, oppure la casella «nessuno dei 14»" +
+        (diventaFood && !allergeniToccati
+          ? ": uscendo dalle bevande l'articolo torna food, e un food deve dichiarare gli allergeni"
+          : ""),
     // ⚠️ (PP) seconda metà, detta in chiaro. Senza questa riga il Salva si
     // spegnerebbe appena si tocca un'opzione su un dolce coi gusti, e l'avviso
     // sopra il blocco spiega **perché le scelte non si vedono**, non perché il

@@ -1012,6 +1012,184 @@ prova("d33) Annulla non scrive niente, e la categoria resta scelta", () => {
   );
 });
 
+// ===========================================================================
+// ⚠️⚠️ LA RETE SUL CASO 6 — PASSO 7d (31/08/2026).
+//
+// Chi ESCE dalle bevande diventa food, e un food deve dichiarare gli allergeni.
+// ⚠️ **Misurato prima di scrivere la correzione**: quel caso aveva il Salva
+// ACCESO, e nessuno chiedeva niente. *Dieci passaggi su cinquantasei.*
+//
+// ⚠️⚠️ **LE DUE PROVE CHE PROTEGGONO IL PANNELLO SONO f4 E f5**, e valgono
+// quanto le prime tre: senza, la correzione potrebbe aver preteso gli allergeni
+// dappertutto — anche dove non si possono nemmeno dichiarare — e il pannello
+// sarebbe diventato inusabile senza che nessuna prova lo dicesse.
+// ===========================================================================
+
+// Le sette espressioni vere, ritagliate e concatenate NELL'ORDINE IN CUI SONO
+// DICHIARATE. ⚠️ Un ordine sbagliato dà «Cannot access before initialization»:
+// succede subito e si vede, ed è meglio di un ordine che compila e mente.
+const PEZZI_SALVA = [
+  "const categoriaCambiata =",
+  "const diventaBevanda =",
+  "const diventaFood =",
+  "const desiderati =",
+  "const allergeniToccati =",
+  "const allergeniIncompleti =",
+  "const dietaryMancante =",
+  "const canSaveModifica =",
+  "const canSave = inModifica",
+].map((x) => ritaglia(codice, x));
+
+const salvaAcceso = (v) => {
+  const nomi = Object.keys(v);
+  const corpo = PEZZI_SALVA.join("\n") + "\nreturn canSave;";
+  return new Function(...nomi, "isBevanda", corpo)(
+    ...nomi.map((n) => v[n]),
+    (x) => ["drink", "birre"].includes(x)
+  );
+};
+
+const BASE_SALVA = {
+  inModifica: true, opzioniLette: true, categoriaScelta: true, name: "X",
+  prezzoValido: true, ordineValido: true, accompagnamentiMancanti: false,
+  proteineSenzaPrezzo: false, extraIncompleti: false, rimozioniVuote: false,
+  accompagnamentiVuoti: false, opzioniNonSalvabili: false, allergeniValidi: false,
+  noAllergens: false, noAllergensIniziale: false, dietary: "none", dietaryIniziale: "none",
+  selected: new Set(), idsIniziali: [],
+};
+
+prova("f1) chi esce dalle bevande deve dichiarare", () => {
+  assert(
+    PEZZI_SALVA.every(Boolean),
+    "f1) le sette espressioni del Salva si ritagliano dal pannello — se questa cade, f2-f6 non misurano niente"
+  );
+  assert(
+    salvaAcceso({ ...BASE_SALVA, category: "roll", articolo: { category: "drink" } }) === false,
+    "f2) ⚠️⚠️ da DRINK a ROLL con zero allergeni e la casella non spuntata: il Salva è SPENTO — è il caso 6, che prima si salvava"
+  );
+  assert(
+    salvaAcceso({ ...BASE_SALVA, category: "bowl", articolo: { category: "birre" }, accompagnamentiMancanti: false }) === false,
+    "f3) e lo stesso da BIRRE a BOWL: è il caso 7"
+  );
+});
+
+prova("f4) e i due modi di soddisfarla", () => {
+  assert(
+    salvaAcceso({ ...BASE_SALVA, category: "roll", articolo: { category: "drink" }, noAllergens: true }) === true,
+    "f4) con la casella «nessuno dei 14» spuntata il Salva è ACCESO: dichiarare che non ne ha è una dichiarazione"
+  );
+  assert(
+    salvaAcceso({
+      ...BASE_SALVA,
+      category: "roll",
+      articolo: { category: "drink" },
+      selected: new Set(["glutine"]),
+    }) === true,
+    "f5) e con un allergene spuntato è ACCESO"
+  );
+});
+
+prova("f6) ⚠️ LE DUE RETI CHE PROTEGGONO IL PANNELLO", () => {
+  // ⚠️ Il fatto 10 della spec: un food che RESTA food e non tocca quel blocco
+  // si salva, e deve continuare a salvarsi. Se questa diventa rossa, la
+  // correzione ha allargato la pretesa dove non doveva.
+  assert(
+    salvaAcceso({ ...BASE_SALVA, category: "roll", articolo: { category: "roll" } }) === true,
+    "f6) ⚠️⚠️ un food che RESTA food, senza allergeni e senza toccare il blocco, resta SALVABILE — è il fatto 10, e non è cambiato"
+  );
+  // ⚠️ Bevanda verso bevanda: gli allergeni lì non si possono nemmeno
+  // dichiarare, il cuore le rifiuta in blocco. Pretenderli bloccherebbe tutto.
+  assert(
+    salvaAcceso({ ...BASE_SALVA, category: "birre", articolo: { category: "drink" } }) === true,
+    "f7) ⚠️⚠️ da DRINK a BIRRE il Salva è ACCESO: su una bevanda gli allergeni non si possono dichiarare, e pretenderli bloccherebbe il passaggio per sempre"
+  );
+  // E l'ingresso nelle bevande resta libero: è il caso 4.
+  assert(
+    salvaAcceso({ ...BASE_SALVA, category: "drink", articolo: { category: "roll" } }) === true,
+    "f8) e anche ENTRANDO in una bevanda il Salva è acceso: la pretesa vale solo verso il food"
+  );
+});
+
+prova("f9) la voce che spiega lo spegnimento", () => {
+  // ⚠️ Non si è aggiunta una voce nuova: la 13 si accendeva già, perché
+  // `allergeniIncompleti` è la stessa variabile. Le si è aggiunta la RAGIONE,
+  // che compare solo quando la causa è il cambio di categoria.
+  const i = codice.indexOf("const mancanti = [");
+  const fine = codice.indexOf("].filter(Boolean);", i) + "].filter(Boolean);".length;
+  const espr = codice.slice(i, fine);
+  const voci = (v) => {
+    const nomi = Object.keys(v);
+    return new Function(...nomi, `${espr}\nreturn mancanti;`)(...nomi.map((n) => v[n]));
+  };
+  const comuni = {
+    inModifica: true, opzioniLette: true, categoriaScelta: true, name: "X",
+    prezzoValido: true, ordineValido: true, allergeniValidi: false,
+    accompagnamentiMancanti: false, proteineSenzaPrezzo: false, rimozioniVuote: false,
+    accompagnamentiVuoti: false, extraIncompleti: false, dietaryMancante: false,
+    allergeniIncompleti: true, opzioniNonSalvabili: false,
+  };
+  const uscendo = voci({ ...comuni, diventaFood: true, allergeniToccati: false });
+  assert(
+    uscendo.length === 1 && uscendo[0].includes("uscendo dalle bevande"),
+    `f9) ⚠️ uscendo dalle bevande la voce dice anche PERCHÉ, e resta UNA sola (${JSON.stringify(uscendo)})`
+  );
+  const toccando = voci({ ...comuni, diventaFood: false, allergeniToccati: true });
+  assert(
+    toccando.length === 1 && !toccando[0].includes("uscendo dalle bevande"),
+    `f10) ⚠️ CONTROPROVA: chi ha toccato il blocco da sé legge la frase di sempre, senza la coda — la ragione compare solo dove serve (${JSON.stringify(toccando)})`
+  );
+});
+
+// ===========================================================================
+// ⚠️ IL CAMPO DELLA CATEGORIA — CHE COSA LO GOVERNA (passo 7d, punto 5).
+//
+// ⚠️⚠️ **CIÒ CHE HO TROVATO CERCANDOLO: NON LO GOVERNA NIENTE.** Il `<select>`
+// non ha nessun `disabled`, e **sta FUORI dal `<fieldset>`** che si spegne
+// durante l'attesa delle opzioni — il fieldset comincia molte righe più sotto.
+// È utilizzabile sempre, anche mentre le opzioni stanno ancora arrivando.
+//
+// ⚠️ `b40` NON copre questo: sorveglia che il campo non porti più
+// `disabled={inModifica}`, cioè che non sia spento **in modifica**. Non dice
+// nulla su dove sta né su che cosa succede durante l'attesa. *Sono due cose
+// diverse, e questa è quella che non aveva nessuna prova.*
+//
+// ⚠️ E non è un buco: il SALVA resta spento durante l'attesa, perché
+// `canSaveModifica` comincia con `opzioniLette`. Chi cambia categoria mentre i
+// dati viaggiano non può salvare finché non sono arrivati. **È questa la rete,
+// ed è quella che si sorveglia qui.**
+// ===========================================================================
+prova("f11) il campo della categoria: dov'è e che cosa lo protegge", () => {
+  const iSelect = codice.indexOf("onChange={(e) => changeCategory(e.target.value)}");
+  const iFieldset = codice.indexOf("<fieldset disabled=");
+  assert(iSelect !== -1 && iFieldset !== -1, "f11) il select della categoria e il fieldset si trovano nel pannello");
+  assert(
+    iSelect < iFieldset,
+    "f12) ⚠️ il select della categoria sta FUORI dal fieldset che si spegne durante l'attesa: resta utilizzabile mentre le opzioni arrivano"
+  );
+  // ⚠️ E la rete che rende innocua quell'utilizzabilità: il Salva resta spento
+  // finché le opzioni non sono arrivate, quindi il cambio non può partire a metà.
+  assert(
+    salvaAcceso({
+      ...BASE_SALVA,
+      opzioniLette: false,
+      category: "dolci",
+      articolo: { category: "roll" },
+      noAllergens: true,
+    }) === false,
+    "f13) ⚠️⚠️ ma con le opzioni NON ancora lette il Salva è SPENTO: si può scegliere la categoria durante l'attesa, non salvarla"
+  );
+  assert(
+    salvaAcceso({
+      ...BASE_SALVA,
+      opzioniLette: true,
+      category: "dolci",
+      articolo: { category: "roll" },
+      noAllergens: true,
+    }) === true,
+    "f14) e appena arrivano il Salva si accende — così f13 non passa per un motivo qualsiasi"
+  );
+});
+
 // ---------------------------------------------------------------------------
 // ESECUZIONE. ⚠️ Ogni prova gira dentro il suo try: un'eccezione conta come
 // fallimento e NON interrompe le altre, così il conteggio finale arriva sempre.
