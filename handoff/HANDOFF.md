@@ -4303,3 +4303,129 @@ vincolante**; si ammorbidisce il collaudo lungo di Stripe.
 * ⚠️ **Il permesso `TRUNCATE` del ruolo `anon` su `products`**, mai accertato se
   sia raggiungibile da fuori. *È l'unica cosa aperta che riguarda la sicurezza.*
 * **Il debito del nome `confermaPrezzo`.** Registrato, non aperto.
+
+## 47) Il suono che si sente, e tre condizioni chiuse in una mattina (31/08/2026)
+
+*Seconda metà della stessa giornata. Il passo 7 era finito e pubblicato; da qui in
+poi si esce dal codice del menu e si entra nelle condizioni di apertura.*
+
+### 47a) ⚠️ Tre affermazioni della spec su tre erano invecchiate
+
+Nel giro di due ore, andando a **guardare** invece che a fidarsi:
+
+* **La chiave Google era già ristretta** dall'11/07 — referrer HTTP e tre API —
+  mentre la spec diceva che era senza restrizioni e che *«chiunque la copi
+  consuma il credito»*.
+* **Il font era già a posto**, perché **Adobe ha eliminato il vincolo sui
+  domini**: la spec descriveva un campo che nella pagina non esiste più.
+* **Il piano Pro era già stato portato.**
+
+⚠️ **Nessuna delle tre era falsa quando è stata scritta: lo sono diventate.** *È
+una forma diversa dall'errore di ragionamento — lì si sbaglia scrivendo, qui si
+sbaglia **non rileggendo**.*
+
+### 47b) ⚠️⚠️ Una condizione può morire senza che nessuno la chiuda
+
+Il vincolo dei domini Adobe non è stato risolto: **è decaduto perché è cambiato
+il mondo fuori.** La documentazione dice che non serve indicare alcun elenco di
+domini, che il codice funziona su qualunque sito e senza limite di numero.
+
+⚠️ **Nessuna nostra misura l'avrebbe mai scoperto.** *L'ha scoperto il fatto che
+il campo non c'era più, e solo perché Andrea è andato a cercarlo.* **I documenti
+vanno riletti contro la realtà, non solo contro il codice** — la spec chiamava
+quella voce «la cosa più facile da dimenticare di tutto il documento», e per anni
+è stato vero.
+
+### 47c) La trappola dei due indirizzi, evitata di misura
+
+La chiave Google aveva fra i siti autorizzati solo `localhost` e
+`km-direct.vercel.app`: **il dominio dei clienti non c'era**, quindi dal 26/08 il
+completamento dell'indirizzo su `ordina.kebabmediterraneo.it` con ogni
+probabilità non suggeriva nulla — *e non lo avrebbe detto nessuno, perché non
+produce alcun errore.*
+
+⚠️ **E la riga nuova era stata scritta in una forma diversa dalle altre due** —
+senza schema e senza `/*` — **corretta prima di salvare**. *Una forma diversa non
+è verificabile a colpo d'occhio, e il guasto sarebbe stato invisibile.*
+
+⚠️ **La prova è stata fatta su ENTRAMBI gli indirizzi, non solo su quello che
+interessava.** *Guardare solo il sito che ci interessa e dichiarare chiuso è la
+forma del verde che non dimostra niente: la seconda prova è quella che dice se
+abbiamo rotto invece di aggiustare.*
+
+### 47d) Il suono: una decisione rovesciata, e la leva che non era quella ovvia
+
+**Decisione di Andrea**: il suono si ripete finché non viene accettato, tetto di
+un minuto che riparte a ogni nuovo ordine, un suono solo per tutto il pannello,
+fermato da un pulsante sulla singola scheda che **non cambia lo stato
+dell'ordine**.
+
+⚠️ **La spec del lavoro aveva un buco, trovato scrivendo**: un ordine che **esce**
+da «Nuovi» perché qualcuno l'ha fatto avanzare non veniva tolto dalla lista di
+quelli da accettare. *Il pannello avrebbe continuato a suonare per un ordine il
+cui pulsante non è più a schermo — un suono che non si può fermare.*
+
+**Poi il difetto vero, riferito dal vivo: non si sentiva**, nemmeno col volume del
+portatile al massimo. ⚠️ **La leva che contava non era il guadagno, era la forma
+d'onda.** *Una `sine` ha solo la fondamentale: alzarla avrebbe fatto un fischio
+morbido più forte. Con `square` arrivano le armoniche dispari, cioè energia nella
+banda in cui l'orecchio sente meglio — è il timbro delle sveglie.* **0.7 e non
+1.0**, perché un'onda quadra da Web Audio supera l'ampiezza nominale di circa il
+9%.
+
+⚠️ **Un allarme che non si sente vanifica il lavoro che lo produce**, quindi non è
+stato committato niente finché il volume non è stato riprovato dal vivo.
+
+### 47e) Due cose fatte bene, da riusare
+
+* **La prova sul pulsante è stata costruita perché il difetto fosse POSSIBILE.**
+  *Nell'ambiente di prova `fetch` e le funzioni di cambio stato **esistono e
+  registrano**: non passarle avrebbe reso quel difetto impossibile da commettere
+  nella prova invece che visibile.* **Una prova che rende impossibile il difetto
+  non lo sorveglia.**
+* **I valori del suono sono stati misurati prima di toccarli**, e prima ancora è
+  stato verificato che **nessuna prova ne dipendesse** — così il verde di dopo non
+  è un verde ottenuto aggiustando le prove.
+
+### 47f) ⚠️ Un conteggio trascinato per versioni, e mai misurato
+
+Fino alla v89 il blocco Novità chiudeva con *«quattro chiuse, cinque aperte»*,
+riportato di versione in versione. **Cercato: nel corpo non esiste nessun elenco
+numerato a cui quel conto si riferisca.**
+
+⚠️ *Era un numero trascinato senza misura — esattamente ciò che la regola del
+progetto vieta, e nessuno l'aveva mai guardato perché stava in fondo a un blocco
+che si riscrive ogni volta.* **Tolto.**
+
+### 47g) La pulizia degli articoli di prova, e il nome che stava per salvarne uno
+
+*Vedi il punto 46. La cosa da ricordare: la spec elencava `Roll prova` senza il
+«di», il pannello diceva `Roll di prova`, e **una cancellazione per nome non
+l'avrebbe trovato**. La domanda è stata fatta ad Andrea invece che dedotta.*
+
+### 47h) Dove siamo
+
+**Chiuse oggi**: passo 7 (cinque commit), articoli di prova cancellati, chiave
+Google, font (decaduto), piano Pro, suono. **Documenti alla v90 e al punto 47.**
+
+**Restano DUE cose, ed è tutto:**
+
+1. ⚠️ **STRIPE.** Nessuna modifica al codice — *misurato: non esiste nessun ramo,
+   nessun interruttore, nessuna parola «sandbox»; una variabile sola e l'ambiente
+   lo decide il suo valore.* **L'ordine è vincolante**: chiave vera su Vercel →
+   webhook nuovo sul dominio definitivo → **il suo segreto nuovo** su Vercel →
+   **una ripubblicazione**, perché le variabili si leggono al momento della
+   pubblicazione. ⚠️ **Il segreto del webhook è un'altra cosa dalla chiave e
+   Stripe ne genera uno per ogni endpoint**: dimenticarlo significa clienti che
+   pagano e ordini che non arrivano.
+   ⚠️ **Da decidere prima**: le due variabili sono su **Production e Preview
+   insieme**, quindi con le chiavi vere **anche le anteprime incasserebbero**.
+2. **L'ORDINE VERO DI ANDREA**, con la propria carta, fino alla comparsa in
+   cucina, poi rimborsato. ⚠️ **Resta vincolante anche con tre canali attivi**:
+   la rete protegge dal non incassare, non dal cliente che ha già pagato.
+
+**E poi**: pulizia dati, cancellazione dello script del go-live, apertura.
+
+**Aperto e non toccato**: il permesso `TRUNCATE` di `anon` su `products`, mai
+accertato se sia raggiungibile da fuori; il debito del nome `confermaPrezzo`;
+`km-direct.vercel.app` da dismettere **dopo** l'apertura, mai durante Stripe.
