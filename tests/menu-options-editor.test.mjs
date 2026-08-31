@@ -757,6 +757,237 @@ prova("m43", async () => {
   );
 });
 
+// ===========================================================================
+// ⚠️⚠️ IL CAMBIO DI CATEGORIA — PASSO 7a (31/08/2026), decisioni D2/D3/D4.
+//
+// ⚠️ QUESTE PROVE ESEGUONO IL CUORE, non lo leggono come testo: chiamano
+// `updateProductOptionsCore` col finto client e guardano **che cosa è stato
+// scritto**, tabella per tabella. *Una sonda di testo direbbe che la parola
+// `cambioCategoria` compare nel file; non saprebbe dire se un guasto a metà
+// lascia l'articolo con la categoria vecchia.*
+//
+// ⚠️ IL NOME DEL CAMPO È SORVEGLIATO (D2): `category` nel corpo resta vietato —
+// lo sorveglia `v11` in `menu-options-save.test.mjs` — e `k1` qui sotto
+// sorveglia che il campo nuovo non venga «semplificato» in `category`, che
+// disattiverebbe quella protezione senza rompere niente.
+// ===========================================================================
+
+// Una Bowl e un Roll che non hanno accompagnamenti da perdere, per i casi puliti.
+const ROLL_SENZA_OPZIONI = { id: "roll-3", name: "Il Vegano", category: "roll", is_in_menu: true, is_available: true };
+const ROLL_FUORI_MENU = { id: "roll-4", name: "Il Nascosto", category: "roll", is_in_menu: false, is_available: true };
+
+const patchDi = (scritture) =>
+  scritture.filter((s) => s.tabella === "products" && s.op === "update").map((s) => s.patch);
+
+prova("k1) il nome del campo", async () => {
+  // Il cuore deve accettare `cambioCategoria` e IGNORARE `category`: se un
+  // giorno qualcuno rinominasse il campo, questa prova cade prima che `v11`
+  // diventi inutile in silenzio.
+  const { esito } = await salva(
+    { id: "roll-3", proteins: [], removals: [], cambioCategoria: { da: "roll", a: "dolci" } },
+    { prodotto: ROLL_SENZA_OPZIONI }
+  );
+  assert(esito.status === 200, `k1) il campo si chiama \`cambioCategoria\` e viene accettato (status ${esito.status})`);
+  const { esito: e2, scritture: s2 } = await salva(
+    { id: "roll-3", proteins: [], removals: [], category: "dolci" },
+    { prodotto: ROLL_SENZA_OPZIONI }
+  );
+  assert(
+    e2.status === 200 && patchDi(s2).length === 0,
+    "k2) ⚠️ `category` nel corpo NON cambia niente: resta un campo che il cuore non legge, e la protezione di v11 regge"
+  );
+});
+
+prova("k3) `da` diverso dal database", async () => {
+  const { esito, scritture } = await salva(
+    { id: "roll-1", proteins: proteineDelRoll(), removals: rimozioniDelRoll(), cambioCategoria: { da: "bowl", a: "dolci" } },
+    { prodotto: ROLL, opzioni: { product_choice_options: ROLL_PROTEINE, product_removals: ROLL_RIMOZIONI } }
+  );
+  verificaRifiuto(esito, scritture, 400, "cambiato sotto", "k3) `da` che non coincide col database viene rifiutato, e non scrive niente");
+  const msg = String(esito.body?.error ?? "");
+  assert(
+    msg.includes("riapri") && !/errore/i.test(msg),
+    `k4) ⚠️ e il messaggio dice di RIAPRIRE la scheda, senza la parola «errore»: "${msg}"`
+  );
+  assert(
+    msg.includes("roll") && msg.includes("bowl"),
+    "k5) nomina tutte e due le categorie, quella vera e quella creduta, così chi legge sa cosa è successo"
+  );
+});
+
+prova("k6) verso bowl senza accompagnamenti", async () => {
+  const { esito, scritture } = await salva(
+    { id: "roll-3", proteins: [], removals: [], accompaniments: [], cambioCategoria: { da: "roll", a: "bowl" } },
+    { prodotto: ROLL_SENZA_OPZIONI }
+  );
+  verificaRifiuto(
+    esito,
+    scritture,
+    400,
+    "almeno un accompagnamento",
+    "k6) ⚠️ diventare Bowl con zero accompagnamenti viene rifiutato: le opzioni sono giudicate con la categoria NUOVA"
+  );
+});
+
+prova("k7) da bowl a food con gli accompagnamenti ancora addosso", async () => {
+  const { esito, scritture } = await salva(
+    {
+      id: "bowl-1",
+      proteins: [{ key: "pollo_tacchino", price_delta: "0.00", is_default: true, extra_dose_included: true }],
+      removals: [],
+      accompaniments: [{ label: "Bulgur", contains_gluten: true }],
+      cambioCategoria: { da: "bowl", a: "roll" },
+    },
+    { prodotto: BOWL, opzioni: { product_choice_options: BOWL_PROTEINE, product_accompaniments: BOWL_ACCOMPAGNAMENTI } }
+  );
+  verificaRifiuto(
+    esito,
+    scritture,
+    400,
+    "esiste solo sulle Bowl",
+    "k7) ⚠️ uscire da Bowl lasciandosi dietro gli accompagnamenti viene rifiutato, e non scrive niente"
+  );
+});
+
+prova("k8) un cambio valido: la categoria si scrive INSIEME al rientro in menu", async () => {
+  // ⚠️ Si usa un articolo CHE HA OPZIONI e se ne cambia una: senza righe da
+  // scrivere, l'asserzione sull'ordine («dopo tutte le righe delle opzioni»)
+  // sarebbe vacuamente vera su un elenco vuoto e non misurerebbe niente.
+  // *Prima stesura: articolo senza opzioni, e k11 passava senza guardare nulla.*
+  const { esito, scritture } = await salva(
+    {
+      id: "roll-1",
+      proteins: proteineDelRoll(),
+      removals: [{ label: "Senza hummus" }],
+      cambioCategoria: { da: "roll", a: "dolci" },
+    },
+    { prodotto: ROLL, opzioni: { product_choice_options: ROLL_PROTEINE, product_removals: ROLL_RIMOZIONI } }
+  );
+  assert(esito.status === 200, `k8) il cambio valido passa (status ${esito.status})`);
+  const patch = patchDi(scritture);
+  assert(
+    patch.some((p) => p.category === "dolci"),
+    `k9) la categoria nuova RISULTA SCRITTA (patch: ${JSON.stringify(patch)})`
+  );
+  // ⚠️⚠️ Il cuore della D4: non basta che sia scritta, deve essere scritta
+  // NELLO STESSO atto che rimette l'articolo in menu. Due patch separate
+  // lascerebbero una finestra in cui l'articolo è in menu con la categoria
+  // vecchia, o fuori dal menu con quella nuova.
+  assert(
+    patch.some((p) => p.category === "dolci" && p.is_in_menu === true),
+    `k10) ⚠️⚠️ ed è scritta NELLA STESSA patch del rientro in menu, non in una scrittura sua (patch: ${JSON.stringify(patch)})`
+  );
+  // E l'ordine: l'atto finale è l'ultima scrittura CHE TOCCA L'ARTICOLO, dopo
+  // tutte le righe delle opzioni.
+  // ⚠️ Non «l'ultima di tutte»: dopo viene il registro (`staff_action_log`), che
+  // è un controllo compensativo e per progetto si scrive per ultimo. *Prima
+  // stesura di questa riga: cercava l'ultima assoluta ed era rossa — la prova
+  // sbagliata, non il codice.*
+  const suProdotti = scritture.filter((s) => s.tabella === "products");
+  const ultimaSuProdotto = suProdotti[suProdotti.length - 1];
+  const indiceAtto = scritture.lastIndexOf(ultimaSuProdotto);
+  const righeOpzioni = scritture
+    .map((s, i) => ({ ...s, i }))
+    .filter((s) => s.tabella !== "products" && s.tabella !== "staff_action_log");
+  assert(
+    ultimaSuProdotto.op === "update" &&
+      ultimaSuProdotto.patch?.category === "dolci" &&
+      righeOpzioni.every((s) => s.i < indiceAtto),
+    `k11) ed è l'ultima scrittura sull'articolo, DOPO tutte le righe delle opzioni (atto in posizione ${indiceAtto} su ${scritture.length})`
+  );
+  assert(
+    esito.body?.product?.category === "dolci",
+    "k12) la risposta porta la categoria NUOVA, non la fotografia di prima"
+  );
+});
+
+prova("k13) l'articolo GIÀ FUORI dal menu cambia categoria lo stesso", async () => {
+  // ⚠️ Lo scarto isolato: l'atto finale oggi esisteva solo con lo scudo alzato.
+  // Su un articolo già fuori dal menu la categoria non verrebbe scritta mai.
+  const { esito, scritture } = await salva(
+    { id: "roll-4", proteins: [], removals: [], cambioCategoria: { da: "roll", a: "sides" } },
+    { prodotto: ROLL_FUORI_MENU }
+  );
+  const patch = patchDi(scritture);
+  assert(
+    esito.status === 200 && patch.some((p) => p.category === "sides"),
+    `k13) ⚠️ categoria scritta anche senza scudo alzato (status ${esito.status}, patch: ${JSON.stringify(patch)})`
+  );
+  assert(
+    patch.every((p) => !("is_in_menu" in p)),
+    `k14) e l'articolo NON viene rimesso in menu: ci era uscito prima e ci resta (patch: ${JSON.stringify(patch)})`
+  );
+});
+
+prova("k15) guasto a metà: categoria VECCHIA e articolo FUORI DAL MENU", async () => {
+  const { esito, scritture } = await salva(
+    { id: "roll-1", proteins: proteineDelRoll(), removals: [{ label: "Senza tutto" }], cambioCategoria: { da: "roll", a: "dolci" } },
+    {
+      prodotto: ROLL,
+      opzioni: { product_choice_options: ROLL_PROTEINE, product_removals: ROLL_RIMOZIONI },
+      errori: { "product_removals.insert": { code: "XX000", message: "guasto iniettato" } },
+    }
+  );
+  assert(esito.status === 500, `k15) il guasto a metà dà 500 (status ${esito.status})`);
+  const patch = patchDi(scritture);
+  assert(
+    !patch.some((p) => "category" in p),
+    `k16) ⚠️⚠️ la CATEGORIA NON è stata scritta: l'articolo resta quello di prima (patch: ${JSON.stringify(patch)})`
+  );
+  assert(
+    patch.some((p) => p.is_in_menu === false) && !patch.some((p) => p.is_in_menu === true),
+    `k17) ⚠️ e l'articolo resta FUORI DAL MENU: lo scudo è sceso e non è mai risalito (patch: ${JSON.stringify(patch)})`
+  );
+});
+
+prova("k18) senza cambioCategoria non cambia niente", async () => {
+  const { esito, scritture } = await salva(
+    { id: "roll-1", proteins: proteineDelRoll({ adana: "5.00" }), removals: rimozioniDelRoll() },
+    { prodotto: ROLL, opzioni: { product_choice_options: ROLL_PROTEINE, product_removals: ROLL_RIMOZIONI } }
+  );
+  assert(esito.status === 200, `k18) il salvataggio normale passa come prima (status ${esito.status})`);
+  const patch = patchDi(scritture);
+  assert(
+    !patch.some((p) => "category" in p),
+    `k19) nessuna patch tocca la categoria (patch: ${JSON.stringify(patch)})`
+  );
+  assert(
+    patch.some((p) => p.is_in_menu === false) && patch.some((p) => p.is_in_menu === true),
+    "k20) e lo scudo si comporta come prima: scende e risale"
+  );
+  assert(
+    esito.body?.cambioCategoria === undefined,
+    "k21) e la risposta non nomina un cambio che non c'è stato"
+  );
+});
+
+prova("k22) le forme che il cuore rifiuta", async () => {
+  const casi = [
+    [{ da: "roll", a: "menu_combo" }, "arrivo non ammessa", "una categoria fuori dalle otto"],
+    [{ da: "inventata", a: "dolci" }, "partenza non ammessa", "una partenza fuori dalle otto"],
+    [{ da: "roll" }, "arrivo non ammessa", "l'arrivo mancante"],
+    ["roll→dolci", "non è nella forma attesa", "una stringa invece dell'oggetto"],
+  ];
+  let n = 22;
+  for (const [valore, frammento, descrizione] of casi) {
+    const { esito, scritture } = await salva(
+      { id: "roll-3", proteins: [], removals: [], cambioCategoria: valore },
+      { prodotto: ROLL_SENZA_OPZIONI }
+    );
+    verificaRifiuto(esito, scritture, 400, frammento, `k${n}) rifiutata ${descrizione}`);
+    n++;
+  }
+  // Chiedere di restare dov'è non è un cambio: si accetta e non si scrive nulla.
+  const { esito, scritture } = await salva(
+    { id: "roll-3", proteins: [], removals: [], cambioCategoria: { da: "roll", a: "roll" } },
+    { prodotto: ROLL_SENZA_OPZIONI }
+  );
+  assert(
+    esito.status === 200 && !patchDi(scritture).some((p) => "category" in p),
+    "k26) e passare a sé stessi è accettato senza scrivere la categoria: chi chiama non deve occuparsene"
+  );
+});
+
 // ---------------------------------------------------------------------------
 // ESECUZIONE. ⚠️ Ogni prova gira dentro il suo try: un'eccezione conta come
 // fallimento e NON interrompe le altre, così il conteggio finale arriva sempre.
