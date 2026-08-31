@@ -427,7 +427,12 @@ function GlovoDeliverySection({ order, onSaveExternalDeliveryId }) {
   );
 }
 
-function OrderCard({ order, onChangeStatus, onReportProblem, onResolve, onCancelOrder, onSaveExternalDeliveryId }) {
+// ⚠️ §52-56 (31/08) — `daAccettare` e `onAccetta` sono i soli due parametri
+// aggiunti per il suono che si ripete. *Quando `daAccettare` è falso il pulsante
+// non si disegna, e la scheda torna identica a com'era: nessun altro pulsante,
+// nessun altro campo e lo STATO DELL'ORDINE non c'entrano niente con questo
+// gesto (R4).*
+function OrderCard({ order, onChangeStatus, onReportProblem, onResolve, onCancelOrder, onSaveExternalDeliveryId, daAccettare, onAccetta }) {
   const [isUpdating, setIsUpdating] = useState(false);
   const [activeForm, setActiveForm] = useState(null); // null | "problema" | "annulla"
   const customer = order.customers;
@@ -658,6 +663,37 @@ function OrderCard({ order, onChangeStatus, onReportProblem, onResolve, onCancel
                   }}
                 >
                   {previousAction.label}
+                </button>
+              )}
+              {/* ⚠️⚠️ §52-56 (31/08) — «ACCETTA» FA SOLO TACERE IL SUONO.
+                  NON cambia lo stato dell'ordine, che resta «Nuovo»: per farlo
+                  avanzare c'è il pulsante qui accanto, come sempre. *Ragione di
+                  Andrea: esiste già uno stato che dice «ho cominciato a
+                  lavorarlo»; se lo facesse scattare un gesto nato per zittire,
+                  quello stato scatterebbe anche senza che nessuno abbia letto
+                  l'ordine.*
+                  ⚠️ (R4) Non chiama il server e non scrive niente nel database:
+                  `onAccetta` tocca solo `sessionStorage`.
+                  ⚠️ (T2) Il pulsante vive nella scheda, e la scheda vive nella
+                  sola sezione «Nuovi»: chi sta guardando «Storico» sente il
+                  suono e non ha il pulsante sotto gli occhi finché non torna
+                  indietro. *Conseguenza dichiarata; la rete è il tetto di un
+                  minuto.* */}
+              {daAccettare && (
+                <button
+                  onClick={() => onAccetta(order.id)}
+                  style={{
+                    background: "none",
+                    color: "var(--navy)",
+                    border: "1px solid var(--brand-orange)",
+                    borderRadius: 8,
+                    padding: "8px 16px",
+                    fontWeight: 600,
+                    fontSize: 13,
+                    cursor: "pointer",
+                  }}
+                >
+                  Accetta
                 </button>
               )}
               {nextAction && (
@@ -3387,6 +3423,77 @@ function MenuSection() {
 // sono trattati come preesistenti). Nessuna tabella/colonna nuova nel database.
 const NOTIFIED_IDS_KEY = "km_staff_notified_order_ids";
 
+// ===========================================================================
+// §52-56 — IL SUONO CHE SI RIPETE (31/08/2026, decisione di Andrea che rovescia
+// la scelta precedente del suono singolo).
+//
+// ⚠️ **(A2) LA CADENZA È QUESTA, ed è il numero da cambiare se a orecchio non
+// va**: un'emissione ogni **3 secondi**. *Il doppio tono dura circa 0,75 s (due
+// bip da 0,35 s, il secondo sfasato di 0,4 s — vedi le costanti qui sotto),
+// quindi restano oltre due secondi di silenzio fra un avviso e l'altro: si sente
+// come un allarme che chiama, non come un ronzio.*
+// ⚠️ **AGGIORNATO IL 31/08 sera**: la durata era 0,42 s finché i bip erano da
+// 0,2. Alzandoli questa riga sarebbe rimasta a dire un numero vecchio.
+// In un minuto sono circa venti emissioni.
+//
+// ⚠️⚠️ **(T5) QUESTA COSTANTE NON È `POLL_INTERVAL_MS`, e non va confusa con
+// lei**: quella (riga 23) decide ogni quanto il pannello interroga il server, ed
+// è usata da DUE `setInterval`. *Cambiare l'una per ottenere l'altra cambierebbe
+// anche ogni quanto la lista si ricarica.*
+const CADENZA_SUONO_MS = 3000;
+
+// ---------------------------------------------------------------------------
+// ⚠️ COME SUONA LA SINGOLA EMISSIONE — quattro numeri, tutti qui (31/08, sera).
+//
+// ⚠️ **MISURATO DAL VIVO DA ANDREA**: col primo assetto il suono era TROPPO
+// BASSO anche col volume del Mac al massimo. *Un allarme che non si sente
+// vanifica la ripetizione: la ripetizione c'era, il suono no.*
+//
+// Le tre leve, e perché ognuna:
+//
+// **VOLUME 0.3 → 0.7.** Non 1.0 di proposito: un'onda quadra generata da Web
+// Audio supera di circa il 9% l'ampiezza nominale (il picco del fenomeno di
+// Gibbs sulla banda limitata), quindi a 0.7 il picco reale sta intorno a 0.76 e
+// resta **sotto la soglia di distorsione**. *Sfondare non fa sentire di più: un
+// tono distorto si sente peggio di uno pulito.*
+//
+// **FORMA D'ONDA `sine` → `square`.** ⚠️ È la leva che conta più del volume, ed
+// è la ragione per cui alzare il solo guadagno non sarebbe bastato: una
+// sinusoide ha **solo la fondamentale**, e su altoparlanti di notebook resta un
+// fischio morbido. L'onda quadra porta con sé le armoniche dispari — a 880 Hz
+// significa energia anche a 2640 e 4400 Hz, cioè **nella banda in cui l'orecchio
+// sente meglio**. È il timbro dei cicalini e delle sveglie, e non è un caso.
+//
+// **DURATA 0,2 s → 0,35 s.** Due decimi sono al limite di ciò che si registra
+// come suono invece che come schiocco, soprattutto in una stanza rumorosa.
+//
+// ⚠️ L'intervallo fra i due bip segue la durata: erano 0,22 s su bip da 0,2 — un
+// filo di respiro fra l'uno e l'altro. Restano proporzionati.
+//
+// ⚠️⚠️ **DURATA TOTALE: circa 0,75 s** (era ~0,42). Con la cadenza a 3 secondi
+// restano oltre due secondi di silenzio fra un avviso e l'altro: continua a
+// sentirsi come un allarme che chiama, non come un ronzio continuo.
+const VOLUME_SUONO = 0.7;
+const FORMA_ONDA_SUONO = "square";
+const DURATA_BIP_S = 0.35;
+const INTERVALLO_BIP_S = 0.4;
+
+// ⚠️ (A3) IL TETTO: un minuto dall'ULTIMO ordine arrivato, non dal primo. *Se
+// arriva un secondo ordine a cinquanta secondi, il minuto riparte da lì — è
+// voluto: gli ordini in fila che nessuno accetta sono il caso in cui bisogna
+// guardare lo schermo.* Non è una durata: è un tetto, e se si accetta prima il
+// suono tace prima.
+const TETTO_SUONO_MS = 60000;
+
+// ⚠️ (A5) «ACCETTATO» VIVE ACCANTO A «GIÀ VISTO», nello stesso `sessionStorage`
+// e per la stessa ragione: un ricaricamento accidentale della pagina non deve
+// far risuonare ciò che era già stato accettato.
+//
+// ⚠️⚠️ (R1) I DUE MODELLI CONVIVONO E NON SI SOSTITUISCONO: «già visto» decide
+// **SE** un ordine può far partire il suono, «accettato» decide **FINO A
+// QUANDO** suona. *Chi tocca l'uno non tocchi l'altro.*
+const ACCEPTED_IDS_KEY = "km_staff_accepted_order_ids";
+
 function loadNotifiedIds() {
   if (typeof window === "undefined") return new Set();
   try {
@@ -3406,8 +3513,33 @@ function persistNotifiedIds(ids) {
   }
 }
 
+// §52-56 (31/08) — gli ordini ACCETTATI, cioè quelli per cui il suono è stato
+// fermato. Stessa forma di `loadNotifiedIds`/`persistNotifiedIds`, copiata e non
+// reinventata: due letture dello stesso `sessionStorage` scritte a mano un
+// giorno divergono.
+function loadAcceptedIds() {
+  if (typeof window === "undefined") return new Set();
+  try {
+    const raw = window.sessionStorage.getItem(ACCEPTED_IDS_KEY);
+    return new Set(raw ? JSON.parse(raw) : []);
+  } catch {
+    return new Set();
+  }
+}
+
+function persistAcceptedIds(ids) {
+  if (typeof window === "undefined") return;
+  try {
+    window.sessionStorage.setItem(ACCEPTED_IDS_KEY, JSON.stringify([...ids]));
+  } catch {
+    /* sessionStorage non disponibile: il pannello continua a funzionare */
+  }
+}
+
 // Suono di alert: doppio tono breve sintetizzato via Web Audio API, nessun
 // file audio esterno né dipendenza da asset scaricati (§52-56).
+// ⚠️ (A1) QUESTA FUNZIONE NON SI TOCCA: è la singola emissione, e resta tale.
+// La ripetizione è un ripetitore che la richiama, scritto SOPRA di lei.
 function playDoubleTone(ctx) {
   if (!ctx) return;
   if (ctx.state === "suspended") ctx.resume();
@@ -3415,18 +3547,24 @@ function playDoubleTone(ctx) {
   const beep = (frequency, at) => {
     const oscillator = ctx.createOscillator();
     const gain = ctx.createGain();
-    oscillator.type = "sine";
+    oscillator.type = FORMA_ONDA_SUONO;
     oscillator.frequency.setValueAtTime(frequency, at);
+    // ⚠️ L'INVILUPPO RESTA QUELLO DI PRIMA, e non è decorazione: la rampa di
+    // 0,02 s in salita e quella in discesa evitano il "clic" che si sente
+    // quando un oscillatore parte o si ferma di netto. *Cambia il volume di
+    // arrivo, non il modo in cui ci si arriva.*
+    // ⚠️ Le rampe sono ESPONENZIALI e non possono toccare lo zero: 0.0001 è il
+    // "quasi silenzio" da cui si parte e a cui si torna.
     gain.gain.setValueAtTime(0.0001, at);
-    gain.gain.exponentialRampToValueAtTime(0.3, at + 0.02);
-    gain.gain.exponentialRampToValueAtTime(0.0001, at + 0.18);
+    gain.gain.exponentialRampToValueAtTime(VOLUME_SUONO, at + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.0001, at + DURATA_BIP_S - 0.02);
     oscillator.connect(gain);
     gain.connect(ctx.destination);
     oscillator.start(at);
-    oscillator.stop(at + 0.2);
+    oscillator.stop(at + DURATA_BIP_S);
   };
   beep(880, start);
-  beep(1245, start + 0.22);
+  beep(1245, start + INTERVALLO_BIP_S);
 }
 
 // Notifica browser nativa: titolo "Nuovo ordine KM-XXXX", corpo con importo e
@@ -3467,7 +3605,11 @@ export default function StaffDashboardPage() {
   // §52-56 "Alert nuovo ordine": alert (suono + notifica) per gli ordini
   // "Nuovi" comparsi dopo l'apertura del pannello. L'attivazione avviene dal
   // banner (gesto utente: sblocca l'audio e chiede il permesso Notification).
-  // Nessun controllo di silenziamento.
+  // ⚠️ **AGGIORNATO IL 31/08**: prima qui c'era scritto «Nessun controllo di
+  // silenziamento», ed era vero finché il suono era una emissione sola. Adesso
+  // il suono si RIPETE, e un silenziamento c'è: è il pulsante «Accetta» sulla
+  // singola scheda. *Non è un interruttore globale e non esiste un modo di
+  // spegnere gli avvisi: si tace un ordine per volta, o si aspetta il minuto.*
   const [mounted, setMounted] = useState(false);
   const [audioUnlocked, setAudioUnlocked] = useState(false);
   const [notificationPermission, setNotificationPermission] = useState(null);
@@ -3475,6 +3617,28 @@ export default function StaffDashboardPage() {
   const audioUnlockedRef = useRef(false);
   const notifiedIdsRef = useRef(null);
   const seededRef = useRef(false);
+
+  // -------------------------------------------------------------------------
+  // §52-56 (31/08) — LA RIPETIZIONE DEL SUONO.
+  //
+  // ⚠️⚠️ (T3) UN TIMER CHE NON SI ANNULLA È UN SUONO CHE NON SI FERMA. Il
+  // riferimento del ripetitore vive in un `ref` apposta per poter essere
+  // annullato, e viene annullato in TUTTI i punti di uscita — compreso quando il
+  // componente sparisce dallo schermo. *`playDoubleTone` è «spara e dimentica» e
+  // resta tale: è il ripetitore ad avere memoria.*
+  const ripetitoreRef = useRef(null);
+  // Il momento oltre il quale il suono tace da sé. Si sposta in avanti a ogni
+  // nuovo ordine (A3), quindi non è «quando ha cominciato» ma «fin quando».
+  const scadenzaSuonoRef = useRef(0);
+  // Gli ordini nuovi ANCORA DA ACCETTARE: finché questo insieme non è vuoto, il
+  // suono ha una ragione per suonare.
+  const daAccettareRef = useRef(new Set());
+  const accettatiRef = useRef(null);
+  // ⚠️ Lo stato React serve solo a far ridisegnare il pulsante sulle schede: la
+  // verità sta nel `ref`, che il ripetitore legge senza dipendere da un
+  // ridisegno. *Due copie della stessa cosa sarebbero due verità; qui il ref è
+  // la verità e lo stato è il suo riflesso a schermo.*
+  const [accettatiVersione, setAccettatiVersione] = useState(0);
   // §52-56: id → pickup_code degli ordini arrivati dopo il mount ma prima
   // dello sblocco. In memoria (non sessionStorage): dopo un refresh ricompaiono
   // in lista come "preesistenti al mount" e vanno trattati come silenziosi.
@@ -3520,6 +3684,10 @@ export default function StaffDashboardPage() {
   useEffect(() => {
     let cancelled = false;
     notifiedIdsRef.current = loadNotifiedIds();
+    // ⚠️ (A5 / prova 7) Gli accettati si rileggono dal `sessionStorage` come i
+    // «già visti»: dopo un ricaricamento accidentale della pagina non devono
+    // risuonare.
+    accettatiRef.current = loadAcceptedIds();
 
     async function pollNuoviForAlerts() {
       try {
@@ -3539,14 +3707,32 @@ export default function StaffDashboardPage() {
           } else if (audioUnlockedRef.current) {
             // Avvisi attivi: alert singolo immediato.
             playDoubleTone(audioContextRef.current);
+            // ⚠️ (R3) LA NOTIFICA DEL BROWSER NON SI RIPETE: resta una sola per
+            // ordine, e sta fuori dal ripetitore. *Si ripete soltanto il suono.*
             showOrderNotification(order);
             notified.add(order.id);
+            // ⚠️ (31/08) …e da qui in poi l'ordine ha una voce: entra fra quelli
+            // da accettare e fa ripartire il minuto.
+            if (!(accettatiRef.current ?? new Set()).has(order.id)) {
+              daAccettareRef.current.add(order.id);
+              avviaRipetizione();
+            }
           } else {
             // Banner mostrato ma non ancora sbloccato: in attesa dell'alert
             // cumulativo emesso al click sul banner (§52-56).
             pending.set(order.id, order.pickup_code);
           }
         }
+        // ⚠️ Un ordine che ESCE dalla sezione «Nuovi» — perché qualcuno l'ha
+        // fatto avanzare di stato — non ha più voce in capitolo sul suono:
+        // altrimenti continuerebbe a suonare per un ordine che non è più nuovo,
+        // e nessun pulsante «Accetta» sarebbe più lì per fermarlo.
+        const idsNuoviOra = new Set(nuoviOrders.map((o) => o.id));
+        for (const id of [...daAccettareRef.current]) {
+          if (!idsNuoviOra.has(id)) daAccettareRef.current.delete(id);
+        }
+        if (devoTacere()) fermaRipetizione();
+
         seededRef.current = true;
         persistNotifiedIds(notified);
       } catch {
@@ -3562,6 +3748,65 @@ export default function StaffDashboardPage() {
     };
   }, []);
 
+  // -------------------------------------------------------------------------
+  // §52-56 (31/08) — IL RIPETITORE.
+  //
+  // ⚠️ (A3) TACE AL PRIMO DEI DUE CHE ARRIVA: quando non esiste più nessun
+  // ordine nuovo non accettato, oppure quando è scaduto il minuto dall'ultimo
+  // ordine arrivato. *Il minuto è un tetto, non una durata: accettando dopo
+  // dieci secondi tace dopo dieci secondi.*
+  //
+  // ⚠️ La condizione di silenzio è scritta QUI, in un posto solo, e la legge il
+  // ripetitore a ogni battito. *Due copie divergono alla prima modifica.*
+  function fermaRipetizione() {
+    if (ripetitoreRef.current) {
+      clearInterval(ripetitoreRef.current);
+      ripetitoreRef.current = null;
+    }
+  }
+
+  function devoTacere() {
+    return daAccettareRef.current.size === 0 || Date.now() >= scadenzaSuonoRef.current;
+  }
+
+  // ⚠️ Chiamata a ogni ordine nuovo che suona. Se il ripetitore è già in moto
+  // NON se ne avvia un secondo — si sposta solo la scadenza in avanti: è (A3),
+  // «il tetto riparte a ogni nuovo ordine», ed è anche la difesa contro (T1),
+  // due ordini vicini che sono la sera normale e non un caso limite.
+  function avviaRipetizione() {
+    scadenzaSuonoRef.current = Date.now() + TETTO_SUONO_MS;
+    if (ripetitoreRef.current) return;
+    ripetitoreRef.current = setInterval(() => {
+      if (devoTacere()) {
+        fermaRipetizione();
+        return;
+      }
+      playDoubleTone(audioContextRef.current);
+    }, CADENZA_SUONO_MS);
+  }
+
+  // ⚠️⚠️ (R4) IL PULSANTE NON TOCCA IL DATABASE: nessuna chiamata al server,
+  // nessun cambio di stato dell'ordine, nessuna riga scritta. *È un gesto che
+  // vive nella sessione del browser, e la ragione è di Andrea: esiste già uno
+  // stato che dice «ho cominciato a lavorarlo». Se lo facesse scattare un gesto
+  // nato per zittire, quello stato comincerebbe a scattare anche senza che
+  // nessuno abbia letto l'ordine.*
+  function accettaOrdine(orderId) {
+    daAccettareRef.current.delete(orderId);
+    const accettati = accettatiRef.current ?? new Set();
+    accettati.add(orderId);
+    accettatiRef.current = accettati;
+    persistAcceptedIds(accettati);
+    // Se era l'ultimo, il suono tace SUBITO invece di aspettare il battito.
+    if (devoTacere()) fermaRipetizione();
+    setAccettatiVersione((n) => n + 1);
+  }
+
+  // ⚠️ (T3) L'ANNULLAMENTO QUANDO IL COMPONENTE SPARISCE. Senza, uscendo dal
+  // pannello il ripetitore continuerebbe a battere su un componente che non
+  // c'è più.
+  useEffect(() => fermaRipetizione, []);
+
   // §52-56 "Alert nuovo ordine": attivazione dal banner. Serve un gesto utente
   // per sbloccare l'audio (policy autoplay dei browser) e per chiedere il
   // permesso Notification.
@@ -3570,13 +3815,23 @@ export default function StaffDashboardPage() {
       typeof window !== "undefined" ? window.AudioContext || window.webkitAudioContext : null;
     if (AudioCtx) {
       if (!audioContextRef.current) audioContextRef.current = new AudioCtx();
+      // ⚠️⚠️ (A6) LO STATO DI SBLOCCO SI SCRIVE **SOLO SE `resume()` È RIUSCITA**,
+      // e sta DENTRO il `try` — prima era fuori, e il banner spariva anche
+      // quando lo sblocco falliva: il pannello dichiarava attivi degli avvisi
+      // che non avrebbero suonato.
+      //
+      // ⚠️ *Fino al 31/08 era un fastidio; con la ripetizione diventa il caso
+      // peggiore, perché ci si fiderebbe di un allarme che non c'è.* Se
+      // `resume()` fallisce il banner RESTA, e chi guarda vede che gli avvisi
+      // non sono attivi invece di crederli attivi.
       try {
         await audioContextRef.current.resume();
+        audioUnlockedRef.current = true;
+        setAudioUnlocked(true);
       } catch {
-        /* resume può fallire: l'utente può ricliccare il banner */
+        /* resume fallita: lo stato NON si scrive e il banner resta, così
+           l'utente può ricliccarlo. */
       }
-      audioUnlockedRef.current = true;
-      setAudioUnlocked(true);
     }
     if (typeof Notification !== "undefined") {
       try {
@@ -3599,10 +3854,19 @@ export default function StaffDashboardPage() {
       playDoubleTone(audioContextRef.current);
       showCumulativeNotification([...pending.values()]);
       const notified = notifiedIdsRef.current ?? new Set();
-      for (const id of pending.keys()) notified.add(id);
+      const accettati = accettatiRef.current ?? new Set();
+      for (const id of pending.keys()) {
+        notified.add(id);
+        // ⚠️ (R2, terzo punto aggiornato) L'ALERT CUMULATIVO RESTA UNO SOLO, ma
+        // da qui quegli ordini entrano nella ripetizione come tutti gli altri, e
+        // il minuto parte da adesso. *Prima del 31/08 finivano in «già
+        // notificati» e tacevano per sempre.*
+        if (!accettati.has(id)) daAccettareRef.current.add(id);
+      }
       notifiedIdsRef.current = notified;
       pending.clear();
       persistNotifiedIds(notified);
+      if (daAccettareRef.current.size > 0) avviaRipetizione();
     }
   }
 
@@ -3714,7 +3978,14 @@ export default function StaffDashboardPage() {
 
       {/* §52-56 "Alert nuovo ordine": banner "Attiva avvisi sonori", mostrato
           finché l'audio non è sbloccato in questa sessione o il permesso
-          Notification non è 'granted'. Nessun controllo di silenziamento. */}
+          Notification non è 'granted'.
+          ⚠️ **AGGIORNATO IL 31/08**: qui diceva «Nessun controllo di
+          silenziamento». Dal suono che si ripete il silenziamento esiste, ed è
+          il pulsante «Accetta» sulla scheda dell'ordine — per ordine, mai
+          globale.
+          ⚠️ (R5 / A6) Il banner non si tocca: è il gesto che sblocca l'audio in
+          Chrome, e ora resta a schermo anche quando `resume()` fallisce, invece
+          di sparire dichiarando attivi degli avvisi che non suonerebbero. */}
       {mounted && (!audioUnlocked || notificationPermission !== "granted") && (
         <div
           style={{
@@ -3809,6 +4080,8 @@ export default function StaffDashboardPage() {
               onResolve={handleResolve}
               onCancelOrder={handleCancelOrder}
               onSaveExternalDeliveryId={handleSaveExternalDeliveryId}
+              daAccettare={daAccettareRef.current.has(order.id)}
+              onAccetta={accettaOrdine}
             />
           ))}
         </div>
