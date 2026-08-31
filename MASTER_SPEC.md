@@ -1,6 +1,6 @@
 # KM DIRECT — MASTER SPECIFICATION
 
-**Versione 87** — sostituisce la v86.
+**Versione 88** — sostituisce la v87.
 
 Documento di riferimento definitivo per lo sviluppo. Le decisioni qui
 contenute sono approvate: non vanno reinterpretate senza un motivo concreto
@@ -22,63 +22,53 @@ versione corrente**. I precedenti vivono in `git log`, che è fatto per quello.
 del documento prima che cominciasse a parlare del progetto — e dentro c'erano
 istruzioni rovesciate che nessuno rileggeva.*
 
-**Novità della v87** (vincolanti, 31/08/2026):
+**Novità della v88** (vincolanti, 31/08/2026):
 
 *Le voci di questa versione **non si riscrivono qui a ogni giro**: quelle che
 restano vive stanno in §63-64, sezione «REGISTRATO E NON APERTO», che dalla v82
 è la loro casa. Qui restano le novità della sessione.*
 
-⚠️ **Le sei voci della v86 sono state controllate una per una prima di
-sostituire questo blocco, e vivono tutte**: cinque nel corpo di questa spec — il
-passo 6 nella sua sezione, le tre cose chiuse da sole nelle sezioni che le
-avevano aperte, `ritagliaFunzione` e `next build` in «REGISTRATO E NON APERTO» —
-e **una nell'handoff, al punto 44c**: la dipendenza che prende in prestito una
-riga di codice senza nominare il componente. *Le lezioni di metodo hanno casa
-nell'handoff, non qui.*
+⚠️ **Le sette voci della v87 sono state controllate una per una prima di
+sostituire questo blocco, e vivono tutte nel corpo di questa spec.** *L'ottava
+voce — l'errore di chi ragiona su `et11`/`et12` — vive nell'handoff, al punto 45,
+che è la casa delle lezioni di metodo.*
 
-1. §63-64 — ✅ **IL PASSO 7 È LETTO E DECISO, E NON È STATA SCRITTA UNA RIGA DI
-   CODICE.** Quattro ricognizioni di sola lettura, tutte su HEAD `59a6ea9`. *La
-   spec del passo sta più sotto, ed è l'ultimo dei sette.*
-2. §63-64 — ⚠️ **LA CATEGORIA VIAGGIA CON LE OPZIONI, NON CON I SEI SCALARI**
-   (D1). *Con l'architettura di oggi non esiste un ordine giusto: scrivendo la
-   categoria per prima le opzioni verrebbero giudicate con la regola nuova ma la
-   loro chiamata potrebbe non partire affatto; salvando le opzioni per prime il
-   server rileggerebbe la categoria vecchia e rifiuterebbe. **Si bloccano a
-   vicenda**, quindi devono viaggiare insieme.*
-3. §63-64 — ⚠️⚠️ **UN BUCO NELLA PRIMA STESURA DELLA SPEC DEL PASSO 7, TROVATO E
-   CHIUSO PRIMA DEL CODICE.** (D6) toglieva l'azzeramento al cambio della
-   tendina; ma quell'azzeramento era **anche l'unica cosa che accendeva
-   `allergeniToccati`**, cioè l'innesco della chiamata che cancella gli
-   allergeni. Senza, un articolo food spostato in `drink` sarebbe diventato una
-   bevanda **con gli allergeni ancora attaccati**: lo stato irreparabile che (D1)
-   esisteva per evitare. ✅ **Chiuso con (D8).** ⚠️ *La lezione: **chi toglie un
-   azzeramento deve chiedersi anche che cosa quell'azzeramento accendeva**. La
-   rete era stata messa sulle opzioni e dimenticata sugli allergeni, che sono la
-   metà più pericolosa.*
-4. §63-64 — ⚠️ **IN MODIFICA GLI ALLERGENI SONO PRETESI SOLO SE TOCCATI**, in
-   creazione sempre. **Misurato eseguendo** le sette espressioni vere su tre
-   stati, non ragionando sulla condizione. *Conseguenza: un articolo food senza
-   allergeni **non si può creare ma si può risalvare**.*
-5. §63-64 — ⚠️⚠️ **IL SITO CLIENTE NON HA NESSUNA RETE SOTTO UNA BOWL SENZA
-   ACCOMPAGNAMENTI**: il blocco non si disegna, il pulsante resta acceso, e
-   l'articolo **si vende senza che il cliente scelga**. *In cucina arriva un
-   ordine incompleto e nessuno vede un errore.* **È la ragione per cui la Regola
-   2 non si ammorbidisce: è l'unica rete che esiste.**
-6. §63-64 — ✅ **TRE DECISIONI DI ANDREA, 31/08/2026**: il cambio è completo fra
-   tutte e otto le categorie (**56 passaggi**); passa da un **riquadro di
-   conferma**; entrando nelle Bowl il campo dell'accompagnamento **resta vuoto**.
-   ⚠️ **E una quarta, che chiude un lavoro invece di aprirlo: creare categorie
-   dal pannello staff è FUORI DAL PROGETTO.**
-7. ⚠️ **UN NUMERO CORRETTO**: `app/staff/page.js` è **3567** righe, non 3566.
-   *Rimisurato con `wc -l` sullo stesso HEAD della v86.*
-
-⚠️ **E UN ERRORE DI CHI RAGIONA, il quarto in quattro giorni.** *Era stato
-dichiarato che `et11` ed `et12` sarebbero diventate rosse al passo 7. **Restano
-verdi**, e devono restarlo: sorvegliano il corpo dei sei scalari, dove la
-categoria non entra.* ⚠️ **Un atteso dichiarato senza misurarlo, di nuovo — ma
-stavolta corretto prima che diventasse un ordine a Code.**
+1. §63-64 — ✅✅ **IL PASSO 7 È FATTO, E CON LUI I SETTE PASSI.** Quattro pezzi,
+   cinque commit, **ognuno provato dal vivo da Andrea prima di essere
+   committato**. Prove **1988**, zero fallite. *L'ordine di costruzione
+   vincolante è chiuso.*
+2. §63-64 — ⚠️⚠️ **CINQUE COSE SCRITTE NELLA SPEC DEL PASSO 7 ERANO SBAGLIATE, e
+   le ha trovate l'esecuzione**: (D4) ineseguibile su un articolo già fuori dal
+   menu; un secondo sbarramento dentro il cuore che rendeva muto il caso più
+   frequente; (D8) che non bastava a svuotare gli allergeni; la Regola 1 che
+   bloccava un articolo con le proteine diventato bevanda; e la tabella dei 56
+   passaggi, che dopo la decisione di Andrea sul B→B diceva il falso.
+   ⚠️ *Quattro isolate da Code eseguendo ordini ineseguibili alla lettera. **La
+   quinta — la Regola 1 — l'ha trovata una prova dal vivo di Andrea**, e nessuna
+   misura l'aveva vista.*
+3. §63-64 — ⚠️ **LA LEZIONE CHE VALE OLTRE QUESTO PASSO: chi toglie un
+   azzeramento deve chiedersi anche CHE COSA QUELL'AZZERAMENTO ACCENDEVA.**
+   *(D6) toglieva l'azzeramento al cambio della tendina guardando solo il danno
+   che faceva, non il lavoro che faceva: era anche l'innesco della chiamata che
+   cancella gli allergeni.*
+4. §63-64 — ✅ **UN RIQUADRO SOLO, NON DUE IN FILA** (D11), perché due schermate
+   in sequenza si cliccano via. ⚠️ **Debito dichiarato e non chiuso**: lo stato
+   si chiama ancora `confermaPrezzo` e governa entrambe le conferme.
+5. §63-64 — ✅ **QUATTRO DECISIONI DI ANDREA, 31/08/2026**: il cambio completo fra
+   tutte e otto; il riquadro di conferma; il campo vuoto entrando nelle Bowl; e
+   **la rete sugli allergeni resta larga anche sui passaggi food→food**, perché
+   *il caso non si presenta* — un articolo si sposta solo dopo essere stato
+   salvato, e la creazione gli allergeni li pretende già. ⚠️ *Quindi il giorno
+   che quella rete scatta, sta segnalando un articolo che non doveva esistere.*
+6. §63-64 — ✅ **MISURATO: il `<select>` della categoria non ha nessuno
+   spegnimento e sta FUORI dal `fieldset`.** *La rete è altrove — il Salva resta
+   spento finché le opzioni non sono arrivate — e `b40` non la copriva.*
+7. §63-64 — ⚠️ **UNA RETE SOTTILE, DA SAPERE**: la sporcatura che «semplificherebbe»
+   (D10) allargandola a qualunque cambio di categoria fa cadere **una prova sola**,
+   `k32`.
 
 *Il conteggio delle condizioni di apertura non cambia: **quattro chiuse, cinque
+aperte**.*
 aperte**.*
 
 ## 1. Visione del progetto
@@ -5108,7 +5098,33 @@ provare dal vivo**, e il pezzo più rischioso arriva quando l'impalcatura attorn
 7. **Il cambio di categoria (HH)**, lavoro a sé, sopra una schermata già in
    piedi e provata dal vivo.
 
-### ⚠️ IL PASSO 7 — IL CAMBIO DI CATEGORIA (HH), LETTO E DECISO (v87, 31/08/2026)
+### ✅ IL PASSO 7 — IL CAMBIO DI CATEGORIA (HH), FATTO (v88, 31/08/2026)
+
+**Settimo e ultimo dei sette passi, fatto in quattro pezzi e cinque commit, ogni
+pezzo provato dal vivo da Andrea prima di essere committato.** *Con lui si chiude
+**l'ordine di costruzione vincolante dei sette passi**.*
+
+| | | |
+|---|---|---|
+| 7a | `2e8d667` | il cuore impara a cambiare categoria |
+| 7b | `eb11c08` | la tendina si accende, il pannello manda il cambio |
+| 7c | `08188b2` | il riquadro di conferma |
+| 7c-2 | `8eaabf3` | la Regola 1 non si applica diventando bevanda |
+| 7d | `c64b794` | il Salva pretende gli allergeni uscendo dalle bevande |
+
+**Prove: 1988**, zero fallite, 39 suite. *Le famiglie del passo: `k` 34, `c` 25,
+`d` 35, `f` 14.* ⚠️ **Nessuna prova esistente è stata aggiornata per farla
+tacere**: le sole toccate sono state `b40`, **rovesciata** perché sorvegliava una
+protezione che il 7b sostituisce, e `pp4`, `v17`, `et9`, riancorate al nome del
+campo invece che al valore. *Il racconto sta nell'handoff, punto 45.*
+
+⚠️ **CINQUE COSE SCRITTE IN QUESTA SEZIONE ERANO SBAGLIATE, e le ha trovate
+l'esecuzione**: sono corrette qui sotto, ognuna dove viveva. *Quattro le ha
+isolate Code eseguendo ordini che non si potevano eseguire alla lettera; la
+quinta — la Regola 1 — l'ha trovata **una prova dal vivo di Andrea**, e nessuna
+misura l'aveva vista.*
+
+### ⚠️ IL PASSO 7 — COM'È STATO LETTO E DECISO (v87, 31/08/2026)
 
 *Il 31/08 è stato speso **tutto in lettura**: quattro ricognizioni di sola
 lettura su HEAD `59a6ea9`, nessuna riga di codice. I fatti qui sotto sono letti
@@ -5184,6 +5200,21 @@ omonime era infondato.*
 * **ENTRANDO NELLE BOWL IL CAMPO DELL'ACCOMPAGNAMENTO RESTA VUOTO.** ⚠️
   *Conseguenza accettata, detta prima e non scoperta dopo: il Salva resta spento
   finché non si compila.* **In creazione la proposta automatica resta com'è.**
+* **DOPO «ANNULLA» LA TENDINA CONSERVA LA CATEGORIA SCELTA**, e non torna
+  indietro. *Il riquadro non ha toccato niente — la cancellazione avviene al
+  salvataggio (D9) — quindi non c'è nulla da annullare: chiudere basta. Chi ha
+  cambiato idea la riporta a mano, o usa l'Annulla della scheda.* ⚠️
+  **Asimmetria dichiarata**: i **prezzi** tornano indietro (decisione 2 del passo
+  5), la **categoria** no. *Sono materie diverse: i prezzi erano già scritti nei
+  campi, la categoria è una scelta ancora da confermare.* Sorvegliata da `d35`.
+* ⚠️ **LA RETE SUGLI ALLERGENI RESTA LARGA ANCHE SUI PASSAGGI FOOD→FOOD.** *Un
+  articolo senza allergeni dichiarati non si salva nemmeno passando da `roll` a
+  `dolci`: sono i 20 passaggi B→B.* **La ragione è di Andrea e vale più della
+  decisione: il caso non si presenta**, perché la creazione gli allergeni li
+  pretende già e un articolo si sposta solo dopo essere stato salvato. ⚠️ *Quindi
+  quella rete non ostacola niente — e **il giorno che scatta sta segnalando un
+  articolo che non doveva esistere**. Alternativa scartata: restringerla al solo
+  caso 6.*
 
 #### Le decisioni tecniche, dichiarate
 
@@ -5205,10 +5236,21 @@ sorvegli il nome**, altrimenti qualcuno «semplifica» e disattiva `v11`.
 **(D3) IL SERVER VERIFICA `da` CONTRO IL DATABASE E RIFIUTA SE NON COINCIDE.**
 
 **(D4) LA CATEGORIA SI SCRIVE NELLA SCRITTURA FINALE DELLO SCUDO**, insieme al
-rientro in menu.
+rientro in menu. ⚠️ **CORRETTA IN v88, perché come scritta era ineseguibile su
+una parte degli articoli.** *Quella scrittura vive dentro `if (scudoAlzato)`, e su
+un articolo **già fuori dal menu** lo scudo non si alza: la categoria non sarebbe
+stata scritta **mai**, in silenzio e con un 200 addosso.* **La forma vera**: la
+scrittura finale si **compone** e resta un atto solo, l'ultimo — il rientro in
+menu se lo scudo era alzato, la categoria se c'è un cambio, e si esegue se almeno
+uno dei due c'è. *Sorvegliata da `k13`/`k14`.*
 
 **(D5) LA TERZA CHIAMATA PARTE ANCHE A OPZIONI NON TOCCATE**, se la categoria è
-cambiata: `opzioniToccate || categoriaCambiata`.
+cambiata: `opzioniToccate || categoriaCambiata`. ⚠️ **E NON BASTAVA: dentro il
+cuore c'era un secondo sbarramento, trovato in v88.** *`if (daScrivere.length === 0)
+return {200}` faceva uscire muto un cambio che non tocca nessuna opzione — cioè
+**il caso B→B, 20 passaggi su 56, il più frequente di tutti**. Ora la condizione
+comprende l'assenza di `cambioCategoria`.* **La rete sul pannello non serviva a
+niente finché il cuore usciva prima.**
 
 **(D6) ⚠️ IN MODIFICA, `changeCategory` NON AZZERA E NON PROPONE NIENTE.** *È la
 regola che realizza tutte e due le decisioni di Andrea, ed è l'unica forma che
@@ -5222,12 +5264,47 @@ l'articolo è fuori dal menu — e si ripara risalvando.*
 
 **(D8) ⚠️ LA SECONDA CHIAMATA PARTE ANCHE AD ALLERGENI NON TOCCATI, QUANDO LA
 CATEGORIA ENTRA NELLE BEVANDE**: `allergeniToccati || diventaBevanda`, col corpo
-che manda **l'insieme vuoto**. *È il gemello di (D5), e alla prima stesura
+che manda **l'insieme vuoto**. ⚠️ **«L'insieme vuoto» NON BASTA, misurato in v88
+leggendo il cuore**: `lib/menu-allergens.js` rifiuta zero allergeni senza la
+casella «nessuno dei 14» e pretende un `dietary` fra le tre voci. *Un corpo con
+la sola lista vuota sarebbe stato **respinto**, e la bevanda avrebbe tenuto gli
+allergeni: lo stato irreparabile per una terza strada.* **La forma vera**:
+`allergenIds: []`, `noAllergens: true`, e il `dietary` scelto — oppure `"none"` se
+il campo è vuoto. *È il gemello di (D5), e alla prima stesura
 mancava: (D6) toglie l'azzeramento che era **anche l'innesco** di questa
 chiamata. **Chi toglie un azzeramento deve chiedersi che cosa quell'azzeramento
 accendeva.***
 
 **(D9) LA CANCELLAZIONE AVVIENE AL SALVATAGGIO CONFERMATO, MAI PRIMA.**
+
+**(D10) ⚠️ LA REGOLA 1 NON SI APPLICA QUANDO L'ARTICOLO DIVENTA UNA BEVANDA**
+(aggiunta in v88). *La Regola 1 di Andrea del 13/08 — un articolo che ha proteine
+non può restare senza — **guarda cosa c'è in database, non la categoria**, ed era
+giusta così finché la categoria non si poteva cambiare. Diventare bevanda è
+esattamente il caso in cui togliere tutte le proteine **è voluto**, e chi salva
+l'ha appena confermato nel riquadro.* **Due condizioni entrambe necessarie**:
+cambio presente **e** destinazione in `drink`/`birre`, lette da
+`menu-categories.js`. ⚠️ *Ovunque altro la Regola 1 morde come dal 13/08, ed è
+sorvegliato da due prove: senza il cambio, e col cambio verso una categoria food.*
+⚠️ **Trovata da una prova dal vivo di Andrea, non da una misura**: `Roll di prova
+6` aveva una proteina e non passava; `Roll di prova 7` non ne aveva e passava. *La
+differenza non era il riquadro, era l'articolo.* **La sporcatura che la
+«semplificherebbe» — allargarla a qualunque cambio di categoria — fa cadere una
+prova sola, `k32`: la rete lì è sottile e va saputo.*
+
+**(D11) UN RIQUADRO SOLO, NON DUE IN FILA** (aggiunta in v88). *Sul pannello
+esisteva già il riquadro del prezzo, e un salvataggio può farli scattare
+entrambi. **Due schermate in fila si sarebbero cliccate via** — è ciò che la
+decisione 1 del passo 5 ha già scartato.* **Una condizione sola**,
+`serveConferma = cambiPresenti || cancellazioni.length > 0`, e **un riquadro con
+due sezioni indipendenti**, ciascuna col suo guardiano, così nessuna delle due
+sparisce perché si è accesa l'altra. **Le cancellazioni vanno per prime: sono
+irreversibili, i prezzi no.**
+⚠️ **DEBITO DICHIARATO, non chiuso: lo stato si chiama ancora `confermaPrezzo`** e
+adesso governa entrambe le conferme. *Il nome è ereditato dal passo 5 ed è
+diventato stretto. Rinominarlo costa dieci punti nel pannello e una prova, e non
+aggiunge sicurezza: solo chiarezza di nome.* **Chi legge quel nome sappia che il
+riquadro non riguarda solo i prezzi.**
 
 #### I 56 passaggi sono 8 comportamenti
 
@@ -5236,12 +5313,12 @@ Tre famiglie: **A** = `bowl`; **B** = food non-Bowl (`roll`, `fritti`, `sides`,
 
 | # | da → a | quanti | che cosa succede |
 |---|---|---|---|
-| 1 | B → B | 20 | Solo categoria e posto. Niente da cancellare. **Nessun riquadro.** |
+| 1 | B → B | 20 | Solo categoria e posto. Niente da cancellare. **Nessun riquadro.** ⚠️ **Ma il Salva si spegne se l'articolo non ha allergeni dichiarati** — decisione di Andrea del 31/08, corretta in v88: la v87 diceva che qui non succedeva niente. |
 | 2 | B → A | 5 | Accompagnamento **vuoto** → **Salva spento**, voce 7 dell'elenco. **Nessun riquadro.** |
 | 3 | A → B | 5 | **Gli accompagnamenti si cancellano.** **Riquadro.** |
 | 4 | B → C | 10 | **Si cancellano allergeni e tutte le opzioni.** **Riquadro**, allergeni nominati per primi. ⚠️ **(D8) obbligatoria.** |
 | 5 | A → C | 2 | Come il 4, **più gli accompagnamenti**. **Riquadro.** |
-| 6 | C → B | 10 | ⚠️ **L'articolo diventa food SENZA allergeni, e oggi si salverebbe** (fatto 10). **Il Salva deve pretenderli.** Nessun riquadro. |
+| 6 | C → B | 10 | ✅ **CHIUSO DAL 7d**: l'articolo diventa food senza allergeni e il Salva **si spegne**, con la voce 13 arricchita che dice perché. Nessun riquadro. |
 | 7 | C → A | 2 | Come il 6, **più l'accompagnamento obbligatorio**. |
 | 8 | C → C | 2 | `drink` ↔ `birre`. Solo categoria e posto. |
 
@@ -5260,23 +5337,32 @@ niente**, perché niente è stato toccato.
 
 #### L'ordine di costruzione — quattro pezzi
 
-**7a — IL SERVER IMPARA A CAMBIARE CATEGORIA.** (D2), (D3), (D4) nel cuore delle
+**7a — IL SERVER IMPARA A CAMBIARE CATEGORIA** ✅ *fatto, `2e8d667`*. (D2), (D3), (D4) nel cuore delle
 opzioni. Nessuna interfaccia lo chiama ancora. *Prova dal vivo: il pannello
 funziona ancora identico — è una regressione, ed è l'unica possibile qui.*
 
-**7b — IL PANNELLO MANDA IL CAMBIO.** Il `<select>` si accende; (D6); (D5) sulla
+**7b — IL PANNELLO MANDA IL CAMBIO** ✅ *fatto, `eb11c08`*. Il `<select>` si accende; (D6); (D5) sulla
 condizione della terza chiamata (`2122`); **(D8) sulla seconda (`2069`)**; il
 commento di `1608-1611` riscritto. ⚠️ **(D8) va scritta INSIEME all'accensione
 del select, mai dopo**: fra le due c'è la finestra in cui una bevanda con gli
 allergeni attaccati diventa possibile. ⚠️ **Fino al 7c il cambio di categoria si
 prova SOLO sugli articoli di prova.**
 
-**7c — IL RIQUADRO.** I casi 3, 4 e 5.
+**7c — IL RIQUADRO.** I casi 3, 4 e 5. ✅ *fatto, `08188b2` e `8eaabf3`.*
 
-**7d — LE RETI CHE MANCANO.** `allergeniIncompleti` (`1792`) impara il caso «la
+**7d — LE RETI CHE MANCANO** ✅ *fatto, `c64b794`*. `allergeniIncompleti` (`1792`) impara il caso «la
 categoria è cambiata e la nuova non è una bevanda»; la voce 7 verificata dal vivo
 sul caso 2; e la prova sullo spegnimento del `<select>`, che **oggi non esiste**.
-⚠️ **Da guardare per prima: `allergeniValidi` (`1697`) contiene `bevanda`** — un
+✅ **MISURATO IN v88, e non era quel che si credeva: il `<select>` della
+categoria non ha NESSUNO spegnimento, e sta FUORI dal `fieldset`** che si spegne
+durante l'attesa delle opzioni. *La rete però esiste, altrove: `canSaveModifica`
+comincia con `opzioniLette`, quindi durante l'attesa la categoria si può
+**scegliere** ma non **salvare**.* ⚠️ **`b40` non copriva questo** — sorveglia che
+il campo non porti più il vecchio spegnimento, non dove stia né cosa succeda
+durante l'attesa. *È quest'ultima cosa che le prove `f12`-`f14` sorvegliano, e non
+è una prova doppia.*
+
+⚠️ **Da guardare, e ancora vero: `allergeniValidi` (`1697`) contiene `bevanda`** — un
 food passato a `drink` renderebbe «validi» allergeni che il server rifiuta.
 
 #### Le prove
