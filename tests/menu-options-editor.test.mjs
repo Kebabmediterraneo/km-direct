@@ -988,6 +988,102 @@ prova("k22) le forme che il cuore rifiuta", async () => {
   );
 });
 
+// ===========================================================================
+// ⚠️⚠️ LA REGOLA 1 E LE BEVANDE — PASSO 7c-2 (31/08/2026).
+//
+// ⚠️ **IL FATTO, MISURATO DAL VIVO DA ANDREA**, non dedotto: «Roll di prova 6»,
+// che ha una proteina, spostato in Drink e confermato nel riquadro — i sei
+// scalari salvati, le opzioni rifiutate con «ha 1 proteine e non può restare
+// senza». «Roll di prova 7», senza proteine, passava. *Non era il riquadro: era
+// l'articolo.*
+//
+// ⚠️ La Regola 1 esiste perché un articolo senza proteine arriverebbe in cucina
+// senza che nessuno veda un errore. **Una bevanda in cucina non ci arriva**, e
+// pretendergliene una la renderebbe impossibile da salvare — cioè bloccherebbe
+// per sempre il passaggio che il passo 7 esiste per permettere.
+//
+// ⚠️⚠️ **LE ULTIME DUE PROVE SONO LA CONTROPROVA E VALGONO QUANTO LE PRIME**:
+// senza, la correzione potrebbe aver spento la Regola 1 dappertutto e nessuno se
+// ne accorgerebbe.
+// ===========================================================================
+
+prova("k27) un articolo CON proteine può diventare una bevanda", async () => {
+  const { esito, scritture } = await salva(
+    { id: "roll-1", proteins: [], removals: [], accompaniments: [], addons: [], cambioCategoria: { da: "roll", a: "drink" } },
+    { prodotto: ROLL, opzioni: { product_choice_options: ROLL_PROTEINE, product_removals: ROLL_RIMOZIONI } }
+  );
+  assert(
+    esito.status === 200,
+    `k27) ⚠️⚠️ verso DRINK un articolo con 3 proteine PASSA (status ${esito.status}${esito.status === 200 ? "" : " — " + esito.body?.error})`
+  );
+  // Non basta che passi: le proteine devono essere davvero sparite.
+  const cancellate = scritture.some((s) => s.tabella === "product_choice_options" && s.op === "delete");
+  const reinserite = righeDi(scritture, "product_choice_options");
+  assert(
+    cancellate && reinserite.length === 0,
+    `k28) e le proteine RISULTANO CANCELLATE: delete ${cancellate ? "sì" : "no"}, righe reinserite ${reinserite.length}`
+  );
+  assert(
+    patchDi(scritture).some((p) => p.category === "drink"),
+    "k29) e la categoria nuova è scritta: il passaggio si completa davvero"
+  );
+});
+
+prova("k30) e lo stesso verso birre", async () => {
+  const { esito } = await salva(
+    { id: "roll-1", proteins: [], removals: [], accompaniments: [], addons: [], cambioCategoria: { da: "roll", a: "birre" } },
+    { prodotto: ROLL, opzioni: { product_choice_options: ROLL_PROTEINE, product_removals: ROLL_RIMOZIONI } }
+  );
+  assert(
+    esito.status === 200,
+    `k30) verso BIRRE passa come verso drink: l'eccezione vale per tutte e due le bevande (status ${esito.status}${esito.status === 200 ? "" : " — " + esito.body?.error})`
+  );
+});
+
+prova("k31) ⚠️ CONTROPROVA: senza cambioCategoria la Regola 1 morde ancora", async () => {
+  const { esito, scritture } = await salva(
+    { id: "roll-1", proteins: [], removals: rimozioniDelRoll() },
+    { prodotto: ROLL, opzioni: { product_choice_options: ROLL_PROTEINE, product_removals: ROLL_RIMOZIONI } }
+  );
+  verificaRifiuto(
+    esito,
+    scritture,
+    400,
+    "non può restare senza",
+    "k31) ⚠️⚠️ CONTROPROVA: svuotare le proteine SENZA cambiare categoria è ancora rifiutato — la correzione non ha spento la regola dappertutto"
+  );
+});
+
+prova("k32) ⚠️ CONTROPROVA: verso una categoria FOOD la Regola 1 morde ancora", async () => {
+  const { esito, scritture } = await salva(
+    { id: "roll-1", proteins: [], removals: rimozioniDelRoll(), cambioCategoria: { da: "roll", a: "dolci" } },
+    { prodotto: ROLL, opzioni: { product_choice_options: ROLL_PROTEINE, product_removals: ROLL_RIMOZIONI } }
+  );
+  verificaRifiuto(
+    esito,
+    scritture,
+    400,
+    "non può restare senza",
+    "k32) ⚠️⚠️ CONTROPROVA: col cambio di categoria verso una categoria FOOD è ancora rifiutato — l'eccezione è legata alla BEVANDA, non al cambio in sé"
+  );
+});
+
+prova("k33) una Bowl con accompagnamenti E proteine verso drink", async () => {
+  const { esito, scritture } = await salva(
+    { id: "bowl-1", proteins: [], removals: [], accompaniments: [], addons: [], cambioCategoria: { da: "bowl", a: "drink" } },
+    { prodotto: BOWL, opzioni: { product_choice_options: BOWL_PROTEINE, product_accompaniments: BOWL_ACCOMPAGNAMENTI } }
+  );
+  assert(
+    esito.status === 200,
+    `k33) ⚠️ il caso 5 della tabella passa: né la Regola 1 né la regola dell'accompagnamento lo bloccano (status ${esito.status}${esito.status === 200 ? "" : " — " + esito.body?.error})`
+  );
+  assert(
+    righeDi(scritture, "product_choice_options").length === 0 &&
+      righeDi(scritture, "product_accompaniments").length === 0,
+    "k34) e non resta né una proteina né un accompagnamento"
+  );
+});
+
 // ---------------------------------------------------------------------------
 // ESECUZIONE. ⚠️ Ogni prova gira dentro il suo try: un'eccezione conta come
 // fallimento e NON interrompe le altre, così il conteggio finale arriva sempre.
