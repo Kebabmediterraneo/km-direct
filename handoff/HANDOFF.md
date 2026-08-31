@@ -4022,3 +4022,201 @@ Il criterio ineseguibile, l'atteso sui numeri del diff, l'orario.*
   7**, non prima.
 
 ---
+
+## 45) Il passo 7: il cambio di categoria, e i sette passi chiusi (31/08/2026)
+
+*Sessione unica, dalla notte al mattino. **Quattro ricognizioni di sola lettura
+prima di una riga di codice**, poi quattro pezzi e cinque commit, ognuno provato
+dal vivo da Andrea prima di essere committato. Prove da **1873 a 1988**, zero
+fallite, 39 suite invariate.*
+
+### 45a) Quattro letture prima di scrivere
+
+Il passo 7 era diverso dagli altri sei: quelli lavoravano su codice che esisteva,
+questo andava scritto da zero, ed era **il primo dei sette a toccare ciò che vede
+il cliente**. La spec diceva *che* si faceva e *perché* per ultimo, non *come*.
+
+Le quattro ricognizioni hanno accertato, fra il resto: che oggi la categoria non
+arriva al database e **gli sbarramenti sono tre**, il decisivo dei quali è che il
+cuore non legge nemmeno `payload.category`; che **i tre cuori leggono la
+categoria dal database e mai dal corpo**; che proteine, rimozioni ed extra **non
+guardano la categoria** e il server li accetterebbe su una bevanda; e che **in
+modifica gli allergeni sono pretesi solo se toccati**, misurato eseguendo le
+sette espressioni vere con `new Function` e non ragionandoci sopra.
+
+⚠️ **Il fatto più grave l'ha trovato la quarta domanda del terzo giro, e nessuno
+l'aveva mai chiesta**: sul sito cliente una Bowl **senza accompagnamenti non si
+rompe**. Il blocco non si disegna, il pulsante resta acceso, e l'articolo si
+vende senza che il cliente scelga. *In cucina arriverebbe un ordine incompleto
+senza che nessuno veda un errore.* **È la ragione per cui la Regola 2 non si è
+ammorbidita**, contro l'ipotesi da cui la domanda era partita.
+
+### 45b) Il nodo: categoria e opzioni si bloccano a vicenda
+
+Scrivendo la categoria per prima, le opzioni sarebbero state giudicate con la
+regola nuova — ma la loro chiamata **poteva non partire affatto**, perché salta
+se non le hai toccate. Salvando le opzioni per prime, il server avrebbe riletto
+dal database la categoria **vecchia** e rifiutato.
+
+Da qui **(D1)**: la categoria viaggia con le opzioni, non con i sei scalari. E da
+lì tutto il resto — il campo si chiama `cambioCategoria` e non `category` perché
+`v11` sorveglia proprio quell'assenza, e una prova nuova (`k2`) sorveglia il nome
+dall'altro lato, così nessuno può «semplificare» rinominandolo e svuotare `v11`.
+
+### 45c) ⚠️ Un buco nella spec, trovato prima del codice — e la lezione
+
+**(D6)** toglieva l'azzeramento al cambio della tendina: sembrava elegante e
+realizzava tutte e due le decisioni di Andrea. Ma quell'azzeramento era **anche
+l'unica cosa che accendeva `allergeniToccati`**, cioè l'innesco della chiamata
+che cancella gli allergeni. Senza, un articolo food spostato in `drink` sarebbe
+diventato una bevanda **con gli allergeni ancora attaccati**: lo stato
+irreparabile che (D1) esisteva per evitare, rientrato dalla finestra.
+
+⚠️ **La lezione, che vale oltre questo passo: CHI TOGLIE UN AZZERAMENTO DEVE
+CHIEDERSI ANCHE CHE COSA QUELL'AZZERAMENTO ACCENDEVA.** *Era stato guardato solo
+il danno che faceva, non il lavoro che faceva. La rete era stata messa sulle
+opzioni **(D5)** e dimenticata sugli allergeni, che sono la metà più pericolosa.*
+Chiuso con **(D8)** prima che una riga di codice fosse scritta.
+
+### 45d) I quattro pezzi
+
+| | commit | |
+|---|---|---|
+| 7a | `2e8d667` | il cuore impara a cambiare categoria |
+| 7b | `eb11c08` | la tendina si accende, il pannello manda il cambio |
+| 7c | `08188b2` | il riquadro di conferma |
+| 7c-2 | `8eaabf3` | la Regola 1 non si applica diventando bevanda |
+| 7d | `c64b794` | il Salva pretende gli allergeni uscendo dalle bevande |
+
+*La spec era stata committata **prima** del codice, in v87, e corretta in v88
+dopo l'esecuzione. I documenti sono andati per primi apposta: una misura che
+sorprende prima del commit costa una riga, dopo costa un documento pubblicato che
+mente.*
+
+### 45e) ⚠️ Cinque cose che la spec diceva e l'esecuzione ha smentito
+
+1. **(D4) era ineseguibile su una parte degli articoli.** «La scrittura finale
+   dello scudo» vive dentro `if (scudoAlzato)`: su un articolo **già fuori dal
+   menu** lo scudo non si alza e la categoria non sarebbe stata scritta **mai**,
+   in silenzio e con un 200 addosso. *La forma vera compone un atto solo.*
+2. **Un secondo sbarramento dentro il cuore.** `if (daScrivere.length === 0)
+   return {200}` faceva uscire muto un cambio che non tocca nessuna opzione: **il
+   caso B→B, 20 passaggi su 56, il più frequente.** *La rete sul pannello non
+   serviva a niente finché il cuore usciva prima.*
+3. **«L'insieme vuoto» non bastava a svuotare gli allergeni.** Il cuore rifiuta
+   zero allergeni senza la casella e pretende il tipo dietetico: il corpo
+   sarebbe stato respinto e la bevanda avrebbe tenuto gli allergeni. *Terza
+   strada verso lo stesso stato irreparabile.*
+4. **La Regola 1 bloccava chi diventa bevanda** — vedi 45f.
+5. **La tabella dei 56 passaggi diceva il falso sul caso 1** dopo la decisione di
+   Andrea sul food→food.
+
+⚠️ *Le prime tre e la quinta le ha isolate Code eseguendo ordini che non si
+potevano eseguire alla lettera, e **dichiarando** invece di adattare in silenzio.*
+
+### 45f) ⚠️⚠️ La Regola 1: l'ha trovata una prova dal vivo, non una misura
+
+Al primo giro di prove del 7c, `Roll di prova 6` non si salvava in `Drink`:
+*«ha 1 proteine e non può restare senza»*. `Roll di prova 7`, senza proteine,
+passava. **La differenza non era il riquadro: era l'articolo.**
+
+La Regola 1 di Andrea del 13/08 guarda **cosa c'è in database, non la categoria**,
+ed era giusta così finché la categoria non si poteva cambiare. Diventare bevanda
+è esattamente il caso in cui togliere le proteine **è voluto**.
+
+⚠️ **Era scritta in un referto e non è stata collegata.** La seconda ricognizione
+aveva una riga intitolata *«Una regola che sembra dipendere dalla categoria e non
+ne dipende»*: letta come una curiosità, non come il blocco che era. *Un fatto
+misurato e riferito non è un fatto capito.*
+
+**La correzione è a due condizioni entrambe necessarie**, e ovunque altro la
+Regola 1 morde come dal 13/08. ⚠️ *La sporcatura che la «semplificherebbe» —
+allargarla a qualunque cambio — fa cadere **una prova sola**, `k32`: la rete lì è
+sottile e va saputo.*
+
+### 45g) Le prove: che cosa è stato toccato, e con che criterio
+
+* ⚠️ **`b40` è stata ROVESCIATA, non cancellata.** Sorvegliava lo spegnimento
+  della tendina, cioè una protezione che il 7b toglie. Ora verifica che il select
+  sia acceso **e** che (D8) sia al suo posto. *Una protezione che si toglie va
+  sostituita, non tolta e basta.*
+* ⚠️ **Il codice è stato adattato alle prove, non le prove al codice.** Il corpo
+  degli allergeni era stato estratto in una variabile e cinque prove erano
+  diventate rosse: quelle prove **ritagliano ed eseguono il corpo vero**, e una
+  variabile dichiarata fuori dal ritaglio le avrebbe rese cieche **restando
+  verdi**. Il corpo è tornato in linea.
+* **Riancorate al nome del campo e non al valore**: `pp4`, `v17`, `et9`.
+* ⚠️ **La prova che mancava sul `<select>` non era quella che si credeva.**
+  Misurando: il campo **non ha nessuno spegnimento** e sta **fuori dal
+  `fieldset`**. La rete è altrove — `canSaveModifica` comincia con `opzioniLette`
+  — quindi durante l'attesa la categoria si può *scegliere* ma non *salvare*. *È
+  quello che `f12`-`f14` sorvegliano. Una prova che avesse ripetuto `b40`
+  sarebbe sembrata due reti e ne sarebbe stata una.*
+
+### 45h) ⚠️ Tre verdi che non dimostravano niente
+
+1. **`k11` passava dicendo «posizione 1 su 3»** — su un articolo **senza
+   opzioni**, dove l'asserzione sull'ordine era **vera perché l'elenco era
+   vuoto**. Riscritta su un articolo che ne ha: «posizione 3 su 5».
+2. **`c11`–`c14` valutavano stringhe scritte da chi aveva scritto la prova**, non
+   il codice: sporcando il pannello restavano verdi. Riportate sul file vero.
+3. **La prova dal vivo del 7d non ha esercitato la rete nuova**: `Roll di prova
+   6` aveva già la casella «nessuno dei 14», messa da (D8) quando era diventato
+   Drink, quindi il Salva non si è mai spento. *Verde vero, prova non esercitata:
+   la rete è coperta dalle 14 prove `f`, non dal vivo. **Registrato così invece
+   di segnare tre verdi e andare avanti.***
+
+⚠️ **Famiglia unica: un verde che nasce da un insieme vuoto, da una stringa
+inventata o da un caso che non si presenta non misura la cosa che dice di
+misurare.**
+
+### 45i) Due misure fatte bene, da riusare
+
+* **Per sapere se dietro un ostacolo ce n'è un altro, l'ostacolo si toglie DAI
+  DATI, non dal codice.** Per stabilire che la Regola 1 fosse l'unico blocco, lo
+  stesso giro è stato rifatto su un articolo senza proteine — e poi una seconda
+  volta **dopo** la correzione, dove un secondo rifiuto sarebbe emerso.
+* **Un esito 0 non è più una prova di un esito 144.** Spegnendo il server il
+  `kill` ha risposto 0, e non è stato trattato come successo: lo spegnimento è
+  stato dimostrato con tre riscontri — porta che non risponde, nessun PID sulla
+  3000, nessun processo `next`.
+
+### 45j) ⚠️ Gli errori di chi ragionava, e la loro forma comune
+
+* **`et11` ed `et12` dichiarate rosse** al passo 7. Restano verdi: sorvegliano il
+  corpo dei sei scalari, dove la categoria non entra. *Atteso dichiarato senza
+  misurarlo.*
+* **(D6) scritta senza chiedersi che cosa l'azzeramento accendeva.**
+* **(D4) scritta come un criterio che una parte degli articoli non poteva
+  soddisfare.**
+* **La Regola 1 letta in un referto e non collegata.**
+* **Il comando del 7d scritto più largo della spec**: spegneva anche su B→B.
+  Code ha eseguito la lettera e l'ha dichiarato; Andrea ha deciso di tenerlo.
+
+⚠️ **Hanno tutti la stessa forma delle tre volte precedenti: una cosa scritta o
+letta una volta e mai rimessa in discussione.** *È esattamente ciò che chi ragiona
+ha il compito di smascherare nei referti altrui.*
+
+### 45k) Le decisioni di Andrea, e cosa resta
+
+**Quattro decisioni**: il cambio completo fra tutte e otto le categorie (56
+passaggi); il riquadro di conferma; il campo dell'accompagnamento vuoto entrando
+nelle Bowl; e **la rete sugli allergeni larga anche sui passaggi food→food**,
+perché *il caso non si presenta* — un articolo si sposta solo dopo essere stato
+salvato. ⚠️ *Quindi il giorno che quella rete scatta, sta segnalando un articolo
+che non doveva esistere.*
+
+**E una che chiude un lavoro invece di aprirlo**: creare categorie dal pannello
+staff è **fuori dal progetto**.
+
+**Cosa resta:**
+
+* **I cinque commit del passo 7 non sono pubblicati**: decisione di Andrea, si
+  aspetta. *Il momento buono era dopo il 7c, quando il riquadro c'è.*
+* ⚠️ **Il debito del nome `confermaPrezzo`**, che ora governa anche le
+  cancellazioni. Registrato, non aperto.
+* ⚠️ **Gli otto articoli di prova si possono finalmente cancellare**: il vincolo
+  era «dopo il passo 7», e il passo 7 è finito. *Alcuni sono stati spostati di
+  categoria durante le prove.*
+* **Le cinque condizioni di apertura ancora aperte**, che non dipendono dal
+  codice.
