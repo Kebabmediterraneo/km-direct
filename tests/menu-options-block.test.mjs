@@ -811,6 +811,207 @@ prova("c18) in CREAZIONE changeCategory fa ancora tutto", () => {
   );
 });
 
+// ===========================================================================
+// ⚠️⚠️ IL RIQUADRO DEL CAMBIO DI CATEGORIA — PASSO 7c (31/08/2026).
+//
+// ⚠️ Si ESEGUE l'elenco vero ritagliato dal pannello, con stati finti: si misura
+// che cosa il riquadro DIREBBE, non che cosa c'è scritto nel file.
+// ===========================================================================
+
+const esprCancellazioni = ritagliaOggettoQuadre(codice, "const cancellazioni =");
+function ritagliaOggettoQuadre(testo, inizio) {
+  const i = testo.indexOf(inizio);
+  if (i === -1) return null;
+  const fine = testo.indexOf(".filter(Boolean);", i);
+  return fine === -1 ? null : testo.slice(i, fine + ".filter(Boolean);".length);
+}
+
+// Lo stato del modulo, nella forma vera: `selected` e `proteine` sono insiemi,
+// le altre tre sono elenchi.
+const statoCat = (m = {}) => ({
+  inModifica: true,
+  diventaBevanda: false,
+  esceDaBowl: false,
+  selected: new Set(["glutine", "sesamo"]),
+  proteine: new Map([["pollo", {}], ["manzo", {}]]),
+  rimozioni: ["Senza cipolla"],
+  accompagnamenti: [{ label: "Bulgur" }, { label: "Riso" }],
+  extra: [{ label: "Feta" }],
+  ...m,
+});
+
+const eseguiCancellazioni = (stato) => {
+  const nomi = Object.keys(stato);
+  return new Function(...nomi, `${esprCancellazioni}\nreturn cancellazioni;`)(
+    ...nomi.map((n) => stato[n])
+  );
+};
+
+prova("d1) il ritaglio dell'elenco", () => {
+  assert(esprCancellazioni !== null, "d1) l'elenco `cancellazioni` si ritaglia dal pannello");
+  assert(
+    ritagliaOggettoQuadre(codice, "const elencoCheNonEsiste =") === null,
+    "d2) CONTROPROVA: lo stesso ritaglio, su un nome inventato, torna null"
+  );
+});
+
+prova("d3) compare nei casi 3, 4 e 5 e NON negli altri", () => {
+  // Caso 3 — A→B: da bowl a food. Se ne vanno i soli accompagnamenti.
+  const caso3 = eseguiCancellazioni(statoCat({ esceDaBowl: true }));
+  assert(caso3.length > 0, `d3) CASO 3 (bowl→food): il riquadro COMPARE (${caso3.length} voci)`);
+  assert(
+    caso3.map((c) => c.chiave).join() === "accompagnamenti",
+    `d4) e nomina i soli accompagnamenti: gli allergeni non si toccano uscendo dalle Bowl (${caso3.map((c) => c.chiave).join(", ")})`
+  );
+
+  // Caso 4 — B→C: food verso bevanda.
+  const caso4 = eseguiCancellazioni(statoCat({ diventaBevanda: true, accompagnamenti: [] }));
+  assert(caso4.length > 0, `d5) CASO 4 (food→bevanda): il riquadro COMPARE (${caso4.length} voci)`);
+
+  // Caso 5 — A→C: bowl verso bevanda. Come il 4 più gli accompagnamenti.
+  const caso5 = eseguiCancellazioni(statoCat({ diventaBevanda: true, esceDaBowl: true }));
+  assert(
+    caso5.length > caso4.length,
+    `d6) CASO 5 (bowl→bevanda): come il 4 più gli accompagnamenti (${caso5.length} contro ${caso4.length})`
+  );
+
+  // ⚠️ E GLI ALTRI 39: nessuna cancellazione, nessun riquadro.
+  const casi12678 = eseguiCancellazioni(statoCat());
+  assert(
+    casi12678.length === 0,
+    `d7) ⚠️⚠️ negli altri passaggi il riquadro NON compare (${casi12678.length} voci) — un riquadro che compare quando non c'è niente da perdere insegna a premere «Conferma» senza leggere`
+  );
+  const inCreazione = eseguiCancellazioni(statoCat({ inModifica: false, diventaBevanda: true }));
+  assert(inCreazione.length === 0, "d8) e in creazione non compare mai: non c'è niente che esista già");
+});
+
+prova("d9) i conti sono quelli veri, presi dallo stato", () => {
+  const c = eseguiCancellazioni(statoCat({ diventaBevanda: true, esceDaBowl: true }));
+  const testo = (chiave) => c.find((x) => x.chiave === chiave)?.testo ?? "";
+  assert(testo("proteine").startsWith("2 proteine"), `d9) due proteine nello stato ⇒ «2 proteine» (${testo("proteine")})`);
+  assert(testo("rimozioni").startsWith("1 rimozione"), `d10) una rimozione ⇒ singolare «1 rimozione» (${testo("rimozioni")})`);
+  assert(
+    testo("accompagnamenti").startsWith("2 accompagnamenti"),
+    `d11) due accompagnamenti ⇒ «2 accompagnamenti» (${testo("accompagnamenti")})`
+  );
+  assert(testo("extra").startsWith("1 extra"), `d12) un extra ⇒ «1 extra» (${testo("extra")})`);
+  // ⚠️ CONTROPROVA: cambiando lo stato cambiano i conti. Senza, d9-d12
+  // passerebbero anche con numeri scritti a mano.
+  const altro = eseguiCancellazioni(
+    statoCat({ diventaBevanda: true, proteine: new Map([["a", {}], ["b", {}], ["c", {}]]) })
+  );
+  assert(
+    altro.find((x) => x.chiave === "proteine")?.testo.startsWith("3 proteine"),
+    "d13) ⚠️ CONTROPROVA: con tre proteine nello stato l'elenco dice «3 proteine» — i conti vengono dallo stato, non sono scritti a mano"
+  );
+  // Un gruppo vuoto non si nomina affatto: dire «0 rimozioni» è rumore.
+  const senzaExtra = eseguiCancellazioni(statoCat({ diventaBevanda: true, extra: [] }));
+  assert(
+    !senzaExtra.some((x) => x.chiave === "extra"),
+    "d14) un gruppo vuoto non compare: dire «0 extra» sarebbe rumore"
+  );
+});
+
+prova("d15) gli allergeni: primi, diversi, e anche a zero", () => {
+  const c = eseguiCancellazioni(statoCat({ diventaBevanda: true }));
+  assert(c[0]?.chiave === "allergeni", `d15) ⚠️⚠️ gli allergeni sono la PRIMA voce (primo: ${c[0]?.chiave})`);
+  assert(
+    c[0].testo.includes("ALLERGENI") && c[0].testo.includes("⚠️"),
+    `d16) e hanno una forma DIVERSA dalle altre voci: è sicurezza alimentare (${c[0].testo.slice(0, 40)}…)`
+  );
+  assert(c[0].testo.includes("2"), "d17) col conteggio vero delle dichiarazioni");
+  // ⚠️⚠️ IL CASO CHE CONTA: zero allergeni, e la voce c'è LO STESSO.
+  const zero = eseguiCancellazioni(statoCat({ diventaBevanda: true, selected: new Set() }));
+  assert(
+    zero[0]?.chiave === "allergeni",
+    `d18) ⚠️⚠️ con ZERO allergeni la voce c'è ancora: un silenzio si legge come «non c'entrano» (voci: ${zero.map((x) => x.chiave).join(", ")})`
+  );
+  assert(
+    zero[0].testo.includes("non ne ha") || zero[0].testo.includes("niente da cancellare"),
+    `d19) e dice esplicitamente che non ce n'è nessuno da cancellare (${zero[0].testo.slice(0, 60)}…)`
+  );
+  // ⚠️ CONTROPROVA: uscendo dalle Bowl gli allergeni NON si nominano, perché
+  // non si toccano. Senza, d15 passerebbe anche se comparissero sempre.
+  const daBowl = eseguiCancellazioni(statoCat({ esceDaBowl: true }));
+  assert(
+    !daBowl.some((x) => x.chiave === "allergeni"),
+    `d20) ⚠️ CONTROPROVA: uscendo dalle Bowl gli allergeni NON si nominano, perché non si toccano (${daBowl.map((x) => x.chiave).join(", ")})`
+  );
+});
+
+prova("d21) le voci stanno su righe separate", () => {
+  // ⚠️ La regola della v81: mai su una riga sola separate da un segno, perché le
+  // voci contengono già virgole, virgolette e parentesi. Qui si misura sul
+  // DISEGNO: l'elenco è un `<ul>` con un `<li>` per voce.
+  const i = codice.indexOf("{cancellazioni.map(");
+  assert(i !== -1, "d21) l'elenco delle cancellazioni si disegna con un `.map`");
+  const intorno = codice.slice(Math.max(0, i - 200), i + 200);
+  assert(
+    /<ul[\s\S]*<li key=\{c\.chiave\}>\{c\.testo\}<\/li>/.test(intorno),
+    "d22) ⚠️ una voce per `<li>`, dentro un `<ul>`: righe separate, mai una riga sola con un separatore"
+  );
+  assert(
+    !/cancellazioni\s*\.\s*(join|map\([^)]*\)\.join)/.test(codice),
+    "d23) ⚠️ CONTROPROVA: da nessuna parte le voci vengono unite con `join` — è la forma che la v81 vieta"
+  );
+});
+
+prova("d24) i due riquadri convivono senza spegnersi a vicenda", () => {
+  // ⚠️ La condizione che li accende è UNA: `serveConferma`. Si ritaglia e si
+  // esegue nei quattro stati possibili.
+  const espr = ritaglia(codice, "const serveConferma =");
+  assert(espr !== null, "d24) `serveConferma` si ritaglia dal pannello");
+  const val = (cambiPresenti, quante) =>
+    new Function("cambiPresenti", "cancellazioni", `${espr}\nreturn serveConferma;`)(
+      cambiPresenti,
+      new Array(quante).fill({})
+    );
+  assert(val(true, 0) === true, "d25) solo prezzi cambiati ⇒ il riquadro si apre");
+  assert(val(false, 2) === true, "d26) solo cancellazioni ⇒ il riquadro si apre");
+  assert(val(true, 2) === true, "d27) ⚠️⚠️ TUTTI E DUE insieme ⇒ il riquadro si apre lo stesso: nessuno dei due annulla l'altro");
+  assert(val(false, 0) === false, "d28) e niente di niente ⇒ resta chiuso");
+  // ⚠️ E le due SEZIONI del riquadro sono indipendenti: ciascuna col suo
+  // guardiano, così una non sparisce perché l'altra si è accesa.
+  assert(
+    /\{cancellazioni\.length > 0 && \(/.test(codice) && /\{cambiPresenti && \(/.test(codice),
+    "d29) ⚠️ le due sezioni hanno guardiani separati (`cancellazioni.length > 0` e `cambiPresenti`): nessuna sparisce perché si è accesa l'altra"
+  );
+});
+
+prova("d30) mentre il riquadro è aperto il Salva non esiste", () => {
+  // ⚠️ Il modello del prezzo, copiato: la fila dei pulsanti SI SOSTITUISCE. Si
+  // misura sul ternario vero, che ha un solo ramo per volta.
+  const i = codice.indexOf("{confermaPrezzo && serveConferma ? (");
+  assert(i !== -1, "d30) il riquadro è il ramo VERO di un ternario, non un blocco che si aggiunge alla fila");
+  const dopo = codice.slice(i, i + 6000);
+  const iAltroRamo = dopo.indexOf(") : (");
+  const dentroIlRiquadro = dopo.slice(0, iAltroRamo);
+  assert(
+    iAltroRamo !== -1 && !dentroIlRiquadro.includes('type="submit"'),
+    "d31) ⚠️ dentro il riquadro non c'è nessun `type=\"submit\"`: finché si conferma, «Salva» non esiste"
+  );
+  assert(
+    dopo.slice(iAltroRamo).includes('type="submit"'),
+    "d32) ⚠️ CONTROPROVA: il «Salva» sta nell'ALTRO ramo del ternario — la fila si sostituisce, non si affianca"
+  );
+});
+
+prova("d33) Annulla non scrive niente, e la categoria resta scelta", () => {
+  // Si riusa l'esecuzione vera di `annullaConferma` già costruita per b45-b54.
+  const t = eseguiAnnulla([], proteineToccate());
+  assert(
+    t.price.length === 0 && t.proteine === null && t.altri.length === 0,
+    `d33) ⚠️ con solo cancellazioni in gioco (nessun prezzo cambiato) Annulla non tocca NIENTE (price ${t.price.length}, proteine ${t.proteine === null ? "mai chiamata" : "chiamata"}, altri ${t.altri.length})`
+  );
+  assert(t.conferma.length === 1 && t.conferma[0] === false, "d34) e chiude soltanto il riquadro");
+  // ⚠️ LA SCELTA DICHIARATA: `setCategory` NON viene chiamata. La tendina
+  // conserva la categoria scelta prima di premere Salva.
+  assert(
+    !t.altri.some(([n]) => n === "setCategory"),
+    `d35) ⚠️⚠️ e la CATEGORIA non torna indietro: la tendina conserva la scelta fatta prima di premere Salva (toccati: ${JSON.stringify(t.altri)})`
+  );
+});
+
 // ---------------------------------------------------------------------------
 // ESECUZIONE. ⚠️ Ogni prova gira dentro il suo try: un'eccezione conta come
 // fallimento e NON interrompe le altre, così il conteggio finale arriva sempre.

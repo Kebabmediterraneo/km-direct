@@ -1998,6 +1998,69 @@ function ProductForm({ products, allergensCatalog, articolo, onSaved, onCancel }
   // usi, una definizione. *Due copie divergono alla prima modifica.*
   const cambiPresenti = cambiPrezzo.length > 0;
 
+  // -------------------------------------------------------------------------
+  // ⚠️⚠️ IL RIQUADRO DEL CAMBIO DI CATEGORIA — PASSO 7c, decisione (A).
+  //
+  // ⚠️ **COMPARE SOLO DOVE SI CANCELLA QUALCOSA**: i casi 3, 4 e 5 della tabella
+  // dei 56 passaggi — da `bowl` verso una categoria food, e da qualunque
+  // categoria verso `drink`/`birre`. Sono 17 passaggi su 56. *Negli altri 39 non
+  // c'è niente da perdere, e un riquadro che compare quando non c'è niente da
+  // perdere insegna a premere «Conferma» senza leggere.*
+  //
+  // ⚠️ **I CONTI VENGONO DALLO STATO DEL MODULO**, mai scritti a mano: sono le
+  // stesse strutture che il corpo manderebbe vuote. *Un numero scritto a mano è
+  // un numero che il giorno dopo mente.*
+  //
+  // ⚠️⚠️ **GLI ALLERGENI SONO LA PRIMA VOCE E HANNO UNA FORMA SUA, e ci sono
+  // ANCHE QUANDO SONO ZERO.** È sicurezza alimentare: un silenzio su quella riga
+  // si legge come «gli allergeni non c'entrano», e chi salva deve invece sapere
+  // che quell'articolo dopo non ne avrà nessuno. *Le altre voci si tacciono
+  // quando sono vuote; questa no.*
+  // -------------------------------------------------------------------------
+  const cancellazioni = !inModifica
+    ? []
+    : [
+        // Gli allergeni: primi, e presenti anche a zero. Solo entrando in una
+        // bevanda — uscendo dalle Bowl gli allergeni non si toccano.
+        diventaBevanda && {
+          chiave: "allergeni",
+          testo:
+            selected.size > 0
+              ? `⚠️ ALLERGENI: le ${selected.size} dichiarazioni di questo articolo vengono CANCELLATE. Le bevande sono fuori dal tracciamento (§67), e dopo il salvataggio non si potranno più rimettere da questa scheda.`
+              : "⚠️ ALLERGENI: questo articolo non ne ha dichiarati, quindi non c'è niente da cancellare. Da bevanda non se ne potranno più dichiarare da questa scheda.",
+        },
+        diventaBevanda &&
+          proteine.size > 0 && {
+            chiave: "proteine",
+            testo: `${proteine.size} ${proteine.size === 1 ? "proteina" : "proteine"}`,
+          },
+        diventaBevanda &&
+          rimozioni.length > 0 && {
+            chiave: "rimozioni",
+            testo: `${rimozioni.length} ${rimozioni.length === 1 ? "rimozione" : "rimozioni"}`,
+          },
+        // ⚠️ Gli accompagnamenti se ne vanno in DUE casi: entrando in una bevanda
+        // (caso 5) e uscendo dalle Bowl (caso 3). È la stessa coppia di
+        // condizioni che governa il corpo, letta qui una seconda volta per dire
+        // a schermo ciò che il corpo farà.
+        (diventaBevanda || esceDaBowl) &&
+          accompagnamenti.length > 0 && {
+            chiave: "accompagnamenti",
+            testo: `${accompagnamenti.length} ${accompagnamenti.length === 1 ? "accompagnamento" : "accompagnamenti"}`,
+          },
+        diventaBevanda &&
+          extra.length > 0 && {
+            chiave: "extra",
+            testo: `${extra.length} extra`,
+          },
+      ].filter(Boolean);
+
+  // ⚠️ **LA CONDIZIONE È SCRITTA QUI, UNA VOLTA SOLA**, e vale per tutte e due le
+  // conferme: la accende `handleSubmit`, la spegne l'effetto, la disegna il
+  // riquadro. *Due condizioni scritte a mano divergono — è la decisione 3 del
+  // passo 5, applicata a una materia in più.*
+  const serveConferma = cambiPresenti || cancellazioni.length > 0;
+
   // ⚠️ DECISIONE 3 — IL RIQUADRO SI SPEGNE DA SOLO. Riportato il prezzo al valore
   // di partenza mentre il riquadro è aperto, non resta a schermo un riquadro che
   // non ha più niente da dire. *Si spegne lo STATO e non solo il disegno: se si
@@ -2005,8 +2068,8 @@ function ProductForm({ products, allergensCatalog, articolo, onSaved, onCancel }
   // successivo **senza che nessuno abbia premuto Salva**, e il primo gesto deve
   // accendere il riquadro (modello (FF)).*
   useEffect(() => {
-    if (!cambiPresenti) setConfermaPrezzo(false);
-  }, [cambiPresenti]);
+    if (!serveConferma) setConfermaPrezzo(false);
+  }, [serveConferma]);
 
   // -------------------------------------------------------------------------
   // ⚠️⚠️ DECISIONE 2 DEL PASSO 5 (5-3) — «ANNULLA» RIMETTE I VALORI DI PARTENZA.
@@ -2049,6 +2112,19 @@ function ProductForm({ products, allergensCatalog, articolo, onSaved, onCancel }
         return next;
       });
     }
+    // ⚠️⚠️ **LA CATEGORIA NON SI RIMETTE INDIETRO (passo 7c), ed è una scelta.**
+    // Il riquadro delle cancellazioni non ha toccato niente — niente è stato
+    // cancellato, perché la cancellazione avviene al salvataggio (D9) — quindi
+    // non c'è nulla da annullare: chiudere il riquadro basta. *La tendina
+    // conserva la categoria scelta prima di premere Salva, così chi voleva
+    // spostare l'articolo e si è fermato a leggere non deve rifare la scelta;
+    // chi ha cambiato idea la riporta a mano, o chiude la scheda con l'Annulla
+    // della scheda, che butta via tutto.*
+    // ⚠️ Da qui l'asimmetria, dichiarata invece che subita: i PREZZI tornano
+    // indietro (decisione 2 del passo 5, che pretende esattamente quello) e la
+    // CATEGORIA no. Sono due materie diverse: i prezzi erano già scritti nei
+    // campi, la categoria è una scelta ancora da confermare.
+    //
     // ⚠️ Il riquadro si chiude DOPO aver rimesso i valori, e l'ordine conta:
     // chiuderlo prima lascerebbe `cambiPrezzo` già ricalcolato sotto i piedi.
     setConfermaPrezzo(false);
@@ -2321,7 +2397,7 @@ function ProductForm({ products, allergensCatalog, articolo, onSaved, onCancel }
     // prezzo se è cambiato, poi le rotte dei pezzi toccati. Il corpo della
     // CREAZIONE qui sotto non viene nemmeno composto.
     if (inModifica) {
-      if (cambiPresenti && !confermaPrezzo) {
+      if (serveConferma && !confermaPrezzo) {
         setConfermaPrezzo(true);
         return;
       }
@@ -2963,10 +3039,20 @@ function ProductForm({ products, allergensCatalog, articolo, onSaved, onCancel }
           ⚠️ DECISIONE 1 — UN RIQUADRO SOLO: prezzo dell'articolo e sovrapprezzi
           delle proteine stanno nello STESSO elenco, con un solo «Conferma e
           salva» e un solo «Annulla». *Due schermate in fila si cliccano via.*
-          ⚠️ `cambiPresenti` è la stessa variabile che accende il riquadro in
+          ⚠️ `serveConferma` è la stessa variabile che accende il riquadro in
           `handleSubmit` e che l'effetto usa per spegnerlo: non è una seconda
-          condizione, è la stessa letta una terza volta. */}
-      {confermaPrezzo && cambiPresenti ? (
+          condizione, è la stessa letta una terza volta.
+          ⚠️⚠️ **PASSO 7c — I DUE RIQUADRI SONO UNO SOLO, E NON DUE IN FILA.**
+          Un salvataggio può far scattare insieme la conferma sui prezzi e quella
+          sul cambio di categoria. *Due schermate in fila si cliccano via — è la
+          stessa ragione per cui al passo 5 prezzo e sovrapprezzi non sono
+          diventati due riquadri.* Qui convivono nella stessa schermata, con un
+          solo «Conferma e salva» e un solo «Annulla», e **nessuno dei due può
+          sparire perché si è acceso l'altro**: sono due sezioni indipendenti
+          dello stesso riquadro, ciascuna disegnata solo se ha qualcosa da dire.
+          ⚠️ **LE CANCELLAZIONI VANNO PER PRIME**: sono irreversibili, i prezzi
+          no. */}
+      {confermaPrezzo && serveConferma ? (
         <div
           style={{
             display: "flex",
@@ -2978,20 +3064,51 @@ function ProductForm({ products, allergensCatalog, articolo, onSaved, onCancel }
             background: "var(--surface-white)",
           }}
         >
-          <span style={{ fontSize: 13, color: "var(--navy)" }}>
-            {cambiPrezzo.length === 1 ? "Stai cambiando un prezzo:" : "Stai cambiando questi prezzi:"}
-          </span>
+          {/* ⚠️ SEZIONE 1 — IL CAMBIO DI CATEGORIA E CIÒ CHE PORTA VIA. Sta per
+              prima perché è la parte irreversibile: dopo il salvataggio quelle
+              righe non ci sono più. */}
+          {cancellazioni.length > 0 && (
+            <>
+              <span style={{ fontSize: 13, color: "var(--navy)" }}>
+                Stai spostando <strong>{articolo.name}</strong> da{" "}
+                <strong>{PRODUCT_CATEGORY_LABEL[articolo.category] ?? articolo.category}</strong> a{" "}
+                <strong>{PRODUCT_CATEGORY_LABEL[category] ?? category}</strong>. Salvando si cancella
+                quello che la categoria nuova non ammette:
+              </span>
+              {/* ⚠️ UNA VOCE PER RIGA, mai su una riga sola separate da un segno:
+                  le voci contengono già virgole, virgolette e parentesi, quindi
+                  qualunque separatore comparirebbe anche dentro di loro. È la
+                  regola della v81, e la forma è quella dell'elenco delle
+                  mancanze del Salva, qui sopra — copiata, non reinventata. */}
+              <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13, color: "var(--navy)" }}>
+                {cancellazioni.map((c) => (
+                  <li key={c.chiave}>{c.testo}</li>
+                ))}
+              </ul>
+            </>
+          )}
+
+          {/* ⚠️ SEZIONE 2 — I PREZZI, che restano quelli del passo 5. Si disegna
+              solo se c'è almeno un prezzo cambiato: le due sezioni non si
+              spengono a vicenda. */}
+          {cambiPresenti && (
+            <span style={{ fontSize: 13, color: "var(--navy)" }}>
+              {cambiPrezzo.length === 1 ? "Stai cambiando un prezzo:" : "Stai cambiando questi prezzi:"}
+            </span>
+          )}
           {/* ⚠️ Una riga per cambio, vecchio → nuovo in chiaro, nell'ordine che
               il modulo decide: il prezzo dell'articolo per primo, poi le
               proteine come il server le ha mandate. */}
-          <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13, color: "var(--navy)" }}>
-            {cambiPrezzo.map((c) => (
-              <li key={c.tipo === "prezzo" ? "prezzo-articolo" : `sovrapprezzo-${c.chiave}`}>
-                {c.tipo === "prezzo" ? "Prezzo dell'articolo" : `Sovrapprezzo ${c.etichetta}`}:{" "}
-                <strong>{prezzoInChiaro(c.vecchio)}</strong> → <strong>{prezzoInChiaro(c.nuovo)}</strong>
-              </li>
-            ))}
-          </ul>
+          {cambiPresenti && (
+            <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13, color: "var(--navy)" }}>
+              {cambiPrezzo.map((c) => (
+                <li key={c.tipo === "prezzo" ? "prezzo-articolo" : `sovrapprezzo-${c.chiave}`}>
+                  {c.tipo === "prezzo" ? "Prezzo dell'articolo" : `Sovrapprezzo ${c.etichetta}`}:{" "}
+                  <strong>{prezzoInChiaro(c.vecchio)}</strong> → <strong>{prezzoInChiaro(c.nuovo)}</strong>
+                </li>
+              ))}
+            </ul>
+          )}
           <span style={{ fontSize: 13, color: "var(--navy)" }}>Confermi?</span>
           <div style={{ display: "flex", gap: 8 }}>
             {/* ⚠️ QUESTO PULSANTE CHIAMA `salvaModifica` DRITTA, senza ripassare da
