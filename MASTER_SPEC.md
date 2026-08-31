@@ -1,6 +1,6 @@
 # KM DIRECT — MASTER SPECIFICATION
 
-**Versione 89** — sostituisce la v88.
+**Versione 90** — sostituisce la v89.
 
 Documento di riferimento definitivo per lo sviluppo. Le decisioni qui
 contenute sono approvate: non vanno reinterpretate senza un motivo concreto
@@ -22,43 +22,52 @@ versione corrente**. I precedenti vivono in `git log`, che è fatto per quello.
 del documento prima che cominciasse a parlare del progetto — e dentro c'erano
 istruzioni rovesciate che nessuno rileggeva.*
 
-**Novità della v89** (vincolanti, 31/08/2026):
+**Novità della v90** (vincolanti, 31/08/2026):
 
 *Le voci di questa versione **non si riscrivono qui a ogni giro**: quelle che
-restano vive stanno in §63-64, sezione «REGISTRATO E NON APERTO», che dalla v82
-è la loro casa.*
+restano vive stanno nel corpo.*
 
-⚠️ **Le sette voci della v88 sono state controllate una per una prima di
-sostituire questo blocco, e vivono tutte nel corpo.** *La terza — la lezione
-sull'azzeramento — ha dato **zero** alla prima sonda e lo zero è stato indagato
-invece che riferito: vive dentro (D8), scritta senza la parola «anche» e spezzata
-da un a-capo. **È la cecità già registrata**, una sonda costruita su come ci si
-immagina il testo.*
+⚠️ **Le quattro voci della v89 sono state controllate una per una prima di
+sostituire questo blocco, e vivono tutte.** *La terza — i tre canali già attivi —
+ha dato **zero** alla prima sonda e lo zero è stato indagato invece che riferito:
+vive in §6c, **spezzata da un a-capo** fra «KM» e «DIRECT». **Terza cecità della
+stessa famiglia nella stessa giornata.***
 
-1. §63-64 — ✅ **GLI OTTO ARTICOLI DI PROVA NON ESISTONO PIÙ.** Cancellati dopo
-   il passo 7, come prescritto, con referto `rimasti = 0` e verifica dal vivo sul
-   sito. ⚠️ **L'elenco dei nomi è stato tolto, non aggiornato**, e conteneva un
-   nome sbagliato: diceva `Roll prova` mentre l'articolo si chiamava `Roll di
-   prova`. *Una cancellazione per nome non l'avrebbe trovato.*
-2. §63-64 — ⚠️ **DUE FATTI DEL DATABASE, LETTI E NON SUPPOSTI**: `products.name`
-   **non è unico** (l'unicità è su `slug`), e **`order_items` rifiuta** la
-   cancellazione di un articolo perché il vincolo non dichiara `on delete`.
-   ⚠️ *La colonna è `nullable` col commento «il prodotto potrebbe essere
-   eliminato in futuro», ma **nullable non è `ON DELETE SET NULL`**: l'intenzione
-   è nel commento, non nel vincolo.*
-3. §6c/§66 — ✅ **RISPOSTA DI ANDREA CHE CHIUDE UNA DOMANDA APERTA DAL 09/08: KM
-   DIRECT NON SARÀ L'UNICO CANALE.** Il locale è attivo da un anno su **Glovo,
-   Deliveroo e JustEat**. ⚠️ *La rete protegge dal non incassare, **non** dal
-   caso peggiore — un cliente che paga e in cucina non arriva niente.* **L'ordine
-   vero fatto da Andrea resta vincolante**; si ammorbidisce il resto.
-4. §63-64 — ⚠️ **UNA DECISIONE GIÀ PRESA È STATA RIAPERTA TRE VOLTE**, quella
-   sulla rete degli allergeni nei passaggi food→food. *La risposta era stata data
-   a voce a chi ragiona e **nel repository non c'era niente che lo dicesse**.*
-   ✅ **Ora è scritta come decisione, non come domanda.** ⚠️ *La lezione:
-   **ciò che è stato deciso a voce e non scritto verrà riaperto**, e chi lo
-   riapre non sta insistendo — sta leggendo ciò che c'è.*
+1. §6c — ✅✅ **TRE CONDIZIONI DI APERTURA CHIUSE IN UNA MATTINA**: il **piano
+   Pro** (verificato guardando il pannello, non la dichiarazione), la **chiave
+   Google ristretta** e provata dal vivo su entrambi gli indirizzi, e il **font**,
+   che **non è stato risolto: è decaduto**.
+2. §6c — ⚠️⚠️ **TRE AFFERMAZIONI DELLA SPEC SU TRE ERANO INVECCHIATE.** *La chiave
+   Google era già ristretta dall'11/07 e la spec la dava senza restrizioni; il
+   font era già a posto perché **Adobe ha eliminato il vincolo sui domini**; il
+   piano Pro era già stato portato.* **Nessuna delle tre era falsa quando è stata
+   scritta: lo sono diventate.**
+3. §6c — ⚠️ **UNA CONDIZIONE PUÒ MORIRE SENZA CHE NESSUNO LA CHIUDA.** *Il
+   vincolo dei domini Adobe è decaduto **perché è cambiato il mondo fuori**, e
+   nessuna nostra misura l'avrebbe mai scoperto: l'ha scoperto il fatto che il
+   campo non c'era più.* **I documenti vanno riletti contro la realtà, non solo
+   contro il codice.**
+4. §52-56 — ✅ **IL SUONO DEGLI ORDINI SI RIPETE FINCHÉ NON VIENE ACCETTATO** —
+   decisione di Andrea che rovescia il suono singolo. Commit `e1af248`,
+   pubblicato, **2015 prove** su 40 suite. ⚠️ **E la riga «Nessun silenziamento»,
+   che era una decisione, è decaduta**: ora un silenziamento esiste, per ordine.
+5. §52-56 — ⚠️ **IL VOLUME: LA LEVA CHE CONTAVA NON ERA IL GUADAGNO, ERA LA FORMA
+   D'ONDA.** *Una sinusoide ha solo la fondamentale: alzarla avrebbe fatto un
+   fischio morbido più forte.* **Da `sine` a `square`**, e il suono si sente.
+6. §6c — ⚠️ **DUE COSE LETTE SU VERCEL CHE NESSUN DOCUMENTO DICEVA**: le due
+   variabili Stripe sono su **Production e Preview insieme** — con le chiavi vere
+   **anche le anteprime incasserebbero** — e
+   `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` **esiste e il codice non la cerca**.
+7. §6c — ✅ **CHIUSO UN PUNTO CHE LA SPEC DICHIARAVA NON VERIFICATO**: come il
+   codice sceglie le chiavi di Stripe. *Nessun ramo, nessun interruttore: una
+   variabile sola, e l'ambiente lo decide il suo valore.*
 
-*Il conteggio delle condizioni di apertura non cambia: **quattro chiuse, cinque
+⚠️ **E UN CONTEGGIO CHE SMETTE DI ESSERE RIPETUTO.** *Fino alla v89 questo blocco
+chiudeva con «quattro chiuse, cinque aperte», riportato di versione in versione.
+**Cercato il 31/08: nel corpo non esiste nessun elenco numerato a cui quel conto
+si riferisca.** Era un numero trascinato senza misura — esattamente ciò che la
+regola del progetto vieta.* **Lo stato vero, enumerabile, è in §6c e §66: restano
+STRIPE e L'ORDINE VERO di Andrea.**
 aperte**.*
 aperte**.*
 aperte**.*
@@ -227,7 +236,15 @@ lista non la nominava**. Il 27/08 è stata cercata qui e non trovata, e per poco
 non è stata data per inesistente. **Una lista trova solo ciò che nomina**, e
 questa era la lista che si guarda prima di incassare.*
 
-**1. ⚠️ IL PIANO DI PUBBLICAZIONE VA PORTATO A PRO.** Il progetto sta oggi sul
+**1. ✅ IL PIANO DI PUBBLICAZIONE È PRO — FATTO, verificato il 31/08/2026.**
+*Verificato guardando il pannello, non fidandosi della dichiarazione: badge
+**Pro** sull'account `Kebab Mediterran…`, ciclo di fatturazione attivo con credito
+incluso da 20 dollari e addebiti a consumo — cose che sul piano gratuito non
+esistono. Consumo del ciclo in corso: **0,45 su 20**.* ⚠️ **Il piano è
+dell'ACCOUNT, non del progetto.** *Il testo storico che segue si conserva perché
+spiega perché era una condizione, e perché va prima di Stripe.*
+
+~~IL PIANO DI PUBBLICAZIONE VA PORTATO A PRO.~~ Il progetto sta oggi sul
 piano gratuito, che le condizioni del fornitore riservano all'uso **personale e
 non commerciale**, e la loro definizione di uso commerciale include
 esplicitamente **qualunque forma di richiesta o incasso di pagamenti dai
@@ -237,7 +254,25 @@ multa, è il sito che smette di rispondere, potenzialmente di sabato sera.*
 Finché non si incassa nulla non succede niente, ma **è una condizione di
 apertura a tutti gli effetti**, e costa circa venti dollari al mese.
 
-**2. ⚠️ IL FONT VA AUTORIZZATO SUL DOMINIO VERO.** Vedi §6b: il collegamento a
+**2. ✅✅ DECADUTA — ADOBE NON RICHIEDE PIÙ I DOMINI (31/08/2026).**
+
+*Cercato il campo dei domini nel progetto Adobe il 31/08: **non esiste**, e non
+è nascosto — la pagina di modifica mostra pesi, set di caratteri, visualizzazione
+e i pulsanti, e basta.* **La documentazione Adobe è esplicita: non serve
+indicare alcun elenco di domini; il codice si mette in qualunque sito, ovunque
+sia ospitato, senza limite al numero di siti — e vale anche in locale.**
+
+⚠️ **QUESTA CONDIZIONE NON È STATA RISOLTA: È DECADUTA PERCHÉ È CAMBIATO IL MONDO
+FUORI.** *Nessuna nostra misura l'avrebbe mai scoperto — l'ha scoperta il fatto
+che il campo non c'era più. **Una condizione scritta in un documento può morire
+senza che nessuno la chiuda**, e va riletta ogni tanto contro la realtà, non solo
+contro il codice.* **Ne discende anche che le lettere viste da Andrea il 27/08 sul
+dominio vero erano Termina davvero, non un carattere di riserva.**
+
+⚠️ **E il progetto Adobe si chiama «KM Delivery», non KM Direct** — l'ID `jth6flt`
+è giusto, il nome no. *Chi cerca «KM Direct» fra i progetti Adobe non lo trova.*
+
+~~IL FONT VA AUTORIZZATO SUL DOMINIO VERO.~~ Vedi §6b: il collegamento a
 Termina è legato al dominio ed è oggi autorizzato per `localhost`. Il giorno in
 cui il sottodominio risponde, va aggiunto `ordina.kebabmediterraneo.it` fra i
 domini del progetto Adobe `jth6flt`. *§6b la definisce la cosa più facile da
@@ -255,7 +290,37 @@ sostituto arrivasse su entrambi, sembrerebbero uguali proprio perché sbagliati
 allo stesso modo. **La prova sta nell'elenco dei domini del pannello Adobe, non
 nel sito.***
 
-**2b. ⚠️ LA CHIAVE API DI GOOGLE VA RISTRETTA, ED È SCADUTA IL 26/08.** Non è
+**2b. ✅ LA CHIAVE API DI GOOGLE È RISTRETTA — FATTO IL 31/08/2026, e provato
+dal vivo su ENTRAMBI gli indirizzi.**
+
+⚠️ **E QUESTA SEZIONE DICEVA IL FALSO: la chiave NON era senza restrizioni.**
+*Letta dalla console il 31/08: **una sola chiave**, «Maps Platform API Key»,
+creata l'11/07/2026, e le limitazioni c'erano già entrambe — referrer HTTP e tre
+API. Il testo che diceva «oggi è una variabile visibile nel sorgente e senza
+restrizioni: chiunque la copi consuma il credito» è stato scritto a inizio agosto
+e mai riletto.*
+
+**Le tre API abilitate, misurate**: `Geocoding API`, `Maps JavaScript API`,
+`Places API (New)`. *Servono tutte e tre al campo dell'indirizzo di consegna e
+non si toccano.*
+
+**Che cosa mancava davvero**: fra i siti autorizzati c'erano solo
+`http://localhost:3000/*` e `https://km-direct.vercel.app/*`. ⚠️ **Il dominio dei
+clienti non c'era**, quindi con ogni probabilità dal 26/08 il completamento
+dell'indirizzo su `ordina.kebabmediterraneo.it` non suggeriva nulla — *e non lo
+avrebbe detto nessuno, perché non produce alcun errore.* ✅ Aggiunto
+`https://ordina.kebabmediterraneo.it/*`, **nella stessa forma delle altre due**:
+schema davanti e `/*` in fondo. ⚠️ *La prima stesura era stata scritta senza
+schema e senza `/*`, ed è stata corretta prima di salvare: una forma diversa
+dalle altre due non è verificabile a colpo d'occhio, e il guasto sarebbe stato
+invisibile.*
+
+✅ **PROVATO DAL VIVO DA ANDREA SU TUTTI E DUE GLI INDIRIZZI**, non solo su quello
+che interessava: il campo suggerisce sia su `ordina.kebabmediterraneo.it` sia su
+`km-direct.vercel.app`. *La seconda prova è quella che dice se abbiamo rotto
+invece di aggiustare.*
+
+~~LA CHIAVE API DI GOOGLE VA RISTRETTA.~~ Non è
 una voce nuova — vive in §66 e nell'elenco delle condizioni di apertura — ma è
 elencata **anche qui** perché §6c è la lista che si guarda prima di incassare e
 fino alla v76 non la nominava. *Il 26/08 questa voce è passata da "da fare
@@ -269,6 +334,37 @@ e **cambia l'indirizzo a cui Stripe manda le conferme di pagamento** — cioè i
 webhook, che è il pezzo da cui dipende se un ordine pagato risulta pagato.
 *Fino a quel momento nessun euro si muove davvero, quindi il passaggio è anche
 il primo momento in cui un errore costa soldi veri.*
+
+**DUE COSE LETTE SU VERCEL IL 31/08/2026, che nessun documento diceva:**
+
+* ⚠️ **`STRIPE_SECRET_KEY` e `STRIPE_WEBHOOK_SECRET` sono impostate su
+  «Production **e** Preview» insieme.** *Mettendoci le chiavi vere, **anche le
+  anteprime incasserebbero davvero**: un ramo di prova aperto per sbaglio userebbe
+  Stripe reale.* **Da decidere prima di cambiare i valori**, non dopo.
+* ⚠️ **`NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` esiste su Vercel e IL CODICE NON LA
+  CERCA.** *Misurato il 31/08 elencando tutte le `process.env` del progetto: le
+  sole variabili Stripe lette sono le due qui sopra, perché il pagamento è
+  interamente lato server con reindirizzamento a Stripe Checkout. Anche
+  `@stripe/stripe-js` è dichiarata in `package.json` e non importata da nessun
+  file.* **Non fa danno, ma non fa niente**: chi la aggiornasse crederebbe di
+  cambiare qualcosa.
+* ⚠️ *E le variabili su Vercel sono otto come quelle cercate dal codice, **ma non
+  sono lo stesso insieme**: il codice cerca anche `KM_BASE_URL`, che serve solo
+  alle prove, e non cerca la pubblicabile di Stripe. **Otto e otto per caso.***
+
+**COME IL CODICE SCEGLIE LE CHIAVI — misurato il 31/08, e chiude un punto che la
+spec dichiarava non verificato.** *Non esiste nessun ramo, nessun interruttore,
+nessuna parola «sandbox» o «test» nel codice né nella configurazione (zero
+verificato con controprova). **C'è una variabile sola e l'ambiente lo decide
+interamente il suo valore**: per la parte del codice, cambiare i valori su Vercel
+**è** il passaggio.* ⚠️ **Il segreto del webhook è un'altra cosa dalla chiave, e
+Stripe ne genera uno PER OGNI ENDPOINT**: configurando il webhook sul dominio
+definitivo va rigenerato, o la verifica della firma rifiuta ogni evento con 400 —
+**cioè i clienti pagano e in cucina non arriva niente.**
+⚠️ **L'indirizzo di ritorno dal pagamento non va toccato**: il codice lo ricava
+dalla richiesta stessa (`new URL(request.url).origin`), e nel progetto non ci sono
+indirizzi scritti a mano. *Non verificato dal vivo che su Vercel quell'origine
+rifletta l'host pubblico: è lettura di codice, e lo dirà l'ordine vero.*
 
 ⚠️ **Il passaggio a Stripe reale va provato prima dell'apertura, non il giorno
 stesso.**
@@ -3132,9 +3228,67 @@ notifica WhatsApp a `staff_notification_phone` resta un futuro possibile
   scompare una volta completata l'attivazione, e viene rimostrato
   all'inizio di ogni nuova sessione se l'audio non è ancora sbloccato in
   quella sessione o se il permesso Notification non è `granted`.
-- **Nessun silenziamento**: non esiste alcun controllo (pulsante, toggle,
-  impostazione) per silenziare o disattivare l'audio dal pannello. Una
-  volta sbloccato, resta attivo per tutta la durata della sessione.
+- ✅ **IL SUONO SI RIPETE FINCHÉ NON VIENE ACCETTATO — decisione di Andrea,
+  31/08/2026, che ROVESCIA il suono singolo.** *La ragione: un suono singolo in
+  cucina di sabato sera non si sente, e un ordine che nessuno nota è peggio di un
+  ordine che non arriva.*
+  - **Una emissione ogni 3 secondi**, con un **tetto di un minuto** che
+    **riparta a ogni nuovo ordine**. *Nessun tetto assoluto.*
+  - ⚠️ **UN SUONO SOLO PER TUTTO IL PANNELLO**, non uno per ordine: suona finché
+    esiste **almeno un** ordine nuovo non accettato. *Quando suona non serve
+    sapere quanti ordini sono arrivati, serve sapere che bisogna guardare lo
+    schermo: la precisione si ha leggendo, non ascoltando.*
+  - **Lo ferma un pulsante sulla singola scheda**, etichetta provvisoria
+    «Accetta». ⚠️ **Fa SOLO tacere il suono: NON cambia lo stato dell'ordine**,
+    che resta «Nuovo». *Esiste già uno stato che dice «ho cominciato a
+    lavorarlo»; se lo facesse scattare un gesto nato per zittire, comincerebbe a
+    scattare anche senza che nessuno abbia letto l'ordine.* Sorvegliato da `s12`.
+  - **Lo stato «accettato» vive nella sessione del browser**, accanto a quello
+    «già visto»: un ricaricamento non fa risuonare ciò che era stato accettato.
+  - **Un ordine che ESCE da «Nuovi» viene tolto dalla lista.** *Senza, il
+    pannello suonerebbe per un ordine il cui pulsante non è più a schermo — cioè
+    un suono che non si può fermare.*
+  - ⚠️ **I DUE MODELLI CONVIVONO**: «già visto» decide **SE** un ordine può far
+    partire il suono, «non accettato» decide **FINO A QUANDO** suona. *Chi tocca
+    l'uno non tocchi l'altro.* **La notifica del browser NON si ripete**: si
+    ripete solo l'audio.
+  - ⚠️ **TRAPPOLA DICHIARATA E ACCETTATA: il pulsante vive nella scheda, e le
+    schede vivono nella sezione «Nuovi».** *Chi sta guardando «Storico» o «Menu»
+    sente il suono e non ha il pulsante sotto gli occhi: deve tornare su
+    «Nuovi». La rete è il tetto di un minuto. Alternativa scartata da Andrea: un
+    gesto unico nella fascia in alto.*
+  - **Le costanti che governano tutto** stanno a livello di modulo in
+    `app/staff/page.js`, nominate apposta perché si possano cambiare senza
+    cercarle: `CADENZA_SUONO_MS` (3000), `TETTO_SUONO_MS` (60000),
+    `VOLUME_SUONO` (0.7), `FORMA_ONDA_SUONO` (`square`), `DURATA_BIP_S` (0.35),
+    `INTERVALLO_BIP_S` (0.4). ⚠️ **`POLL_INTERVAL_MS` è un'altra cosa e non si
+    tocca**: cambia ogni quanto il pannello ricarica la lista.
+  - ⚠️ **IL VOLUME: LA LEVA CHE CONTA NON ERA IL GUADAGNO, ERA LA FORMA
+    D'ONDA.** *Il suono originale era `sine` a 0.3 e, riferito da Andrea, non si
+    sentiva nemmeno col volume del portatile al massimo. Una sinusoide ha solo la
+    fondamentale: alzarla avrebbe fatto un fischio morbido più forte. Con
+    `square` arrivano le armoniche dispari, cioè energia nella banda in cui
+    l'orecchio sente meglio — è il timbro delle sveglie.* **0.7 e non 1.0 di
+    proposito**: un'onda quadra da Web Audio supera l'ampiezza nominale di circa
+    il 9%, quindi il picco reale resta sotto la distorsione. ✅ **Riprovato dal
+    vivo da Andrea: ora va bene.** *Le frequenze, 880 e 1245 Hz, non sono state
+    toccate: erano già nella banda giusta.*
+  - ⚠️ **CORRETTO NELLO STESSO LAVORO un difetto preesistente**: lo stato di
+    sblocco dell'audio si scriveva **fuori** dal punto che intercetta l'errore,
+    quindi se lo sblocco falliva **il banner spariva lo stesso** e il pannello
+    dichiarava attivi degli avvisi muti. *Oggi era un fastidio; con la
+    ripetizione sarebbe diventato il caso peggiore, perché ci si fiderebbe di un
+    allarme che non c'è.* Sorvegliato da `s24`, **nei due versi**.
+
+  *Commit `e1af248`, pubblicato. Suite nuova `tests/staff-alert-sound.test.mjs`,
+  27 asserzioni; totale **40 suite, 2015 prove**, zero fallite. Provato dal vivo
+  da Andrea in cinque giri su localhost e due sul sito pubblicato.*
+
+- ~~**Nessun silenziamento**~~ — **decaduto in v90.** *Fino al 31/08/2026 questa
+  riga diceva che non esisteva alcun controllo per silenziare l'audio, e che una
+  volta sbloccato restava attivo per tutta la sessione. **Ora un silenziamento
+  esiste, ed è per ordine.** Si conserva barrata perché due commenti nel codice
+  la citavano, e sono stati riscritti insieme al lavoro.*
 - **Ordini preesistenti al mount**: al montaggio del pannello, gli ordini
   "Nuovi" già presenti in lista vengono immediatamente segnati come "già
   visti" **senza generare alert**. L'alert scatta esclusivamente per
@@ -6074,7 +6228,7 @@ Eseguito da Andrea nell'editor SQL della dashboard con query di sola lettura sul
 
 ### La sequenza di apertura (v55) — l'ordine ha una ragione
 
-1. **dominio**, e con esso la restrizione della chiave API di Google. ⚠️ **AL 27/08/2026 QUESTO PASSO È FATTO A METÀ**: il DNS è puntato e funzionante dal 26/08, la **chiave non è ristretta**. *La condizione di apertura "dominio" **non si chiude** con il DNS: si chiude quando il DNS funziona **e** la chiave è ristretta. Sono la stessa voce apposta, perché separarle vorrebbe dire dichiarare chiusa una cosa fatta a metà.*
+1. ✅ **dominio**, e con esso la restrizione della chiave API di Google. **CHIUSO IL 31/08/2026: il DNS funziona dal 26/08 e la chiave è ristretta su tre indirizzi, provata dal vivo su tutti e due i siti pubblici.** *Il testo storico che segue spiega perché le due cose erano la stessa voce.* ⚠️ ~~AL 27/08/2026 QUESTO PASSO È FATTO A METÀ~~: il DNS è puntato e funzionante dal 26/08, la **chiave non è ristretta**. *La condizione di apertura "dominio" **non si chiude** con il DNS: si chiude quando il DNS funziona **e** la chiave è ristretta. Sono la stessa voce apposta, perché separarle vorrebbe dire dichiarare chiusa una cosa fatta a metà.*
 2. **Stripe in modalità reale**, con il webhook puntato al dominio **definitivo**. ⚠️ Non è un interruttore: sandbox e reale sono due ambienti separati con chiavi e webhook diversi, e ci sono cose che in sandbox non esistono e quindi non si possono provare — che il conto incassi davvero, che l'antifrode non blocchi i primi pagamenti, e soprattutto che l'avviso di pagamento arrivi al sito. Se quel pezzo non funziona **i clienti pagano e in cucina non arriva niente**;
 3. **un ordine vero fatto da Andrea**, pagato con carta propria, che percorra tutta la catena fino alla comparsa in cucina, e poi rimborsato dalla dashboard. Costa le commissioni di un caffè ed è l'unica prova che vale;
 4. **pulizia dei dati** — dopo l'ordine vero, non prima, altrimenti resterebbe dentro un ordine pagato con denaro reale;
