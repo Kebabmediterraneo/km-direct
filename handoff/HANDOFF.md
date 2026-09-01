@@ -4429,3 +4429,151 @@ Google, font (decaduto), piano Pro, suono. **Documenti alla v90 e al punto 47.**
 **Aperto e non toccato**: il permesso `TRUNCATE` di `anon` su `products`, mai
 accertato se sia raggiungibile da fuori; il debito del nome `confermaPrezzo`;
 `km-direct.vercel.app` da dismettere **dopo** l'apertura, mai durante Stripe.
+
+## 48) Stripe reale, la pulizia dei dati, e le due porte dei permessi (01/09/2026)
+
+*La giornata che chiude tutte le condizioni di apertura. Resta solo aprire.*
+
+### 48a) Stripe, e la ripubblicazione che non era partita
+
+Sequenza eseguita: chiave `sk_live_` in `STRIPE_SECRET_KEY` → endpoint webhook
+reale verso `ordina.kebabmediterraneo.it`, **in ascolto su un evento solo**,
+`checkout.session.completed` → il suo **segreto nuovo** in
+`STRIPE_WEBHOOK_SECRET` → ripubblicazione senza cache.
+
+⚠️⚠️ **LA RIPUBBLICAZIONE NON ERA PARTITA AL PRIMO TENTATIVO.** Il riquadro di
+Vercel si era chiuso senza dire niente, e nell'elenco delle pubblicazioni non era
+comparsa nessuna riga nuova. *Se non l'avessimo guardato, l'ordine vero sarebbe
+stato fatto credendo il sito in modalità reale mentre era ancora in sandbox — e
+lo avremmo scoperto nel modo peggiore.*
+
+**È la famiglia già registrata: il silenzio che sembra successo.** ⚠️ *Ma con una
+variante nuova: qui il silenzio veniva da un'interfaccia, non da un comando. La
+verifica non è stata «non ci sono errori», è stata «c'è una riga nuova in cima
+con l'orario di adesso».*
+
+### 48b) L'ordine vero, e cosa ha dimostrato
+
+Ordine piccolo in ritiro, carta vera: **pagato, addebitato dalla banca, pagina
+di conferma al cliente, e comparso nel pannello staff.** Poi rimborsato.
+
+⚠️ **L'ultimo punto è quello che vale**: dimostra che il webhook funziona e che
+il suo segreto è giusto. *Senza, il cliente paga e in cucina non arriva niente —
+ed è per quello che tutta la sequenza esiste.*
+
+**E ha chiuso l'unico punto che era stato letto nel codice e mai visto
+funzionare**: l'indirizzo di ritorno dal pagamento, che il codice ricava dalla
+richiesta stessa.
+
+⚠️ **Il suono non è stato esercitato**: il pannello era chiuso. *Registrato come
+non provato dal vivo su un ordine vero, invece di segnare un verde che non c'è
+stato — stessa scelta della prova 1 del 7d.*
+
+### 48c) La pulizia dei dati, e lo strumento che esisteva già
+
+⚠️ **La cosa più utile della ricognizione non era costruire l'elenco: era
+scoprire che esisteva già.** Tre script scritti il 04/08, con le tre categorie
+— dati, configurazione, incerta — già dentro. *Non c'era da costruire, c'era da
+confrontare, e sono uscite tre cose cambiate da allora.*
+
+**I due valori usati, letti dal referto del giorno e non dai documenti:**
+freno `2026-09-01 10:49:27.962810+00`; identificatori `staff:test-fase1`,
+`staff:test-fase2a`, `staff:test-merge`, `staff:test-spice`.
+
+⚠️ **Quei due valori esistono solo in spec.** La versione dello script con i
+parametri compilati **non è mai stata committata**, e `git rm -f` l'ha portata
+via: *dal repository non si ricava con quali valori è stato eseguito.* **Chi
+compila un file e poi lo cancella, compila qualcosa che non è mai esistito per
+il deposito.**
+
+**Esito**: sei tabelle a zero, registro staff da 199 a 156, **le 16 tabelle di
+configurazione identiche una per una**, e tre sguardi dal vivo sul sito.
+
+⚠️ **UN LEGAME CHE NESSUN DOCUMENTO NOMINAVA, trovato leggendo il codice**: il
+numero dell'ordine è **il conteggio degli ordini più uno**
+(`app/api/checkout/route.js:80`), non un contatore salvato. *Svuotando, il primo
+ordine di un cliente vero sarà `KM-0001`.* **E `pickup_code` è unico: ripartire
+da capo è sicuro solo perché i vecchi spariscono nella stessa transazione.
+Cancellare in futuro solo una parte degli ordini produrrebbe collisioni.**
+
+### 48d) ⚠️ La prima porta: il `TRUNCATE` non era quello che credevamo
+
+La voce era aperta dal 07/08 e la spec la chiamava un'anomalia trovata per caso.
+**Misurata sul database vivo, era due cose diverse da come era scritta.**
+
+**Il pericolo vero non c'era**: `INSERT`, `UPDATE` e `DELETE` per `anon` su
+`products` erano **già assenti** — *e quelli sì che l'API pubblica sa esprimere
+da fuori. Per un mese abbiamo guardato la meno pericolosa del gruppo.*
+
+**E non era un'anomalia**: `anon` e `authenticated` avevano gli stessi cinque
+permessi, `postgres` e `service_role` otto. **È la configurazione predefinita di
+Supabase.**
+
+⚠️⚠️ **LA COSA CHE VALE OLTRE QUESTO CASO: LE REGOLE PER RIGA NON FERMANO UNA
+`TRUNCATE`.** *Valgono su `select`, `insert`, `update` e `delete`; la truncate è
+governata dal solo permesso di tabella.* **La difesa che su Supabase si dà per
+scontata, su questa operazione non esiste — quindi la strada non era aggiungere
+una policy, era togliere il permesso.**
+
+*Ciò che la teneva inerte non era una nostra difesa: l'API pubblica non sa
+esprimere quel comando.* ✅ Revocata comunque, 18 revoche, verdetto `0`.
+
+### 48e) ⚠️ La seconda porta, e il campo che nessuno aveva mai chiesto
+
+I **permessi predefiniti** — la regola che decide con quali permessi nasce una
+tabella creata in futuro — davano ai due ruoli pubblici **tutti e otto**,
+`INSERT`, `UPDATE` e `DELETE` compresi.
+
+⚠️ **E qui Code ha fatto la cosa giusta ammettendo di non sapere.** Il concedente
+non era mai stato misurato: la query del giorno prima leggeva *a chi* e *che
+cosa*, non *chi concede*. **Invece di scriverlo a mano, ha fatto leggere il nome
+al database al momento dell'esecuzione** — perché *una revoca scritta per il
+ruolo sbagliato non toglie niente e non dà errore*.
+
+**Il concedente è `supabase_admin`**, ruolo di sistema. La revoca è stata
+**rifiutata con `42501 permission denied to change default privileges`**, e non
+ha scritto niente.
+
+✅ **REGOLA CHE NE DISCENDE, decisione di Andrea: chi crea una tabella nuova le
+toglie subito i permessi pubblici che non servono.** ⚠️ *Non è una regola del
+database: è un'abitudine, e per questo vive nei documenti e non nel codice.*
+
+### 48f) Due cose di metodo da riusare
+
+* ⚠️ **Un file che sta per essere eseguito non si tocca per correggere due
+  commenti.** Lo script dei conteggi aveva due difetti di documentazione, trovati
+  leggendolo: sono stati **registrati e non corretti quel giorno**, perché
+  toccare un file in procinto di girare aggiunge rischio senza togliere niente.
+* **Per sapere se uno strumento scrive, non si legge la sua intestazione.** La
+  verifica sullo script dei conteggi è stata una sonda sulle istruzioni di
+  scrittura — zero — con la controprova sullo script del go-live, che ne trova
+  nove. *Un'intestazione che dice «legge soltanto» è una promessa, non una
+  misura.*
+
+### 48g) ⚠️ Una riga orfana sopravvissuta per versioni
+
+In coda al blocco Novità della v90 vivevano tre righe `aperte**.*`, residuo di
+una sostituzione precedente. **Nessuno le aveva viste** — *stavano in fondo a un
+blocco che si riscrive ogni volta, esattamente come il conteggio «quattro chiuse,
+cinque aperte» che era sopravvissuto per versioni senza che nessuno lo
+misurasse.* **Quel punto del documento è un angolo cieco strutturale: quando si
+sostituisce il blocco, si guardi anche cosa c'era sotto.**
+
+### 48h) Dove siamo
+
+**TUTTE LE CONDIZIONI DI APERTURA SONO CHIUSE.** Dominio e chiave Google, font
+(decaduto), piano Pro, Stripe reale, ordine vero, pulizia dei dati, script tolto
+dal deposito. ⚠️ **Resta solo aprire, e non è un lavoro: è una decisione di
+Andrea.** *Il sito è online, funzionante e in grado di incassare.*
+
+**Aperto e non chiuso:**
+
+* **La porta del futuro** sui permessi predefiniti — da chiedere a Supabase, non
+  blocca niente.
+* **I permessi predefiniti GLOBALI**, non legati ad alcuno schema, che nessuna
+  misura ha mai guardato.
+* **I due difetti di documentazione** in `sql/conteggi_dati_sola_lettura.sql`.
+* **Il debito del nome `confermaPrezzo`.**
+* **`km-direct.vercel.app` da dismettere**, dopo l'apertura e non prima.
+* **La condensazione dei documenti** — Decisione, Attuazione, Regole, Trappole —
+  da fare **dopo l'apertura**, quando si saprà quali parti sono servite davvero.
