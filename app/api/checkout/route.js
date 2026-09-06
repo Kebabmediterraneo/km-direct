@@ -49,10 +49,34 @@ import { OK, CHANGED, checkAllLines } from "../../../lib/price-guard";
 // definizione dell'arrotondamento nel percorso del pagamento, e due copie di un
 // arrotondamento divergono senza che nulla lo segnali.
 import { resolveDiscountAndTotal, round2 } from "../../../lib/checkout-discount";
+// SPEC CODICI SCONTO (A1, A3) — il cuore dei codici nuovi. Riceve `db` come
+// parametro, come tutti gli altri cuori di questo progetto.
+import {
+  COUPON_RESERVED,
+  COUPON_UNKNOWN,
+  COUPON_INACTIVE,
+  COUPON_BELOW_THRESHOLD,
+  COUPON_TAKEN,
+  COUPON_BURNED,
+  COUPON_RULE_INVALID,
+  COUPON_READ_FAILURE,
+  leggiRegolaCodice,
+  calcolaScontoDaRegola,
+  prenotaCodice,
+  attaccaOrdineAllaPrenotazione,
+} from "../../../lib/coupon-reservation";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 const DELIVERY_FEE = 2.5;
+
+// SPEC CODICI SCONTO (A3/A5) — quanto dura una prenotazione. È un tempo NOSTRO e
+// non quello della sessione di Stripe: quando la riga viene scritta la sessione
+// non esiste ancora. Ventisei ore, cioè più delle ventiquattro predefinite di
+// Stripe, così chi paga dentro la propria sessione trova sempre il codice suo.
+// ⚠️ Passata la finestra nessuno "libera" niente: è il prossimo che scrive a
+// sovrascrivere una prenotazione scaduta.
+const RESERVATION_WINDOW_MS = 26 * 60 * 60 * 1000;
 const MARKETING_TEXT_VERSION = "v1";
 
 // §v19: messaggio unico per gli errori TECNICI di sistema mostrati al cliente
@@ -72,6 +96,32 @@ const PRICE_CHANGED_MESSAGE = "Abbiamo aggiornato il listino, controlla il tuo c
 // costruita a mano, quindi è un problema nostro e indica l'unica cosa che chi
 // legge può fare.
 const PRICE_MALFORMED_MESSAGE = "Si è verificato un problema. Ricarica la pagina e riprova.";
+
+// ⚠️ (A6) — quando la verifica di uno sconto si guasta, il pagamento SI FERMA.
+// Non si concede (regalerebbe il 20% a ogni rallentamento) e soprattutto non si
+// prosegue senza (chi ha visto "−5,00 €" nel riepilogo pagherebbe di più senza
+// saperlo, che è il danno peggiore dei due).
+//
+// ⚠️ QUESTA FRASE È UNA SECONDA COPIA, DICHIARATA. L'originale è `FRASE_GUASTO`
+// in `app/api/checkout/discount/route.js`: una rotta non importa da un'altra
+// rotta senza tirarsi dietro tutto il suo modulo, e questo file è il percorso di
+// pagamento, che non si riapre per spostare una costante (§46 v46). È la stessa
+// situazione dei due messaggi del listino, e si tratta allo stesso modo: due
+// copie **più una prova che fallisce se divergono di un carattere**
+// (`tests/checkout-messages.test.mjs`).
+const DISCOUNT_UNVERIFIABLE_MESSAGE =
+  "Non siamo riusciti a verificare il codice. Riprova fra qualche istante.";
+
+// ⚠️⚠️ TESTO NON ANCORA APPROVATO DA ANDREA — vedi il referto del 04/09/2026.
+// Serve per i due casi che §14 non aveva previsti, perché nascono solo con i
+// codici che valgono una volta AL MONDO: il codice è stato preso da un altro
+// mentre questo cliente compilava, oppure è già stato usato. Le sei frasi del
+// campo non ne coprono nessuno dei due — "questo codice non è valido" sarebbe
+// falso, il codice è validissimo — e inventare un testo dentro un commit è
+// esattamente ciò che questo progetto vieta. È scritto qui perché senza una
+// parola la rotta non può rispondere, ed è marcato perché non passi inosservato.
+const COUPON_GONE_MESSAGE =
+  "Questo codice sconto non è più disponibile. Torna al carrello e riprova senza.";
 
 // §58: pickup_code progressivo (KM-0001, KM-0002, ...), mai casuale. Riprova
 // con un numero più alto in caso di collisione (race condition tra ordini
@@ -108,6 +158,9 @@ export async function POST(request) {
     marketingOptIn,
     ageConfirmed,
     giveMeFiveRequested,
+    // SPEC CODICI SCONTO (A2) — il cliente manda IL CODICE, mai l'importo. Qui
+    // entra una stringa e nient'altro: nessun numero del browser viene letto.
+    couponCode,
   } = body ?? {};
 
   // §46b/§41-45: validazioni di forma — carrello, modalità, contatti, privacy,
@@ -290,6 +343,29 @@ export async function POST(request) {
   const phone = customer.phone.trim();
   const nowIso = new Date().toISOString();
 
+  // ⚠️ LAVORO 2 DEL PUNTO 16 — L'UPSERT NON AZZERA PIÙ LA PROVA DI UN CONSENSO
+  // PASSATO (04/09/2026).
+  //
+  // Fino a oggi queste due colonne venivano riscritte a `null` ogni volta che un
+  // cliente riordinava SENZA spuntare il marketing. Il consenso corrente
+  // diventava `false`, ed è giusto; ma spariva anche la **prova** di quello di
+  // prima — la data e la versione del testo che aveva letto. L'art. 7 GDPR
+  // impone di poter dimostrare un consenso prestato, e l'informativa al punto
+  // 11.4 lo dichiara: cancellarne la traccia toglieva la possibilità di farlo.
+  //
+  // La correzione è quella minima già decisa in spec: quando il nuovo valore è
+  // `false`, quelle due colonne **non si mandano affatto**. Un `upsert` scrive
+  // solo le colonne che riceve, quindi non toccarle significa lasciarle come
+  // stanno. Il consenso corrente resta l'ultimo, la traccia del precedente
+  // sopravvive.
+  //
+  // ⚠️ Non è uno storico e non vuole esserlo: resta la prova dell'ULTIMO
+  // consenso dato, non di tutti. Chi un domani volesse la sequenza completa
+  // deve costruirla, non aspettarsela da qui.
+  const provaDelConsensoMarketing = marketingOptIn
+    ? { marketing_opt_in_at: nowIso, marketing_text_version: MARKETING_TEXT_VERSION }
+    : {};
+
   const { data: customerRow, error: customerError } = await supabaseAdmin
     .from("customers")
     .upsert(
@@ -299,8 +375,9 @@ export async function POST(request) {
         last_name: customer.lastName.trim(),
         email: customer.email?.trim() || null,
         marketing_opt_in: !!marketingOptIn,
-        marketing_opt_in_at: marketingOptIn ? nowIso : null,
-        marketing_text_version: marketingOptIn ? MARKETING_TEXT_VERSION : null,
+        // ⚠️ LAVORO 2 del punto 16 — le due colonne della PROVA non si scrivono
+        // affatto quando il consenso non c'è: vedi il blocco qui sopra.
+        ...provaDelConsensoMarketing,
         privacy_accepted_at: nowIso,
       },
       { onConflict: "phone" }
@@ -309,7 +386,16 @@ export async function POST(request) {
     .single();
 
   if (customerError || !customerRow) {
-    console.error("[POST /api/checkout] Errore nella gestione del cliente:", customerError);
+    // ⚠️ LAVORO 3 del punto 16 — si registrano i soli campi utili a capire che
+    // cosa sia andato storto. Prima si passava l'oggetto intero, e dentro un
+    // errore di Supabase il campo `details` può riportare il contenuto della
+    // riga che si stava scrivendo: qui dentro ci sono nome, cognome, telefono ed
+    // email di una persona vera. Il modello è quello già scritto più sotto per
+    // Stripe, e si copia invece di inventarne un altro.
+    console.error("[POST /api/checkout] Errore nella gestione del cliente:", {
+      code: customerError?.code,
+      message: customerError?.message,
+    });
     return NextResponse.json({ error: SYSTEM_ERROR_MESSAGE }, { status: 500 });
   }
 
@@ -321,13 +407,115 @@ export async function POST(request) {
   // quello arrivato dal browser: è la condizione che rende sensato il controllo
   // della soglia, e va tenuta d'occhio se un giorno queste righe si spostano.
   const deliveryFee = isDelivery ? DELIVERY_FEE : 0;
-  const { discountAmount, couponCode, total } = await resolveDiscountAndTotal({
-    db: supabaseAdmin,
-    giveMeFiveRequested,
-    subtotal,
-    customerId: customerRow.id,
-    deliveryFee,
-  });
+  const codiceChiesto = typeof couponCode === "string" ? couponCode.trim() : "";
+
+  // ⚠️ (R1) UN SOLO CODICE PER ORDINE. Non si cumulano, né fra loro né col
+  // codice storico: due sconti sullo stesso ordine sono un totale che nessuno sa
+  // più ricostruire. Il vincolo vero è la colonna `orders.coupon_code`, che ne
+  // tiene UNO; qui si rifiuta prima di arrivarci.
+  // Il testo è quello di §46 v44 punto 6 e non è nuovo: a questo caso non ci si
+  // arriva usando il sito, ci si arriva solo se il sito si è rotto o se la
+  // richiesta è stata costruita a mano.
+  if (giveMeFiveRequested && codiceChiesto !== "") {
+    return NextResponse.json({ error: PRICE_MALFORMED_MESSAGE }, { status: 400 });
+  }
+
+  let discountAmount = 0;
+  let couponCodeApplicato = null;
+  let total;
+  // Resta valorizzato solo se una prenotazione è andata a buon fine: serve dopo
+  // la creazione dell'ordine, per attaccarle l'ordine.
+  let codicePrenotato = null;
+
+  if (codiceChiesto !== "") {
+    // ── I CODICI NUOVI ────────────────────────────────────────────────────────
+    // (A1) la regola si legge dalla tabella, mai dal codice sorgente.
+    // ⚠️ (A2) di ciò che arriva dal browser entra qui SOLO la stringa del
+    // codice. Il subtotale è quello ricalcolato poche righe sopra dai dati vivi.
+    const lettura = await leggiRegolaCodice({ db: supabaseAdmin, code: codiceChiesto });
+
+    if (lettura.outcome === COUPON_READ_FAILURE) {
+      return NextResponse.json({ error: DISCOUNT_UNVERIFIABLE_MESSAGE }, { status: 500 });
+    }
+    if (lettura.outcome !== COUPON_RESERVED) {
+      return NextResponse.json({ error: COUPON_GONE_MESSAGE }, { status: 400 });
+    }
+
+    const calcolo = calcolaScontoDaRegola({ regola: lettura.regola, subtotal });
+
+    // Una regola scritta male in tabella è colpa nostra, non del cliente: si
+    // ferma con la frase del guasto, non con quella del codice non disponibile.
+    if (calcolo.outcome === COUPON_RULE_INVALID) {
+      console.error("[POST /api/checkout] Regola di sconto non utilizzabile:", {
+        code: lettura.code,
+      });
+      return NextResponse.json({ error: DISCOUNT_UNVERIFIABLE_MESSAGE }, { status: 500 });
+    }
+    if (calcolo.outcome === COUPON_INACTIVE || calcolo.outcome === COUPON_BELOW_THRESHOLD) {
+      return NextResponse.json({ error: COUPON_GONE_MESSAGE }, { status: 400 });
+    }
+
+    // ⚠️⚠️ (A3) LA PRENOTAZIONE, PRIMA DI MANDARE IL CLIENTE A PAGARE.
+    // Si scrive adesso, non dopo: guardare e scrivere sono un gesto solo, e se
+    // due ordini partono insieme è il database a rifiutare il secondo.
+    //
+    // ⚠️ L'ordine non esiste ancora, e va bene così: quella colonna ammette il
+    // vuoto proprio per questo, e l'ordine si attacca subito dopo averlo creato.
+    // Prenotare PRIMA dell'ordine significa che un codice conteso non lascia in
+    // giro un ordine con un totale scontato che nessuno onorerà.
+    const adesso = new Date();
+    const prenotazione = await prenotaCodice({
+      db: supabaseAdmin,
+      code: lettura.code,
+      customerId: customerRow.id,
+      // ⚠️ LA FINESTRA È UN TEMPO NOSTRO, non quello della sessione di Stripe
+      // (decisione del 03/09/2026). La sessione non esiste ancora quando questa
+      // riga viene scritta, quindi la sua scadenza non è conoscibile qui; e fra
+      // due orologi che divergono e una finestra in cui un pagamento è aperto
+      // mentre il codice non è prenotato, si è scelto il primo danno. È perciò
+      // GENEROSA rispetto alle 24 ore predefinite di Stripe: chi paga entro la
+      // sua sessione trova sempre il proprio codice ancora suo.
+      reservedUntil: new Date(adesso.getTime() + RESERVATION_WINDOW_MS).toISOString(),
+      now: adesso.toISOString(),
+    });
+
+    if (prenotazione.outcome === COUPON_READ_FAILURE) {
+      return NextResponse.json({ error: DISCOUNT_UNVERIFIABLE_MESSAGE }, { status: 500 });
+    }
+    if (prenotazione.outcome === COUPON_TAKEN || prenotazione.outcome === COUPON_BURNED) {
+      return NextResponse.json({ error: COUPON_GONE_MESSAGE }, { status: 400 });
+    }
+    if (prenotazione.outcome !== COUPON_RESERVED) {
+      return NextResponse.json({ error: DISCOUNT_UNVERIFIABLE_MESSAGE }, { status: 500 });
+    }
+
+    discountAmount = calcolo.discount;
+    couponCodeApplicato = lettura.code;
+    codicePrenotato = lettura.code;
+    total = round2(subtotal - discountAmount + deliveryFee);
+  } else {
+    // ── IL CODICE STORICO, INTATTO ───────────────────────────────────────────
+    // Nessuna riga di questo ramo è cambiata, tranne la lettura dell'esito nuovo
+    // qui sotto: quel percorso resta quello di sempre.
+    const esitoSconto = await resolveDiscountAndTotal({
+      db: supabaseAdmin,
+      giveMeFiveRequested,
+      subtotal,
+      customerId: customerRow.id,
+      deliveryFee,
+    });
+
+    // ⚠️ (A6) IL GUASTO FERMA IL PAGAMENTO. Non concede — regalerebbe lo sconto a
+    // ogni rallentamento — e non prosegue senza, perché chi ha visto la riga
+    // dello sconto nel riepilogo pagherebbe di più senza saperlo.
+    if (esitoSconto.readFailure) {
+      return NextResponse.json({ error: DISCOUNT_UNVERIFIABLE_MESSAGE }, { status: 500 });
+    }
+
+    discountAmount = esitoSconto.discountAmount;
+    couponCodeApplicato = esitoSconto.couponCode;
+    total = esitoSconto.total;
+  }
 
   const orderPayload = {
     store_id: store.id,
@@ -350,7 +538,7 @@ export async function POST(request) {
     delivery_fee: deliveryFee,
     discount_amount: discountAmount,
     total,
-    coupon_code: couponCode,
+    coupon_code: couponCodeApplicato,
     payment_status: "pending",
     age_declared_18: !!ageConfirmed,
     privacy_accepted_at: nowIso,
@@ -360,15 +548,39 @@ export async function POST(request) {
   try {
     order = await insertOrderWithPickupCode(orderPayload);
   } catch (err) {
-    console.error("[POST /api/checkout] Errore nella creazione dell'ordine:", err);
+    // ⚠️ LAVORO 3 del punto 16 — solo i campi utili, non l'errore intero.
+    console.error("[POST /api/checkout] Errore nella creazione dell'ordine:", {
+      code: err?.code,
+      message: err?.message,
+    });
     return NextResponse.json({ error: SYSTEM_ERROR_MESSAGE }, { status: 500 });
+  }
+
+  // ⚠️ L'ORDINE SI ATTACCA ALLA PRENOTAZIONE, e non è un secondo cancello.
+  // La prenotazione è già stata vinta o persa poche righe sopra: qui si scrive
+  // soltanto a quale ordine appartiene, perché l'annullamento dal pannello possa
+  // ritrovarla. Se questa scrittura fallisce non si ferma niente: il codice
+  // resta prenotato da questo cliente e la finestra scade da sola. Mescolarla al
+  // gesto della prenotazione l'avrebbe resa annullabile da un errore che non
+  // c'entra.
+  if (codicePrenotato) {
+    await attaccaOrdineAllaPrenotazione({
+      db: supabaseAdmin,
+      code: codicePrenotato,
+      customerId: customerRow.id,
+      orderId: order.id,
+    });
   }
 
   const orderItemsPayload = resolvedItems.map((item) => ({ ...item, order_id: order.id }));
   const { error: itemsError } = await supabaseAdmin.from("order_items").insert(orderItemsPayload);
 
   if (itemsError) {
-    console.error("[POST /api/checkout] Errore nel salvataggio degli articoli:", itemsError);
+    // ⚠️ LAVORO 3 del punto 16 — solo i campi utili, non l'errore intero.
+    console.error("[POST /api/checkout] Errore nel salvataggio degli articoli:", {
+      code: itemsError?.code,
+      message: itemsError?.message,
+    });
     return NextResponse.json({ error: SYSTEM_ERROR_MESSAGE }, { status: 500 });
   }
 

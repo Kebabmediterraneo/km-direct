@@ -118,5 +118,49 @@ assert(
   "f2) il 409 entra nel ramo solo insieme al testo del listino"
 );
 
+// ---------------------------------------------------------------------------
+// g) ⚠️ LA TERZA COPPIA, aggiunta il 04/09/2026 con (A6).
+//
+// La frase che il cliente vede quando la verifica di uno sconto si guasta vive
+// in DUE rotte: quella del campo del checkout, dove è nata, e da oggi quella del
+// pagamento, dove serve perché un guasto FERMA il pagamento invece di regalare
+// o di addebitare di più.
+//
+// ⚠️ Non è una copia lasciata lì per pigrizia: una rotta non importa da un'altra
+// rotta senza tirarsi dietro tutto il suo modulo — e quella del campo importa il
+// database — e il percorso del pagamento non si riapre per spostare una
+// costante (§46 v46). È la stessa situazione delle due coppie qui sopra, e si
+// tratta allo stesso modo: due copie **più questa prova**, che si arrabbia se
+// divergono anche di un solo carattere.
+//
+// ⚠️ E come le altre, questa prova NON contiene una terza copia del testo: lo
+// estrae dalla rotta del campo e pretende di ritrovarlo identico in quella del
+// pagamento. Se l'estrazione non trova niente, FALLISCE — un filtro vuoto non è
+// una risposta vuota.
+console.log("\n--- la frase del guasto, in due rotte ---");
+{
+  const rottaCampo = readFileSync(
+    new URL("../app/api/checkout/discount/route.js", import.meta.url),
+    "utf8"
+  );
+  const trovata = rottaCampo.match(/const FRASE_GUASTO = "([^"]+)";/);
+  assert(
+    trovata !== null,
+    "g1) il testo si estrae davvero da `FRASE_GUASTO` nella rotta del campo (se questa fallisce, tutte le altre di questo blocco non vogliono dire niente)"
+  );
+  if (trovata) {
+    const testo = trovata[1];
+    assert(
+      route.includes(`const DISCOUNT_UNVERIFIABLE_MESSAGE =\n  "${testo}";`),
+      `g2) e la rotta del pagamento porta LO STESSO testo, carattere per carattere ("${testo.slice(0, 40)}…")`
+    );
+    const occorrenze = route.split(testo).length - 1;
+    assert(
+      occorrenze === 1,
+      `g3) e una sola volta: nel pagamento non ne esistono due copie (trovate: ${occorrenze})`
+    );
+  }
+}
+
 console.log(failures === 0 ? "\nTUTTI I TEST PASSATI" : `\n${failures} TEST FALLITI`);
 process.exitCode = failures === 0 ? 0 : 1;

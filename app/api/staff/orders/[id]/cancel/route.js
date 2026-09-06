@@ -6,6 +6,10 @@ import { requireStaffSession } from "../../../../../../lib/require-staff-session
 // mano, ed è il valore confrontato con `orders.coupon_code` per decidere se
 // rilasciare la promo: una copia che divergesse non la rilascerebbe più.
 import { GIVEMEFIVE_CODE } from "../../../../../../lib/givemefive";
+// SPEC CODICI SCONTO — la liberazione dei codici nuovi. È il terzo dei tre punti
+// di rilascio, ed è l'unico che esisteva già: qui si fa per i codici nuovi la
+// stessa identica cosa che si faceva per il codice storico.
+import { liberaCodicePerOrdine } from "../../../../../../lib/coupon-reservation";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
@@ -118,6 +122,12 @@ export async function POST(request, { params }) {
   // si è concluso — il cliente deve poterla riusare su un ordine futuro.
   if (order.coupon_code === GIVEMEFIVE_CODE) {
     await supabaseAdmin.from("promo_redemptions").delete().eq("order_id", id);
+  } else if (order.coupon_code) {
+    // ⚠️ Stessa regola, stessa forma: la riga si cancella e di quel codice non
+    // resta traccia, quindi torna prendibile da chiunque. L'ordine non si è
+    // concluso, e un codice bruciato per un ordine annullato sarebbe un codice
+    // perso per sempre senza che nessuno ne abbia goduto.
+    await liberaCodicePerOrdine({ db: supabaseAdmin, orderId: id });
   }
 
   return NextResponse.json({

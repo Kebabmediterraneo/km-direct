@@ -5,6 +5,11 @@ import { supabaseAdmin } from "../../../../lib/supabase-admin";
 // mano, ed è il valore confrontato con `orders.coupon_code`: una copia che
 // divergesse non consumerebbe più la promo, senza alcun errore.
 import { GIVEMEFIVE_CODE } from "../../../../lib/givemefive";
+// SPEC CODICI SCONTO — il consumo dei codici nuovi. Il codice storico qui sotto
+// resta com'era: i due percorsi non si toccano e non si somigliano nemmeno,
+// perché le due regole sono diverse (una volta per persona contro una volta al
+// mondo).
+import { consumaCodice } from "../../../../lib/coupon-reservation";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
@@ -85,6 +90,30 @@ export async function POST(request) {
     // sfuggito alla guardia sopra) — non è un errore reale, è idempotenza.
     if (redemptionError && redemptionError.code !== "23505") {
       return NextResponse.json({ error: "Errore nella registrazione della promo." }, { status: 500 });
+    }
+  } else if (order.coupon_code) {
+    // ── UN CODICE DELLA SERIE NUOVA ──────────────────────────────────────────
+    // La prenotazione esiste già: è stata scritta PRIMA che il cliente venisse
+    // mandato a pagare. Qui diventa consumata, e da questo momento quel codice è
+    // bruciato per chiunque — anche per chi l'ha usato.
+    //
+    // ⚠️ Anche questa è una scrittura con la condizione dentro: si consuma solo
+    // ciò che risulta ancora prenotato. Un secondo evento di pagamento non
+    // riscrive niente e non produce un errore — tocca zero righe, ed è
+    // esattamente l'idempotenza che la riga sopra ottiene col 23505.
+    const consumo = await consumaCodice({
+      db: supabaseAdmin,
+      code: order.coupon_code,
+      orderId,
+      now: new Date().toISOString(),
+    });
+
+    // ⚠️ Un guasto qui NON si traveste da successo: se non si riesce a segnare
+    // il consumo, quel codice resterebbe prenotato e tornerebbe libero alla
+    // scadenza — cioè riutilizzabile pur essendo già stato pagato. Si risponde
+    // con un errore, così Stripe rimanda l'evento e ci riprova.
+    if (!consumo.ok) {
+      return NextResponse.json({ error: "Errore nella registrazione dello sconto." }, { status: 500 });
     }
   }
 

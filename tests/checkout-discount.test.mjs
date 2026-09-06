@@ -172,17 +172,45 @@ const chiama = (patch = {}) => resolveDiscountAndTotal({ ...BASE, ...patch });
   assert(r2.discountAmount === GIVEMEFIVE_DISCOUNT, "f4) e nell'altro verso lo sconto spetta lo stesso: comanda sempre il ricalcolato");
 }
 
-// g) ⚠️ GUASTO DI LETTURA → OGGI LO SCONTO VIENE CONCESSO.
-// Questa prova NON approva quel comportamento: lo FISSA. È com'era nella rotta
-// prima dell'estrazione, e questo giro è un riordino. È il verso opposto a
-// quello prudente di §46b — là un guasto blocca, qui regala — e il giorno che
-// si deciderà di cambiarlo questa prova cadrà, che è esattamente ciò che si
-// vuole: la modifica sarà una decisione, non una svista.
+// g) ⚠️⚠️ GUASTO DI LETTURA → IL PAGAMENTO SI FERMA.
+//
+// **QUESTE DUE PROVE SONO STATE ROVESCIATE IL 04/09/2026, NON CANCELLATE.**
+// Fino a quel giorno dicevano l'opposto — `g1) lettura fallita → sconto
+// CONCESSO, comportamento di oggi` e `g2) e l'ordine porta il codice, quindi il
+// webhook lo consumerà` — e non approvavano quel comportamento: lo FISSAVANO
+// apposta, perché il giorno del cambiamento fosse una decisione e non una
+// svista. Quel giorno è (A6) della spec dei codici sconto.
+//
+// ⚠️ Sono rimaste DUE, con le stesse due lettere, nello stesso punto del file, e
+// sorvegliano la stessa identica situazione — la lettura che si guasta — al
+// contrario. Cancellarle e scriverne altre altrove sarebbe stato legittimo e
+// avrebbe lasciato un buco silenzioso al posto di una difesa: chi legge questo
+// file non avrebbe più saputo che quel ramo era stato guardato (lezione `cr`).
+//
+// Il verso nuovo: non si concede, e soprattutto NON SI PROSEGUE. Non concedere e
+// proseguire vorrebbe dire addebitare più di quanto il cliente ha visto nel
+// riepilogo — il danno peggiore fra i due, perché lo paga lui senza saperlo.
 {
   const db = dbFinto({ riscatto: null, errore: { code: "XX000" } });
   const r = await chiama({ db, subtotal: 30 });
-  assert(r.discountAmount === GIVEMEFIVE_DISCOUNT, `g1) lettura fallita → sconto CONCESSO, comportamento di oggi (è ${r.discountAmount})`);
-  assert(r.couponCode === GIVEMEFIVE_CODE, "g2) e l'ordine porta il codice, quindi il webhook lo consumerà");
+  assert(r.readFailure === true, `g1) lettura fallita → il pagamento si FERMA, nessuno sconto deciso al buio (readFailure ${JSON.stringify(r.readFailure)})`);
+  assert(
+    r.total === undefined && r.discountAmount === undefined && r.couponCode === undefined,
+    `g2) e non torna nessun totale: chi si dimenticasse di guardare il segnale non addebita l'importo sbagliato, si rompe rumorosamente (total ${JSON.stringify(r.total)})`
+  );
+}
+
+// g3) ⚠️ CONTROPROVA DEL ROVESCIAMENTO. La stessa identica chiamata con la
+// lettura SANA continua a concedere. Senza questa riga, `g1` e `g2` passerebbero
+// anche se il modulo avesse smesso di concedere sempre — e "non concede mai" non
+// è la regola nuova, è un difetto diverso che nessuno vedrebbe.
+{
+  const db = dbFinto({ riscatto: null, errore: null });
+  const r = await chiama({ db, subtotal: 30 });
+  assert(
+    r.readFailure === undefined && r.discountAmount === GIVEMEFIVE_DISCOUNT,
+    `g3) lettura sana → lo sconto spetta ancora (sconto ${r.discountAmount}, readFailure ${JSON.stringify(r.readFailure)})`
+  );
 }
 
 // h) IL CLIENT DEL DATABASE È OBBLIGATORIO
