@@ -18,7 +18,7 @@
 // l'estrazione non trova l'espressione, FALLISCE invece di passare. Un filtro
 // vuoto non è una risposta vuota.
 import { readFileSync } from "node:fs";
-import { normalizzaCodice } from "../lib/coupon-code.js";
+import { normalizzaCodice, ALFABETO_CODICI, LUNGHEZZA_CODICE } from "../lib/coupon-code.js";
 import { GIVEMEFIVE_CODE } from "../lib/givemefive.js";
 
 let failures = 0;
@@ -220,6 +220,50 @@ console.log("\n=== h) ⚠️ I NOMI IMPORTATI ESISTONO DAVVERO ===\n");
       "h4) CONTROPROVA: la stessa verifica su un nome inventato dice che NON c'è — quindi h2 sa dire di no"
     );
   }
+}
+
+console.log("\n=== i) ⚠️ L'ALFABETO VIVE IN DUE POSTI, E QUESTA PROVA LI TIENE IN PARI ===\n");
+// Il file SQL che fabbrica i codici non puo' importare questo modulo: e' SQL.
+// La copia e' quindi inevitabile — ed e' esattamente la situazione in cui due
+// valori divergono in silenzio. Qui si legge il file SQL e si pretende che
+// l'alfabeto sia lo stesso, carattere per carattere.
+//
+// ⚠️ Se qualcuno cambiasse l'alfabeto in uno solo dei due, i codici verrebbero
+// fabbricati con un insieme di caratteri e letti con un altro: alcuni codici
+// buoni risulterebbero inesistenti, e nessun errore lo direbbe.
+{
+  const sql = readFileSync(
+    new URL("../sql/20260907_genera_300_codici.sql", import.meta.url),
+    "utf8"
+  );
+  const trovato = sql.match(/v_alfabeto\s+constant text\s+:=\s+'([A-Z0-9]+)';/);
+  assert(
+    trovato !== null,
+    "i1) l'alfabeto si estrae davvero dal file SQL (se questa fallisce, le altre di questo blocco non vogliono dire niente)"
+  );
+  if (trovato) {
+    assert(
+      trovato[1] === ALFABETO_CODICI,
+      `i2) ⚠️ e coincide con quello del modulo, carattere per carattere (SQL ${trovato[1].length} caratteri, modulo ${ALFABETO_CODICI.length})`
+    );
+  }
+  assert(
+    ALFABETO_CODICI.length === 32 && new Set(ALFABETO_CODICI).size === 32,
+    `i3) l'alfabeto ha 32 caratteri e nessuno ripetuto (ne ha ${ALFABETO_CODICI.length}, distinti ${new Set(ALFABETO_CODICI).size})`
+  );
+  const vietati = [..."O0I1l"].filter((c) => ALFABETO_CODICI.includes(c));
+  assert(
+    vietati.length === 0,
+    `i4) e non contiene nessuno dei cinque che si confondono (trovati: ${vietati.join(", ") || "nessuno"})`
+  );
+  assert(
+    [..."ABZ29"].every((c) => ALFABETO_CODICI.includes(c)),
+    "i5) CONTROPROVA: contiene invece i caratteri che deve contenere — quindi i4 non e' vera per un alfabeto vuoto"
+  );
+  assert(
+    LUNGHEZZA_CODICE === 6 && sql.includes("v_lunghezza       constant integer := 6;"),
+    `i6) e la lunghezza del codice e' 6 in tutti e due (modulo ${LUNGHEZZA_CODICE})`
+  );
 }
 
 console.log(failures === 0 ? "\nTUTTI I TEST PASSATI\n" : `\nTEST FALLITI: ${failures}\n`);
