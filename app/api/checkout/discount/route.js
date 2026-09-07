@@ -22,7 +22,23 @@ import {
   BELOW_THRESHOLD,
   UNRESOLVABLE_LINE,
   READ_FAILURE,
+  ricalcolaSubtotale,
 } from "../../../../lib/discount-eligibility";
+// SPEC CODICI SCONTO (A1) — la regola di un codice nuovo si legge dalla tabella.
+// ⚠️ Il codice storico NON passa di qui: ha il suo percorso, che resta intatto.
+import { GIVEMEFIVE_CODE } from "../../../../lib/givemefive";
+import { normalizzaCodice } from "../../../../lib/coupon-code";
+import {
+  COUPON_RESERVED,
+  COUPON_UNKNOWN,
+  COUPON_INACTIVE,
+  COUPON_BELOW_THRESHOLD,
+  COUPON_RULE_INVALID,
+  COUPON_READ_FAILURE,
+  STATO_CONSUMATO,
+  leggiRegolaCodice,
+  calcolaScontoDaRegola,
+} from "../../../../lib/coupon-reservation";
 
 // §14 (spec v68) — LA VERIFICA DEL CODICE SCONTO scritto nel campo "Hai un
 // codice sconto?" del checkout.
@@ -85,6 +101,20 @@ const FRASE_GUASTO = "Non siamo riusciti a verificare il codice. Riprova fra qua
 const FRASE_ARTICOLO_NON_DISPONIBILE = "Un articolo del carrello non è più disponibile.";
 // L'unica con un numero dentro. L'importo si scrive all'italiana — due decimali
 // e la virgola — perché è testo che il cliente legge, non un dato.
+// ⚠️ LA FRASE NUOVA (approvata da Andrea, 06/09/2026). Copre DUE casi diversi
+// con le stesse parole, ed è voluto: il codice è già stato usato, oppure qualcun
+// altro lo sta usando proprio adesso. Dire "qualcun altro lo sta usando" sarebbe
+// più preciso e più inquietante, e non aiuterebbe chi legge.
+// ⚠️ E non dà un ordine: lascia la scelta. Chi ha sbagliato a digitare vuole
+// controllare il codice, chi ha fretta vuole finire l'ordine — la frase permette
+// tutt'e due invece di mandare tutti al carrello.
+// ⚠️ VIVE QUI E BASTA. Il pannello non la ricopia: mostra la frase così come
+// arriva dalla rotta. La seconda copia esiste nella sola rotta del pagamento,
+// dove la risposta si confeziona senza passare da qui — ed è sorvegliata da una
+// prova che fallisce se le due divergono di un carattere.
+const FRASE_CODICE_NON_PIU_DISPONIBILE =
+  "Questo codice sconto non è più disponibile. Puoi completare l'ordine senza, oppure controllare il codice.";
+
 const fraseSottoSoglia = (mancante) =>
   `Ti mancano ${mancante.toFixed(2).replace(".", ",")} € per usare questo codice.`;
 
@@ -100,11 +130,66 @@ const fraseSottoSoglia = (mancante) =>
 // ⚠️ SE UNA DELLE DUE LETTURE DÀ ERRORE, SI SOLLEVA. Non si legge il nulla come
 // "nessun riscatto trovato": il cuore trasforma l'eccezione in guasto di
 // lettura, e il cliente si sente dire "riprova". È il verso **opposto** a
-// `lib/checkout-discount.js`, dove un guasto fa concedere lo sconto — là è
-// comportamento del 2026 conservato alla lettera in un riordino, qui è codice
-// nuovo e la scelta si può fare bene. *Regalare 5 € su una lettura fallita è
+// `lib/checkout-discount.js`. ⚠️ **Fino al 04/09/2026 quel file faceva
+// l'opposto — un guasto faceva CONCEDERE lo sconto — e questa riga lo diceva.
+// Non è più vero**: con (A6) anche là un guasto non concede, e in più ferma il
+// pagamento. Riscritta invece che lasciata, perché una frase che descrive un
+// comportamento superato mente con l'autorità del file in cui sta.
+// *Regalare uno sconto su una lettura fallita è
 // denaro che esce senza che nessuno se ne accorga; dire "riprova" non costa
 // niente a nessuno.*
+// ---------------------------------------------------------------------------
+// ⚠️ È ANCORA PRENDIBILE QUESTO CODICE? IN SOLA LETTURA, come tutto qui dentro.
+//
+// Tre esiti, e il terzo è quello che conta:
+//   * nessuna riga            → nessuno l'ha mai preso: prendibile;
+//   * riga consumata          → bruciata per chiunque, anche per chi l'ha usata;
+//   * riga prenotata          → scaduta? prendibile. Viva? prendibile solo se è
+//                               di chi sta chiedendo adesso.
+//
+// ⚠️ L'`id` del cliente si legge solo per il confronto e **non esce da questa
+// funzione**: torna un booleano e nient'altro, come il lettore qui sotto.
+//
+// ⚠️ L'istante di confronto è l'orologio del server, lo stesso che scrive
+// `reserved_until` nel percorso del pagamento: uno solo, non due che divergono.
+async function leggiDisponibilitaCodice({ phone, code }) {
+  const { data: riga, error } = await supabaseAdmin
+    .from("coupon_redemptions")
+    .select("customer_id, status, reserved_until")
+    .eq("code", code)
+    .maybeSingle();
+
+  if (error) {
+    console.error("[POST /api/checkout/discount] Errore lettura coupon_redemptions:", {
+      code: error.code,
+      message: error.message,
+    });
+    throw new Error("Lettura della prenotazione fallita.");
+  }
+
+  if (!riga) return true;
+  if (riga.status === STATO_CONSUMATO) return false;
+
+  const scaduta = !(new Date(riga.reserved_until).getTime() > Date.now());
+  if (scaduta) return true;
+
+  const { data: cliente, error: erroreCliente } = await supabaseAdmin
+    .from("customers")
+    .select("id")
+    .eq("phone", typeof phone === "string" ? phone.trim() : phone)
+    .maybeSingle();
+
+  if (erroreCliente) {
+    console.error("[POST /api/checkout/discount] Errore lettura customers:", {
+      code: erroreCliente.code,
+      message: erroreCliente.message,
+    });
+    throw new Error("Lettura del cliente fallita.");
+  }
+
+  return !!cliente && cliente.id === riga.customer_id;
+}
+
 async function findCustomerRedemption({ phone, code }) {
   const { data: customer, error: erroreCliente } = await supabaseAdmin
     .from("customers")
@@ -170,7 +255,120 @@ export async function POST(request) {
     return NextResponse.json({ outcome: READ_FAILURE, message: FRASE_GUASTO }, { status: 500 });
   }
 
-  // 3) Il cuore, con i lettori veri.
+  // ==========================================================================
+  // 3) ⚠️ IL BIVIO. Il codice storico e i codici nuovi sono DUE REGOLE DIVERSE
+  //    — una volta per persona contro una volta al mondo — e prendono due
+  //    strade diverse. Sotto questo `if` non passa nulla del percorso storico:
+  //    è la ragione per cui quel percorso continua a comportarsi come ieri.
+  // ==========================================================================
+  const codiceNormalizzato = normalizzaCodice(body?.code);
+
+  if (codiceNormalizzato !== "" && codiceNormalizzato !== GIVEMEFIVE_CODE) {
+    // ── IL SUBTOTALE, con lo STESSO ciclo del cuore ─────────────────────────
+    // Importato, non riscritto: due cicli che sommano lo stesso carrello
+    // divergono, e allora lo sconto verrebbe deciso su un carrello diverso da
+    // quello che si paga.
+    const conto = await ricalcolaSubtotale({
+      items: body?.items,
+      storeId: store.id,
+      resolveProduct,
+      resolveCombo,
+      readError: READ_ERROR,
+    });
+    if (conto.outcome === UNRESOLVABLE_LINE) {
+      return NextResponse.json(
+        { outcome: UNRESOLVABLE_LINE, applied: false, message: FRASE_ARTICOLO_NON_DISPONIBILE },
+        { status: 200 }
+      );
+    }
+    if (conto.outcome !== null) {
+      return NextResponse.json({ outcome: READ_FAILURE, message: FRASE_GUASTO }, { status: 500 });
+    }
+
+    // ── (A1) LA REGOLA, DALLA TABELLA ──────────────────────────────────────
+    const lettura = await leggiRegolaCodice({ db: supabaseAdmin, code: codiceNormalizzato });
+    if (lettura.outcome === COUPON_READ_FAILURE) {
+      return NextResponse.json({ outcome: READ_FAILURE, message: FRASE_GUASTO }, { status: 500 });
+    }
+    // ⚠️ UN CODICE CHE IN TABELLA NON C'È NON È "non più disponibile": è la
+    // frase di sempre, "non è valido". Finché i 600 codici non sono generati
+    // questa è la risposta che il campo darà a chiunque, ed è quella giusta.
+    if (lettura.outcome === COUPON_UNKNOWN) {
+      return NextResponse.json(
+        { outcome: UNKNOWN_CODE, applied: false, message: FRASE_CODICE_NON_VALIDO },
+        { status: 200 }
+      );
+    }
+
+    // ── (R2, T4) LO SCONTO, calcolato dalla regola di QUEL codice ──────────
+    const calcolo = calcolaScontoDaRegola({ regola: lettura.regola, subtotal: conto.subtotal });
+
+    if (calcolo.outcome === COUPON_BELOW_THRESHOLD) {
+      return NextResponse.json(
+        {
+          outcome: BELOW_THRESHOLD,
+          applied: false,
+          missing: calcolo.missing,
+          message: fraseSottoSoglia(calcolo.missing),
+        },
+        { status: 200 }
+      );
+    }
+    // Un codice spento in tabella, per chi lo scrive, è un codice che non vale:
+    // non gli si dice che esiste ma è stato disattivato.
+    if (calcolo.outcome === COUPON_INACTIVE) {
+      return NextResponse.json(
+        { outcome: UNKNOWN_CODE, applied: false, message: FRASE_CODICE_NON_VALIDO },
+        { status: 200 }
+      );
+    }
+    // Una riga scritta male in tabella è colpa NOSTRA, non di chi ha digitato:
+    // si dice "riprova", non "non è valido".
+    if (calcolo.outcome === COUPON_RULE_INVALID) {
+      console.error("[POST /api/checkout/discount] Regola di sconto non utilizzabile:", {
+        code: lettura.code,
+      });
+      return NextResponse.json({ outcome: READ_FAILURE, message: FRASE_GUASTO }, { status: 500 });
+    }
+    if (calcolo.outcome !== COUPON_RESERVED) {
+      return NextResponse.json({ outcome: READ_FAILURE, message: FRASE_GUASTO }, { status: 500 });
+    }
+
+    // ── È ANCORA PRENDIBILE? ⚠️ IN SOLA LETTURA (R4) ───────────────────────
+    // Questa rotta non scrive niente e non prenota niente: chi scrive il codice
+    // nel campo non ha ancora deciso di comprare. La prenotazione avviene nel
+    // percorso del pagamento, e solo lì.
+    let disponibile;
+    try {
+      disponibile = await leggiDisponibilitaCodice({
+        phone: body?.customer?.phone,
+        code: lettura.code,
+      });
+    } catch (err) {
+      console.error("[POST /api/checkout/discount] Errore lettura prenotazione:", {
+        message: err?.message,
+      });
+      return NextResponse.json({ outcome: READ_FAILURE, message: FRASE_GUASTO }, { status: 500 });
+    }
+
+    if (!disponibile) {
+      return NextResponse.json(
+        {
+          outcome: "codice_non_piu_disponibile",
+          applied: false,
+          message: FRASE_CODICE_NON_PIU_DISPONIBILE,
+        },
+        { status: 200 }
+      );
+    }
+
+    return NextResponse.json(
+      { outcome: ELIGIBLE, applied: true, discount: calcolo.discount, message: null },
+      { status: 200 }
+    );
+  }
+
+  // 4) Il cuore del codice storico, con i lettori veri. NON TOCCATO.
   const esito = await checkDiscountEligibility({
     code: body?.code,
     items: body?.items,

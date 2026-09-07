@@ -141,17 +141,44 @@ const codiceUnito = codice.join("\n");
   // vedrebbe i 5 € nel riepilogo e non li avrebbe su Stripe: il server toglie
   // lo sconto a chi non lo chiede, e nessun errore comparirebbe da nessuna
   // parte. È la riga più fragile di tutto lo spostamento.
+  // ⚠️ b5 AGGIORNATA IL 06/09/2026, NON ALLENTATA. Fino a quel giorno pretendeva
+  // la riga letterale `giveMeFiveRequested: codiceApplicato,`. Col pannello che
+  // manda IL CODICE quella riga non esiste più: al pagamento partono due campi,
+  // e ne parte uno solo dei due. **Il fatto sorvegliato è lo stesso** — che lo
+  // sconto chiesto dal campo arrivi al pagamento — e resta la riga più fragile
+  // di tutto il lavoro. Cambia la forma in cui lo si verifica, non che cosa.
   assert(
-    codiceUnito.includes("giveMeFiveRequested: codiceApplicato,"),
-    "b5) handlePay chiede ancora lo sconto al pagamento, ora dal solo campo del codice"
+    codiceUnito.includes("giveMeFiveRequested: codiceApplicato && codiceStorico,"),
+    "b5) handlePay chiede ancora lo sconto al pagamento, e per il codice storico lo chiede col suo booleano"
+  );
+  assert(
+    codiceUnito.includes("couponCode: codiceApplicato && !codiceStorico ? codiceApplicatoTesto : null,"),
+    "b5b) e per un codice nuovo manda IL CODICE, congelato al momento in cui è stato applicato"
+  );
+  assert(
+    !/giveMeFiveRequested:\s*codiceApplicato,/.test(codiceUnito),
+    "b5c) ⚠️ e non parte più il vecchio booleano nudo: se ripartisse, un codice nuovo verrebbe scambiato per quello storico"
   );
   assert(
     !/giveMeFiveRequested:\s*giveMeFiveApplied/.test(codiceUnito),
     "b6) e non lo chiede più dallo stato del carrello, che non esiste"
   );
+  // ⚠️ b7 AGGIORNATA IL 06/09/2026, NON ALLENTATA. La riga dello sconto nel
+  // riepilogo adesso serve DUE regole — quella storica dalle costanti, quella
+  // dei codici nuovi dal numero che il server ha appena detto — quindi non è più
+  // una sola espressione. Il fatto sorvegliato non cambia: quella riga esiste
+  // ancora e la alimenta il campo, non il carrello.
   assert(
-    codiceUnito.includes("codiceApplicato && qualifiesForGiveMeFive ? GIVEMEFIVE_DISCOUNT : 0;"),
-    "b7) e la riga dello sconto nel riepilogo DEL CHECKOUT resta, alimentata dal campo"
+    /const scontoApplicato = !codiceApplicato/.test(codiceUnito),
+    "b7) la riga dello sconto nel riepilogo DEL CHECKOUT resta, e senza codice applicato vale zero"
+  );
+  assert(
+    codiceUnito.includes("? GIVEMEFIVE_DISCOUNT"),
+    "b7b) per il codice storico continua a valere la sua costante, non un numero riscritto"
+  );
+  assert(
+    /:\s*scontoDelCodice;/.test(codiceUnito),
+    "b7c) e per un codice nuovo vale l'importo che il SERVER ha detto — il pannello non conosce la regola di quel codice e non deve conoscerla"
   );
 }
 
@@ -387,9 +414,20 @@ const codiceUnito = codice.join("\n");
     codiceUnito.includes("if (subtotal >= 20 && subtotal < GIVEMEFIVE_THRESHOLD) {"),
     "g1) la regola dei 20-25 € c'è ancora e usa la stessa identica soglia"
   );
+  // ⚠️ g2 AGGIORNATA IL 06/09/2026, NON ALLENTATA: l'import è cresciuto di un
+  // nome — serve `GIVEMEFIVE_CODE` per sapere se il codice applicato è quello
+  // storico. Il fatto sorvegliato è lo stesso: le costanti arrivano dal modulo
+  // unico e non sono riscritte a mano qui.
   assert(
-    codiceUnito.includes('import { GIVEMEFIVE_THRESHOLD, GIVEMEFIVE_DISCOUNT } from "../lib/givemefive";'),
-    "g2) e la costante della soglia resta importata dal modulo unico: serve a questa regola"
+    codiceUnito.includes('from "../lib/givemefive"') &&
+      codiceUnito.includes("GIVEMEFIVE_THRESHOLD") &&
+      codiceUnito.includes("GIVEMEFIVE_DISCOUNT") &&
+      codiceUnito.includes("GIVEMEFIVE_CODE"),
+    "g2) e le costanti restano importate dal modulo unico: soglia, importo e nome"
+  );
+  assert(
+    !/const GIVEMEFIVE_(THRESHOLD|DISCOUNT|CODE)\s*=/.test(codiceUnito),
+    "g2b) ⚠️ e nessuna delle tre è ridefinita a mano nel sito: sarebbe una copia che diverge in silenzio"
   );
 
   // Il testo nuovo c'è, quello vecchio no.

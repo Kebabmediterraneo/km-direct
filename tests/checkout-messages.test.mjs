@@ -162,5 +162,44 @@ console.log("\n--- la frase del guasto, in due rotte ---");
   }
 }
 
+// ---------------------------------------------------------------------------
+// h) ⚠️ LA QUARTA COPPIA, aggiunta il 06/09/2026 col pannello che manda il
+// codice. La frase che il cliente vede quando un codice non è più prendibile —
+// già usato, oppure preso da un altro proprio adesso — vive in DUE rotte, per
+// la stessa ragione della coppia g): il campo la dice quando si preme Applica,
+// il pagamento la dice quando il codice se l'è preso qualcun altro nel
+// frattempo, e una rotta non importa da un'altra rotta.
+//
+// ⚠️ Il PANNELLO non è in mezzo: mostra la frase così come arriva dalla rotta,
+// e infatti qui non lo si guarda nemmeno. Le copie sono due, non tre.
+console.log("\n--- la frase del codice non più disponibile, in due rotte ---");
+{
+  const rottaCampo = readFileSync(
+    new URL("../app/api/checkout/discount/route.js", import.meta.url),
+    "utf8"
+  );
+  const trovata = rottaCampo.match(
+    /const FRASE_CODICE_NON_PIU_DISPONIBILE =\n  "([^"]+)";/
+  );
+  assert(
+    trovata !== null,
+    "h1) il testo si estrae davvero dalla rotta del campo (se questa fallisce, le altre di questo blocco non vogliono dire niente)"
+  );
+  if (trovata) {
+    const testo = trovata[1];
+    assert(
+      route.includes(`const COUPON_GONE_MESSAGE =\n  "${testo}";`),
+      `h2) e la rotta del pagamento porta LO STESSO testo, carattere per carattere ("${testo.slice(0, 40)}…")`
+    );
+    const occorrenze = route.split(testo).length - 1;
+    assert(occorrenze === 1, `h3) e una sola volta nel pagamento (trovate: ${occorrenze})`);
+    const nelSito = page.split(testo).length - 1;
+    assert(
+      nelSito === 0,
+      `h4) ⚠️ e ZERO volte nel sito: il pannello non ricopia le frasi, le mostra come arrivano (trovate: ${nelSito})`
+    );
+  }
+}
+
 console.log(failures === 0 ? "\nTUTTI I TEST PASSATI" : `\n${failures} TEST FALLITI`);
 process.exitCode = failures === 0 ? 0 : 1;

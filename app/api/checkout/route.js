@@ -112,16 +112,26 @@ const PRICE_MALFORMED_MESSAGE = "Si è verificato un problema. Ricarica la pagin
 const DISCOUNT_UNVERIFIABLE_MESSAGE =
   "Non siamo riusciti a verificare il codice. Riprova fra qualche istante.";
 
-// ⚠️⚠️ TESTO NON ANCORA APPROVATO DA ANDREA — vedi il referto del 04/09/2026.
-// Serve per i due casi che §14 non aveva previsti, perché nascono solo con i
-// codici che valgono una volta AL MONDO: il codice è stato preso da un altro
-// mentre questo cliente compilava, oppure è già stato usato. Le sei frasi del
-// campo non ne coprono nessuno dei due — "questo codice non è valido" sarebbe
-// falso, il codice è validissimo — e inventare un testo dentro un commit è
-// esattamente ciò che questo progetto vieta. È scritto qui perché senza una
-// parola la rotta non può rispondere, ed è marcato perché non passi inosservato.
+// ✅ TESTO APPROVATO DA ANDREA (06/09/2026). Serve per i due casi che §14 non
+// aveva previsti, perché nascono solo con i codici che valgono una volta AL
+// MONDO: il codice è già stato usato, oppure qualcun altro lo sta usando proprio
+// adesso. Le sei frasi del campo non ne coprono nessuno dei due — "questo codice
+// non è valido" sarebbe falso, il codice è validissimo.
+//
+// ⚠️ UNA FRASE SOLA PER DUE CASI, ed è voluto: dire "qualcun altro lo sta
+// usando" sarebbe più preciso e più inquietante, e non aiuterebbe chi legge.
+// ⚠️ E non dà un ordine, lascia la scelta. La prima stesura diceva "torna al
+// carrello e riprova senza": un'istruzione che il cliente potrebbe non voler
+// seguire, perché magari ha solo sbagliato a digitare.
+//
+// ⚠️ SECONDA COPIA, DICHIARATA. L'originale è `FRASE_CODICE_NON_PIU_DISPONIBILE`
+// in `app/api/checkout/discount/route.js`: una rotta non importa da un'altra
+// rotta senza tirarsi dietro tutto il suo modulo, e questo file è il percorso di
+// pagamento, che non si riapre per spostare una costante (§46 v46). Due copie
+// **più una prova che fallisce se divergono di un carattere**
+// (`tests/checkout-messages.test.mjs`).
 const COUPON_GONE_MESSAGE =
-  "Questo codice sconto non è più disponibile. Torna al carrello e riprova senza.";
+  "Questo codice sconto non è più disponibile. Puoi completare l'ordine senza, oppure controllare il codice.";
 
 // §58: pickup_code progressivo (KM-0001, KM-0002, ...), mai casuale. Riprova
 // con un numero più alto in caso di collisione (race condition tra ordini

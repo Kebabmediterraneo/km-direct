@@ -16,7 +16,13 @@ import { prepareCheckout, restoreCheckout } from "../lib/checkout-persistence";
 // `resolveDiscountAndTotal`, che interroga il database e nel browser non deve
 // girare mai. `givemefive` è di sole costanti, senza import e senza funzioni,
 // ed è sicuro da entrambe le parti.
-import { GIVEMEFIVE_THRESHOLD, GIVEMEFIVE_DISCOUNT } from "../lib/givemefive";
+import { GIVEMEFIVE_CODE, GIVEMEFIVE_THRESHOLD, GIVEMEFIVE_DISCOUNT } from "../lib/givemefive";
+// SPEC CODICI SCONTO (A7) — l'alfabeto, dallo STESSO modulo che usa il server.
+// ⚠️ È un file di una funzione sola e senza dipendenze, apposta: il cuore dei
+// codici importa `lib/checkout-discount.js`, che qui dentro è vietato (§14).
+// Due normalizzazioni diverse farebbero accettare al pannello un codice che il
+// server poi rifiuta, e nessuno saprebbe perché.
+import { normalizzaCodice } from "../lib/coupon-code";
 // §41-45 (11/08/2026): la forma del telefono, dallo STESSO modulo che usa il
 // server. ⚠️ Qui è cortesia — far vedere il problema mentre si scrive invece
 // che al pagamento — mentre la difesa vera sta in `lib/checkout-validation.js`.
@@ -2639,6 +2645,12 @@ function CheckoutScreen({
   // apertura, come i consensi: un "applicato" ripristinato sarebbe uno sconto
   // promesso senza che nessuno l'abbia appena verificato.
   const [codiceApplicato, setCodiceApplicato] = useState(false);
+  // Il testo del codice CONGELATO al momento dell'applicazione (vedi sotto), e
+  // l'importo che il server ha detto per quel codice. Nessuno dei due parte mai
+  // verso il pagamento: il primo serve a sapere quale codice è applicato, il
+  // secondo solo a disegnare la riga del riepilogo.
+  const [codiceApplicatoTesto, setCodiceApplicatoTesto] = useState("");
+  const [scontoDelCodice, setScontoDelCodice] = useState(0);
   const [codiceInCorso, setCodiceInCorso] = useState(false);
   const [codiceMessaggio, setCodiceMessaggio] = useState(null);
 
@@ -2665,10 +2677,29 @@ function CheckoutScreen({
   // il pulsante del carrello non esiste più. La soglia resta la condizione di
   // sempre e continua a valere: sotto i 25 € lo sconto non c'è, chiunque
   // l'abbia chiesto.
-  const giveMeFiveDiscount =
-    codiceApplicato && qualifiesForGiveMeFive ? GIVEMEFIVE_DISCOUNT : 0;
+  // ⚠️ IL CODICE APPLICATO SI CONGELA AL MOMENTO IN CUI VIENE APPLICATO, e non
+  // si rilegge dal campo. Senza questo, un cliente potrebbe applicare un codice
+  // e poi scriverne un altro nella casella: al pagamento partirebbe il secondo.
+  // Finché lo sconto era un booleano il pericolo non c'era — "lo voglio" resta
+  // "lo voglio" — ma adesso al server parte QUALE, e quale conta.
+  const codiceStorico = codiceApplicatoTesto === GIVEMEFIVE_CODE;
+
+  // Lo sconto MOSTRATO nel riepilogo. Due strade, perché le due regole sono
+  // diverse: quella storica è scritta nelle costanti e il pannello la conosce;
+  // quella dei codici nuovi sta nella riga di tabella di QUEL codice, e il
+  // pannello non la conosce né deve conoscerla — la riceve dal server insieme
+  // all'esito, ed è l'unico numero che mostra.
+  // ⚠️ Mostrato, non addebitato: al pagamento il server ricalcola tutto dalla
+  // tabella. Qui non parte mai un importo, solo il codice.
+  const scontoApplicato = !codiceApplicato
+    ? 0
+    : codiceStorico
+      ? qualifiesForGiveMeFive
+        ? GIVEMEFIVE_DISCOUNT
+        : 0
+      : scontoDelCodice;
   const deliveryFee = isDelivery ? DELIVERY_FEE : 0;
-  const total = subtotal - giveMeFiveDiscount + deliveryFee;
+  const total = subtotal - scontoApplicato + deliveryFee;
 
   // §14 v39, portata dal carrello al checkout: LO SCONTO DECADE SE IL CARRELLO
   // SCENDE SOTTO SOGLIA. Non è un caso di fantasia — applicare a 30 €, tornare
@@ -2676,16 +2707,37 @@ function CheckoutScreen({
   // lo sconto "evapora da solo": qui però il cliente lo aveva **chiesto**, e
   // una cosa che sparisce senza una parola è peggio di un rifiuto.
   //
-  // ⚠️ Il totale non aspetta questo effetto: `giveMeFiveDiscount` qui sopra
+  // ⚠️ Il totale non aspetta questo effetto: `scontoApplicato` qui sopra
   // guarda già `qualifiesForGiveMeFive`, quindi i conti sono giusti comunque.
   // Questo serve a spegnere il flag e a dirlo — cioè a non mandare al pagamento
   // una richiesta di sconto che il server rifiuterebbe in silenzio.
   useEffect(() => {
-    if (codiceApplicato && !qualifiesForGiveMeFive) {
+    // ⚠️ SOLO PER IL CODICE STORICO. La soglia dei 25 € è la SUA, scritta nelle
+    // costanti; i codici nuovi portano la propria nella riga di tabella, e ce ne
+    // sono senza. Senza `codiceStorico` un codice al 20% senza soglia, applicato
+    // su un carrello da 10 €, verrebbe spento da questa riga con una frase che
+    // parla di 25 € — un rifiuto che nessuno saprebbe spiegare.
+    if (codiceApplicato && codiceStorico && !qualifiesForGiveMeFive) {
       setCodiceApplicato(false);
+      setCodiceApplicatoTesto("");
+      setScontoDelCodice(0);
       setCodiceMessaggio("Il carrello è sceso sotto i 25 €: il codice non è più applicato.");
     }
-  }, [codiceApplicato, qualifiesForGiveMeFive]);
+  }, [codiceApplicato, codiceStorico, qualifiesForGiveMeFive]);
+
+  // ⚠️ E SE IL CLIENTE RISCRIVE LA CASELLA DOPO AVER APPLICATO, l'applicazione
+  // cade. Non è una cortesia: senza, resterebbe applicato il codice vecchio
+  // mentre nella casella se ne legge un altro, e al pagamento partirebbe quello
+  // congelato — con il cliente convinto di aver usato quello che vede scritto.
+  // Nessuna frase: la casella torna semplicemente al suo pulsante "Applica".
+  useEffect(() => {
+    if (codiceApplicato && normalizzaCodice(codiceScritto) !== codiceApplicatoTesto) {
+      setCodiceApplicato(false);
+      setCodiceApplicatoTesto("");
+      setScontoDelCodice(0);
+      setCodiceMessaggio(null);
+    }
+  }, [codiceApplicato, codiceScritto, codiceApplicatoTesto]);
 
   // §68.4: unico caso in cui il checkout è bloccato in base allo stato del
   // servizio — quando non c'è né ASAP né alcuno slot programmato nei prossimi
@@ -2813,12 +2865,25 @@ function CheckoutScreen({
           privacyAccepted,
           marketingOptIn,
           ageConfirmed,
-          // §14 (v68): ⚠️ QUESTO CAMPO RESTA, e ora lo alimenta il solo campo
-          // del codice. È l'unico modo perché il pagamento conceda davvero i
-          // 5 €: il server li toglie a chi non li chiede. Il nome resta quello
-          // che la rotta del pagamento si aspetta — cambiarlo qui, senza
-          // toccare il server, spegnerebbe lo sconto in silenzio.
-          giveMeFiveRequested: codiceApplicato,
+          // SPEC CODICI SCONTO (A2) — ⚠️ AL PAGAMENTO PARTE **QUALE** CODICE,
+          // non più il solo "lo voglio". Con un codice solo il booleano bastava;
+          // con seicento serve sapere quale, perché ognuno porta la propria
+          // regola nella propria riga di tabella.
+          //
+          // ⚠️ NE PARTE UNO SOLO DEI DUE, MAI TUTT'E DUE, ed è (R1): il server
+          // rifiuta una richiesta che li porti entrambi, perché due sconti sullo
+          // stesso ordine sono un totale che nessuno sa più ricostruire.
+          //
+          // ⚠️ IL CODICE STORICO CONTINUA A VIAGGIARE COME IERI, sul suo
+          // booleano. Non è pigrizia: nel server quel percorso è un ramo a sé, e
+          // farlo passare dall'altra strada vorrebbe dire riscriverne il
+          // comportamento in un giro che ha già abbastanza cose nuove.
+          //
+          // ⚠️ E QUI NON PARTE MAI UN IMPORTO. Il server rilegge la regola dalla
+          // tabella e calcola: è la stessa difesa che le prove a1, a3 e j3 di
+          // `discount-eligibility` sorvegliano sui prezzi.
+          giveMeFiveRequested: codiceApplicato && codiceStorico,
+          couponCode: codiceApplicato && !codiceStorico ? codiceApplicatoTesto : null,
         }),
       });
 
@@ -2932,7 +2997,11 @@ function CheckoutScreen({
             phone: phoneForServer(customerDetails.phone, customerDetails.country),
           },
           privacyAccepted,
-          code: codiceScritto,
+          // (A7) ⚠️ IL CODICE PARTE NORMALIZZATO, con la stessa identica regola
+          // del server: maiuscole e minuscole indifferenti, spazi ignorati. Ciò
+          // che il cliente ha battuto resta intatto nella casella — si compone
+          // una stringa a parte, come si fa già per il telefono.
+          code: normalizzaCodice(codiceScritto),
         }),
       });
 
@@ -2943,9 +3012,18 @@ function CheckoutScreen({
       // legge non ha modo di sapere quale sia quella vera (lezione `cl`).
       if (data?.applied) {
         setCodiceApplicato(true);
+        // ⚠️ Si congela IL CODICE CHE È STATO APPLICATO, non quello che sta
+        // nella casella adesso: da qui in poi è questo che parte al pagamento.
+        setCodiceApplicatoTesto(normalizzaCodice(codiceScritto));
+        // L'importo arriva dal server ed è SOLO da mostrare. Per il codice
+        // storico non serve — il pannello ha la sua costante — quindi lì resta
+        // a zero e la riga del riepilogo la disegna quella.
+        setScontoDelCodice(typeof data?.discount === "number" ? data.discount : 0);
         setCodiceMessaggio(null);
       } else {
         setCodiceApplicato(false);
+        setCodiceApplicatoTesto("");
+        setScontoDelCodice(0);
         setCodiceMessaggio(data?.message ?? null);
       }
     } catch {
@@ -2957,6 +3035,8 @@ function CheckoutScreen({
       // Mai concedere lo sconto su una richiesta che non è tornata: sarebbe una
       // promessa che il pagamento non manterrebbe.
       setCodiceApplicato(false);
+      setCodiceApplicatoTesto("");
+      setScontoDelCodice(0);
       setCodiceMessaggio("Non siamo riusciti a contattare il server. Riprova fra qualche istante.");
     } finally {
       setCodiceInCorso(false);
@@ -3388,10 +3468,13 @@ function CheckoutScreen({
             <span>Subtotale</span>
             <span>{formatPrice(subtotal)}</span>
           </div>
-          {giveMeFiveDiscount > 0 && (
+          {scontoApplicato > 0 && (
             <div style={summaryRowStyle}>
               <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                GIVEMEFIVE
+                {/* ⚠️ Il nome del codice applicato, non una parola scritta a
+                    mano: con seicento codici una stringa fissa direbbe il falso
+                    a quasi tutti quelli che ne usano uno. */}
+                {codiceApplicatoTesto}
                 {/* Il modo per toglierlo, e solo per lo sconto chiesto QUI:
                     quello acceso dal carrello si toglie dal carrello, e questo
                     lavoro non cambia il suo comportamento. */}
@@ -3399,6 +3482,8 @@ function CheckoutScreen({
                   <button
                     onClick={() => {
                       setCodiceApplicato(false);
+                      setCodiceApplicatoTesto("");
+                      setScontoDelCodice(0);
                       setCodiceMessaggio(null);
                     }}
                     style={{
@@ -3415,7 +3500,7 @@ function CheckoutScreen({
                   </button>
                 )}
               </span>
-              <span>{`-${formatPrice(giveMeFiveDiscount)}`}</span>
+              <span>{`-${formatPrice(scontoApplicato)}`}</span>
             </div>
           )}
           {isDelivery && (
