@@ -66,6 +66,12 @@ import {
   attaccaOrdineAllaPrenotazione,
 } from "../../../lib/coupon-reservation";
 
+// §41-45 (12/10/2026) — la versione del testo del consenso alle comunicazioni.
+// ⚠️ Fino a oggi era una costante scritta qui (`"v1"`), mentre la frase a cui
+// si riferisce stava in `app/page.js`: due file senza legame. Ora vivono nello
+// stesso modulo, e chi cambia la frase ha la versione sotto gli occhi.
+import { MARKETING_TEXT_VERSION } from "../../../lib/marketing-consent";
+
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 const DELIVERY_FEE = 2.5;
@@ -77,7 +83,6 @@ const DELIVERY_FEE = 2.5;
 // ⚠️ Passata la finestra nessuno "libera" niente: è il prossimo che scrive a
 // sovrascrivere una prenotazione scaduta.
 const RESERVATION_WINDOW_MS = 26 * 60 * 60 * 1000;
-const MARKETING_TEXT_VERSION = "v1";
 
 // §v19: messaggio unico per gli errori TECNICI di sistema mostrati al cliente
 // (accorpati). I log tecnici restano distinti lato server (console.error) per

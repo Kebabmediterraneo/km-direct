@@ -23,6 +23,16 @@ import { GIVEMEFIVE_CODE, GIVEMEFIVE_THRESHOLD, GIVEMEFIVE_DISCOUNT } from "../l
 // Due normalizzazioni diverse farebbero accettare al pannello un codice che il
 // server poi rifiuta, e nessuno saprebbe perché.
 import { normalizzaCodice } from "../lib/coupon-code";
+// §41-45 (12/10/2026): la frase del consenso alle comunicazioni, l'avviso
+// sull'email e la regola che lo fa comparire, dallo STESSO modulo da cui il
+// server prende la versione del testo. ⚠️ Non si riscrivono qui: frase e
+// versione stanno una accanto all'altra apposta, così non si cambia l'una
+// lasciando indietro l'altra.
+import {
+  MARKETING_CONSENT_TEXT,
+  MARKETING_NO_EMAIL_HINT,
+  serveAvvisoEmailMancante,
+} from "../lib/marketing-consent";
 // §41-45 (11/08/2026): la forma del telefono, dallo STESSO modulo che usa il
 // server. ⚠️ Qui è cortesia — far vedere il problema mentre si scrive invece
 // che al pagamento — mentre la difesa vera sta in `lib/checkout-validation.js`.
@@ -3387,9 +3397,26 @@ function CheckoutScreen({
               checked={marketingOptIn}
               onChange={() => setMarketingOptIn((prev) => !prev)}
             />
-            Sì, voglio ricevere novità, offerte e comunicazioni da KM Kebab
-            Mediterraneo.
+            {MARKETING_CONSENT_TEXT}
           </label>
+
+          {/* §41-45 (12/10/2026) — L'AVVISO GENTILE. Compare SOLO quando la
+              casella qui sopra è spuntata E il campo dell'email è vuoto, e
+              sparisce appena si scrive l'email.
+              ⚠️ NON È UN ERRORE: nessun rosso, nessuna icona. Chi ha detto di
+              sì senza lasciare l'email non ha sbagliato niente, gli si dice
+              soltanto che cosa manca perché quel sì serva a qualcosa.
+              ⚠️ E NON BLOCCA IL PAGAMENTO, per decisione di Andrea: questa
+              condizione non deve mai entrare in `canPay` né nel pulsante. Il
+              checkout è il punto dove entrano i soldi. */}
+          {serveAvvisoEmailMancante({ marketingOptIn, email: customerDetails.email }) && (
+            <div
+              aria-live="polite"
+              style={{ fontSize: 12, color: "var(--text-on-dark)", opacity: 0.85, paddingLeft: 23 }}
+            >
+              {MARKETING_NO_EMAIL_HINT}
+            </div>
+          )}
 
           {hasBeer && (
             <label style={checkboxLabelStyle}>
