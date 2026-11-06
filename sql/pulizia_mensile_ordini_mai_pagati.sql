@@ -11,10 +11,15 @@
 --   ordine non restano in casa nostra oltre un mese.
 --
 -- QUANDO SI ESEGUE:
---   Una volta al mese, in un giorno fisso da stabilire (§69: "Fissare il giorno
---   del mese"). E' una procedura MANUALE, non automatica.
---   Si puo' eseguire anche a sito aperto: agisce solo su cio' che e' vecchio e
---   mai pagato, quindi non esiste una riga in lavorazione che possa toccare.
+--   Il PRIMO DI OGNI MESE, PRIMA DI APRIRE IL LOCALE (§69 v56, decisione di
+--   Andrea del 05/08/2026). E' una procedura MANUALE, non automatica.
+--   ⚠️ Fino al 06/11/2026 qui c'era scritto "in un giorno fisso da stabilire",
+--   e che si poteva eseguire anche a sito aperto. Il giorno e' fissato dal
+--   05/08; e a sito aperto NON e' piu' vero che non tocchi niente in
+--   lavorazione: dal 06/09 esistono le prenotazioni dei codici sconto, e un
+--   cliente vecchio che sta pagando adesso puo' averne una viva. Lo script se
+--   ne accorge e si ferma (passo 3b), ma il posto giusto resta a saracinesca
+--   chiusa.
 --   Prima e dopo va eseguito `conteggi_dati_sola_lettura.sql` e i due referti
 --   vanno confrontati.
 --
@@ -33,6 +38,11 @@
 --     cancellate da questo script. Se citano un ordine che sta per sparire,
 --     perdono soltanto il riferimento e restano (§69, "staccare invece di
 --     cancellare"). Il POST-CHECK 3 verifica che il loro totale non cali;
+--   - le righe CONSUMATE di `coupon_redemptions` (aggiunto il 06/11/2026): sono
+--     la memoria che qualcuno ha pagato con quel codice, e cancellarne una lo
+--     renderebbe di nuovo utilizzabile. Se lo script ne trova anche una sola
+--     legata a cio' che sta per togliere SI FERMA e dice quante sono (passi 1d
+--     e 3b). Il POST-CHECK 7 verifica che il loro totale non cambi;
 --   - le 16 tabelle di menu e configurazione (§66, "non sono residui e non si
 --     toccano"):
 --       stores, store_order_windows, store_geofences, store_schedule_exceptions,
@@ -56,6 +66,11 @@
 --   quell'ordine non viene mai cancellato, quindi il suo riscatto resta e il
 --   codice resta bruciato. Si libera solo per chi dello sconto non ha mai
 --   goduto.
+--   ⚠️ Lo stesso vale, dal 06/11/2026, per i codici nominativi della serie
+--   nuova: una PRENOTAZIONE legata a un ordine mai pagato si cancella, e quel
+--   codice torna prendibile da chiunque. Nessuno l'ha speso. Prima di questa
+--   data lo script non conosceva `coupon_redemptions`, e una sola prenotazione
+--   bastava a farlo fermare con un errore di vincolo (misurato il 06/11: due).
 --
 -- SICUREZZA:
 --   Tutto e' avvolto in una transazione (begin ... commit): se anche un solo
@@ -103,6 +118,14 @@ declare
   v_clienti_gia_libere    bigint;
   v_residuo               bigint;
   v_orfani                bigint;
+  -- `coupon_redemptions` (06/11/2026): righe consumate prima e dopo, quelle
+  -- trovate dove non devono stare, quelle ancora vive, quelle tolte.
+  v_consumati_prima       bigint;
+  v_consumati_dopo        bigint;
+  v_cr_consumate          bigint;
+  v_cr_vive               bigint;
+  v_cr_tolte_ordini       bigint := 0;
+  v_cr_tolte_clienti      bigint := 0;
   v_conteggi_prima        bigint[] := array[]::bigint[];
   v_n                     bigint;
   v_i                     integer;
@@ -127,6 +150,7 @@ begin
 
   select count(*) into v_eventi_prima  from analytics_events;
   select count(*) into v_log_prima     from staff_action_log;
+  select count(*) into v_consumati_prima from coupon_redemptions where status = 'consumed';
 
   -- Il totale delle righe cliente PRIMA. Serve a contare quante ne vengono
   -- rimosse davvero: vedi la nota al POST-CHECK 6.
@@ -199,11 +223,85 @@ begin
      where payment_status in ('pending', 'failed') and created_at < v_soglia
    );
 
+  -- 1d. Codici sconto della serie nuova (06/11/2026). `coupon_redemptions.order_id`
+  --     non ha cancellazione a catena: senza questo passo il passo 2 si
+  --     fermerebbe con un errore di vincolo.
+  --     ⚠️ PRIMA SI GUARDA, POI SI CANCELLA. Una riga CONSUMATA su un ordine
+  --     mai pagato non deve esistere: vorrebbe dire un codice speso senza un
+  --     pagamento registrato, e cancellarla lo renderebbe di nuovo
+  --     utilizzabile. Se c'e', ci si ferma e si dice quante sono.
+  --     ⚠️ E una prenotazione ancora VIVA vuol dire qualcuno che sta pagando
+  --     adesso: anche li' ci si ferma. Su un ordine vecchio di trenta giorni non
+  --     puo' succedere — la prenotazione dura ventisei ore — ed e' proprio per
+  --     questo che, se succedesse, va guardato invece che cancellato.
+  select count(*) filter (where status = 'consumed'),
+         count(*) filter (where status = 'reserved' and reserved_until >= now())
+    into v_cr_consumate, v_cr_vive
+    from coupon_redemptions
+   where order_id in (
+     select id from orders
+     where payment_status in ('pending', 'failed') and created_at < v_soglia
+   );
+
+  if v_cr_consumate > 0 then
+    raise exception
+      'FERMO al passo 1d: % codici sconto risultano CONSUMATI su ordini mai pagati oltre i % giorni. Un codice consumato e'' la memoria che qualcuno ha pagato con quello: cancellarlo lo renderebbe di nuovo utilizzabile. Va capito prima di pulire. Transazione annullata, nulla e'' stato scritto.',
+      v_cr_consumate, v_giorni;
+  end if;
+  if v_cr_vive > 0 then
+    raise exception
+      'FERMO al passo 1d: % prenotazioni di codici sconto ancora VIVE su ordini mai pagati oltre i % giorni. Una prenotazione viva vuol dire un pagamento in corso. Transazione annullata, nulla e'' stato scritto.',
+      v_cr_vive, v_giorni;
+  end if;
+
+  delete from coupon_redemptions
+   where status = 'reserved'
+     and order_id in (
+       select id from orders
+       where payment_status in ('pending', 'failed') and created_at < v_soglia
+     );
+  get diagnostics v_cr_tolte_ordini = row_count;
+
   -- 2. Gli ordini bersaglio. `order_items` e `order_status_history` spariscono
   --    da soli. Gli ordini pagati non sono raggiungibili da questa istruzione.
   delete from orders
    where payment_status in ('pending', 'failed')
      and created_at < v_soglia;
+
+  -- 3b. Codici sconto sui CLIENTI che il passo 3 sta per togliere
+  --     (06/11/2026). `coupon_redemptions.customer_id` non ha cancellazione a
+  --     catena, e una prenotazione puo' citare un cliente senza citare un
+  --     ordine: nasce PRIMA dell'ordine. Stesse due regole del passo 1d.
+  --     ⚠️ La condizione sui clienti e' SCRITTA DUE VOLTE, qui e nel passo 3:
+  --     se si cambia una, si cambia anche l'altra.
+  select count(*) filter (where r.status = 'consumed'),
+         count(*) filter (where r.status = 'reserved' and r.reserved_until >= now())
+    into v_cr_consumate, v_cr_vive
+    from coupon_redemptions r
+    join customers c on c.id = r.customer_id
+   where c.created_at < v_soglia
+     and not exists (select 1 from orders o where o.customer_id = c.id)
+     and not exists (select 1 from promo_redemptions p where p.customer_id = c.id);
+
+  if v_cr_consumate > 0 then
+    raise exception
+      'FERMO al passo 3b: % codici sconto risultano CONSUMATI da clienti che stanno per essere tolti perche'' senza ordini. Chi ha consumato un codice dovrebbe avere un ordine pagato. Va capito prima di pulire. Transazione annullata, nulla e'' stato scritto.',
+      v_cr_consumate;
+  end if;
+  if v_cr_vive > 0 then
+    raise exception
+      'FERMO al passo 3b: % prenotazioni di codici sconto ancora VIVE su clienti che stanno per essere tolti: c''e'' qualcuno che sta pagando adesso. Riprovare a locale chiuso. Transazione annullata, nulla e'' stato scritto.',
+      v_cr_vive;
+  end if;
+
+  delete from coupon_redemptions r
+   using customers c
+   where c.id = r.customer_id
+     and r.status = 'reserved'
+     and c.created_at < v_soglia
+     and not exists (select 1 from orders o where o.customer_id = c.id)
+     and not exists (select 1 from promo_redemptions p where p.customer_id = c.id);
+  get diagnostics v_cr_tolte_clienti = row_count;
 
   -- 3. Le righe cliente rimaste libere e abbastanza vecchie. Qui rientrano
   --    anche quelle che sono diventate libere un istante fa, perche' i loro
@@ -293,9 +391,21 @@ begin
       v_clienti_prima, v_clienti_dopo;
   end if;
 
+  -- POST-CHECK 7 (06/11/2026) — NESSUN CODICE CONSUMATO E' SPARITO.
+  -- I passi 1d e 3b cancellano solo righe `reserved` e si fermano davanti a
+  -- una `consumed`: questo controllo e' la rete sotto a quella regola.
+  select count(*) into v_consumati_dopo from coupon_redemptions where status = 'consumed';
+  if v_consumati_dopo <> v_consumati_prima then
+    raise exception
+      'POST-CHECK 7 fallito: i codici sconto consumati erano % e ora sono %. Questo script non deve mai cancellare la memoria di un codice speso. Transazione annullata.',
+      v_consumati_prima, v_consumati_dopo;
+  end if;
+
   raise notice 'POST-CHECK superati. Rimossi % ordini mai pagati e % righe cliente (da % a %); % ordini pagati o rimborsati intatti; eventi statistici e registro staccati ma integri (% e % righe); tutte e % le tabelle di menu e configurazione invariate.',
     v_ordini_bersaglio, v_clienti_rimossi, v_clienti_prima, v_clienti_dopo,
     v_pagati_dopo, v_eventi_dopo, v_log_dopo, array_length(v_intoccabili, 1);
+  raise notice 'Codici sconto: tolte % prenotazioni legate agli ordini e % legate ai clienti, tutte non pagate; codici consumati intatti (%). Quei codici tornano prendibili.',
+    v_cr_tolte_ordini, v_cr_tolte_clienti, v_consumati_dopo;
 
 end $$;
 
@@ -330,6 +440,10 @@ commit;
 --   — un riscatto cita sempre un ordine, e se l'ordine e' sparito il riscatto
 --   e' sparito con lui — ma il controllo non costa nulla e non dipende da un
 --   conteggio fotografato in un documento.
+--   ⚠️ QUESTO NON VALE PER `coupon_redemptions` (06/11/2026): li' una
+--   prenotazione PUO' citare un cliente senza citare un ordine, perche' nasce
+--   prima dell'ordine. Per questo i codici della serie nuova non sono
+--   un'esclusione come i riscatti GIVEMEFIVE, ma hanno un passo loro (3b).
 --
 -- SCELTA 4 — Se non c'e' nulla da rimuovere, lo script NON si ferma.
 --   A differenza di quello del go-live, qui il caso "niente da fare" e' il
