@@ -1,6 +1,6 @@
 # KM DIRECT — MASTER SPECIFICATION
 
-**Versione 91** — sostituisce la v90.
+**Versione 92** — sostituisce la v91.
 
 Documento di riferimento definitivo per lo sviluppo. Le decisioni qui
 contenute sono approvate: non vanno reinterpretate senza un motivo concreto
@@ -22,54 +22,73 @@ versione corrente**. I precedenti vivono in `git log`, che è fatto per quello.
 del documento prima che cominciasse a parlare del progetto — e dentro c'erano
 istruzioni rovesciate che nessuno rileggeva.*
 
-**Novità della v91** (vincolanti, 01/09/2026):
+**Novità della v92** (vincolanti, 02/09–06/11/2026):
 
-⚠️ **Le sette voci della v90 sono state controllate una per una e vivono tutte
-nel corpo.** *Due hanno dato **zero** alla prima sonda e i due zeri sono stati
-indagati invece che riferiti: erano frasi **spezzate da un a-capo**. **Quarta
-volta della stessa famiglia**, e vale la pena scriverlo: chi cerca una frase in
-questi documenti la cerchi corta.*
+⚠️ **Le sette voci della v91 sono state controllate una per una e vivono tutte
+nel corpo** (§6c righe 368 e 380, §69 il primo ordine `KM-0001`, §66 le 18
+revoche, le RLS che non fermano la truncate, il concedente `supabase_admin` e il
+`42501`, §69 il freno e i quattro identificatori). *Nessuna riga orfana
+sopravvissuta in coda al blocco della v91 — controllato apposta, perché è il
+punto in cui ne sono già sopravvissute tre.*
 
-1. §6c — ✅✅ **STRIPE È IN MODALITÀ REALE, E L'ORDINE VERO È PASSATO PER TUTTA LA
-   CATENA**: pagato, addebitato dalla banca, conferma al cliente, **comparso nel
-   pannello staff**. *Chiude anche l'unico punto letto nel codice e mai visto
-   funzionare sul dominio vero: l'indirizzo di ritorno dal pagamento.*
-2. §6c — ⚠️⚠️ **LA RIPUBBLICAZIONE NON ERA PARTITA AL PRIMO TENTATIVO**, e il
-   riquadro si era chiuso senza dire niente. *Scoperto guardando l'elenco invece
-   di fidarsi del silenzio: senza quel controllo l'ordine vero sarebbe stato
-   fatto credendo il sito reale mentre era ancora in sandbox.*
-3. §69 — ✅ **LA PULIZIA DEI DATI È FATTA**: sei tabelle a zero, registro staff da
-   199 a 156, **le 16 tabelle di configurazione identiche una per una**, e tre
-   sguardi dal vivo sul sito. ⚠️ **Il primo ordine vero sarà `KM-0001`**: il
-   numero è il conteggio degli ordini più uno, e nessun documento lo diceva.
-4. §66 — ✅ **IL `TRUNCATE` DI `anon` NON ERA UN'ANOMALIA**: è la configurazione
-   predefinita di Supabase. **E il pericolo vero non c'era** — `INSERT`, `UPDATE`
-   e `DELETE` erano già assenti. Revocato comunque: 18 revoche, verdetto `0`.
-5. §66 — ⚠️⚠️ **LE REGOLE PER RIGA (RLS) NON FERMANO UNA `TRUNCATE`.** *Valgono
-   su `select`, `insert`, `update` e `delete`; la truncate è governata dal solo
-   permesso di tabella.* **La difesa che su Supabase si dà per scontata, su
-   questa operazione non esiste.**
-6. §66 — ⚠️ **UNA PORTA CHE NON SI PUÒ CHIUDERE DA QUI**: i permessi predefiniti
-   delle tabelle **future** danno ai due ruoli pubblici tutti e otto, e il
-   concedente è **`supabase_admin`**, ruolo di sistema. La revoca è stata
-   **rifiutata con `42501`** e non ha scritto niente. ✅ **Regola che ne
-   discende**: chi crea una tabella nuova le toglie subito i permessi pubblici
-   che non servono.
-7. ⚠️ **DUE VALORI SCRITTI IN SPEC PERCHÉ ALTRIMENTI SI PERDEVANO**: il freno e i
-   quattro identificatori usati nella pulizia. *La versione dello script con i
-   parametri compilati non è mai stata committata, e `git rm -f` l'ha portata
-   via: dal repository non si ricava con quali valori è stato eseguito.*
+⚠️ **DUE MESI DI LAVORO NON ERANO REGISTRATI.** Questi documenti erano fermi al
+01/09/2026 mentre il sito incassava ordini veri. *La v92 copre dal 2 settembre
+al 6 novembre in una volta sola: è la cosa che non va rifatta, non un modo
+efficiente di lavorare.*
 
-⚠️ **E UNA RIGA ORFANA TROVATA E TOLTA**: in coda al blocco della v90
-sopravvivevano tre righe `aperte**.*`, residuo di una sostituzione precedente.
-*Nessuno le aveva viste perché stavano in fondo a un blocco che si riscrive ogni
-volta — la stessa ragione per cui il conteggio non misurato era sopravvissuto
-per versioni.*
+1. §14b *(sezione nuova)* — ✅ **I CODICI SCONTO NOMINATIVI ESISTONO E
+   FUNZIONANO**: tre serie (5 € con soglia 25 €, 10%, 20% senza soglia), **300
+   codici** di sei caratteri, nessun prefisso che riveli la serie, **monouso al
+   mondo**. Tabella nuova `coupon_redemptions`, tre migrazioni, un cuore di 455
+   righe, 54 prove.
+2. §14b — ⚠️⚠️ **IL BUCO CHE C'ERA PRIMA**: la verifica era una `select` al
+   checkout e la scrittura al webhook, **con tutto il pagamento Stripe in
+   mezzo**. Due ordini simultanei prendevano **entrambi** lo sconto, e l'errore
+   del secondo era **messo a tacere come idempotenza** — il difetto aveva un
+   pezzo di codice che lo faceva sembrare normale. ✅ **Ora guardare e scrivere
+   sono un gesto solo.**
+3. §14b — ⚠️⚠️ **`now()` È CLASSIFICATA STABILE, NON IMMUTABILE**: nessuna
+   unicità può dipendere dalla scadenza. **Conseguenza di comportamento**: una
+   prenotazione scaduta **non si libera da sé**, la libera il prossimo che
+   scrive. ⚠️ *Una riga di spec che diceva il contrario era falsa, ed è stata
+   corretta.*
+4. §14b — ✅ **UN GUASTO DI LETTURA ORA FERMA IL PAGAMENTO.** *Prima concedeva
+   lo sconto. Delle tre letture possibili, «non concedere e proseguire» era
+   peggio di non fare niente: il cliente avrebbe pagato più di quanto aveva
+   visto.* Due prove **rovesciate con intenzione**, più una terza che impedisce
+   al difetto opposto («non concede mai») di passare inosservato.
+5. §14b — ⚠️ **UN BUCO TROVATO DA CODE, CHE IO NON AVEVO VISTO**: col codice che
+   viaggia come testo si poteva **applicare A, scrivere B e pagare con A**. ✅
+   Il codice si **congela** all'applicazione.
+6. §14b — ✅✅ **IL PRIMO CODICE È STATO CONSUMATO IN PRODUZIONE**: `24RREV`
+   (20%) su `KM-0017` del 03/10/2026. **Le spese di consegna fuori dallo sconto
+   non sono più una regola scritta: sono un numero osservato** (7,50 contro gli
+   8,00 che darebbe il 20% sulle spese). ⚠️ *E la finestra fra prenotazione e
+   consumo è stata misurata: **51,6 secondi**.*
+7. §41-45 — ✅ **LA FRASE DEL CONSENSO MARKETING CHIEDE ESPLICITAMENTE L'EMAIL**
+   (`v2`, 03/11/2026), e **chi spunta senza scriverla non viene bloccato**:
+   avviso sì, pulsante acceso. *Provato dal vivo a locale aperto.* ⚠️ **ZONA
+   CIECA: la frase nomina solo l'email, l'informativa elenca quattro canali** —
+   e la regola di versionamento di quella stessa sezione non è stata rispettata.
+8. §69 — ⚠️⚠️ **LA PULIZIA MENSILE ERA ROTTA DAL 03/09/2026 E NESSUNO LO
+   SAPEVA.** Non conosceva `coupon_redemptions`, quindi **la prima esecuzione si
+   sarebbe fermata su un errore di vincolo**: due mesi di attesa per poi non
+   partire. *Trovato misurandolo, non eseguendolo.* ✅ **Corretto (339 → 453
+   righe) E ESEGUITO il 06/11 a locale chiuso: la condizione di apertura della
+   prima esecuzione è CHIUSA.** ⚠️ *Ed è arrivata il 6, non il primo del mese.*
+9. §69 — ✅ **LE TABELLE SONO 24, NON 23** (otto toccate + sedici intoccabili).
+   ⚠️⚠️ **E un terzo difetto dei conteggi, questo di comportamento: il referto
+   non conta `coupon_redemptions`** — quindi il confronto prima/dopo una pulizia
+   è **cieco su quella tabella**.
+10. §66 — ✅ **LA REGOLA DEL 01/09 HA FUNZIONATO ALLA PRIMA OCCASIONE**: la
+    tabella nuova è nata con i cinque permessi pubblici revocati **nella stessa
+    migrazione che la crea**. ⚠️ *La porta del futuro non è chiusa: si è passati
+    davanti sapendolo.*
 
 **LE CONDIZIONI DI APERTURA SONO CHIUSE TUTTE.** *Dominio e chiave Google, font
 (decaduto), piano Pro, Stripe reale, ordine vero, pulizia dati, script tolto dal
-deposito.* ⚠️ **Resta solo l'apertura, che non è un lavoro: è una decisione di
-Andrea.**
+deposito, **e dal 06/11 anche la prima pulizia mensile**.* ⚠️ **Resta solo
+l'apertura, che non è un lavoro: è una decisione di Andrea.**
 
 ## 1. Visione del progetto
 
@@ -1146,6 +1165,196 @@ degli undici eventi ammessi nascono dal carrello che oggi sparisce —
 e luogo (ora è il checkout); il primo perde la schermata che gli dava senso.
 **L'elenco degli eventi è un vincolo chiuso nel database**, quindi la decisione
 non è libera e va presa lì, non qui.
+
+## 14b. Codici sconto nominativi (aggiunta in v92, vincolante)
+
+Codici personali, generati a blocchi e consegnati **un codice a una persona**,
+per far riordinare dal sito chi ha ordinato dalle piattaforme. Convivono con
+`GIVEMEFIVE` di §14, che resta com'era: **sono un ramo a sé**, dalla tabella
+fino alla rotta.
+
+### Decisione (Andrea, 2–7/09/2026)
+
+**Tre serie, nessun tetto, nessuna scadenza:**
+
+| serie | sconto | soglia |
+|---|---|---|
+| A | **5 €** fissi | **25 €** di prodotti |
+| B | **10%** | nessuna |
+| C | **20%** | nessuna |
+
+⚠️ **Nessun tetto massimo sulle due serie a percentuale**: deciso
+esplicitamente il 02/09, *contro il mio suggerimento*. Un carrello da 100 €
+con un codice C sconta 20 €.
+
+**Monouso al mondo**: un codice vale **una volta, per una persona sola**.
+Non è «uno per numero di telefono» come §14 — è uno in assoluto. *È la
+differenza che obbliga tutto il resto: un codice per cliente si può verificare
+leggendo; un codice al mondo no.*
+
+**100 per serie, 300 in tutto. Sei caratteri, nessun prefisso che riveli la
+serie** (decisione del 07/09): chi riceve un codice non deve poter dedurre che
+ne esiste uno migliore. *Scartata la mia proposta dei 200 per serie e quella
+dei prefissi parlanti.*
+
+**Le spese di consegna non entrano mai nello sconto**, in nessuna delle tre
+serie, né nella soglia della A.
+
+### Attuazione — che cosa esiste
+
+**Il database.** Tabella `public.coupon_redemptions`, nata il 03/09 con
+`sql/20260903_codici_sconto_tabella_riscatti.sql` (744 righe, impronta
+`bad3f4e8bc943421901c5fc39ba966ba5f538b8e51da96db2403fdc2db96499e`) e legata
+a `coupons` il 04/09 con `sql/20260904_codici_sconto_legame_coupons.sql`
+(544 righe, `a65315e64dcaa0668312618daeb4ae63fdded33a82044f806f85b1caf1e07c55`).
+Otto colonne, sei vincoli, tre indici:
+
+* `unique (code)` — **unicità piena**, non per cliente: è il vincolo che rende
+  il codice monouso al mondo;
+* indice unico **parziale** su `(order_id) where order_id is not null` — un
+  solo codice per ordine, senza impedire le prenotazioni non ancora legate;
+* `status` fra `'reserved'` e `'consumed'`; `reserved_until` obbligatoria;
+* chiave esterna `code → coupons(code)` con **`ON UPDATE RESTRICT ON DELETE
+  RESTRICT`**: una regola non si cancella né si rinomina mentre ha riscatti.
+
+✅ **RLS accesa con zero policy, e ai due ruoli pubblici restano solo
+`REFERENCES` e `TRIGGER`** — cinque permessi revocati alla nascita, in
+ossequio alla regola di §66 («chi crea una tabella nuova le toglie subito i
+permessi pubblici»). *È la prima tabella nata dopo quella regola, e la regola
+ha funzionato: senza, sarebbe nata scrivibile da chiunque apra il sito.*
+
+**I codici.** Generati il 07/09 con `sql/20260907_genera_300_codici.sql`
+(386 righe), estratti con `sql/20260907_estrai_codici.sql` (184 righe).
+L'alfabeto è di **32 caratteri**: `ABCDEFGHJKLMNPQRSTUVWXYZ23456789` — **senza
+`O`, `0`, `I`, `1`, `l`**, perché i codici vengono anche *scritti a mano* su un
+foglietto e letti da un'altra persona. ⚠️ **L'alfabeto vive in
+`lib/coupon-code.js` come dato, non come lettera ripetuta**, e una prova lo
+confronta **carattere per carattere** con quello dell'SQL: se i due divergono,
+la prova cade. *Due copie di un alfabeto sono due alfabeti.*
+
+**Il cuore.** `lib/coupon-reservation.js` (455 righe): legge la regola **dalla
+tabella** — non da un elenco nel codice — calcola, prenota, consuma, libera.
+`tests/coupon-reservation.test.mjs`, 54 prove, concorrenza compresa.
+
+**Il pannello.** Il campo del checkout manda **quale** codice, non più un
+booleano. Per `GIVEMEFIVE` continua a mandare il suo booleano: sono due rami e
+una prova pretende che **non partano mai insieme**, su tutte e quattro le
+combinazioni.
+
+### Regole vincolanti
+
+⚠️ **1. GUARDARE E SCRIVERE SONO UN GESTO SOLO.** Non esiste, e non va
+reintrodotta, una lettura che decide se il codice è libero. La prenotazione si
+tenta in due modi, **entrambi scritture con la condizione dentro**:
+
+* un `insert`: se due ordini partono insieme, il secondo **sbatte
+  sull'unicità** e riceve `23505`;
+* se la riga esiste già, un `update … where` la cui condizione è *«non
+  consumata, e mia oppure scaduta»* — e **il numero di righe toccate è il
+  verdetto**, non una rilettura successiva.
+
+⚠️ **2. NESSUNA UNICITÀ PUÒ DIPENDERE DALLA SCADENZA.** `now()` in PostgreSQL è
+classificata **stabile (`s`)**, non immutabile: non può entrare in un indice.
+*Misurato il 03/09 su PostgreSQL 17.6.* **Conseguenza di comportamento, non
+cavillo**: una prenotazione scaduta **non si libera da sé** — la libera **il
+prossimo che scrive**, sovrascrivendola. Non esiste alcun processo che passa a
+ripulire. ⚠️ *Una riga di spec che diceva il contrario è stata corretta: era
+falsa.*
+
+⚠️ **3. UN GUASTO DI LETTURA FERMA IL PAGAMENTO.** Se la regola non si può
+leggere, **non si prosegue**: non si concede lo sconto e non si tira avanti
+senza. *Delle tre letture possibili, «non concedere e proseguire» era **peggio
+di non fare niente**, perché il cliente avrebbe pagato più di quanto aveva
+visto sullo schermo.* Sorvegliato da due prove rovesciate con intenzione —
+prima pretendevano che lo sconto fosse **concesso** — più una terza che
+verifica che con la lettura **sana** lo sconto spetti ancora: *senza quella,
+«non concede mai» passerebbe inosservato.*
+
+⚠️ **4. IL CODICE SI CONGELA AL MOMENTO DELL'APPLICAZIONE.** Finché partiva un
+booleano, riscrivere la casella non aveva conseguenze. Col codice che viaggia
+come testo si sarebbe potuto **applicare A, scrivere B nella casella e pagare
+con A**, convinti di aver usato B. Se la casella smette di corrispondere,
+l'applicazione **cade**.
+
+**5. L'arrotondamento.** Centesimi interi, **troncati per difetto**, mai oltre
+il subtotale. Le spese di consegna sono fuori **per costruzione** — non entrano
+in `subtotal` — non per una sottrazione che qualcuno potrebbe dimenticare.
+
+**6. La soglia dei 25 € vale per `GIVEMEFIVE` e per la serie A, non per le
+altre.** ⚠️ *Lasciata com'era, avrebbe spento un codice C (20%, nessuna soglia)
+su un carrello da 10 € **con una frase che parla di 25 €** — un rifiuto che
+nessuno saprebbe spiegare.*
+
+**7. La rotta del campo resta in sola lettura.** Legge la regola e dice se il
+codice è ancora prendibile; **non prenota e non scrive niente**. La
+prenotazione nasce solo al pagamento.
+
+### Le frasi
+
+| situazione | frase |
+|---|---|
+| codice che non esiste in tabella | «Questo codice non è valido.» *(la frase di sempre)* |
+| codice che esiste ma è preso o già usato | ⚠️ **«Questo codice sconto non è più disponibile. Torna al carrello e riprova senza.»** |
+
+⚠️ **La seconda frase non era fra le sei approvate di §14** e non poteva
+esserlo: nasce da una situazione che esiste **solo** con i codici monouso al
+mondo. «Non è valido» sarebbe stato **falso** — il codice è validissimo, è solo
+di qualcun altro. *Scritta da Code e marcata nel file come testo non approvato;
+resta in attesa della parola di Andrea.*
+
+### Trappole e zone cieche
+
+⚠️ **IL BUCO CHE C'ERA PRIMA, e perché non si vedeva.** La verifica era una
+`select` al checkout e la scrittura avveniva al webhook, **con tutto il
+pagamento Stripe in mezzo**. Due ordini simultanei prendevano **entrambi** lo
+sconto, e l'errore del secondo veniva **messo a tacere come idempotenza** —
+cioè il difetto aveva un pezzo di codice che lo faceva sembrare normale. *Non è
+stato trovato da una prova: è stato trovato guardando il percorso.*
+
+⚠️ **DEI TRE PUNTI DI LIBERAZIONE NE FUNZIONA UNO.** Solo l'annullamento dallo
+staff libera una prenotazione. **Pagamento fallito e sessione scaduta non
+arrivano affatto**: il webhook è in ascolto su **un evento solo**,
+`checkout.session.completed`. *Misurato, non supposto.* Il comportamento resta
+corretto — la prenotazione abbandonata viene sovrascritta dal prossimo che
+scrive — ma viene liberata **più tardi**, non «invece». Per chiuderli va
+aggiunto l'ascolto di quei due eventi **su Stripe**, non nel codice.
+
+⚠️ **NESSUNA PROVA AUTOMATICA GUARDA LO SCHERMO, E NESSUNA TOCCA L'INNESTO.**
+Che la rotta del pagamento chiami davvero il cuore nuovo **non è verificato da
+niente**: quel file non è importabile fuori da Next. È il pezzo che si prova
+solo dal vivo.
+
+⚠️ **IL `next build` RIESCE ANCHE SU UN IMPORT CHE CHIEDE UN NOME
+INESISTENTE.** Per questo esistono quattro prove che verificano che ogni nome
+importato dal modulo nuovo **esista davvero**, con la controprova su un nome
+inventato.
+
+⚠️ **La contraddizione A3/A5, sciolta.** Due decisioni dello stesso giorno non
+potevano valere insieme: *prenotare prima del pagamento* e *far scadere la
+prenotazione con la sessione Stripe*. **Vince la prima**: la scadenza è un
+tempo nostro, deciso da noi, non un tempo di Stripe. *Scritte insieme senza che
+nessuno notasse che si escludevano.*
+
+### ✅ Il primo codice consumato in produzione (03/10/2026)
+
+**`24RREV`** — serie C, 20% — su **`KM-0017`**, consegna, pagato.
+
+| | |
+|---|---|
+| subtotale | 37,50 |
+| sconto | **7,50** |
+| spese di consegna | 2,50 |
+| totale | **32,50** |
+
+✅ **Lo sconto e il totale tornano, e la riga vale una misura**: il 20% applicato
+*anche* alle spese darebbe **8,00**. Dà 7,50. **Le spese sono fuori, e non è
+più una regola scritta: è un numero osservato su un ordine vero.**
+
+**La cronologia, letta dal database:** prenotato alle **11:53:45**, ordine
+creato alle **11:53:46**, consumo alle **11:54:37** — ⚠️ **51,6 secondi fra la
+prenotazione e il consumo**, che è il tempo in cui il cliente sta sulla pagina
+di Stripe. *È la finestra dentro la quale il codice risulta preso e nessun
+altro può usarlo: misurata una volta su un ordine reale, non stimata.*
 
 ## 15. Categorie menu (ordine fisso)
 
@@ -2272,7 +2481,7 @@ non limitarsi a fidarsi del fatto che il client abbia già mostrato
 
 **Regola di versionamento, vincolante:** l'informativa descrive il sistema. Ogni modifica al codice che cambia ciò che il documento afferma comporta una nuova versione del documento **nello stesso passaggio**, e il numero di versione salvato in database cambia di conseguenza. Il primo caso già noto è lo spostamento del caricamento di Google Maps (vedi sotto): comporta la riscrittura del punto 5 e il passaggio a v1.3.
 
-**La casella marketing resta com'è** ("novità, offerte e comunicazioni", nessun canale nominato). I canali — e-mail, SMS, WhatsApp — sono elencati nel punto 3.5 dell'informativa, che la casella collega. Se un domani cambiano i canali, si aggiorna il punto 3.5 e la versione.
+⚠️ *(superato dal 03/11/2026 — vedi sotto)* **La casella marketing resta com'è** ("novità, offerte e comunicazioni", nessun canale nominato). I canali — e-mail, SMS, WhatsApp — sono elencati nel punto 3.5 dell'informativa, che la casella collega. Se un domani cambiano i canali, si aggiorna il punto 3.5 e la versione. ⚠️ **Questa riga non vale più: la frase è stata riscritta e nomina l'email.** *È lasciata perché il "se un domani cambiano i canali" è esattamente ciò che è accaduto, e perché la regola che ne discende — si aggiorna anche l'informativa — **non** è stata rispettata.*
 
 ---
 
@@ -2281,6 +2490,69 @@ non limitarsi a fidarsi del fatto che il client abbia già mostrato
 **Difetto accertato** (`app/api/checkout/route.js` 289-303, `onConflict: "phone"`): a ogni riordino l'`upsert` sovrascrive la riga cliente. Chi ha consentito una volta e riordina senza spuntare produce `marketing_opt_in = false`, `marketing_opt_in_at = null`, `marketing_text_version = null`. **La prova del consenso precedente viene cancellata**, e non esiste storico né funzione di revoca.
 
 **Decisione:** la prova va conservata. L'art. 7 GDPR impone di poter dimostrare il consenso prestato; l'informativa al punto 11.4 lo dichiara. Correzione minima accettabile: l'`upsert` non azzera `marketing_opt_in_at` e `marketing_text_version` quando il nuovo valore è `false` — il consenso corrente resta l'ultimo, ma resta traccia di quello precedente e della sua data.
+
+✅ **FATTO il 03/09/2026** (§14b), e in una forma migliore di quella prevista:
+quando il consenso non c'è, quelle due colonne **non si mandano affatto**, e un
+`upsert` scrive solo ciò che riceve. *Non serviva una condizione: bastava non
+spedire il campo.* ⚠️ **Il limite resta quello dichiarato**: sopravvive la prova
+dell'**ultimo** consenso, non uno storico.
+
+---
+
+### ✅ La frase del consenso marketing — riscritta, provata e pubblicata (v2, 03/11/2026)
+
+**Decisione di Andrea (03/11/2026):** la casella deve **chiedere l'email in
+modo esplicito**, perché serve a mandare news, sconti e promozioni riservate, e
+la vecchia formulazione («novità, offerte e comunicazioni») non lo diceva. La
+frase e la sua versione vivono in **`lib/marketing-consent.js`** (56 righe); la
+versione salvata in database passa a **`v2`**.
+
+⚠️ **CHI SPUNTA SENZA AVER SCRITTO L'EMAIL NON VIENE BLOCCATO** — scelta
+esplicita fra due strade, deciso il 03/11. Compare un **avviso**, ma il
+pulsante di pagamento **resta acceso** e l'ordine si può concludere. *La strada
+scartata era il blocco: un cliente che vuole solo mangiare non deve restare
+fermo su un campo facoltativo per avere spuntato una casella facoltativa.*
+✅ **Provato dal vivo da Andrea a locale aperto**: il pulsante resta acceso e
+l'avviso compare.
+
+✅ **Il pannello staff non tiene una propria copia della frase**: la mostra
+**com'è arrivata** insieme all'ordine. *Quindi la frase vive in un posto solo
+per costruzione, non per disciplina — non c'è una seconda copia che possa
+divergere.*
+
+**La misura prima e dopo** è stata fatta con
+`sql/20261103_verifica_consenso_v2_sola_lettura.sql` (253 righe), in sola
+lettura, su un referto di 16 righe.
+
+⚠️ **ZONA CIECA DICHIARATA: LA FRASE NUOVA NOMINA SOLO L'EMAIL, L'INFORMATIVA
+NE ELENCA QUATTRO.** Il punto 3.5 dell'informativa dichiara e-mail, **SMS,
+WhatsApp e chiamate**; la casella oggi chiede l'email e basta. *Non è un difetto
+del codice: è un disallineamento fra due testi, e la regola di versionamento di
+questa stessa sezione dice che quando il codice cambia ciò che il documento
+afferma, il documento cambia nello stesso passaggio. Qui non è stato fatto.*
+**Da chiudere scegliendo quale dei due ha ragione**, non ritoccando l'altro di
+fretta.
+
+⚠️ **E IL LAVORO 1 DEL PUNTO 16 NON È DI SOLA SCRITTURA**: salvare la versione
+dell'informativa accanto alla data richiede la colonna **`privacy_text_version`,
+che non esiste** (zero occorrenze, verificato). *Finché quella colonna non c'è,
+`PRIVACY_TEXT_VERSION` non ha dove essere salvata: il «da fare quando si
+riaprirà la rotta» qui sopra comporta una migrazione, non una costante.*
+
+### I dati per la mailing list — estratti il 02/10/2026
+
+**Due query separate**, com'è abitudine del progetto quando una tocca dati
+personali:
+
+| file | righe | impronta |
+|---|---|---|
+| `sql/20261002_mailing_list_conteggi_sola_lettura.sql` | 101 | `760e55ef…65ffe3d9` |
+| `sql/20261002_mailing_list_estrazione_DATI_PERSONALI.sql` | 94 | `93d52465…335e687` |
+
+**Il nome in maiuscolo del secondo è la prima protezione**, come per lo script
+del go-live di §69: nell'elenco della cartella si stacca a colpo d'occhio da
+una migrazione qualunque. *La prima conta e non estrae niente; la seconda
+estrae, e il suo nome lo dice prima che qualcuno la apra.*
 
 ---
 
@@ -5488,7 +5760,7 @@ sorvegliato da due prove: senza il cambio, e col cambio verso una categoria food
 6` aveva una proteina e non passava; `Roll di prova 7` non ne aveva e passava. *La
 differenza non era il riquadro, era l'articolo.* **La sporcatura che la
 «semplificherebbe» — allargarla a qualunque cambio di categoria — fa cadere una
-prova sola, `k32`: la rete lì è sottile e va saputo.*
+prova sola, `k32`:** *la rete lì è sottile e va saputo.*
 
 **(D11) UN RIQUADRO SOLO, NON DUE IN FILA** (aggiunta in v88). *Sul pannello
 esisteva già il riquadro del prezzo, e un salvataggio può farli scattare
@@ -6325,8 +6597,13 @@ questo documento.
   ✅ **REGOLA CHE NE DISCENDE, decisione di Andrea del 01/09/2026: CHI CREA UNA
   TABELLA NUOVA LE TOGLIE SUBITO I PERMESSI PUBBLICI CHE NON SERVONO.** *Non è
   una regola del database: è un'abitudine, e per questo sta scritta qui.*
-  *Resta da chiedere a Supabase se quel predefinito sia modificabile. Non blocca
-  niente: non ci sono tabelle nuove in vista.*
+  *Resta da chiedere a Supabase se quel predefinito sia modificabile.*
+  ✅ **E la regola ha funzionato alla prima occasione**: `coupon_redemptions`
+  (§14b) è nata il 03/09/2026 e i cinque permessi pubblici che non servivano le
+  sono stati revocati **nella stessa migrazione che la crea**, non in un secondo
+  momento. ⚠️ *Senza quella revoca sarebbe nata scrivibile e cancellabile da
+  chiunque apra il sito — la porta del futuro non è chiusa, è solo che si è
+  passati davanti sapendolo.*
   ⚠️ **Confine dichiarato**: esistono anche permessi predefiniti **globali**, non
   legati ad alcuno schema, che nessuna misura ha mai guardato.
 
@@ -6972,6 +7249,14 @@ valido, e la mancanza della dichiarazione di quante righe deve avere il proprio
 referto, che §66 impone. *Sono commenti, non comportamento: non toccati il giorno
 dell'esecuzione apposta.*
 
+⚠️⚠️ **E UN TERZO DIFETTO, QUESTO DI COMPORTAMENTO: QUEL REFERTO NON CONTA
+`coupon_redemptions`.** La tabella è nata il 03/09/2026 (§14b) e lo script dei
+conteggi non è stato aggiornato. *Conseguenza concreta: il confronto fra il
+referto **prima** e quello **dopo** una pulizia è **cieco su quella tabella** —
+se la pulizia vi cancellasse righe che non doveva, nessuno dei due referti se ne
+accorgerebbe.* **Non è un commento: è una misura che manca.** *Resta aperto
+perché lo script si tocca il primo del mese, non in mezzo a un altro lavoro.*
+
 Non esisteva nulla in spec. Ora esiste.
 
 **Ordini completati e pagati:** conservati per gli obblighi amministrativi, contabili e fiscali. Le durate esatte le fissa il commercialista.
@@ -6980,7 +7265,7 @@ Non esisteva nulla in spec. Ora esiste.
 
 ✅ **Il giorno è fissato: il primo di ogni mese, prima di aprire il locale** (decisione di Andrea, 05/08/2026). Il primo perché **esiste in tutti i mesi** — un giorno che qualche mese non c'è è un giorno che prima o poi salta — e a saracinesca chiusa perché la procedura scrive sul database che serve i clienti. *La sequenza completa di ogni esecuzione è: referto dei conteggi, pulizia, referto dei conteggi di nuovo.*
 
-⚠️ **Il referto delle statistiche di §65 si lancia PRIMA della pulizia, non dopo.** Nel caso normale non cambia nulla — la pulizia tocca solo ciò che ha più di trenta giorni — ma l'ordine giusto costa zero a scriverlo ed evita di doverci ragionare ogni volta. *Ne esce un'abitudine sola invece di tre: il primo del mese, tre file in fila nella stessa schermata — statistiche, conteggi, pulizia. Una procedura mensile si ricorda; tre sparse si dimenticano, ed è esattamente il rischio che questa sezione dichiara su sé stessa.* ⚠️ **Resta aperta la sola prima esecuzione**, che è ciò che tiene aperta questa condizione: finché non è stata fatta una volta, il punto 11.2 dell'informativa è una promessa senza precedente.
+⚠️ **Il referto delle statistiche di §65 si lancia PRIMA della pulizia, non dopo.** Nel caso normale non cambia nulla — la pulizia tocca solo ciò che ha più di trenta giorni — ma l'ordine giusto costa zero a scriverlo ed evita di doverci ragionare ogni volta. *Ne esce un'abitudine sola invece di tre: il primo del mese, tre file in fila nella stessa schermata — statistiche, conteggi, pulizia. Una procedura mensile si ricorda; tre sparse si dimenticano, ed è esattamente il rischio che questa sezione dichiara su sé stessa.* ✅ **LA PRIMA ESECUZIONE È STATA FATTA — 06/11/2026, a locale chiuso** (vedi sotto). *Il punto 11.2 dell'informativa non è più una promessa senza precedente.* ⚠️ **Ed è arrivata il 6, non il primo del mese**: la prima volta era già in ritardo di cinque giorni — *che è esattamente il rischio che questa sezione dichiara su sé stessa quando dice che la procedura «vale quanto la disciplina con cui viene eseguita».*
 
 **Quali ordini sono "mai pagati" (decisione di Andrea del 04/08/2026):** `pending` **e** `failed`. La v53 nominava i soli `pending`, perché `failed` non è mai stato usato da nessun ordine; ma la regola è la stessa e scriverla oggi costa una riga, mentre scoprirla quando quello stato inizierà a popolarsi — per esempio agganciando i webhook di Stripe — costa una decisione presa di fretta. **Mai toccati**, in nessun caso: `succeeded`, `refunded`, `partially_refunded`.
 
@@ -7016,7 +7301,7 @@ Non sono più un lavoro da fare: esistono, sono in `sql/`, e nessuno dei tre è 
 |---|---|---|
 | `sql/conteggi_dati_sola_lettura.sql` | conta e basta, non scrive nulla | **prima e dopo** ognuna delle due pulizie |
 | ~~`sql/ESEGUIRE_UNA_VOLTA_SOLA_prima_del_golive_CANCELLA_TUTTI_GLI_ORDINI.sql`~~ | ✅ **ESEGUITO IL 01/09/2026 e TOLTO DAL DEPOSITO** (commit `4ddd79b`) | fatto |
-| `sql/pulizia_mensile_ordini_mai_pagati.sql` | rimuove ordini mai pagati oltre i 30 giorni | **ogni mese**, per sempre |
+| `sql/pulizia_mensile_ordini_mai_pagati.sql` | rimuove ordini mai pagati oltre i 30 giorni — ✅ **corretto e ESEGUITO il 06/11/2026** | **ogni mese**, per sempre |
 
 **I nomi sono la prima protezione**, quella che agisce prima che qualcuno apra il file: il maiuscolo è voluto, perché nell'elenco della cartella — fra nove migrazioni datate tutte minuscole — quel file si stacca a colpo d'occhio. I due strumenti si somigliano e stanno nella stessa cartella: il pericolo non è che qualcuno esegua quello sbagliato di proposito, è che li confonda. *Le date sono uscite dai nomi: il primo verrà cancellato e non ordina niente, gli altri due non sono di agosto ma di sempre.*
 
@@ -7030,7 +7315,62 @@ Non sono più un lavoro da fare: esistono, sono in `sql/`, e nessuno dei tre è 
 
 **Stato del freno al 05/08/2026**: il valore committato nel file è anteriore all'ordine più recente, quindi **oggi il freno fermerebbe l'esecuzione**. È il comportamento voluto, ed è la direzione sicura.
 
-**Ogni tabella del database è coperta.** Le **sette** che gli script toccano più le **sedici** dichiarate intoccabili fanno esattamente le 23 dello schema: nessuna resta fuori: o è dichiarata come toccata, o è misurata come intatta dai post-check. *Le sedici non sono un elenco copiato a mano nei controlli: è la stessa lista, dichiarata una volta e percorsa in ciclo, così intestazione e verifica non possono divergere.* ⚠️ *`staff_action_log` è fra le sette ma non viene mai svuotato: le righe vere restano sempre, ed è l'eccezione di §66.*
+**Ogni tabella del database è coperta.** Le **otto** che gli script toccano più le **sedici** dichiarate intoccabili fanno esattamente le **24** dello schema: nessuna resta fuori: o è dichiarata come toccata, o è misurata come intatta dai post-check. *Le sedici non sono un elenco copiato a mano nei controlli: è la stessa lista, dichiarata una volta e percorsa in ciclo, così intestazione e verifica non possono divergere.* ⚠️ *`staff_action_log` è fra le otto ma non viene mai svuotato: le righe vere restano sempre, ed è l'eccezione di §66.* ⚠️ **L'ottava è `coupon_redemptions`, dal 03/09/2026**: la pulizia mensile la tocca (vedi sotto), ma lo script dei conteggi **non la conta** — il debito dichiarato più sopra.
+
+---
+
+### ✅ LA PULIZIA MENSILE — CORRETTA E POI ESEGUITA PER LA PRIMA VOLTA (06/11/2026)
+
+⚠️⚠️ **LO SCRIPT ERA ROTTO DAL 03/09/2026, E NESSUNO SE N'ERA ACCORTO.** Il file
+è in `sql/` dal 04/08/2026 e non era mai stato eseguito. Il 03/09 è nata
+`coupon_redemptions` (§14b), la cui colonna `order_id` punta a `orders`
+**senza cancellazione a catena** — esattamente la situazione che questa sezione
+descrive per gli eventi statistici. *Quindi la prima esecuzione, quella che
+teneva aperta la condizione di apertura, si sarebbe **fermata su un errore di
+vincolo**: due mesi di attesa per poi non partire.* **Trovato misurandolo, non
+eseguendolo.**
+
+✅ **Misurato prima di toccare qualunque cosa**, con
+`sql/20261106_misura_pulizia_mensile_sola_lettura.sql` (226 righe, impronta
+`f35be49d…476a71`), referto di 12 righe. *I conteggi del giorno — prima e dopo
+— vivono nell'`HANDOFF.md`, come questa sezione impone: invecchiano a ogni
+esecuzione.*
+
+**La correzione**: da **339 a 453 righe**, impronta
+`c80ea0bb8770ea948f3c829dae2e0a7821931012c02befce3fdcac0da55c6d67`. Aggiunti un
+passo di pre-check (`1d`), un passo di cancellazione (`3b`), un settimo
+post-check, **sei variabili** e una riga di riepilogo; ⚠️ *corretti anche due
+commenti che erano scaduti senza che nessuno li leggesse.*
+
+⚠️ **LA REGOLA, E PERCHÉ NON È QUELLA DEI CODICI PROMO.** Sulle righe di
+`coupon_redemptions` la pulizia:
+
+* **cancella** le righe `reserved` **scadute**, legate a ordini che vanno via;
+* ⚠️ **SI FERMA** davanti a una riga `consumed`, **o** a una prenotazione
+  ancora viva.
+
+*Fermarsi è la scelta, non un ripiego.* Una riga `consumed` è **la prova che
+quel codice è stato speso**: cancellarla **rimetterebbe in circolazione un
+codice monouso al mondo già usato** — e a differenza di `GIVEMEFIVE`, che si
+rigenera per telefono, un codice nominativo tornerebbe spendibile da chiunque
+lo abbia in mano. **Non è il caso di `promo_redemptions`**, dove la riga si
+cancella perché il riferimento all'ordine è obbligatorio e non si può staccare.
+
+⚠️ **E non è il caso dello «staccare invece di cancellare» qui sopra, benché la
+struttura lo consentirebbe**: `coupon_redemptions.order_id` è **facoltativa**,
+quindi si *potrebbe* staccare il riferimento e conservare la riga. **Non si
+fa**: una riga `consumed` senza ordine sarebbe un codice bruciato di cui non si
+sa più su che cosa. *Fra conservare una prova mutilata e fermarsi, si ferma —
+ed è la direzione sicura, come il freno di §69.*
+
+✅ **Eseguita da Andrea il 06/11/2026 a locale chiuso**, con la sequenza
+prescritta: conteggi, pulizia, conteggi di nuovo.
+
+⚠️ **DEBITO APERTO:** `sql/20261106_verifica_ordine_24RREV_sola_lettura.sql`
+(231 righe) **non è committato per scelta**, perché il suo nome è legato a un
+codice singolo. *Va riscritto in forma generica — tutti i codici consumati —
+quando i codici consumati saranno più d'uno. Un file di verifica che nomina un
+caso particolare si esegue una volta e poi mente.*
 
 ---
 
