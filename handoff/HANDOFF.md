@@ -23,6 +23,12 @@ nessuno se ne ricorda.*
 ## 2) Stato git
 
 - Branch **`main`**, working tree **pulita**.
+- ✅ **AL 06/11/2026: tutto il lavoro di codice e di SQL è pubblicato**, fino a
+  `670f03a`. *I due commit dei documenti della v92 vengono dopo questa riga, che
+  per costruzione non può nominarli.* ⚠️ *Restano due file in `sql/` non
+  tracciati **per scelta** — vedi 49a.* **Le righe qui sotto sono di fine
+  agosto**: tenute perché l'elenco dei commit serve, non perché lo stato sia
+  quello.
 - HEAD locale: **`e9ad192`**; `origin/main` a **`512d46d`**, cioè **un commit
   indietro** al momento in cui questa riga è stata scritta.
 - ⚠️ *Questa riga non può nominare il commit che la contiene, e il push deciso
@@ -141,9 +147,9 @@ blocco: l'HEAD dichiarato era giusto, era la spiegazione a non coprire il caso
 normale della coppia spec+handoff.*
 
 *Caso del 26/08/2026: distanza **uno**, ma ⚠️ **la giornata porta OTTO commit
-di codice e prove** prima della spec `905c4a0` — la più piena finora. *Il passo
+di codice e prove** prima della spec `905c4a0` — la più piena finora. Il passo
 1 è del **25/08 sera**, dopo che l'handoff di quel giorno era già stato
-committato: per questo `922024e` non compare nel registro di ieri.**
+committato: per questo `922024e` non compare nel registro di ieri.*
 
 *Caso del 25/08/2026: distanza **uno**, e ⚠️ **zero commit di codice**: la
 giornata è di sole decisioni e ricognizione, quindi fra la spec `3ac16f6` e
@@ -4566,7 +4572,7 @@ sostituisce il blocco, si guardi anche cosa c'era sotto.**
 dal deposito. ⚠️ **Resta solo aprire, e non è un lavoro: è una decisione di
 Andrea.** *Il sito è online, funzionante e in grado di incassare.*
 
-**Aperto e non chiuso:**
+**Aperto e non chiuso** — ⚠️ *superato: l'elenco corrente è in **49k***:
 
 * **La porta del futuro** sui permessi predefiniti — da chiedere a Supabase, non
   blocca niente.
@@ -4577,3 +4583,295 @@ Andrea.** *Il sito è online, funzionante e in grado di incassare.*
 * **`km-direct.vercel.app` da dismettere**, dopo l'apertura e non prima.
 * **La condensazione dei documenti** — Decisione, Attuazione, Regole, Trappole —
   da fare **dopo l'apertura**, quando si saprà quali parti sono servite davvero.
+
+---
+
+## 49) I due mesi non registrati: i codici sconto, il consenso, la pulizia (02/09–06/11/2026)
+
+⚠️⚠️ **QUESTO PUNTO COPRE SESSANTACINQUE GIORNI IN UNA VOLTA.** I documenti
+erano fermi al 01/09 mentre il sito incassava ordini veri. *Non è un modo
+efficiente di lavorare: è un debito che si è pagato tutto insieme, e la parte
+che si è persa è il dettaglio dei giorni in mezzo — restano le decisioni, le
+regole e le trappole, non la cronaca.* **Scritto già in forma compatta**
+(Decisione · Attuazione · Regole · Trappole), che è la condensazione promessa da
+48h applicata **alle parti nuove e non al resto**: riscrivere le ottomila righe
+vecchie è un lavoro a sé e non va mescolato a questo.
+
+**Dove sta il contenuto**: **§14b** della spec (i codici sconto, sezione nuova),
+**§41-45** (il consenso `v2`), **§69** (la pulizia corretta e la prima
+esecuzione), **§66** (la regola sulla tabella nuova che ha funzionato). *Qui
+sotto stanno i punti di metodo, che in spec non ci vanno.*
+
+### 49a) Il lavoro, in sei righe
+
+Tre serie di codici nominativi, **300 codici monouso al mondo**, tabella nuova
+`coupon_redemptions`, un cuore di 455 righe, cinque migrazioni SQL eseguite da
+Andrea nel SQL editor, **cinque commit di codice** più due di soli file SQL.
+**Le prove sono passate da 2015 a 2168**, 42 suite, zero fallite. ✅ **Il primo
+codice è stato consumato in produzione il 03/10.** ✅ **La prima pulizia mensile
+è stata eseguita il 06/11.** *Codice e SQL tutti pubblicati, fino a **`670f03a`**; i due commit dei documenti vengono dopo.*
+
+⚠️ **Due file in `sql/` restano non tracciati per scelta**: quello della revoca
+dei permessi predefiniti (rifiutata dal database con `42501`, non ha scritto
+niente — un file che documenta un tentativo respinto) e quello della verifica di
+`24RREV`, il cui nome è legato a un codice singolo e va reso generico.
+
+### 49b) ⚠️ Il prompt sbagliato dato a Code, e la diagnosi che ho sbagliato io
+
+Andrea ha aperto una sessione nuova di Code incollandogli **il prompt del
+compagno di ragionamento** invece del suo. Code si è comportato di conseguenza:
+**ha rifatto il mio lavoro** invece di eseguirlo.
+
+⚠️ **E la mia prima diagnosi era sbagliata**: avevo concluso che il prompt fosse
+difettoso. **La causa vera l'ha trovata Andrea**, ricordando cosa aveva
+incollato. *Lezione `ef`: quando un esecutore si comporta come un
+ragionatore, la prima cosa da guardare non è come è scritto il suo prompt — è
+**quale** prompt ha ricevuto.* ✅ **Correzione**: chat nuova con un prompt
+dedicato che dichiara il ruolo di esecutore.
+
+### 49c) ⚠️ La caduta di rete che sembrava un difetto nostro (07/09)
+
+Durante le prove dei codici il campo rispondeva «Non siamo riusciti a verificare
+il codice» **dopo circa 49 secondi**, e il pannello si bloccava.
+
+**La mia ipotesi** — un client sbagliato sulla tabella `coupons` — **è stata
+smentita dalla misura**: la rotta si fermava **35 righe prima**, su
+`getActiveStore()`, e **anche `/api/service-status` falliva**. *Causa unica: la
+connessione verso Supabase era caduta per una cinquantina di secondi ed era
+tornata.* **Nessun difetto nel nostro codice.**
+
+*Lezione `eg`: un guasto di rete si presenta come un difetto applicativo, e la
+prova che non lo è non sta nel punto dove l'errore compare — sta nel vedere che
+**anche un'altra rotta, che non c'entra niente, fallisce nello stesso momento**.*
+
+### 49d) Le mie tre sviste, scritte perché una è costata un comando a vuoto
+
+* ⚠️ **La soglia dei 25 €.** Ho segnalato come difetto la frase «ti mancano
+  9,00 € per usare questo sconto» su un codice senza soglia — ma Andrea aveva
+  usato un codice **serie A**, che la soglia ce l'ha. **Nessun difetto**, e il
+  comando di diagnosi era già scritto: annullato.
+* ⚠️ **I codici inviati.** Avevo **dedotto** che fossero andati ai dieci clienti
+  del database. Andrea ha corretto: erano andati ad altre persone. *Una
+  deduzione comoda presentata come un fatto.*
+* ⚠️ **Il conteggio dei commit.** Ho scritto «sei commit di codice»: erano
+  **cinque** — il sesto era di soli file SQL. **Corretto da Code**, non da me.
+
+*La famiglia è una sola, ed è vecchia: **un numero o un nesso che non ho
+misurato non va scritto come se l'avessi misurato.***
+
+### 49e) ⚠️ La mia frase ambigua, e le tre letture di Code
+
+Avevo scritto nel comando «un guasto non concede». **Code ha mostrato che si
+poteva leggere in tre modi**, e che la lettura letterale — *non concedere lo
+sconto e proseguire col pagamento* — **era peggio di come funzionava quel
+giorno**, perché il cliente avrebbe pagato **più** di quanto aveva visto sullo
+schermo.
+
+✅ **Decisione corretta, presa da Andrea: il guasto FERMA il pagamento.**
+*Lezione `eh`: una frase ambigua in un comando non produce un errore, produce
+una scelta — e chi esegue la fa al posto tuo. Un esecutore che invece di
+scegliere **espone le letture** è la differenza fra un difetto e una decisione.*
+
+### 49f) ⚠️ Due decisioni dello stesso giorno che si escludevano
+
+«A3: prenota prima del pagamento» e «A5: la prenotazione scade con la sessione
+Stripe» **non potevano valere insieme**, ed erano state scritte una sotto
+l'altra senza che nessuno lo notasse. **Sciolta: vince A3**, e la scadenza è un
+tempo nostro.
+
+*Lezione `ei`: un elenco di decisioni prese nello stesso momento non è
+automaticamente coerente. Va riletto **come insieme**, non voce per voce.*
+
+### 49g) ⚠️ Un mio comando che avrebbe lasciato la porta aperta
+
+Avevo scritto «revoca la sola `TRUNCATE`» sulla tabella nuova. **Avrebbe
+lasciato `INSERT`, `UPDATE`, `DELETE` e `SELECT` ai ruoli pubblici** — cioè
+avrebbe applicato alla lettera la lezione del 01/09 **invece della regola** che
+ne era nata. ✅ Corretto a cinque permessi revocati.
+
+### 49h) Il consenso marketing, e cosa ha semplificato una misura
+
+**Scoperta che ha ridotto il lavoro**: il pannello staff **non tiene una propria
+copia della frase** — la mostra com'è arrivata con l'ordine. *Quindi la frase
+vive in un posto solo **per costruzione**, e non serviva una guardia che
+sorvegliasse due copie.*
+
+⚠️ **Quarta volta della stessa famiglia: sonde con zeri falsi** perché la frase
+cercata **va a capo in mezzo** nel file gemello.
+
+⚠️⚠️ **E QUINTA E SESTA, FATTE DA ME MENTRE SCRIVEVO QUESTO PUNTO.** Controllando
+che le dieci voci del blocco Novità vivessero nel corpo, **due hanno dato zero**:
+non perché mancassero, ma perché **nel blocco sono scritte in maiuscolo e nel
+corpo in minuscolo** («FERMA IL PAGAMENTO» contro «ferma il pagamento»), e perché
+una frase del blocco («chiede esplicitamente l'email») **nel corpo è detta con
+altre parole** («chieda l'email in modo esplicito»). *Entrambe le volte lo zero
+l'ho indagato invece di riferirlo, e il difetto era nella mia sonda.*
+
+✅ **La regola che ne esce, più precisa di «cerca corto»**: una voce del blocco
+Novità e la riga del corpo che la realizza **non sono la stessa frase** — il
+blocco grida, il corpo spiega. **La sonda va costruita sulla parola che le due
+hanno davvero in comune**, non sulla frase del blocco. *E un controllo del tipo
+«ogni voce vive nel corpo» va eseguito **sempre insensibile al maiuscolo**,
+altrimenti misura la tipografia e non il contenuto.*
+
+### 49i) ⚠️ Lo strumento che si era rotto da solo, e la prima esecuzione
+
+`sql/pulizia_mensile_ordini_mai_pagati.sql` era in `sql/` dal 04/08 e **non era
+mai stato eseguito**. Il 03/09, nascendo `coupon_redemptions`, **è diventato
+rotto**: la prima esecuzione si sarebbe fermata su un errore di vincolo.
+
+*Lezione `ej`: uno strumento che non si esegue mai non resta buono — invecchia
+in silenzio insieme allo schema, e il giorno in cui serve non parte. **La
+pulizia mensile va riletta ogni volta che nasce una tabella**, non ogni volta
+che si esegue.*
+
+✅ Corretto (339 → 453 righe) e **eseguito il 06/11 a locale chiuso**, nella
+sequenza prescritta. ⚠️ **I conteggi del giorno — il referto PRIMA e quello
+DOPO — non sono riportati qui: non li ho in forma leggibile.** *Vanno recuperati
+dai referti di Andrea e scritti in §11 (stato dei dati), che è il loro posto. È
+una lacuna di questo punto, dichiarata invece di riempita a memoria.*
+
+### 49j) ⚠️⚠️ Le copie di lavoro perdute, e le impronte che hanno fermato una cancellazione
+
+**Il 06/11 la mia sessione è stata ricostruita e le copie di lavoro dei due
+documenti non c'erano più.** Al loro posto, fra gli allegati, c'erano due file
+con **gli stessi nomi** — `MASTER_SPEC.md` e `HANDOFF.md` — che si presentavano
+come i documenti del progetto.
+
+⚠️ **Erano vecchi di due mesi e mezzo: spec `v86` e handoff fermo al punto 44.**
+Misurato: 6471 righe contro 7053, e sonde a **zero** su `coupon_redemptions`,
+`24RREV`, `coupon-reservation` — *con la controprova che `GIVEMEFIVE` dava 22 e
+30, quindi le sonde funzionavano e i file erano veri, solo di un'altra epoca.*
+
+**Se li avessi usati come base, il file consegnato a Code avrebbe cancellato
+quattro punti dell'handoff e cinque versioni di spec** — il lavoro dal 30/08 al
+01/09. ✅ **Il metodo delle impronte ha funzionato**: i file veri, ripresi dal
+repository, avevano le impronte **identiche byte per byte** a quelle consegnate
+il 01/09 (`f5c17d44…c292ca` e `97645b6f…222cbc1`).
+
+*Lezione `ek`, e vale più di tutte le altre di questo punto: **un documento
+vecchio non si annuncia.** Ha il nome giusto, la struttura giusta, e parla del
+progetto giusto. L'unica cosa che lo smaschera è una misura — l'impronta, o il
+conteggio delle righe, o una sonda su un fatto che a quella data non esisteva
+ancora. **Mai il nome del file, mai la sua data.***
+
+### 49k) Dove siamo
+
+**TUTTE LE CONDIZIONI DI APERTURA SONO CHIUSE**, e dal 06/11 **anche la prima
+pulizia mensile**. *Il sito è online, incassa, ha già consumato un codice sconto
+nominativo su un ordine vero.* ⚠️ **Resta solo aprire davvero, e non è un
+lavoro: è una decisione di Andrea.**
+
+**Aperto e non chiuso** *(sostituisce l'elenco di 48h)*:
+
+* **La porta del futuro** sui permessi predefiniti — concedente
+  `supabase_admin`, si affronta dal pannello Supabase, non dal SQL editor. Non
+  blocca niente.
+* **I permessi predefiniti GLOBALI**, che nessuna misura ha mai guardato.
+* ⚠️ **I conteggi del 06/11 da scrivere in §11** (vedi 49i).
+* ⚠️ **`sql/conteggi_dati_sola_lettura.sql` non conta `coupon_redemptions`**: il
+  confronto prima/dopo è **cieco su quella tabella**. *Più i due difetti di
+  documentazione già noti.*
+* ⚠️ **La frase del consenso `v2` nomina solo l'email**, l'informativa elenca
+  quattro canali: da allineare scegliendo quale dei due ha ragione.
+* ⚠️ **Due dei tre punti di liberazione delle prenotazioni non esistono**:
+  servono due eventi in più **su Stripe**, non nel codice.
+* **Il file di verifica di `24RREV` da rendere generico** e poi committare.
+* **La colonna `privacy_text_version` non esiste**: il lavoro 1 del punto 16 è
+  una migrazione, non una costante.
+* **I numeri del punto 16 sono invecchiati di nuovo** — i `console.error` stanno
+  a 395, 552, 580, ed è la seconda volta che si spostano. *Vale la pena scrivere
+  che quei numeri invecchiano a ogni tocco, invece di riscriverli.*
+* **Il debito del nome `confermaPrezzo`.**
+* **`km-direct.vercel.app` da dismettere**, e da togliere dalle restrizioni
+  della chiave Google.
+* **La citazione «riga 398»** invece della 400, nel file del pezzo 2 già
+  committato. *Lasciata: non vale un commit.*
+* **La condensazione dei documenti vecchi** — fatta per le parti nuove, da
+  decidere se vale per il resto. *Da fare dopo l'apertura, se si farà.*
+
+### 49l) ⚠️ Due correzioni che non c'entrano col lavoro di stasera, dichiarate
+
+Verificando i documenti con una misura sui marcatori di formattazione — un
+grassetto aperto e mai chiuso rende in grassetto tutto ciò che segue — ne sono
+usciti **due difetti preesistenti, uno per documento**, entrambi corretti:
+
+* **spec, blocco `(D10)`** *(dalla v88)*: un periodo apriva `**` e chiudeva con
+  un `*` singolo, quindi da lì fino a `(D11)` il testo rendeva tutto in
+  grassetto. Chiuso il grassetto e aperto il corsivo dove l'intenzione era
+  evidente dallo stile della sezione.
+* **handoff, il caso del 26/08** nella sezione sulla distanza fra i commit: un
+  periodo in corsivo finiva con `.**` invece di `.*`. **Allineato ai due casi
+  gemelli immediatamente sotto** (25/08 e 24/08), che sono scritti giusti — *la
+  forma corretta non è stata indovinata, è stata copiata da due righe vicine.*
+
+⚠️ **Non c'entrano col contenuto di questo punto e compaiono nel diff**: sono qui
+perché un diff con dentro una modifica non spiegata è un diff che non si può
+verificare. *La misura è stata fatta escludendo il codice fra backtick: senza
+quell'esclusione dava due falsi positivi — il letterale `aperte**.*` citato in
+48g e nel vecchio blocco Novità, che è testo e non formattazione.*
+
+### 49m) Sette lezioni
+
+⚠️ **Scritte qui nella forma canonica del documento — `**sigla. TITOLO**` — e non
+soltanto dentro il racconto dei sottopunti.** *Nella prima stesura di questo punto
+stavano solo lì, nominate come `` `ef` `` in mezzo a una frase: chi avesse cercato
+`**ef.`, che è la forma in cui le lezioni si definiscono dal punto 18, non ne
+avrebbe trovata nessuna. È il difetto che la lezione `el` descrive, trovato
+addosso a sé stesso.*
+
+**ef. ⚠️ QUANDO UN ESECUTORE SI COMPORTA COME UN RAGIONATORE, GUARDA QUALE
+PROMPT HA RICEVUTO, NON COM'È SCRITTO.** *(da 49b)* La prima diagnosi è stata che
+il prompt fosse difettoso, e **era sbagliata**: il prompt era quello di un'altra
+sessione. **Prima di correggere uno strumento, accertarsi che sia quello
+giusto.**
+
+**eg. ⚠️ UN GUASTO DI RETE SI PRESENTA COME UN DIFETTO APPLICATIVO.** *(da 49c)*
+La prova che non lo è **non sta nel punto dove l'errore compare**: sta nel vedere
+che **anche un'altra rotta, che non c'entra niente, fallisce nello stesso
+momento**. *La mia ipotesi su una tabella precisa è stata smentita da una misura
+che guardava altrove.*
+
+**eh. ⚠️ UNA FRASE AMBIGUA IN UN COMANDO NON PRODUCE UN ERRORE: PRODUCE UNA
+SCELTA, E CHI ESEGUE LA FA AL POSTO TUO.** *(da 49e)* **Un esecutore che invece
+di scegliere espone le letture** è la differenza fra un difetto e una decisione.
+*Qui la lettura letterale era peggio di come funzionava quel giorno.*
+
+**ei. ⚠️ UN ELENCO DI DECISIONI PRESE NELLO STESSO MOMENTO NON È
+AUTOMATICAMENTE COERENTE.** *(da 49f)* Va riletto **come insieme**, non voce per
+voce. *A3 e A5 si escludevano e stavano una sotto l'altra.*
+
+**ej. ⚠️ UNO STRUMENTO CHE NON SI ESEGUE MAI NON RESTA BUONO: INVECCHIA IN
+SILENZIO INSIEME ALLO SCHEMA.** *(da 49i)* **La pulizia mensile va riletta ogni
+volta che nasce una tabella**, non ogni volta che si esegue. *Era rotta da due
+mesi e lo si è scoperto misurandola, non eseguendola.*
+
+**ek. ⚠️⚠️ UN DOCUMENTO VECCHIO NON SI ANNUNCIA.** *(da 49j)* Ha il nome giusto,
+la struttura giusta e parla del progetto giusto. **Lo smaschera solo una misura**
+— l'impronta, il conteggio delle righe, o una sonda su un fatto che a quella data
+non esisteva ancora. ⚠️ **Mai il nome del file, mai la sua data.**
+
+**el. ⚠️⚠️ LA COSA CHE CERCHI PUÒ ESSERE SCRITTA IN DUE FORME: UNA PER DEFINIRLA
+E UNA PER CITARLA. UNA SONDA CHE CONOSCE SOLO LA SECONDA NON TROVA LA PRIMA.**
+*Nata da un errore mio del 06/11, e il più istruttivo della giornata.* Per
+assegnare sei sigle nuove alle lezioni **ho misurato quali fossero libere
+cercando `` `sigla` `` fra backtick** — che è la forma dei **rimandi**. Le lezioni
+si **definiscono** invece come `**sigla. TITOLO**`, **senza backtick**. Le sei che
+avevo scelto — `cq` a `cv` — erano tutte **già definite dal 11/08**, e per di più
+**non richiamate da nessuna parte**: quindi la mia sonda contava **1**, cioè la
+riga che stavo scrivendo io, e io leggevo quell'uno come «libera».
+
+⚠️ **Il conteggio era giusto, la domanda era sbagliata**: ho misurato i rimandi e
+dichiarato qualcosa sulle definizioni. *Ed è la terza volta nella stessa sera che
+una mia sonda guarda una forma diversa da quella in cui il fatto è scritto — le
+altre due sono in 49h.* **La collisione l'ha trovata Code, non io**, e sarebbe
+finita nel documento e nel messaggio di un commit.
+
+✅ **Le due regole che ne escono:**
+
+* **prima di assegnare una sigla, cercarla nella forma in cui si DEFINISCE**, e
+  solo dopo nei rimandi. *L'elenco completo delle sigle in uso si ottiene con la
+  forma della definizione: al 06/11 sono 69 e arrivano a `ee`.*
+* ⚠️ **un conteggio pari a 1 su un file che stai scrivendo non dice «libera»**:
+  dice che ce n'è una, e **potrebbe essere la tua**. *La misura va fatta sul file
+  prima di toccarlo, o escludendo la parte nuova.*
