@@ -1,6 +1,6 @@
 # KM DIRECT — MASTER SPECIFICATION
 
-**Versione 92** — sostituisce la v91.
+**Versione 93** — sostituisce la v92.
 
 Documento di riferimento definitivo per lo sviluppo. Le decisioni qui
 contenute sono approvate: non vanno reinterpretate senza un motivo concreto
@@ -22,73 +22,32 @@ versione corrente**. I precedenti vivono in `git log`, che è fatto per quello.
 del documento prima che cominciasse a parlare del progetto — e dentro c'erano
 istruzioni rovesciate che nessuno rileggeva.*
 
-**Novità della v92** (vincolanti, 02/09–06/11/2026):
+**Novità della v93** (vincolanti, 06/11/2026):
 
-⚠️ **Le sette voci della v91 sono state controllate una per una e vivono tutte
-nel corpo** (§6c righe 368 e 380, §69 il primo ordine `KM-0001`, §66 le 18
-revoche, le RLS che non fermano la truncate, il concedente `supabase_admin` e il
-`42501`, §69 il freno e i quattro identificatori). *Nessuna riga orfana
-sopravvissuta in coda al blocco della v91 — controllato apposta, perché è il
-punto in cui ne sono già sopravvissute tre.*
+⚠️ **Le dieci voci della v92 sono state controllate una per una e vivono tutte
+nel corpo** (§14b le prime sei, §41-45 la settima, §69 l'ottava e la nona, §66
+la decima). **Una frase sola non viveva nel corpo, ed è stata portata in §66**:
+che tutte le condizioni di apertura sono chiuse e che resta solo l'apertura.
+*Era scritta solo nel blocco Novità, che si cancella a ogni versione: sarebbe
+sparita senza che nessuno la togliesse. Il racconto dei due mesi non registrati
+resta nell'handoff, punto 49: è storia, non decisione.*
 
-⚠️ **DUE MESI DI LAVORO NON ERANO REGISTRATI.** Questi documenti erano fermi al
-01/09/2026 mentre il sito incassava ordini veri. *La v92 copre dal 2 settembre
-al 6 novembre in una volta sola: è la cosa che non va rifatta, non un modo
-efficiente di lavorare.*
+1. §19 e §25 — ✅ **IL SUPPLEMENTO DELL'ADANA È SCESO DA 4,50 A 3,50 €** il
+   06/11/2026, cambiato da Andrea dal pannello staff su **tutti e 10** gli
+   articoli che lo hanno (5 Roll e 5 Bowl) e verificato con una SELECT sul
+   database. ⚠️ *Il numero è stato **tolto** dal testo, non aggiornato.*
+2. §19 — ✅ **I PREZZI DEL CATALOGO SONO UNA FOTOGRAFIA, NON LA FONTE**
+   (decisione di Andrea, 06/11/2026). La fonte è il database, governato dal
+   pannello; questa spec **non si aggiorna a ogni cambio di prezzo**.
+3. §66 — la **sequenza di apertura porta ora il proprio stato**: passi da 1 a 5
+   fatti, resta il 6.
+4. §66 — ⚠️ **una riga di stato scaduta, corretta**: «da verificare prima del
+   passo 2, e non ancora verificato» diceva il falso dal 31/08, quando la scelta
+   delle chiavi di Stripe è stata misurata (§6c). *Trovata rileggendo la
+   sequenza per il punto 3, non cercata.*
 
-1. §14b *(sezione nuova)* — ✅ **I CODICI SCONTO NOMINATIVI ESISTONO E
-   FUNZIONANO**: tre serie (5 € con soglia 25 €, 10%, 20% senza soglia), **300
-   codici** di sei caratteri, nessun prefisso che riveli la serie, **monouso al
-   mondo**. Tabella nuova `coupon_redemptions`, tre migrazioni, un cuore di 455
-   righe, 54 prove.
-2. §14b — ⚠️⚠️ **IL BUCO CHE C'ERA PRIMA**: la verifica era una `select` al
-   checkout e la scrittura al webhook, **con tutto il pagamento Stripe in
-   mezzo**. Due ordini simultanei prendevano **entrambi** lo sconto, e l'errore
-   del secondo era **messo a tacere come idempotenza** — il difetto aveva un
-   pezzo di codice che lo faceva sembrare normale. ✅ **Ora guardare e scrivere
-   sono un gesto solo.**
-3. §14b — ⚠️⚠️ **`now()` È CLASSIFICATA STABILE, NON IMMUTABILE**: nessuna
-   unicità può dipendere dalla scadenza. **Conseguenza di comportamento**: una
-   prenotazione scaduta **non si libera da sé**, la libera il prossimo che
-   scrive. ⚠️ *Una riga di spec che diceva il contrario era falsa, ed è stata
-   corretta.*
-4. §14b — ✅ **UN GUASTO DI LETTURA ORA FERMA IL PAGAMENTO.** *Prima concedeva
-   lo sconto. Delle tre letture possibili, «non concedere e proseguire» era
-   peggio di non fare niente: il cliente avrebbe pagato più di quanto aveva
-   visto.* Due prove **rovesciate con intenzione**, più una terza che impedisce
-   al difetto opposto («non concede mai») di passare inosservato.
-5. §14b — ⚠️ **UN BUCO TROVATO DA CODE, CHE IO NON AVEVO VISTO**: col codice che
-   viaggia come testo si poteva **applicare A, scrivere B e pagare con A**. ✅
-   Il codice si **congela** all'applicazione.
-6. §14b — ✅✅ **IL PRIMO CODICE È STATO CONSUMATO IN PRODUZIONE**: `24RREV`
-   (20%) su `KM-0017` del 03/10/2026. **Le spese di consegna fuori dallo sconto
-   non sono più una regola scritta: sono un numero osservato** (7,50 contro gli
-   8,00 che darebbe il 20% sulle spese). ⚠️ *E la finestra fra prenotazione e
-   consumo è stata misurata: **51,6 secondi**.*
-7. §41-45 — ✅ **LA FRASE DEL CONSENSO MARKETING CHIEDE ESPLICITAMENTE L'EMAIL**
-   (`v2`, 03/11/2026), e **chi spunta senza scriverla non viene bloccato**:
-   avviso sì, pulsante acceso. *Provato dal vivo a locale aperto.* ⚠️ **ZONA
-   CIECA: la frase nomina solo l'email, l'informativa elenca quattro canali** —
-   e la regola di versionamento di quella stessa sezione non è stata rispettata.
-8. §69 — ⚠️⚠️ **LA PULIZIA MENSILE ERA ROTTA DAL 03/09/2026 E NESSUNO LO
-   SAPEVA.** Non conosceva `coupon_redemptions`, quindi **la prima esecuzione si
-   sarebbe fermata su un errore di vincolo**: due mesi di attesa per poi non
-   partire. *Trovato misurandolo, non eseguendolo.* ✅ **Corretto (339 → 453
-   righe) E ESEGUITO il 06/11 a locale chiuso: la condizione di apertura della
-   prima esecuzione è CHIUSA.** ⚠️ *Ed è arrivata il 6, non il primo del mese.*
-9. §69 — ✅ **LE TABELLE SONO 24, NON 23** (otto toccate + sedici intoccabili).
-   ⚠️⚠️ **E un terzo difetto dei conteggi, questo di comportamento: il referto
-   non conta `coupon_redemptions`** — quindi il confronto prima/dopo una pulizia
-   è **cieco su quella tabella**.
-10. §66 — ✅ **LA REGOLA DEL 01/09 HA FUNZIONATO ALLA PRIMA OCCASIONE**: la
-    tabella nuova è nata con i cinque permessi pubblici revocati **nella stessa
-    migrazione che la crea**. ⚠️ *La porta del futuro non è chiusa: si è passati
-    davanti sapendolo.*
-
-**LE CONDIZIONI DI APERTURA SONO CHIUSE TUTTE.** *Dominio e chiave Google, font
-(decaduto), piano Pro, Stripe reale, ordine vero, pulizia dati, script tolto dal
-deposito, **e dal 06/11 anche la prima pulizia mensile**.* ⚠️ **Resta solo
-l'apertura, che non è un lavoro: è una decisione di Andrea.**
+**LE CONDIZIONI DI APERTURA SONO CHIUSE TUTTE.** ⚠️ **Resta solo l'apertura,
+che non è un lavoro: è una decisione di Andrea.**
 
 ## 1. Visione del progetto
 
@@ -1459,28 +1418,47 @@ di lettura: dove si legge "Proteina: ..." il cliente vede in realtà "Come
 preferisci il tuo kebab?" seguito dalle stesse opzioni. Le altre etichette
 di gruppo (es. "Gusto" per Cheesecake e Yogurt turco, §31) non cambiano.
 
+⚠️ **I PREZZI DI QUESTO CATALOGO SONO UNA FOTOGRAFIA, NON LA FONTE (v93,
+decisione di Andrea del 06/11/2026).** Prezzi e supplementi vivono nel
+database, **uno per articolo**, e si cambiano dal pannello staff: il sito e il
+pagamento li leggono da lì e da nessun'altra parte. *Accertato il 06/11: in
+`app/` il supplemento dell'Adana non compare scritto da nessuna parte.*
+**Questa spec non si aggiorna a ogni cambio di prezzo**: le cifre di questa
+sezione e delle seguenti sono quelle del giorno in cui il catalogo è stato
+scritto, e possono essere invecchiate. *Per sapere un prezzo vero si guarda il
+pannello o il database, mai questa sezione.*
+
+Il supplemento dell'Adana è il primo a essere stato tolto dal testo: il
+06/11/2026 è sceso da **4,50 a 3,50 €** su tutti e 10 gli articoli che lo hanno,
+e la cifra scritta qui era diventata falsa. ⚠️ *Il supplemento è **una riga per
+articolo**, non un valore unico per tutto il menu: chi lo cambia deve cambiarlo
+su ognuno. Il 06/11 uno dei dieci era stato saltato, e l'ha trovato solo una
+SELECT di controllo sul database — handoff, punto 49n.* ⚠️ *E nel menu combo
+l'Adana costa ciò che costa sulla riga **del Roll scelto** (§25): non esiste un
+supplemento del combo da tenere allineato a parte.*
+
 **Il Turco — 8 €** 🌶️ Leggermente piccante. Proteina: Pollo e tacchino
-(incluso) / Planted Kebab (+1,50 €) / Adana di manzo ed agnello (+4,50 €).
+(incluso) / Planted Kebab (+1,50 €) / Adana di manzo ed agnello (supplemento dal pannello).
 Rimozioni: Non piccante,
 Senza hummus, Senza ajvar, Senza cetriolini, Senza insalata, Senza pomodoro,
 Senza yogurt.
 
 **Il Greco — 8 €**. Proteina: Pollo e tacchino / Planted Kebab (+1,50 €) /
-Adana di manzo ed agnello (+4,50 €). Rimozioni: Senza cipolla, Senza pomodoro, Senza insalata, Senza
+Adana di manzo ed agnello (supplemento dal pannello). Rimozioni: Senza cipolla, Senza pomodoro, Senza insalata, Senza
 feta, Senza tzatziki, Senza patatine.
 
 **KM Special — 11 €** Badge TOP CHOICE, 🌶️🌶️. Proteina: Pollo e tacchino
 extra dose (incluso) / Planted Kebab (+0 €) / Adana di manzo ed agnello
-(+4,50 €). Rimozioni: Senza peperoncino, Senza tabulì, Senza salsa
+(supplemento dal pannello). Rimozioni: Senza peperoncino, Senza tabulì, Senza salsa
 all'aglio, Senza melassa di melagrana.
 
 **Il Libanese — 8,50 €** 🌶️🌶️. Proteina: Pollo e tacchino / Planted Kebab
-(+1,50 €) / Adana di manzo ed agnello (+4,50 €). Rimozioni: Senza
+(+1,50 €) / Adana di manzo ed agnello (supplemento dal pannello). Rimozioni: Senza
 peperoncini, Senza yogurt,
 Senza tabulì, Senza paté piccante, Senza patate al vapore.
 
 **Il Persiano — 8,50 €**. Proteina: Pollo e tacchino / Planted Kebab
-(+1,50 €) / Adana di manzo ed agnello (+4,50 €). Rimozioni: Senza melanzane
+(+1,50 €) / Adana di manzo ed agnello (supplemento dal pannello). Rimozioni: Senza melanzane
 grigliate, Senza insalata,
 Senza taratour, Senza hummus, Senza crema di verdure arrosto, Senza patate
 al vapore.
@@ -1612,7 +1590,7 @@ prezzo base da 13€ a 16€.
 
 **Altri supplementi che si sommano**, se scelti dentro il builder:
 - proteina Adana sul Roll del combo: stesso supplemento del Roll normale
-  (+4,50 €, da §19)
+  (lo stesso della riga Adana di quel Roll, deciso dal pannello: §19)
 - Patatine KM al posto delle standard: +0,50 €
 - soft drink "premium" (oltre 2,50 €, cioè i tè freddi/succhi da 3,50 € del
   §32): +0,50 €
@@ -6534,9 +6512,16 @@ Eseguito da Andrea nell'editor SQL della dashboard con query di sola lettura sul
 5. **cancellazione dello script del go-live** dal deposito (§69);
 6. **apertura**.
 
+✅ **STATO AL 06/11/2026: I PASSI DA 1 A 5 SONO FATTI** — il dominio con la chiave
+Google il 31/08/2026; Stripe reale, l'ordine vero di Andrea, la pulizia dei dati
+e la cancellazione dello script il 01/09/2026 (§6c, §69). **Resta il passo 6,
+che non è un lavoro: è una decisione di Andrea.** *Portato qui in v93 dal blocco
+Novità della v92, dove viveva solo e la disciplina del blocco l'avrebbe
+cancellato.*
+
 *Il dominio va per primo perché l'indirizzo del webhook deve puntare al sito definitivo: attivandolo su quello provvisorio andrebbe rifatto.*
 
-⚠️ **Da verificare prima del passo 2, e non ancora verificato:** come il codice sceglie le chiavi di Stripe. Se sono lette da variabili d'ambiente il passaggio è cambiare quei valori; se da qualche parte è scritto "sandbox" è un lavoro diverso.
+✅ ~~Da verificare prima del passo 2, e non ancora verificato~~ — **MISURATO IL 31/08/2026, vedi §6c: una variabile sola, nessun ramo «sandbox» nel codice.** *(Riga di stato rimasta indietro fino alla v92, corretta in v93.)* La domanda originale era: come il codice sceglie le chiavi di Stripe. Se sono lette da variabili d'ambiente il passaggio è cambiare quei valori; se da qualche parte è scritto "sandbox" è un lavoro diverso.
 
 ⚠️ **Limite dello strumento, da ricordare:** l'editor SQL della dashboard ha un tetto sulle righe restituite. ⚠️ **Il 27/08/2026 Andrea ha cambiato l'impostazione che lo governa, e il valore vero NON è misurato: si sa cosa dichiara il pannello, non cosa fa lo strumento.** *Storia della cifra: fino alla v58 questo documento diceva **100**; dalla v58 alla v76 diceva **500**, misurato il 06/08/2026; dal 27/08 non lo dichiara più.* Un referto che finisce sul numero tondo non va mai considerato completo — il primo giro sulle colonne si era interrotto così, e sembrava una risposta. *Il numero cambia con lo strumento senza avvisare: **è la diffidenza verso il numero tondo che va conservata, non la cifra** — e il 27/08 questa frase si è dimostrata vera per la terza volta.*
 
