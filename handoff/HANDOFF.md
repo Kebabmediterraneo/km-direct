@@ -4875,3 +4875,66 @@ finita nel documento e nel messaggio di un commit.
 * ⚠️ **un conteggio pari a 1 su un file che stai scrivendo non dice «libera»**:
   dice che ce n'è una, e **potrebbe essere la tua**. *La misura va fatta sul file
   prima di toccarlo, o escludendo la parte nuova.*
+
+### 49n) Il supplemento dell'Adana da 4,50 a 3,50 € (06/11/2026, sera)
+
+**Lavoro di soli dati, fatto da Andrea dal pannello staff.** Nessuna riga di
+codice, nessun commit di codice, nessun SQL di scrittura. Decisione e regola
+in spec **§19 v93**.
+
+**Dove vive il valore**, misurato da Code in sola lettura: in
+`product_choice_options.price_delta`, **una riga per articolo**, letta dal
+pagamento riga per riga e, per il combo, dalla riga del Roll scelto. Il +3 del
+KM Special nel combo è un'altra cosa (`combo_pricing`) e non si è mosso. In
+`app/` il valore non compare scritto; compare solo nelle prove, come dato finto,
+e nella fotografia ferma del 29/07 — **non si toccano**.
+
+✅ **La controprova sul database l'ha fatta Andrea con una SELECT, ed è stata
+lei a trovare l'articolo saltato: Il Libanese roll era rimasto a 4,50.**
+Corretto dal pannello e rilanciata la SELECT: **10 righe su 10 a 3,50** — 5
+Roll e 5 Bowl, le stesse dieci della lettura del 12/08 — tutte con chiave
+`adana` ed etichetta «Adana di manzo ed agnello». *Il giro a occhio sul sito
+poteva non trovarlo; la domanda al database sì, e vede anche gli articoli tolti
+dal menu.*
+⚠️ *La SELECT cercava in tre modi indipendenti — etichetta con «adana»,
+etichetta con «agnello», chiave `adana` — e mostrava per ogni riga quale
+criterio l'aveva presa: una riga con un criterio a `false` sarebbe stata
+un'Adana scritta in un'altra forma. Nessuna.* ⚠️ *E `ILIKE` ignora le maiuscole
+ma **non gli accenti**: il comando chiedeva entrambe le cose, e l'ha fatto
+notare Code. Qui non contava, perché le parole cercate non hanno accenti.*
+
+**Carrello e ordini, letti da Code**: il carrello ricorda la proteina per
+etichetta e non per identità di riga, quindi chi aveva la scheda aperta da prima
+riceve il 409 del listino e nessuno paga la cifra vecchia; gli ordini conservano
+una copia del prezzo.
+
+#### ⚠️ Un errore mio, e la lezione `em`
+
+Confrontando le due SELECT ho visto che l'identità di riga del Libanese era
+cambiata e quella degli altri nove no, e l'ho portato a Code come un mistero da
+indagare. Code ha confermato che il pannello **cancella e ricrea sempre tutte**
+le righe proteina di un articolo, quindi i nove «immutati» sembravano
+impossibili, e ha proposto due spiegazioni — entrambe sbagliate. **La
+spiegazione vera era più semplice: la prima SELECT era stata lanciata DOPO che
+i nove erano già stati cambiati.** I loro codici erano già quelli nuovi;
+l'unico articolo cambiato fra la prima e la seconda SELECT era il Libanese, ed
+era l'unico che risultava cambiato.
+
+**em. ⚠️ UN CONFRONTO PRIMA/DOPO VALE SOLO SE IL «PRIMA» È STATO PRESO PRIMA.**
+Ho trattato la prima misura come la fotografia di partenza, mentre era stata
+scattata a lavoro quasi finito. *È parente della lezione `af` — là la
+fotografia si rifaceva dopo il cambiamento e coincideva sempre; qui era già
+dopo e veniva letta come prima. La premessa sbagliata stava nel mio comando, e
+Code l'ha presa per buona: ha trovato la contraddizione col codice, non con la
+premessa.* **Rimedio: prima di confrontare due misure, chiedersi QUANDO è stata
+presa la prima rispetto al cambiamento.** L'ha sciolta Andrea con una risposta
+sola: «sempre dal pannello».
+
+#### Cosa questo giro NON ha chiuso
+
+* le **altre cifre del catalogo** in spec §19-§33 restano scritte com'erano e
+  possono invecchiare: la regola nuova lo dichiara, non le toglie;
+* **le righe del registro staff di questi salvataggi non sono state contate**:
+  dovrebbero essere almeno undici `modifica_opzioni_prodotto`, una per
+  salvataggio. *Non serve per il prezzo, che la SELECT dice già; è scritto
+  perché non lo si creda misurato.*
