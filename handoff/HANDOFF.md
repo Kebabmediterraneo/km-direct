@@ -4914,9 +4914,12 @@ Confrontando le due SELECT ho visto che l'identità di riga del Libanese era
 cambiata e quella degli altri nove no, e l'ho portato a Code come un mistero da
 indagare. Code ha confermato che il pannello **cancella e ricrea sempre tutte**
 le righe proteina di un articolo, quindi i nove «immutati» sembravano
-impossibili, e ha proposto due spiegazioni — entrambe sbagliate. **La
-spiegazione vera era più semplice: la prima SELECT era stata lanciata DOPO che
-i nove erano già stati cambiati.** I loro codici erano già quelli nuovi;
+impossibili. Ha proposto due spiegazioni senza scegliere: la modifica fatta
+dal pannello di Supabase invece che da quello staff, che era **sbagliata**, e
+«un errore nel confronto degli id», che a grandi linee era **quella vera**.
+*Corretto il 06/11 su segnalazione di Code: la prima stesura diceva «entrambe
+sbagliate», ed era falso.* **La spiegazione vera: la prima SELECT era stata
+lanciata DOPO che i nove erano già stati cambiati.** I loro codici erano già quelli nuovi;
 l'unico articolo cambiato fra la prima e la seconda SELECT era il Libanese, ed
 era l'unico che risultava cambiato.
 
@@ -4924,9 +4927,9 @@ era l'unico che risultava cambiato.
 Ho trattato la prima misura come la fotografia di partenza, mentre era stata
 scattata a lavoro quasi finito. *È parente della lezione `af` — là la
 fotografia si rifaceva dopo il cambiamento e coincideva sempre; qui era già
-dopo e veniva letta come prima. La premessa sbagliata stava nel mio comando, e
-Code l'ha presa per buona: ha trovato la contraddizione col codice, non con la
-premessa.* **Rimedio: prima di confrontare due misure, chiedersi QUANDO è stata
+dopo e veniva letta come prima. La premessa sbagliata stava nel mio comando; Code
+ha trovato la contraddizione col codice e ha lasciato aperta la possibilità
+giusta, dichiarando di non poter scegliere.* **Rimedio: prima di confrontare due misure, chiedersi QUANDO è stata
 presa la prima rispetto al cambiamento.** L'ha sciolta Andrea con una risposta
 sola: «sempre dal pannello».
 
