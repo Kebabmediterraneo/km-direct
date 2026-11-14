@@ -72,6 +72,12 @@ import {
 // stesso modulo, e chi cambia la frase ha la versione sotto gli occhi.
 import { MARKETING_TEXT_VERSION } from "../../../lib/marketing-consent";
 
+// §58 (14/11/2026) — il numero d'ordine. Fino a oggi la funzione stava qui ed
+// era «conteggio + 1»: dopo la pulizia parziale del 06/11 urtava cinque
+// doppioni e il sito non prendeva ordini. Ora è «il più alto + 1», in un modulo
+// che una prova esegue. Il perché per intero sta in `lib/pickup-code.js`.
+import { insertOrderWithPickupCode } from "../../../lib/pickup-code";
+
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 const DELIVERY_FEE = 2.5;
@@ -137,31 +143,6 @@ const DISCOUNT_UNVERIFIABLE_MESSAGE =
 // (`tests/checkout-messages.test.mjs`).
 const COUPON_GONE_MESSAGE =
   "Questo codice sconto non è più disponibile. Puoi completare l'ordine senza, oppure controllare il codice.";
-
-// §58: pickup_code progressivo (KM-0001, KM-0002, ...), mai casuale. Riprova
-// con un numero più alto in caso di collisione (race condition tra ordini
-// concorrenti sullo stesso conteggio).
-async function insertOrderWithPickupCode(orderPayload) {
-  const { count } = await supabaseAdmin
-    .from("orders")
-    .select("id", { count: "exact", head: true });
-
-  const baseNumber = (count ?? 0) + 1;
-
-  for (let attempt = 0; attempt < 5; attempt++) {
-    const pickupCode = `KM-${String(baseNumber + attempt).padStart(4, "0")}`;
-    const { data: order, error } = await supabaseAdmin
-      .from("orders")
-      .insert({ ...orderPayload, pickup_code: pickupCode })
-      .select()
-      .single();
-
-    if (!error) return order;
-    if (error.code !== "23505") throw error;
-  }
-
-  throw new Error("Impossibile generare un codice ritiro univoco.");
-}
 
 export async function POST(request) {
   const body = await request.json();
@@ -561,7 +542,7 @@ export async function POST(request) {
 
   let order;
   try {
-    order = await insertOrderWithPickupCode(orderPayload);
+    order = await insertOrderWithPickupCode(supabaseAdmin, orderPayload);
   } catch (err) {
     // ⚠️ LAVORO 3 del punto 16 — solo i campi utili, non l'errore intero.
     console.error("[POST /api/checkout] Errore nella creazione dell'ordine:", {
