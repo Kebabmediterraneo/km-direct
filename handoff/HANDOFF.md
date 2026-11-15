@@ -4975,7 +4975,8 @@ questo.
 * ⚠️ *Code non ha potuto provare il filtro sul database vero (permessi): l'ha
   esercitato la prova di Andrea **in locale**, arrivata alla pagina di Stripe con
   `KM-0040`, senza pagare;*
-* 19:36 commit `90b8687` e push; sul sito vero la pagina di Stripe con
+* 19:33 commit `90b8687` *(«19:36» nella prima stesura: era l'ora del messaggio
+  di Code, corretto il 15/11)*, poi push; sul sito vero la pagina di Stripe con
   `KM-0041`; chiusura tolta, **sito di nuovo aperto**.
 
 **La regola nuova** è in spec **§69 v94**: il più alto già usato, più uno;
@@ -5022,3 +5023,81 @@ posto dove nessuno l'avrebbe cercata.*
   scadenza. *Da decidere se basta la scadenza o serve liberarla.*
 * **Nessun allarme quando il pagamento fallisce in serie**: il guasto l'ha visto
   un essere umano. *Da decidere se vale un avviso.*
+
+### 49p) Il referto dei conteggi chiuso, e il banner cookie deciso (15/11/2026, pomeriggio)
+
+**1. `sql/conteggi_dati_sola_lettura.sql` — chiuso prima del 1° dicembre.** Code
+ha aggiunto `coupon_redemptions` (totale e per stato), corretto la nota sul tetto
+e dichiarato in cima quante righe deve avere il referto. Regola e motivi in spec
+**§69 v95**. ⚠️ *Code ha fatto una cosa che il comando non diceva, e l'ha
+dichiarata: il numero di righe non può essere fisso, perché la sezione del
+registro staff ha una riga per identificatore, quindi l'ha fatto **calcolare al
+database** nella seconda riga. Approvata: senza, Andrea non avrebbe avuto con
+cosa confrontare.*
+
+✅ **Lanciato da Andrea il 15/11, a locale chiuso: 39 righe attese, 39
+arrivate.** I numeri del giorno:
+
+| misura | valore |
+|---|---|
+| ordini | 29 (pagati o rimborsati 25 · mai pagati 4, di cui 1 oltre i 30 giorni) |
+| ordine più recente | 14/11 18:56:04 UTC (19:56 in Italia) |
+| righe d'ordine · storico stati | 87 · 87 |
+| clienti | 24 (senza ordini 2, di cui 0 oltre i 30 giorni · con un ordine pagato 19) |
+| registro staff | 248, un identificatore solo (l'account reale), nessuna riga legata a un ordine |
+| codici sconto | 300 · riscatti 1: `reserved` 0, `consumed` 1 |
+| eventi statistici · promo | 0 · 0 |
+
+*Gli ordini sono i 27 della sera del 14/11 più le due prove `KM-0040` e
+`KM-0041`: l'ordine più recente, delle 19:56, è quindi una delle due prove.*
+
+**2. Banner cookie e conteggio degli ordini su Google Ads e Meta — deciso, non
+scritto.** Brief di Andrea, otto decisioni (D1-D8) confermate il 15/11: tutte in
+spec **§65b v95**. Prima di decidere, una lettura del codice di Code (sola
+lettura): nessun banner; il token dell'ordine sta nella query di `/conferma`;
+la rotta di stato non espone il totale; non esiste un'ora di pagamento; la pagina
+controlla ogni 20 secondi; `gclid` e `fbclid` restano nell'indirizzo fino a
+Stripe perché home e checkout sono la stessa pagina.
+
+⚠️⚠️ **Trovato rileggendo la spec, non cercato: l'informativa v1.2 promette ai
+clienti «nessuna piattaforma di analisi o pubblicità di terze parti»** (spec §65,
+vincoli dall'informativa). **I tag possono andare online solo insieme alla
+v1.3**, e la v1.3 passa dal controllo legale: Andrea lo avvisa subito, perché
+non diventi il collo di bottiglia alla fine. *Il codice si può scrivere e
+provare in locale prima.*
+
+⚠️ **Il problema più serio del brief, trovato prima di scrivere codice:** la
+pagina di conferma ha il token nell'indirizzo, e i tag mandano l'indirizzo ai
+propri server. Senza la decisione D5, Google e Meta avrebbero ricevuto il link
+di ogni ordine.
+
+**3. Il promemoria del 16/11 alle 10:30** per il punto 1 è stato tolto: il
+punto 1 è chiuso.
+
+**4. Il «§58» in `km_direct_schema.sql`**, accanto a `pickup_code`: corretto in
+«§69» con un commit di solo commento (segnalato da Code il 15/11).
+
+#### L'elenco delle cose aperte, aggiornato
+
+*Sostituisce l'elenco di 49k e le aggiunte di 49o.* **Chiusi oggi:** lo script
+dei conteggi (con i suoi due difetti di documentazione), l'ora 19:33, il §58.
+
+* **Il lavoro di §65b**: banner, tag, informativa v1.3. *In corso.*
+* ⚠️ **Tre uscite verso l'errore 500 del pagamento senza riga di log**
+  (`lib/checkout-resolve.js:214`, `:230`, `:367`).
+* ⚠️ **Nessun allarme quando il pagamento fallisce in serie.**
+* ⚠️ **Prenotazioni dei codici sconto**: due dei tre punti di liberazione non
+  esistono (servono due eventi Stripe), e la prenotazione avviene prima della
+  creazione dell'ordine.
+* ⚠️ **La frase del consenso `v2` nomina solo l'email**, l'informativa quattro
+  canali. *Entra nella v1.3.*
+* **La colonna `privacy_text_version` non esiste.** *Con la v1.3 diventa più
+  utile: dice quale informativa ha accettato ogni cliente.*
+* ⚠️ **I conteggi del 06/11 da scrivere in §11** (vedi 49i).
+* **`km-direct.vercel.app` da dismettere**, e da togliere dalla chiave Google.
+* **Il file di verifica di `24RREV`** da rendere generico e committare.
+* **I permessi predefiniti**: la porta del futuro (`supabase_admin`) e quelli
+  GLOBALI, mai guardati. Non bloccano niente.
+* **Debiti di scrittura**: il nome `confermaPrezzo`, i numeri di riga del punto
+  16 che invecchiano a ogni tocco, la citazione «riga 398».
+* **La condensazione dei documenti vecchi**, se si farà.
