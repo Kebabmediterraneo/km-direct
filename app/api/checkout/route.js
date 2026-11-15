@@ -72,7 +72,7 @@ import {
 // stesso modulo, e chi cambia la frase ha la versione sotto gli occhi.
 import { MARKETING_TEXT_VERSION } from "../../../lib/marketing-consent";
 
-// §58 (14/11/2026) — il numero d'ordine. Fino a oggi la funzione stava qui ed
+// §69 (14/11/2026) — il numero d'ordine. Fino a oggi la funzione stava qui ed
 // era «conteggio + 1»: dopo la pulizia parziale del 06/11 urtava cinque
 // doppioni e il sito non prendeva ordini. Ora è «il più alto + 1», in un modulo
 // che una prova esegue. Il perché per intero sta in `lib/pickup-code.js`.

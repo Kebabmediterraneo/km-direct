@@ -1,4 +1,4 @@
-// §58 — prove del numero d'ordine (`pickup_code`), nate dal guasto del
+// §69 — prove del numero d'ordine (`pickup_code`), nate dal guasto del
 // 14/11/2026: il sito vivo non prendeva ordini.
 // Esegui con: node tests/pickup-code.test.mjs   (exit code 0 = tutti PASS)
 //
