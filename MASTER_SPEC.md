@@ -1,6 +1,6 @@
 # KM DIRECT — MASTER SPECIFICATION
 
-**Versione 93** — sostituisce la v92.
+**Versione 94** — sostituisce la v93.
 
 Documento di riferimento definitivo per lo sviluppo. Le decisioni qui
 contenute sono approvate: non vanno reinterpretate senza un motivo concreto
@@ -22,32 +22,26 @@ versione corrente**. I precedenti vivono in `git log`, che è fatto per quello.
 del documento prima che cominciasse a parlare del progetto — e dentro c'erano
 istruzioni rovesciate che nessuno rileggeva.*
 
-**Novità della v93** (vincolanti, 06/11/2026):
+**Novità della v94** (vincolanti, 15/11/2026):
 
-⚠️ **Le dieci voci della v92 sono state controllate una per una e vivono tutte
-nel corpo** (§14b le prime sei, §41-45 la settima, §69 l'ottava e la nona, §66
-la decima). **Una frase sola non viveva nel corpo, ed è stata portata in §66**:
-che tutte le condizioni di apertura sono chiuse e che resta solo l'apertura.
-*Era scritta solo nel blocco Novità, che si cancella a ogni versione: sarebbe
-sparita senza che nessuno la togliesse. Il racconto dei due mesi non registrati
-resta nell'handoff, punto 49: è storia, non decisione.*
+⚠️ **Le quattro voci della v93 sono state controllate e vivono tutte nel corpo**
+(§19 la prima e la seconda, §66 la terza e la quarta), insieme alla frase sulle
+condizioni di apertura, portata in §66 dalla v93.
 
-1. §19 e §25 — ✅ **IL SUPPLEMENTO DELL'ADANA È SCESO DA 4,50 A 3,50 €** il
-   06/11/2026, cambiato da Andrea dal pannello staff su **tutti e 10** gli
-   articoli che lo hanno (5 Roll e 5 Bowl) e verificato con una SELECT sul
-   database. ⚠️ *Il numero è stato **tolto** dal testo, non aggiornato.*
-2. §19 — ✅ **I PREZZI DEL CATALOGO SONO UNA FOTOGRAFIA, NON LA FONTE**
-   (decisione di Andrea, 06/11/2026). La fonte è il database, governato dal
-   pannello; questa spec **non si aggiorna a ogni cambio di prezzo**.
-3. §66 — la **sequenza di apertura porta ora il proprio stato**: passi da 1 a 5
-   fatti, resta il 6.
-4. §66 — ⚠️ **una riga di stato scaduta, corretta**: «da verificare prima del
-   passo 2, e non ancora verificato» diceva il falso dal 31/08, quando la scelta
-   delle chiavi di Stripe è stata misurata (§6c). *Trovata rileggendo la
-   sequenza per il punto 3, non cercata.*
+1. §69 — ⚠️⚠️ **IL 14/11/2026, DI SABATO SERA, IL SITO NON HA PRESO ORDINI.**
+   Il codice ordine era «quanti ordini ci sono, più uno»; la pulizia mensile del
+   06/11 ne aveva cancellati una parte, e il sito proponeva solo codici già
+   usati. **Corretto la sera stessa** (commit `90b8687`): il codice ordine è ora
+   **il numero più alto già usato, più uno**.
+2. §69 — ✅ **CANCELLARE UNA PARTE DEGLI ORDINI ORA È SICURO.** La frase della
+   v53-v93 «cancellare in futuro solo una parte degli ordini produrrebbe
+   collisioni» è **rovesciata**, non tolta: resta come storia, segnata.
+3. §69 — ✅ **IL NUMERO PUÒ ESSERE RIUSATO IN UN CASO SOLO, E VA BENE COSÌ**
+   (decisione di Andrea, 15/11/2026).
 
-**LE CONDIZIONI DI APERTURA SONO CHIUSE TUTTE.** ⚠️ **Resta solo l'apertura,
-che non è un lavoro: è una decisione di Andrea.**
+**LE CONDIZIONI DI APERTURA SONO CHIUSE TUTTE**, e il sito è aperto. *Che resti
+scritto anche qui, perché la v93 l'ha portato in §66 e un lettore del solo
+blocco Novità non deve credere il contrario.*
 
 ## 1. Visione del progetto
 
@@ -7221,12 +7215,59 @@ suggerisce e accetta, pannello vuoto. ⚠️ *Il numero nel SQL editor dice che 
 righe non ci sono, non che il sito stia bene: è il confronto delle sedici, più i
 tre sguardi, a dimostrare che abbiamo svuotato i dati e non la configurazione.*
 
-⚠️ **CONSEGUENZA DA SAPERE: IL PRIMO ORDINE DI UN CLIENTE VERO SARÀ `KM-0001`.**
-*Il numero non è un contatore salvato: è **quanti ordini ci sono in tabella più
-uno** (`app/api/checkout/route.js:80`). Nessun documento lo diceva.* ⚠️ *E
-`pickup_code` è unico: ripartire da capo è sicuro **solo perché i vecchi
-spariscono nella stessa transazione**. Cancellare in futuro solo una parte degli
-ordini produrrebbe collisioni.*
+~~CONSEGUENZA DA SAPERE: IL PRIMO ORDINE DI UN CLIENTE VERO SARÀ `KM-0001`.~~
+*Testo della v53-v93, **superato il 14/11/2026** — conservato perché è la
+profezia di ciò che è successo:* ~~Il numero non è un contatore salvato: è
+quanti ordini ci sono in tabella più uno (`app/api/checkout/route.js:80`). E
+`pickup_code` è unico: ripartire da capo è sicuro solo perché i vecchi
+spariscono nella stessa transazione. Cancellare in futuro solo una parte degli
+ordini produrrebbe collisioni.~~
+
+### ⚠️⚠️ IL CODICE ORDINE (v94) — «IL PIÙ ALTO GIÀ USATO, PIÙ UNO»
+
+⚠️⚠️ **L'AVVERTIMENTO QUI SOPRA ERA GIUSTO, ED È SUCCESSO.** Era scritto dal
+01/09/2026 nel racconto della pulizia del go-live; la pulizia **mensile**, che
+per natura cancella **solo una parte** degli ordini, era descritta più sotto in
+questa stessa sezione, e **nessuno ha mai letto le due cose insieme**. La prima
+pulizia mensile è stata eseguita il 06/11/2026; **il 14/11/2026, sabato, dalle
+19:09, il sito non ha preso ordini**: 27 ordini in tabella, numero più alto
+usato 39, il sito provava `KM-0028` e i quattro successivi, li trovava tutti
+occupati e si arrendeva con «Qualcosa è andato storto durante l'ordine». ✅
+*L'errore cadeva **prima** del pagamento: nessun cliente ha pagato senza
+ordine.* **Corretto e pubblicato la sera stessa**, commit `90b8687`, alle 19:36.
+*Il racconto della serata è nell'handoff, punto 49o.*
+
+**LA REGOLA (vincolante):** il codice ordine è `KM-` seguito dal **numero più
+alto già presente in `pickup_code`, più uno**, con almeno quattro cifre
+(`lib/pickup-code.js`). **Non è un contatore salvato e non è il conteggio degli
+ordini.** Tre protezioni, ognuna con la sua prova in
+`tests/pickup-code.test.mjs`:
+
+* il più alto si chiede al database **una riga per volta**, mai leggendo tutti i
+  codici: le letture hanno un tetto di righe (§66) e il massimo calcolato su una
+  lettura tagliata sarebbe sbagliato **in silenzio**;
+* resta giusto **oltre `KM-9999`**: il più alto si cerca per numero di cifre,
+  perché in ordine alfabetico `KM-10000` cade prima di `KM-9999`;
+* ⚠️ **se la lettura fallisce, il sito si ferma con un errore e non crea
+  l'ordine. Mai ripartire da `KM-0001`.** *La versione vecchia, con il
+  conteggio non leggibile, ripartiva proprio da lì.*
+
+I cinque tentativi in caso di doppione rifiutato dal database restano: servono
+quando due ordini arrivano nello stesso istante.
+
+✅ **CONSEGUENZA: CANCELLARE UNA PARTE DEGLI ORDINI ORA È SICURO.** I buchi nella
+numerazione restano buchi e non vengono riempiti: la pulizia mensile può
+cancellare qualunque ordine mai pagato senza bloccare il sito.
+
+✅ **IL NUMERO PUÒ ESSERE RIUSATO IN UN CASO SOLO, E VA BENE COSÌ (decisione di
+Andrea, 15/11/2026).** Se la pulizia cancellasse proprio l'ordine con il numero
+più alto, il suo numero verrebbe dato al prossimo ordine. Perché accada servono
+insieme due cose: che gli ultimi ordini arrivati siano stati abbandonati senza
+pagare, **e** che per trenta giorni dopo non ne sia arrivato nessun altro. *Ed è
+innocuo: un ordine mai pagato non è mai andato in cucina né a Glovo (§57-61),
+quindi Glovo non riceve mai un identificativo doppio, e il cliente che l'aveva
+abbandonato non ha mai avuto un codice ritiro valido.* **Non si scrive codice
+per impedirlo.**
 
 ⚠️ **DEBITO REGISTRATO, non chiuso**: `sql/conteggi_dati_sola_lettura.sql` ha due
 difetti di documentazione — una riga che cita un tetto di 100 righe non più
