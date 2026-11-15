@@ -1,6 +1,6 @@
 # KM DIRECT — MASTER SPECIFICATION
 
-**Versione 95** — sostituisce la v94.
+**Versione 96** — sostituisce la v95.
 
 Documento di riferimento definitivo per lo sviluppo. Le decisioni qui
 contenute sono approvate: non vanno reinterpretate senza un motivo concreto
@@ -22,26 +22,24 @@ versione corrente**. I precedenti vivono in `git log`, che è fatto per quello.
 del documento prima che cominciasse a parlare del progetto — e dentro c'erano
 istruzioni rovesciate che nessuno rileggeva.*
 
-**Novità della v95** (vincolanti, 15/11/2026):
+**Novità della v96** (vincolanti, 15/11/2026, sera):
 
-⚠️ **Le tre voci della v94 sono state controllate e vivono tutte nel corpo**, in
-§69 («Il codice ordine (v94)»).
+⚠️ **Le cinque voci della v95 sono state controllate e vivono tutte nel corpo**
+(§65b, i vincoli di §65 e §41-45, i tre punti dell'audit in §66, §69).
 
-1. §65b *(sezione nuova)* — **BANNER COOKIE E CONTEGGIO DEGLI ORDINI PAGATI SU
-   GOOGLE ADS E META**: otto decisioni di Andrea (D1-D8), i requisiti del
-   banner, la prova dal vivo. ⚠️⚠️ *Nessun codice scritto ancora.*
-2. §65b, §65, §41-45 — ⚠️⚠️ **L'INFORMATIVA v1.2 PROMETTE «NESSUNA PIATTAFORMA DI
-   ANALISI O PUBBLICITÀ DI TERZE PARTI».** Banner e tag vanno online **solo
-   insieme alla v1.3**, nello stesso passaggio.
-3. §66 — **tre affermazioni dell'audit di agosto segnate come in scadenza**:
-   «nessun cookie», «nessuno strumento di analytics», «la rotta di stato
-   seleziona quattro sole colonne». Vere oggi, false il giorno di §65b.
-4. §69 — ✅ **IL REFERTO DEI CONTEGGI CONTA ORA `coupon_redemptions` E DICHIARA
-   QUANTE RIGHE DEVE AVERE** (38 + una per identificatore del registro staff).
-   Lanciato da Andrea il 15/11/2026: **39 righe attese, 39 arrivate.** *Chiusi i
-   tre difetti registrati il 06/11, prima della pulizia del 1° dicembre.*
-5. §69 — l'ora del commit `90b8687` corretta: **19:33**, non 19:36 (segnalato
-   da Code).
+1. §65b — **DUE REVISIONI LEGALI DELLA BOZZA v1.3 E SETTE DECISIONI DI ANDREA**
+   (E1-E7): codice dell'ultimo ordine per 30 giorni con scadenza vera; marketing
+   solo e-mail; «Personalizza» con Google e Meta separati; registro delle scelte
+   del banner; interruttore per spegnere Adobe Fonts; «ho preso visione»
+   nella casella del checkout; i 30 giorni dell'informativa diventano 60.
+2. §65b — ⚠️ **REGOLA GIÀ IN VIGORE, PRIMA DEL BANNER: il consenso marketing
+   raccolto finora vale SOLO per l'e-mail.** Niente SMS né WhatsApp promozionali.
+3. §69 — ⚠️⚠️ **LA PROMESSA DEI 30 GIORNI NON ERA RISPETTATA**: il 15/11 c'era un
+   ordine mai pagato oltre i 30 giorni. **Pulizia mensile eseguita fuori
+   calendario il 15/11**, a locale chiuso: un ordine e un cliente tolti, nulla
+   d'altro toccato.
+
+**LE CONDIZIONI DI APERTURA SONO CHIUSE TUTTE**, e il sito è aperto.
 
 ## 1. Visione del progetto
 
@@ -6418,6 +6416,63 @@ cambiarle richiede una ripubblicazione.*
 
 **Non si toccano:** il checkout, Stripe, il webhook.
 
+### Dopo la revisione legale (15/11/2026) — vincolante
+
+La bozza dell'informativa v1.3 vive in un documento a parte («Informativa privacy
+KM Direct — bozza v1.3»), **non nel deposito** finché la parte legale non la
+approva; poi Code la porta in `app/privacy/page.js`. Due revisioni legali il
+15/11: struttura approvata, **pubblicazione non ancora autorizzata**. Restano
+aperti il ruolo di Google e Meta (si chiude sui termini accettati negli account),
+le durate del punto 11.8, la valutazione su Adobe Fonts (esito provvisorio) e i
+dati da misurare dal vivo.
+
+**Le decisioni di Andrea, tutte come consigliato (15/11/2026):**
+
+* **E1. Il token dell'ultimo ordine resta nel browser 30 giorni**, con una
+  **scadenza vera nel codice**: si salva insieme alla data e, alla lettura, si
+  scarta se ha più di 30 giorni. *`localStorage` da solo non cancella niente.*
+* **E2. Comunicazioni commerciali: solo e-mail.** La v1.3 allinea il punto 3.5
+  alla casella del checkout, che nomina solo l'e-mail. ⚠️⚠️ **E VALE GIÀ DA
+  OGGI: il consenso raccolto finora si usa solo per l'e-mail.** SMS e WhatsApp,
+  un domani, con una casella nuova che li nomini.
+* **E3. «Accetta tutti», «Rifiuta tutti» di pari evidenza, e «Personalizza»** con
+  la scelta **separata per Google e per Meta**, nessuna preselezionata. La X
+  equivale a rifiutare. **Ogni fornitore si carica solo se scelto.** Testo del
+  banner: quello proposto dalla parte legale, nel documento della bozza.
+* **E4. Un registro delle scelte fatte nel banner, sul server**, per poter
+  dimostrare il consenso: un identificativo casuale del browser (conservato nel
+  browser), data e ora, versione del testo del banner, la scelta per ciascun
+  fornitore. **Niente IP, niente dati dell'ordine.** ⚠️ *Non si chiama
+  «anonimo»: la parte legale chiede di non dirlo prima di averlo verificato.*
+  Richiede **una tabella nuova, creata da Andrea nel SQL editor**; la scrittura
+  passa da una rotta del server (come ogni scrittura, §66). *La sua durata di
+  conservazione è una domanda aperta del punto 11.8.*
+* **E5. Adobe Fonts si può spegnere**: in «Preferenze cookie» un interruttore,
+  acceso per impostazione (legittimo interesse), che chi si oppone spegne; da quel
+  momento il carattere di Adobe non si carica e il sito usa un carattere di
+  sistema. ⚠️ *Vale dalla pagina successiva: alla primissima apertura il
+  carattere si carica prima che si possa scegliere.* **Non si compra nessun
+  carattere** (decisione di Andrea).
+* **E6. La casella del checkout dice «ho preso visione dell'informativa»**, non
+  «accetto»: la presa visione non è un consenso. Cambia il testo, non la colonna
+  `privacy_accepted_at`. *Esce con la v1.3.*
+* **E7. L'informativa passa da «non più di 30 giorni» a «non più di 60 giorni»**
+  per gli ordini non completati (punto 11.2), e la pulizia resta **mensile**.
+  *Con la pulizia il primo del mese, un dato può restare fino a circa 60 giorni:
+  i 30 erano una promessa che la procedura non poteva mantenere (§69).* La
+  soglia dello script resta 30: la pulizia toglie ciò che ha più di 30 giorni, la
+  promessa dice il massimo.
+
+**Vincoli tecnici dalla revisione legale:**
+
+* ⚠️ **Meta: nessun dato del modulo.** Nel codice, configurazione automatica degli
+  eventi spenta; in Gestione eventi (Andrea) il *matching avanzato automatico*
+  spento. **Google Ads: «conversioni avanzate» spente** (Andrea).
+* **La revoca da «Preferenze cookie» ferma gli invii successivi** del fornitore
+  revocato **e cancella i suoi cookie sul nostro dominio**, per quanto
+  tecnicamente possibile. *I dati già ricevuti dalle piattaforme restano loro.*
+* Le prove dal vivo si fanno **per ciascun fornitore separatamente**.
+
 ### La prova dal vivo (la fa Andrea)
 
 1. **Rifiuto** → nessuna chiamata a `googletagmanager`, `googleadservices`,
@@ -6428,7 +6483,11 @@ cambiarle richiede una ripubblicazione.*
    l'importo giusto.
 3. **Ricarico** la conferma → la conversione **non** si conta una seconda volta.
 4. **«Preferenze cookie»** → cambio scelta → la scelta viene rispettata.
-5. ⚠️ **Nelle chiamate verso Google e Meta il token dell'ordine non compare.**
+5. ⚠️ **Nelle chiamate verso Google e Meta il token dell'ordine non compare**, né
+   nome, telefono, e-mail o indirizzo (contenuto intero delle richieste).
+6. **Revoca separata** di Google e di Meta: invii fermati, cookie cancellati.
+7. **Adobe Fonts spento** da «Preferenze cookie»: dalla pagina successiva nessuna
+   richiesta a `use.typekit.net`.
 
 ### Fuori da questo lavoro (sviluppi possibili)
 
@@ -7539,6 +7598,21 @@ ed è la direzione sicura, come il freno di §69.*
 
 ✅ **Eseguita da Andrea il 06/11/2026 a locale chiuso**, con la sequenza
 prescritta: conteggi, pulizia, conteggi di nuovo.
+
+⚠️⚠️ **SECONDA ESECUZIONE, FUORI CALENDARIO — 15/11/2026, a locale chiuso.** Il
+referto dei conteggi del pomeriggio mostrava **un ordine mai pagato oltre i 30
+giorni**: la promessa del punto 11.2 dell'informativa («non più di 30 giorni»)
+**non era rispettata**, e non poteva esserlo con una pulizia mensile. Lo aveva
+segnalato la parte legale senza conoscere il dato; il referto l'ha dimostrato.
+*Da qui la decisione E7 (§65b): la promessa diventa 60 giorni.*
+Script verificato da Code (impronta `c80ea0bb…a55c6d67`, nessuna tabella nuova
+dal 06/11, nessun parametro). **Esito, confronto dei due referti (39 righe
+ciascuno):** ordini 29 → 28, righe d'ordine 87 → 86, clienti 24 → 23 (il cliente
+di quell'ordine, senza altri ordini), «mai pagati oltre 30 giorni» 1 → 0.
+**Identici:** 25 ordini pagati, 19 clienti con un ordine pagato, registro staff
+248, codici consumati 1, le 16 tabelle di configurazione. *Lo storico degli
+stati è rimasto 87: l'ordine non ne aveva — è `on delete cascade`, quindi righe
+sue sarebbero sparite con lui.*
 
 ⚠️ **DEBITO APERTO:** `sql/20261106_verifica_ordine_24RREV_sola_lettura.sql`
 (231 righe) **non è committato per scelta**, perché il suo nome è legato a un
