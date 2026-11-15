@@ -1,6 +1,6 @@
 # KM DIRECT — MASTER SPECIFICATION
 
-**Versione 94** — sostituisce la v93.
+**Versione 95** — sostituisce la v94.
 
 Documento di riferimento definitivo per lo sviluppo. Le decisioni qui
 contenute sono approvate: non vanno reinterpretate senza un motivo concreto
@@ -22,26 +22,26 @@ versione corrente**. I precedenti vivono in `git log`, che è fatto per quello.
 del documento prima che cominciasse a parlare del progetto — e dentro c'erano
 istruzioni rovesciate che nessuno rileggeva.*
 
-**Novità della v94** (vincolanti, 15/11/2026):
+**Novità della v95** (vincolanti, 15/11/2026):
 
-⚠️ **Le quattro voci della v93 sono state controllate e vivono tutte nel corpo**
-(§19 la prima e la seconda, §66 la terza e la quarta), insieme alla frase sulle
-condizioni di apertura, portata in §66 dalla v93.
+⚠️ **Le tre voci della v94 sono state controllate e vivono tutte nel corpo**, in
+§69 («Il codice ordine (v94)»).
 
-1. §69 — ⚠️⚠️ **IL 14/11/2026, DI SABATO SERA, IL SITO NON HA PRESO ORDINI.**
-   Il codice ordine era «quanti ordini ci sono, più uno»; la pulizia mensile del
-   06/11 ne aveva cancellati una parte, e il sito proponeva solo codici già
-   usati. **Corretto la sera stessa** (commit `90b8687`): il codice ordine è ora
-   **il numero più alto già usato, più uno**.
-2. §69 — ✅ **CANCELLARE UNA PARTE DEGLI ORDINI ORA È SICURO.** La frase della
-   v53-v93 «cancellare in futuro solo una parte degli ordini produrrebbe
-   collisioni» è **rovesciata**, non tolta: resta come storia, segnata.
-3. §69 — ✅ **IL NUMERO PUÒ ESSERE RIUSATO IN UN CASO SOLO, E VA BENE COSÌ**
-   (decisione di Andrea, 15/11/2026).
-
-**LE CONDIZIONI DI APERTURA SONO CHIUSE TUTTE**, e il sito è aperto. *Che resti
-scritto anche qui, perché la v93 l'ha portato in §66 e un lettore del solo
-blocco Novità non deve credere il contrario.*
+1. §65b *(sezione nuova)* — **BANNER COOKIE E CONTEGGIO DEGLI ORDINI PAGATI SU
+   GOOGLE ADS E META**: otto decisioni di Andrea (D1-D8), i requisiti del
+   banner, la prova dal vivo. ⚠️⚠️ *Nessun codice scritto ancora.*
+2. §65b, §65, §41-45 — ⚠️⚠️ **L'INFORMATIVA v1.2 PROMETTE «NESSUNA PIATTAFORMA DI
+   ANALISI O PUBBLICITÀ DI TERZE PARTI».** Banner e tag vanno online **solo
+   insieme alla v1.3**, nello stesso passaggio.
+3. §66 — **tre affermazioni dell'audit di agosto segnate come in scadenza**:
+   «nessun cookie», «nessuno strumento di analytics», «la rotta di stato
+   seleziona quattro sole colonne». Vere oggi, false il giorno di §65b.
+4. §69 — ✅ **IL REFERTO DEI CONTEGGI CONTA ORA `coupon_redemptions` E DICHIARA
+   QUANTE RIGHE DEVE AVERE** (38 + una per identificatore del registro staff).
+   Lanciato da Andrea il 15/11/2026: **39 righe attese, 39 arrivate.** *Chiusi i
+   tre difetti registrati il 06/11, prima della pulizia del 1° dicembre.*
+5. §69 — l'ora del commit `90b8687` corretta: **19:33**, non 19:36 (segnalato
+   da Code).
 
 ## 1. Visione del progetto
 
@@ -2451,7 +2451,7 @@ non limitarsi a fidarsi del fatto che il client abbia già mostrato
 
 **Da fare quando si riaprirà `app/api/checkout/route.js`:** introdurre una costante `PRIVACY_TEXT_VERSION`, sul modello di `MARKETING_TEXT_VERSION` (riga 48), con valore **`informativa-v1.2`**, e salvarla accanto alla data.
 
-**Regola di versionamento, vincolante:** l'informativa descrive il sistema. Ogni modifica al codice che cambia ciò che il documento afferma comporta una nuova versione del documento **nello stesso passaggio**, e il numero di versione salvato in database cambia di conseguenza. Il primo caso già noto è lo spostamento del caricamento di Google Maps (vedi sotto): comporta la riscrittura del punto 5 e il passaggio a v1.3.
+**Regola di versionamento, vincolante:** l'informativa descrive il sistema. Ogni modifica al codice che cambia ciò che il documento afferma comporta una nuova versione del documento **nello stesso passaggio**, e il numero di versione salvato in database cambia di conseguenza. Il primo caso già noto è lo spostamento del caricamento di Google Maps (vedi sotto): comporta la riscrittura del punto 5 e il passaggio a v1.3. ⚠️⚠️ *(v95) **La v1.3 la porta comunque §65b**, il banner cookie con Google Ads e Meta: le due cose entrano nella stessa versione.*
 
 ⚠️ *(superato dal 03/11/2026 — vedi sotto)* **La casella marketing resta com'è** ("novità, offerte e comunicazioni", nessun canale nominato). I canali — e-mail, SMS, WhatsApp — sono elencati nel punto 3.5 dell'informativa, che la casella collega. Se un domani cambiano i canali, si aggiorna il punto 3.5 e la versione. ⚠️ **Questa riga non vale più: la frase è stata riscritta e nomina l'email.** *È lasciata perché il "se un domani cambiano i canali" è esattamente ciò che è accaduto, e perché la regola che ne discende — si aggiorna anche l'informativa — **non** è stata rispettata.*
 
@@ -6279,7 +6279,7 @@ di questa regola.
 
 Le statistiche sono ora **dichiarate nell'informativa** (punto 3.4, legittimo interesse). Da questo discendono tre vincoli che il codice dovrà rispettare, e che sono ora impegni verso il cliente e non solo scelte di progetto:
 
-1. l'analisi avviene **solo dentro i sistemi del progetto**: nessuna piattaforma di analisi o pubblicità di terze parti;
+1. l'analisi avviene **solo dentro i sistemi del progetto**: nessuna piattaforma di analisi o pubblicità di terze parti; ⚠️⚠️ *(v95) **il conteggio degli ordini pagati su Google Ads e Meta di §65b contraddice questa promessa**: va online solo insieme all'informativa v1.3, che la riscrive. Per le statistiche interne di §65 il vincolo resta.*
 2. la pagina dei carrelli abbandonati e ogni vista statistica sono **prive di nome, cognome, telefono ed e-mail**;
 3. nessun uso per ricontattare i clienti, in nessuna forma.
 
@@ -6304,6 +6304,143 @@ Tre fatti letti dal database, non dedotti, che vincolano il lavoro **prima** che
 3. **La tabella porta anche `session_id` obbligatorio e un `payload` libero.** Non è un foglio bianco: una forma esiste già e va letta prima di inventarne un'altra.
 
 **Rapporto con la pulizia (§69):** gli eventi puntano agli ordini **senza cancellazione a catena**, quindi un evento collegato impedirebbe di rimuovere il suo ordine. La decisione presa il 04/08/2026 è che nella pulizia mensile l'evento **resti perdendo il riferimento**: il dato statistico non ha bisogno di sapere quale ordine, ha bisogno di esistere. *Oggi la tabella è vuota, quindi il problema è futuro — ma nasce il giorno stesso in cui le statistiche entrano in funzione, e la prima pulizia mensile successiva si bloccherebbe senza questa regola.*
+
+---
+
+## 65b. Banner cookie e conteggio degli ordini su Google Ads e Meta (v95, 15/11/2026, vincolante)
+
+**Obiettivo.** Contare su Google Ads e su Meta gli ordini **pagati** su KM
+Direct, con il loro importo, senza caricare niente di Google Ads o di Meta
+prima del consenso del cliente. *Perché: la campagna Search di Google conta oggi
+solo le «indicazioni stradali», e la promozione su Meta verso il sito ordini è in
+pausa perché non si poteva misurare.*
+
+⚠️ **Stato del codice al 15/11/2026, letto da Code e non a memoria:** nessun
+banner e nessuna gestione del consenso; nessun cookie scritto dal codice sulle
+pagine cliente; `localStorage` mai usato; i parametri d'arrivo degli annunci
+(`gclid`, `fbclid`, `utm_`) mai letti né salvati; nessuna intestazione di
+sicurezza (`next.config.mjs` vuoto). Google Maps e Adobe Fonts si caricano dal
+layout principale su **tutte** le pagine, staff comprese.
+
+### Le decisioni (Andrea, 15/11/2026)
+
+**D1. Banner fatto in casa, dentro KM Direct.** Nessun servizio esterno.
+*Motivo: costo zero e nessuno script di terzi in più; il segnale di consenso a
+Google si manda con Consent Mode v2. L'obbligo di una piattaforma di consenso
+certificata riguarda chi ospita pubblicità, non chi la compra.* ⚠️ *Il prezzo: la
+correttezza del banner è responsabilità nostra.*
+
+**Requisiti del banner** (dal brief di Andrea, Linee guida cookie del Garante
+del 2021):
+* «Accetta» e «Rifiuta» **ugualmente visibili**; chiudere con la X **equivale a
+  rifiutare**;
+* **nessun consenso implicito**: né scorrendo, né con caselle già spuntate;
+* la scelta si ricorda e **non si richiede prima di 6 mesi**, salvo modifiche;
+* nel piè di pagina un collegamento **«Preferenze cookie»** per cambiare scelta
+  in qualunque momento;
+* ⚠️⚠️ **nessun tag di Google Ads o di Meta si carica prima del consenso**:
+  Consent Mode v2 in modalità **base**, Pixel Meta caricato **solo dopo**;
+* **chi rifiuta ordina esattamente come oggi.**
+* ⚠️ **I tag non si caricano mai sulle pagine staff** (`/staff`, `/staff/login`,
+  `/staff/abbandonati`). *Il layout è in comune: l'esclusione va scritta.*
+
+**D2. Quando si conta un ordine.** Solo quando il **database** dice che è
+pagato — mai dall'indirizzo della pagina, mai dal semplice arrivo sulla
+conferma. **Una volta sola per ordine**, anche se il cliente ricarica. Con
+l'importo totale in EUR. ⚠️⚠️ **L'identificativo mandato a Google
+(`transaction_id`) e a Meta (`eventID`) è il codice ritiro (`KM-0042`), MAI il
+token dell'ordine**: il token è la chiave della pagina di stato. *Il codice
+ritiro di un ordine pagato non viene mai riusato (§69 v94): un ordine pagato non
+si cancella.*
+⚠️ *Da sapere: un ordine rimborsato resta contato su Google e Meta.*
+
+**D3. Gli annunci Google atterrano direttamente su
+`ordina.kebabmediterraneo.it`** (lo cambia Andrea da Google Ads). *Sul passaggio
+dal sito Storeden il clic dell'annuncio si perderebbe.* ✅ *Accertato da Code: la
+home e il checkout sono la stessa pagina, quindi il parametro dell'annuncio resta
+nell'indirizzo fino al passaggio su Stripe. Il cliente può accettare i cookie
+**in qualunque momento prima di pagare**: il tag lo raccoglie e lo ritrova al
+ritorno.* ⚠️ *Se accetta solo sulla pagina di conferma, l'ordine si conta ma
+non si collega all'annuncio.* *Consiglio, non codice: far girare gli annunci
+solo negli orari in cui si può ordinare.*
+
+**D4. Informativa da v1.2 a v1.3**, con la sezione cookie e Google e Meta fra i
+destinatari. ⚠️⚠️ **Vale la regola di versionamento (§41-45, «Informativa privacy — versionamento»):
+la v1.3 va online NELLO STESSO PASSAGGIO del banner e dei tag, non dopo.**
+Dentro la v1.3 entrano anche Google Maps e Adobe Fonts (caricati su tutte le
+pagine) e la frase del consenso marketing che nomina un canale solo. *La parte
+di fatto — quali strumenti, quali dati, quando — la scrive il compagno di
+ragionamento verificandola sul codice e dal vivo; il testo legale lo fa
+controllare Andrea.*
+
+⚠️⚠️ **E L'INFORMATIVA DI OGGI PROMETTE IL CONTRARIO.** Il vincolo 1 dei
+«Vincoli dall'informativa privacy» qui sopra (§65, punto 3.4 dell'informativa
+v1.2) dice al cliente: *«nessuna piattaforma di analisi o pubblicità di terze
+parti»*. **Con i tag accesi e la v1.2 online, l'informativa direbbe il falso.**
+Il vincolo resta valido **per le statistiche interne di §65**; per il conteggio
+degli ordini lo sostituisce la v1.3. *È la ragione per cui la v1.3 non è un
+passo successivo: è una condizione di pubblicazione.*
+
+**D5. ⚠️⚠️ Nessun tag deve mai trasmettere il token dell'ordine.** La pagina di
+conferma è `/conferma?order_token=<token>`, e i tag mandano ai propri server
+l'indirizzo della pagina. **Soluzione decisa:** la pagina legge il token, lo
+conserva e **lo toglie dalla barra dell'indirizzo prima che qualunque tag si
+carichi**; ricaricando, lo ritrova da dove l'ha conservato. Il link del cliente
+resta valido. In più, **`Referrer-Policy: strict-origin-when-cross-origin`**
+su tutto il sito (rilievo dell'audit di agosto, §66). *La prova vera è dal vivo:
+nelle chiamate verso Google e Meta il token non deve comparire.*
+
+**D6. Le tre ore si contano dalla nascita dell'ordine** (`orders.created_at`).
+*Una colonna con l'ora del pagamento non esiste, e crearla vorrebbe dire toccare
+il webhook.* Un ordine pagato più di tre ore dopo la sua nascita non si conta:
+caso rarissimo, accettato.
+
+**D7. Il server decide, la pagina esegue.** La rotta `app/api/orders/[token]`
+restituisce **in più** il totale e un'indicazione «da contare», vera solo se
+l'ordine è pagato **e** nato da meno di tre ore. **La pagina non riceve date e
+non calcola niente.** ⚠️ *Riapre apposta il punto «la rotta seleziona quattro
+sole colonne» dell'audit (§66): il totale non è un dato personale, e la data
+resta sul server.*
+
+**D8. Finché il pagamento non risulta confermato, la pagina controlla ogni 3
+secondi per i primi 2 minuti**, poi torna ai 20 secondi di oggi. *Il webhook
+arriva di solito pochi secondi dopo il cliente: con 20 secondi, chi chiude la
+pagina subito non verrebbe contato.*
+
+**Una volta sola per ordine:** la pagina ricorda nel browser i codici già
+contati (solo dopo il consenso); Google scarta i doppioni con lo stesso
+`transaction_id`, Meta con lo stesso `eventID`.
+
+**Gli identificativi** di Google Ads (ID ed etichetta di conversione) e del
+Pixel Meta **non sono chiavi**, ma vanno comunque in variabili d'ambiente su
+Vercel, inserite da Andrea. *Lette al momento della costruzione del sito:
+cambiarle richiede una ripubblicazione.*
+
+**Non si toccano:** il checkout, Stripe, il webhook.
+
+### La prova dal vivo (la fa Andrea)
+
+1. **Rifiuto** → nessuna chiamata a `googletagmanager`, `googleadservices`,
+   `google-analytics`, `doubleclick`, `facebook`; l'ordine funziona. ⚠️ *Le
+   chiamate a Google Maps ci sono comunque, per l'indirizzo: non sono un errore.*
+2. **Accetto** → ordine vero poi rimborsato → la conversione compare in Google
+   Ads (diagnostica del tag) e in Meta (Gestione eventi → Test eventi), con
+   l'importo giusto.
+3. **Ricarico** la conferma → la conversione **non** si conta una seconda volta.
+4. **«Preferenze cookie»** → cambio scelta → la scelta viene rispettata.
+5. ⚠️ **Nelle chiamate verso Google e Meta il token dell'ordine non compare.**
+
+### Fuori da questo lavoro (sviluppi possibili)
+
+* Meta Conversions API lato server — conterebbe anche una parte di chi rifiuta;
+* Google Analytics 4.
+
+### Da sapere, non da sistemare ora
+
+* La pagina di conferma decide cosa mostrare solo dallo stato dell'ordine, che
+  nasce `nuovo` **prima** del pagamento: mostra «Ordine ricevuto» anche se il
+  pagamento non è ancora confermato. *Con la carta il cliente ci arriva solo dopo
+  un pagamento riuscito, quindi oggi è innocuo.*
 
 ---
 
@@ -6525,9 +6662,9 @@ cancellato.*
 
 ### Accertato dall'audit e chiuso — non riaprire (v53)
 
-* **La pagina di stato non espone dati personali.** La rotta `app/api/orders/[token]/route.js` seleziona in query quattro sole colonne (`pickup_code, payment_status, status, fulfillment`): la protezione è nella query, non nella resa grafica. Il token è generato dal database con 16 byte casuali, non è derivabile dall'id dell'ordine, non scade, è di sola lettura. Chi riceve il link inoltrato vede uno stato, non un ordine.
-* **Nessun cookie sulle pagine cliente**, né del progetto né di terze parti. Verificato dal vivo in finestra pulita.
-* **Nessuno strumento di analytics, error tracking o session recording** nel progetto.
+* ⚠️ *(v95: **riaperto apposta da §65b, decisione D7** — la rotta restituirà anche il totale e l'indicazione «da contare»; il totale non è un dato personale e la data resta sul server. Il resto del punto resta vero.)* **La pagina di stato non espone dati personali.** La rotta `app/api/orders/[token]/route.js` seleziona in query quattro sole colonne (`pickup_code, payment_status, status, fulfillment`): la protezione è nella query, non nella resa grafica. Il token è generato dal database con 16 byte casuali, non è derivabile dall'id dell'ordine, non scade, è di sola lettura. Chi riceve il link inoltrato vede uno stato, non un ordine.
+* **Nessun cookie sulle pagine cliente**, né del progetto né di terze parti. Verificato dal vivo in finestra pulita. ⚠️ *(v95) **Vero fino alla pubblicazione di §65b**: dopo, solo per chi rifiuta. Ricontrollato sul codice il 15/11 (Code): il codice non scrive cookie sulle pagine cliente; ciò che scrivono Google Maps e Adobe Fonts si riverifica dal vivo con la prova del banner.*
+* **Nessuno strumento di analytics, error tracking o session recording** nel progetto. ⚠️ *(v95) **Vero fino alla pubblicazione di §65b**, che aggiunge i tag di conversione di Google Ads e Meta (non strumenti di analytics, ma pubblicità di terze parti).*
 * **Glovo non invia alcun collegamento di tracking al cliente.** I riferimenti in spec sono desideri di fase futura: non vanno mai nell'informativa finché non esistono.
 
 ### Ciò che governa il progetto e non sta in nessun file (v63, 07/08/2026)
@@ -7234,7 +7371,8 @@ pulizia mensile è stata eseguita il 06/11/2026; **il 14/11/2026, sabato, dalle
 usato 39, il sito provava `KM-0028` e i quattro successivi, li trovava tutti
 occupati e si arrendeva con «Qualcosa è andato storto durante l'ordine». ✅
 *L'errore cadeva **prima** del pagamento: nessun cliente ha pagato senza
-ordine.* **Corretto e pubblicato la sera stessa**, commit `90b8687`, alle 19:36.
+ordine.* **Corretto e pubblicato la sera stessa**, commit `90b8687` delle 19:33
+*(«19:36» fino alla v94: era l'ora del messaggio, non del commit)*.
 *Il racconto della serata è nell'handoff, punto 49o.*
 
 **LA REGOLA (vincolante):** il codice ordine è `KM-` seguito dal **numero più
@@ -7269,19 +7407,29 @@ quindi Glovo non riceve mai un identificativo doppio, e il cliente che l'aveva
 abbandonato non ha mai avuto un codice ritiro valido.* **Non si scrive codice
 per impedirlo.**
 
-⚠️ **DEBITO REGISTRATO, non chiuso**: `sql/conteggi_dati_sola_lettura.sql` ha due
-difetti di documentazione — una riga che cita un tetto di 100 righe non più
-valido, e la mancanza della dichiarazione di quante righe deve avere il proprio
-referto, che §66 impone. *Sono commenti, non comportamento: non toccati il giorno
-dell'esecuzione apposta.*
+✅ **CHIUSO IL 15/11/2026 — I TRE DIFETTI DI `sql/conteggi_dati_sola_lettura.sql`.**
+*Registrati il 06/11: il referto non contava `coupon_redemptions`, quindi il
+confronto prima/dopo una pulizia era cieco su quella tabella; citava un tetto di
+100 righe non più valido; non dichiarava quante righe doveva avere.* Ora:
 
-⚠️⚠️ **E UN TERZO DIFETTO, QUESTO DI COMPORTAMENTO: QUEL REFERTO NON CONTA
-`coupon_redemptions`.** La tabella è nata il 03/09/2026 (§14b) e lo script dei
-conteggi non è stato aggiornato. *Conseguenza concreta: il confronto fra il
-referto **prima** e quello **dopo** una pulizia è **cieco su quella tabella** —
-se la pulizia vi cancellasse righe che non doveva, nessuno dei due referti se ne
-accorgerebbe.* **Non è un commento: è una misura che manca.** *Resta aperto
-perché lo script si tocca il primo del mese, non in mezzo a un altro lavoro.*
+* conta `coupon_redemptions` in totale **e per stato**, una riga fissa per
+  `reserved` e una per `consumed` — *righe fisse e non un raggruppamento, così uno
+  stato a zero compare come zero invece di sparire*. ⚠️ **Se `consumed` cala fra
+  il referto PRIMA e quello DOPO una pulizia, la pulizia ha cancellato un codice
+  usato su un ordine vero, e va indagata;**
+* sul tetto dell'editor dice la regola di §66, non una cifra;
+* ⚠️ **dichiara quante righe deve avere il referto: 38 + una per ogni
+  identificatore del registro staff.** Il numero non può essere fisso, perché
+  quella sezione cresce con i dati: **lo calcola il database stesso, nella
+  seconda riga del referto** («righe attese di questo referto»). *Se ne arrivano
+  meno, il tetto ha tagliato e i controlli in fondo non sono stati letti.* La
+  riga del freno del go-live resta la prima, come dicono i commenti del file.
+
+**Prima esecuzione, Andrea, 15/11/2026: 39 righe attese, 39 arrivate**; un
+identificatore solo nel registro staff (l'account reale). File da 210 a 252
+righe, impronta `ef6c0b4acf4f391d4623006304aaa0267285c461f8116eab6304dfbece83c153`.
+*I numeri del referto vivono nell'handoff, punto 49p: invecchiano a ogni
+esecuzione.*
 
 Non esisteva nulla in spec. Ora esiste.
 
@@ -7341,7 +7489,7 @@ Non sono più un lavoro da fare: esistono, sono in `sql/`, e nessuno dei tre è 
 
 **Stato del freno al 05/08/2026**: il valore committato nel file è anteriore all'ordine più recente, quindi **oggi il freno fermerebbe l'esecuzione**. È il comportamento voluto, ed è la direzione sicura.
 
-**Ogni tabella del database è coperta.** Le **otto** che gli script toccano più le **sedici** dichiarate intoccabili fanno esattamente le **24** dello schema: nessuna resta fuori: o è dichiarata come toccata, o è misurata come intatta dai post-check. *Le sedici non sono un elenco copiato a mano nei controlli: è la stessa lista, dichiarata una volta e percorsa in ciclo, così intestazione e verifica non possono divergere.* ⚠️ *`staff_action_log` è fra le otto ma non viene mai svuotato: le righe vere restano sempre, ed è l'eccezione di §66.* ⚠️ **L'ottava è `coupon_redemptions`, dal 03/09/2026**: la pulizia mensile la tocca (vedi sotto), ma lo script dei conteggi **non la conta** — il debito dichiarato più sopra.
+**Ogni tabella del database è coperta.** Le **otto** che gli script toccano più le **sedici** dichiarate intoccabili fanno esattamente le **24** dello schema: nessuna resta fuori: o è dichiarata come toccata, o è misurata come intatta dai post-check. *Le sedici non sono un elenco copiato a mano nei controlli: è la stessa lista, dichiarata una volta e percorsa in ciclo, così intestazione e verifica non possono divergere.* ⚠️ *`staff_action_log` è fra le otto ma non viene mai svuotato: le righe vere restano sempre, ed è l'eccezione di §66.* ⚠️ **L'ottava è `coupon_redemptions`, dal 03/09/2026**: la pulizia mensile la tocca (vedi sotto), e dal 15/11/2026 lo script dei conteggi **la conta**, anche per stato (vedi più sopra). *Fino a quel giorno non la contava.*
 
 ---
 
