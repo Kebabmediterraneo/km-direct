@@ -58,13 +58,41 @@
 --
 -- COME SI ESEGUE:
 --   Si incolla nel SQL editor di Supabase e si preme Run.
---   ATTENZIONE (§66, limite dello strumento): l'editor mostra al massimo 100
---   righe. Questo referto ne produce molte meno, ma se un giorno la sezione
---   "log per identificatore" crescesse, va verificato che l'elenco non sia
---   stato troncato.
+--   ATTENZIONE (§66, limite dello strumento): l'editor ha un tetto sulle righe
+--   restituite, e il suo valore vero NON e' misurato — la cifra e' cambiata piu'
+--   volte senza avvisare. La regola non e' una cifra: un referto che finisce
+--   su un numero tondo non va mai considerato completo. Il controllo vero e'
+--   quello qui sotto.
+--
+-- ⚠️ QUANTE RIGHE DEVE AVERE IL REFERTO (§66, vincolante): 38 + N, dove N e'
+--   il numero di identificatori diversi in `staff_action_log` (la sezione
+--   "log staff — per identificatore" ha una riga per ciascuno, quindi non e'
+--   un numero fisso). Le 38 righe fisse:
+--     1   riga del freno del go-live (ord 1)
+--     1   riga "righe attese di questo referto" (ord 2)
+--     8   tabelle toccate (ord 10-17, con `coupon_redemptions`)
+--     3   ordini per stato di pagamento (ord 20-22)
+--     3   clienti (ord 30-32)
+--     2   log staff collegati / non collegati (ord 40-41)
+--     2   eventi statistici (ord 50-51)
+--     2   codici sconto nominativi per stato (ord 55-56)
+--    16   tabelle che non devono cambiare (ord 60-75)
+--   Il totale lo calcola il database nella SECONDA riga del referto (ord 2):
+--   se le righe arrivate sono meno di quel numero, il tetto ha tagliato e i
+--   controlli in fondo NON sono stati letti.
 -- ============================================================================
 
-select 10 as ord, 'tabelle toccate'      as sezione, 'orders'                              as misura, count(*)::bigint as valore from orders
+-- La dichiarazione del numero di righe (§66), calcolata e non scritta a mano:
+-- 38 righe fisse piu' una per ogni identificatore di `staff_action_log`
+-- (colonna not null, quindi nessun gruppo vuoto in piu'). Se si aggiunge o si
+-- toglie una riga fissa a questo file, il 38 va cambiato qui e in testa.
+-- Ha `ord` = 2: subito dopo la riga del freno, che resta la prima perche' e'
+-- il dato che si viene a cercare qui.
+select 2 as ord, 'righe attese di questo referto' as sezione,
+       'se ne arrivano meno, il tetto dell''editor ha tagliato' as misura,
+       (38 + (select count(distinct staff_identifier) from staff_action_log))::bigint as valore
+union all
+select 10, 'tabelle toccate', 'orders', count(*)::bigint from orders
 union all
 select 11, 'tabelle toccate', 'order_items',                    count(*)::bigint from order_items
 union all
@@ -77,6 +105,8 @@ union all
 select 15, 'tabelle toccate', 'staff_action_log',               count(*)::bigint from staff_action_log
 union all
 select 16, 'tabelle toccate', 'analytics_events',               count(*)::bigint from analytics_events
+union all
+select 17, 'tabelle toccate', 'coupon_redemptions',             count(*)::bigint from coupon_redemptions
 
 -- Il valore da copiare nel parametro (1) dello script del go-live. Ha `ord` = 1
 -- per comparire in cima al referto: e' il dato che si viene a cercare qui.
@@ -170,6 +200,19 @@ select 50, 'eventi statistici', 'collegati a un ordine',
 union all
 select 51, 'eventi statistici', 'non collegati ad alcun ordine',
        count(*)::bigint from analytics_events where order_id is null
+
+-- Codici sconto nominativi (§14b), una riga per ciascuno dei due stati che lo
+-- schema ammette (`check (status in ('reserved', 'consumed'))`). Righe fisse e
+-- non un `group by`: uno stato a zero deve comparire come zero, non sparire.
+-- La pulizia mensile puo' togliere solo prenotazioni (`reserved`) mai pagate:
+-- ⚠️ se `consumed` cala fra il referto PRIMA e quello DOPO, la pulizia ha
+-- cancellato un codice usato su un ordine vero, e va indagata.
+union all
+select 55, 'codici sconto nominativi per stato', 'reserved (prenotati)',
+       count(*)::bigint from coupon_redemptions where status = 'reserved'
+union all
+select 56, 'codici sconto nominativi per stato', 'consumed (usati su un ordine pagato)',
+       count(*)::bigint from coupon_redemptions where status = 'consumed'
 
 -- Cio' che nessuna delle due pulizie deve toccare (§66, elenco delle tabelle
 -- di menu e configurazione). Se uno di questi numeri cambia, fermarsi.
