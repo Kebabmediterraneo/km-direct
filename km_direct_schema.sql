@@ -274,7 +274,7 @@ create table orders (
   customer_id uuid not null references customers(id),
 
   fulfillment fulfillment_type not null,
-  pickup_code text unique,                      -- es. "KM-0042" (§58)
+  pickup_code text unique,                      -- es. "KM-0042" (§69)
 
   -- Delivery
   delivery_timing delivery_timing_type,
