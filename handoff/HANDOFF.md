@@ -4941,3 +4941,84 @@ sola: «sempre dal pannello».
   dovrebbero essere almeno undici `modifica_opzioni_prodotto`, una per
   salvataggio. *Non serve per il prezzo, che la SELECT dice già; è scritto
   perché non lo si creda misurato.*
+
+### 49o) ⚠️⚠️ Sabato sera il sito non ha preso ordini (14/11/2026)
+
+**Il guasto.** Sabato 14/11, in pieno servizio, il pagamento non partiva: il
+cliente vedeva «Qualcosa è andato storto durante l'ordine». ✅ *L'errore cadeva
+**prima** della pagina di Stripe: nessuno ha pagato senza ordine, niente da
+rimborsare.* Nei log di Vercel, nella finestra guardata (dalle 18:51), **quattro
+tentativi falliti** fra le 19:09 e le 19:13 — forse lo stesso cliente che
+riprovava. *Prima delle 18:51 non è stato guardato.*
+
+**La causa, letta nei log in un passo.** «Impossibile generare un codice ritiro
+univoco.» Il codice ordine era **quanti ordini ci sono, più uno**, con cinque
+tentativi. La pulizia mensile del 06/11 aveva cancellato una parte degli ordini
+(quelli mai pagati): **SELECT di Andrea, 27 ordini in tabella, numero più alto
+39**; il sito provava `KM-0028`…`KM-0032`, tutti occupati, e si arrendeva.
+Code è arrivato alla stessa causa da solo, leggendo il codice, e ha ricordato
+che la spec lo aveva previsto testualmente.
+
+⚠️⚠️ **L'AVVERTIMENTO C'ERA DAL 01/09** (spec §69 e qui, punto 48c): *«Cancellare
+in futuro solo una parte degli ordini produrrebbe collisioni.»* E la pulizia
+mensile, per come è fatta, cancella **solo una parte**. **Le due cose stavano
+nella stessa sezione della spec, a una trentina di righe di distanza, e nessuno
+le ha mai lette insieme** — nemmeno il 06/11, quando la pulizia è stata
+corretta ed eseguita con una cura che ha trovato un vincolo nascosto, ma non
+questo.
+
+**La serata, in ordine:**
+* 19:15 segnalazione di Andrea; 19:20 i log di Vercel; 19:21 diagnosi confermata
+  dal database; consiglio di chiusura eccezionale dal pannello;
+* Code prepara la correzione **senza commit**: prova vista **rossa** sulla logica
+  vecchia per il motivo vero, poi verde; 2195 prove su 2195; il progetto compila;
+* ⚠️ *Code non ha potuto provare il filtro sul database vero (permessi): l'ha
+  esercitato la prova di Andrea **in locale**, arrivata alla pagina di Stripe con
+  `KM-0040`, senza pagare;*
+* 19:36 commit `90b8687` e push; sul sito vero la pagina di Stripe con
+  `KM-0041`; chiusura tolta, **sito di nuovo aperto**.
+
+**La regola nuova** è in spec **§69 v94**: il più alto già usato, più uno;
+letto una riga per volta; giusto oltre `KM-9999`; se la lettura fallisce si
+ferma, mai `KM-0001`. ✅ *Cancellare una parte degli ordini ora è sicuro.* ✅
+**Decisione di Andrea del 15/11: il numero può essere riusato in un caso solo
+(cancellato l'ordine più alto e nessun ordine nuovo per trenta giorni), ed è
+innocuo — non si scrive codice per impedirlo.**
+
+✅ **I codici sconto nominativi: nessuna prenotazione rimasta appesa.** Code
+aveva segnalato che la prenotazione del codice avviene **prima** della
+creazione dell'ordine, quindi un ordine fallito poteva lasciarla appesa. Query di
+sola lettura del 15/11: `prenotate_in_totale = 0` su **tutta** la tabella, senza
+limite d'orario; controprova `righe_in_tabella = 1`, cioè la tabella è stata
+letta davvero. *Ieri sera nessuno ha usato un codice nominativo.*
+
+**Due ordini mai pagati nati dalle prove**, `KM-0040` (in locale) e `KM-0041`
+(sul sito vero): li toglie la pulizia mensile. *Con la regola nuova non spostano
+niente.*
+
+⚠️ **Un riferimento sbagliato, corretto il 15/11.** Il commento scritto la sera
+del 14 in `app/api/checkout/route.js` rimandava a «§58», che nella spec non
+esiste: la regola sta in §69. Corretto con un commit di solo commento, a locale
+chiuso, per decisione di Andrea.
+
+**en. ⚠️⚠️ UN AVVERTIMENTO SCRITTO NON PROTEGGE, SE LA COSA CHE LO VIOLA VIVE IN
+UN ALTRO PARAGRAFO.** *(da 49o)* La spec diceva da due mesi che cancellare una
+parte degli ordini avrebbe rotto il sito, e descriveva poco più sotto la
+procedura mensile che fa esattamente quello. Un avvertimento è letto da chi
+legge **quel** paragrafo; chi esegue la procedura legge **la procedura**. **Rimedio:
+quando si scrive un «non fare mai X», cercare subito nei documenti e nel codice
+chi fa X, e scriverlo lì — o togliere la causa, come si è fatto stasera.**
+*Parente di `ek` e `el`: anche qui la cosa da trovare c'era, ma scritta nel
+posto dove nessuno l'avrebbe cercata.*
+
+#### Aperto, da aggiungere all'elenco di 49k
+
+* ⚠️ **Tre uscite verso l'errore 500 del pagamento non scrivono nessuna riga di
+  log** (segnalate da Code: `lib/checkout-resolve.js:214`, `:230`, `:367`). Se
+  un giorno il guasto fosse lì, i log di Vercel non direbbero niente: **sabato
+  sera la causa l'hanno data i log in un passo, e lì non ci sarebbero stati.**
+* ⚠️ **La prenotazione del codice sconto prima dell'ordine**: oggi non ha fatto
+  danni, ma un ordine fallito dopo la prenotazione la lascia appesa fino alla
+  scadenza. *Da decidere se basta la scadenza o serve liberarla.*
+* **Nessun allarme quando il pagamento fallisce in serie**: il guasto l'ha visto
+  un essere umano. *Da decidere se vale un avviso.*
