@@ -16,6 +16,10 @@
 // Lo stile riusa le stesse variabili colore, lo stesso carattere di sistema e
 // la stessa larghezza di lettura (480px) delle altre pagine cliente
 // (`app/page.js`, `app/conferma/page.js`).
+//
+// §65b (16/11/2026): in fondo il piè di pagina comune, per «Preferenze cookie».
+// ⚠️ Il testo dell'informativa qui sotto NON è cambiato: è ancora la v1.2.
+import PrivacyFooter from "../privacy-footer";
 
 export const metadata = {
   title: "Informativa privacy — KM Kebab Mediterraneo",
@@ -990,6 +994,8 @@ export default function PrivacyPage() {
         sostanziali saranno comunicate con modalità adeguate, quando richiesto
         dalla normativa.
       </p>
+
+      <PrivacyFooter showPrivacyLink={false} />
     </main>
   );
 }

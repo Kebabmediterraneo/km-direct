@@ -29,8 +29,12 @@ html, body {
      ⚠️ I pesi disponibili sono QUATTRO: 400, 600, 700, 800. Un peso diverso
      non esiste come file e verrebbe fabbricato dal browser.
      `sans-serif` resta come rete: se Adobe Fonts non risponde il sito si
-     legge lo stesso, con il carattere di sistema. */
-  font-family: termina, sans-serif;
+     legge lo stesso, con il carattere di sistema.
+     §65b (E5, 16/11/2026): dopo Termina la pila di sistema esplicita, che è
+     ciò che vede chi spegne Adobe Fonts da «Preferenze cookie» (su iPhone il
+     carattere di Apple, su Android Roboto). Per chi non lo spegne non cambia
+     niente: Termina viene prima. */
+  font-family: termina, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
 
 /* ⚠️ QUESTA RIGA SEMBRA NON FARE NIENTE, E INVECE REGGE TRE QUARTI DEL SITO.
