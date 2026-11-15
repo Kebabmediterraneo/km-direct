@@ -5101,3 +5101,51 @@ dei conteggi (con i suoi due difetti di documentazione), l'ora 19:33, il §58.
 * **Debiti di scrittura**: il nome `confermaPrezzo`, i numeri di riga del punto
   16 che invecchiano a ogni tocco, la citazione «riga 398».
 * **La condensazione dei documenti vecchi**, se si farà.
+
+### 49q) La revisione legale, sette decisioni e la pulizia fuori calendario (15/11/2026, sera)
+
+**La bozza dell'informativa v1.3** è un documento a parte («Informativa privacy
+KM Direct — bozza v1.3»), non nel deposito. Rileggendo la v1.2 per scriverla:
+**Adobe Fonts non era mai nominato** (riceve l'IP di ogni visitatore da luglio);
+la frase «gli strumenti di Google non installano cookie» e la frase «i consensi
+non vengono mai conservati» diventerebbero false con il banner. Tutte e tre
+sistemate nella bozza.
+
+**Due revisioni legali lo stesso pomeriggio.** Approvate: punto 17 come «Cookie
+policy», pulsanti di pari evidenza, «Personalizza», numerazione 5-bis, Adobe Fonts
+mantenuto. Chiesti: dichiarare che Google e Meta possono usare i dati per
+ottimizzare gli annunci; non promettere «una sola volta» ed «entro tre ore» (tolti:
+sono funzionamento interno); un esito **provvisorio** sulla valutazione del
+legittimo interesse per Adobe; non attribuire a Google e Meta lo stesso ruolo per
+ogni operazione. **Pubblicazione non ancora autorizzata.** Mandati alla parte
+legale: la v1.2 completa in PDF (ricavata dal file del sito, impronta
+`83355ff2…74d0ba5f`) e la bozza in Word.
+
+**Sette decisioni di Andrea, tutte come consigliato** — spec §65b v96, E1-E7.
+⚠️ **Una vale già oggi: il consenso marketing raccolto finora si usa solo per
+l'e-mail.**
+
+**La pulizia fuori calendario.** La parte legale aveva notato che «massimo 30
+giorni» con una pulizia mensile non regge; il referto delle 15:28 mostrava
+proprio **un ordine mai pagato oltre i 30 giorni**. Pulizia eseguita alle 17,
+esito in spec §69 v96: un ordine e il suo cliente tolti, nient'altro.
+⚠️ *La pulizia è partita prima che arrivasse la conferma di Code sullo script: i
+messaggi si sono incrociati. La conferma, arrivata subito dopo, dice che lo
+script era quello giusto, e il confronto dei referti lo dimostra.*
+
+**eo. ⚠️ UN «PRIMA FAI A, POI B» NON BASTA SE B È SOTTO GLI OCCHI.** *(da 49q)*
+Il comando per Code e la sequenza della pulizia erano nello stesso messaggio:
+Andrea ha visto la sequenza e l'ha seguita. **Rimedio: quando un passo che
+scrive deve aspettare un controllo, il messaggio lo dice in testa e in maiuscolo
+— «NON LANCIARE NIENTE FINCHÉ…» — e la sequenza arriva solo dopo il controllo.**
+
+#### Aperto, da aggiungere all'elenco di 49p
+
+* **Il lavoro di §65b**: codice del banner (con E1, E3-E6), tabella del registro
+  (E4), informativa v1.3 nel sito. *Prossimo passo.*
+* **Le verifiche di Andrea negli account**: termini accettati su Google Ads e Meta
+  (ruoli); matching avanzato di Meta e conversioni avanzate di Google spenti.
+* **`km_direct_schema.sql` non descrive `coupon_redemptions`** (segnalato da Code):
+  buco di documentazione.
+* **Il commento in testa allo script di pulizia** dice «non restano oltre un
+  mese»: da allineare ai 60 giorni quando esce la v1.3.
