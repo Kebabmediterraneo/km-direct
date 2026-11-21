@@ -30,11 +30,14 @@ import {
   isCustomerPath,
   showsBanner,
   tagsToLoad,
+  canLoadTagsNow,
   googleCommands,
   metaCommands,
   cookieDeletions,
   fontCookieString,
 } from "../lib/cookie-consent";
+import { CONFIRMATION_READY_EVENT, ORDER_TO_COUNT_EVENT } from "../lib/order-token";
+import { conversionsToSend, markCounted } from "../lib/order-conversion";
 
 // La memoria del browser, presa con prudenza: in alcuni browser anche solo
 // nominarla lancia un errore. Il modulo tratta `null` come «nessuna scelta».
@@ -85,11 +88,43 @@ function caricaMeta(id) {
   document.head.appendChild(s);
 }
 
+// ⚠️⚠️ D5: la regola si chiede QUI, un istante prima di inserire gli script, con
+// la barra dell'indirizzo VERA del momento. Su /conferma: solo dopo il segnale
+// «conferma pronta» e senza `order_token` nell'indirizzo.
 function caricaTag(consent, pathname, ids) {
+  if (!canLoadTagsNow({ pathname, search: window.location.search, confirmationReady: window.__kmConfermaPronta === true })) {
+    return false;
+  }
   for (const tag of tagsToLoad(consent, pathname, ids)) {
     if (tag.provider === "google") caricaGoogle(tag.id);
     if (tag.provider === "meta") caricaMeta(tag.id);
   }
+  return true;
+}
+
+// §65b (D2) — il conteggio dell'ordine pagato, su /conferma. L'ordine arriva
+// dalla pagina (`window.__kmOrdineDaContare`, codice ritiro e totale, mai il
+// token); qui si decide con le regole provate di `lib/order-conversion.js`:
+// solo i fornitori col consenso, una volta sola per codice.
+function provaAContare(consent, pathname, ids) {
+  const ordine = window.__kmOrdineDaContare;
+  if (!ordine) return;
+  if (!canLoadTagsNow({ pathname, search: window.location.search, confirmationReady: window.__kmConfermaPronta === true })) return;
+  const invii = conversionsToSend({ order: ordine, consent, ids, storage: memoria() });
+  if (invii.length === 0) return;
+  if (!caricaTag(consent, pathname, ids)) return;
+  const fatti = [];
+  for (const invio of invii) {
+    if (invio.provider === "google" && typeof window.gtag === "function") {
+      window.gtag(...invio.command);
+      fatti.push(invio.key);
+    }
+    if (invio.provider === "meta" && typeof window.fbq === "function") {
+      window.fbq(...invio.command);
+      fatti.push(invio.key);
+    }
+  }
+  if (fatti.length > 0) markCounted(memoria(), fatti);
 }
 
 // ⚠️ PARI EVIDENZA (§65b, E3): «Accetta tutti» e «Rifiuta tutti» usano questo
@@ -127,23 +162,43 @@ const STILE_RIGA = {
   lineHeight: 1.4,
 };
 
-export default function CookieConsent({ googleAdsId, metaPixelId }) {
+export default function CookieConsent({ googleAdsId, googleAdsConversionLabel, metaPixelId }) {
   const pathname = usePathname();
   const [consent, setConsent] = useState(null);
   // "nascosto" | "banner" | "personalizza" | "preferenze"
   const [vista, setVista] = useState("nascosto");
   const [bozza, setBozza] = useState({ google: false, meta: false, adobeFonts: true });
-  const ids = { googleAdsId, metaPixelId };
+  const ids = { googleAdsId, googleAdsConversionLabel, metaPixelId };
 
   // All'apertura: si legge la scelta, si decide se mostrare il banner e si
   // caricano i soli tag concessi. Nel primo disegno il componente non mostra
   // niente, così la pagina generata dal server e quella del browser coincidono.
+  // Su /conferma i tag aspettano i segnali della pagina (qui sotto).
   useEffect(() => {
     if (isStaffPath(pathname)) return;
     const letta = readConsent(memoria());
     setConsent(letta);
     if (showsBanner(pathname) && needsBanner(letta)) setVista("banner");
     caricaTag(letta, pathname, ids);
+    provaAContare(letta, pathname, ids);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname]);
+
+  // /conferma: «conferma pronta» (il token è sistemato) e «ordine da contare».
+  // A ogni segnale si rilegge la scelta e si riprova: le regole decidono.
+  useEffect(() => {
+    if (pathname !== "/conferma") return;
+    function riprova() {
+      const letta = readConsent(memoria());
+      caricaTag(letta, pathname, ids);
+      provaAContare(letta, pathname, ids);
+    }
+    window.addEventListener(CONFIRMATION_READY_EVENT, riprova);
+    window.addEventListener(ORDER_TO_COUNT_EVENT, riprova);
+    return () => {
+      window.removeEventListener(CONFIRMATION_READY_EVENT, riprova);
+      window.removeEventListener(ORDER_TO_COUNT_EVENT, riprova);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname]);
 
@@ -191,6 +246,7 @@ export default function CookieConsent({ googleAdsId, metaPixelId }) {
     setConsent(salvata);
     setVista("nascosto");
     caricaTag(salvata, pathname, ids);
+    provaAContare(salvata, pathname, ids);
   }
 
   // La X: sul banner e finché non c'è una risposta, chiudere è rifiutare.

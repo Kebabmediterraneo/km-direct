@@ -140,9 +140,15 @@ const T0 = Date.UTC(2026, 10, 16, 12, 0, 0); // 16/11/2026
   assert(soloM.length === 1 && soloM[0].provider === "meta", "f3) Meta sì, Google no → solo il Pixel");
   assert(m.tagsToLoad({ google: true, meta: true }, "/", {}).length === 0, "f4) senza le variabili d'ambiente nessun tag, e niente si rompe");
   assert(m.tagsToLoad({ google: true, meta: true }, "/", { googleAdsId: "  ", metaPixelId: "" }).length === 0, "f5) una variabile vuota vale come mancante");
-  for (const p of ["/staff", "/staff/login", "/staff/abbandonati", "/conferma"]) {
+  // ⚠️ ROVESCIATA CON INTENZIONE il 16/11/2026, pezzo 2 di §65b. Il testo di
+  // prima era: «f6) nessun tag su /conferma, anche con tutto concesso» — valeva
+  // per il pezzo 1. Dal pezzo 2 `/conferma` è fra le pagine dei tag, e il
+  // MOMENTO in cui si possono caricare lo decide `canLoadTagsNow` (blocco m).
+  // Sulle pagine staff resta il divieto di sempre.
+  for (const p of ["/staff", "/staff/login", "/staff/abbandonati"]) {
     assert(m.tagsToLoad({ google: true, meta: true }, p, ids).length === 0, `f6) ⚠️ nessun tag su ${p}, anche con tutto concesso`);
   }
+  assert(m.tagsToLoad({ google: true, meta: true }, "/conferma", ids).length === 2, "f6b) /conferma è fra le pagine dei tag (pezzo 2): il momento lo decide canLoadTagsNow");
   assert(m.tagsToLoad({ google: null, meta: null }, "/", ids).length === 0, "f7) «non scelto» non carica niente");
 }
 
@@ -218,7 +224,12 @@ const T0 = Date.UTC(2026, 10, 16, 12, 0, 0); // 16/11/2026
   const layout = leggi("app/layout.js");
   assert(/cookies\(\)/.test(layout) && /FONT_COOKIE/.test(layout), "k1) il layout legge il cookie del carattere sul server");
   assert(/\{!fontOff && \(\s*<link rel="stylesheet" href="https:\/\/use\.typekit\.net\/jth6flt\.css" \/>\s*\)\}/.test(layout), "k2) ⚠️ il <link> di Adobe si scrive solo senza opposizione");
-  assert(/<CookieConsent googleAdsId=\{process\.env\.NEXT_PUBLIC_GOOGLE_ADS_ID\} metaPixelId=\{process\.env\.NEXT_PUBLIC_META_PIXEL_ID\} \/>/.test(layout), "k3) il layout monta il banner con i due ID dalle variabili d'ambiente");
+  // (riscritta il 16/11/2026, pezzo 2: al banner arriva anche l'etichetta di
+  // conversione di Google. Prima cercava i soli due ID.)
+  assert(
+    /<CookieConsent\s+googleAdsId=\{process\.env\.NEXT_PUBLIC_GOOGLE_ADS_ID\}\s+googleAdsConversionLabel=\{process\.env\.NEXT_PUBLIC_GOOGLE_ADS_CONVERSION_LABEL\}\s+metaPixelId=\{process\.env\.NEXT_PUBLIC_META_PIXEL_ID\}\s*\/>/.test(layout),
+    "k3) il layout monta il banner con i due ID e l'etichetta di conversione dalle variabili d'ambiente"
+  );
   const css = leggi("app/globals.css");
   assert(/font-family: termina, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;/.test(css), "k4) carattere di riserva: la pila di sistema dopo Termina");
   const piede = leggi("app/privacy-footer.js");
@@ -260,6 +271,53 @@ const T0 = Date.UTC(2026, 10, 16, 12, 0, 0); // 16/11/2026
   assert(!/scroll/i.test(b.replace(/\/\/.*$/gm, "")), "l9) nessun consenso implicito: il codice non ascolta lo scorrimento");
   // CONTROPROVA di l9: la sonda riconosce un ascoltatore di scorrimento.
   assert(/scroll/i.test('window.addEventListener("scroll", ok)'), "l10) CONTROPROVA: la sonda di l9 vede un ascoltatore di scorrimento");
+}
+
+// ---------------------------------------------------------------------------
+// m) ⚠️⚠️ D5 — PRIMA IL TOKEN, POI I TAG (pezzo 2, 16/11/2026).
+// ---------------------------------------------------------------------------
+{
+  assert(m.canLoadTagsNow({ pathname: "/", search: "" }) === true, "m1) su / i tag si possono caricare");
+  assert(m.canLoadTagsNow({ pathname: "/privacy", search: "?x=1" }) === true, "m2) su /privacy anche");
+  assert(m.canLoadTagsNow({ pathname: "/conferma", search: "", confirmationReady: false }) === false, "m3) ⚠️ su /conferma NO finché la pagina non ha segnalato «pronta»");
+  assert(m.canLoadTagsNow({ pathname: "/conferma", search: "?order_token=abc", confirmationReady: true }) === false, "m4) ⚠️⚠️ su /conferma NO se la barra contiene ancora order_token, anche con «pronta»");
+  assert(m.canLoadTagsNow({ pathname: "/conferma", search: "?a=1&order_token=abc", confirmationReady: true }) === false, "m5) anche se order_token non è il primo parametro");
+  assert(m.canLoadTagsNow({ pathname: "/conferma", search: "?ORDER_TOKEN=abc", confirmationReady: true }) === false, "m6) e scritto in maiuscolo");
+  assert(m.canLoadTagsNow({ pathname: "/conferma", search: "", confirmationReady: true }) === true, "m7) con «pronta» e la barra pulita, sì");
+  for (const p of ["/staff", "/staff/login", "/staff/abbandonati", "/altro"]) {
+    assert(m.canLoadTagsNow({ pathname: p, search: "", confirmationReady: true }) === false, `m8) mai su ${p}`);
+  }
+
+  // Il cablaggio nel banner: la regola si chiede UN ISTANTE PRIMA di caricare.
+  const b = leggi("app/cookie-consent.js");
+  const corpo = b.match(/function caricaTag\(([\s\S]*?)\n\}/)?.[0] ?? "";
+  const iRegola = corpo.indexOf("canLoadTagsNow(");
+  const iCarica = Math.min(...["caricaGoogle(", "caricaMeta("].map((s) => { const i = corpo.indexOf(s); return i === -1 ? Infinity : i; }));
+  assert(iRegola !== -1 && iRegola < iCarica, "m9) ⚠️ caricaTag chiede canLoadTagsNow PRIMA di caricaGoogle e caricaMeta");
+  assert(/window\.location\.search/.test(corpo), "m10) e le passa la barra dell'indirizzo VERA del momento, window.location.search");
+  // CONTROPROVA di m9: la sonda dice di no su un corpo nell'ordine sbagliato.
+  const sbagliato = "function caricaTag(x) {\n  caricaGoogle(id);\n  if (!canLoadTagsNow(y)) return;\n}";
+  const iR2 = sbagliato.indexOf("canLoadTagsNow(");
+  const iC2 = sbagliato.indexOf("caricaGoogle(");
+  assert(!(iR2 < iC2), "m11) CONTROPROVA: su un corpo con la regola DOPO il caricamento, la sonda di m9 direbbe di no");
+
+  const conferma = leggi("app/conferma/page.js");
+  // (riscritta prima del primo verde: cercava la parola ovunque, compreso il
+  // commento che spiega perché non si usa più. Ora cerca l'uso vero.)
+  const usoVero = /import[^;]*\buseSearchParams\b|\buseSearchParams\s*\(/;
+  assert(!usoVero.test(conferma), "m12) ⚠️ la pagina di conferma non legge più il token da useSearchParams (Next lo svuoterebbe al replaceState)");
+  assert(usoVero.test('import { useSearchParams } from "next/navigation";') && usoVero.test("const s = useSearchParams();"), "m12b) CONTROPROVA: la sonda riconosce l'import e la chiamata");
+  assert(/resolveOrderToken\(/.test(conferma) && /history\.replaceState\(/.test(conferma), "m13) la pagina usa il modulo del token e toglie la query");
+  // (riscritta prima del primo verde: cercava il nome del segnale dopo la prima
+  // parola `useEffect`, che è nella riga degli import, e trovava l'import. Ora
+  // cerca l'INVIO del segnale.)
+  const iReplace = conferma.indexOf("history.replaceState(");
+  const iPronta = conferma.indexOf("dispatchEvent(new Event(CONFIRMATION_READY_EVENT))");
+  const iFlag = conferma.indexOf("window.__kmConfermaPronta = true");
+  assert(iReplace !== -1 && iPronta !== -1 && iFlag !== -1 && iReplace < iFlag && iFlag < iPronta, "m14) ⚠️ il segnale «pronta» (variabile ed evento) parte DOPO aver tolto la query");
+  // CONTROPROVA: su un testo con il segnale prima della pulizia, la sonda dice di no.
+  const rovescio = 'window.__kmConfermaPronta = true;\nwindow.dispatchEvent(new Event(CONFIRMATION_READY_EVENT));\nwindow.history.replaceState(null, "", x);';
+  assert(!(rovescio.indexOf("history.replaceState(") < rovescio.indexOf("window.__kmConfermaPronta = true")), "m14b) CONTROPROVA: con l'ordine rovesciato la sonda di m14 direbbe di no");
 }
 
 console.log(failures === 0 ? "\nTUTTI I TEST PASSATI" : `\n${failures} TEST FALLITI`);

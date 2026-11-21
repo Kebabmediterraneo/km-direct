@@ -45,8 +45,13 @@ export default function RootLayout({ children }) {
       <body>
         {children}
         {/* §65b: il banner dei cookie e i tag. Sulle pagine staff non fa
-            niente; i tag partono solo dopo un «sì» e solo su "/" e "/privacy". */}
-        <CookieConsent googleAdsId={process.env.NEXT_PUBLIC_GOOGLE_ADS_ID} metaPixelId={process.env.NEXT_PUBLIC_META_PIXEL_ID} />
+            niente; i tag partono solo dopo un «sì», su "/" e "/privacy", e su
+            "/conferma" solo dopo che la pagina ha tolto il token dalla barra. */}
+        <CookieConsent
+          googleAdsId={process.env.NEXT_PUBLIC_GOOGLE_ADS_ID}
+          googleAdsConversionLabel={process.env.NEXT_PUBLIC_GOOGLE_ADS_CONVERSION_LABEL}
+          metaPixelId={process.env.NEXT_PUBLIC_META_PIXEL_ID}
+        />
       </body>
     </html>
   );

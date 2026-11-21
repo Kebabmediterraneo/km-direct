@@ -1,12 +1,18 @@
 "use client";
 
 import { Suspense, useEffect, useRef, useState } from "react";
-import { useSearchParams } from "next/navigation";
 import PrivacyFooter from "../privacy-footer";
+import {
+  resolveOrderToken,
+  confirmationPathWithoutQuery,
+  CONFIRMATION_READY_EVENT,
+  ORDER_TO_COUNT_EVENT,
+} from "../../lib/order-token";
+import { nextPollDelay } from "../../lib/order-conversion";
 
-// §47-51: pagina di stato persistente — 15-30s va bene, stesso principio
-// del polling già usato nel pannello staff.
-const POLL_INTERVAL_MS = 20000;
+// §47-51: pagina di stato persistente. §65b (D8, 16/11/2026): la cadenza dei
+// controlli la decide `nextPollDelay` — ogni 3 secondi per i primi 2 minuti
+// finché il pagamento non risulta confermato, poi i 20 secondi di sempre.
 
 // §36-40 (v36): chiave della memoria di scheda del carrello. DEVE combaciare
 // con CART_STORAGE_KEY di app/page.js: qui la si svuota dopo un pagamento
@@ -63,8 +69,39 @@ function getOrderStatusView(status, fulfillment) {
 }
 
 function ConfirmationScreen() {
-  const searchParams = useSearchParams();
-  const orderToken = searchParams.get("order_token");
+  // §65b (D5, E1, 16/11/2026) — il token NON si legge più da `useSearchParams`:
+  // Next lo aggiorna a ogni `history.replaceState`, quindi togliendo la query la
+  // pagina avrebbe perso il proprio ordine. Lo decide `resolveOrderToken`, al
+  // primo effetto: `undefined` finché non ha deciso, `null` se non c'è.
+  const [orderToken, setOrderToken] = useState(undefined);
+
+  // ⚠️⚠️ PRIMA IL TOKEN, POI I TAG. Qui la pagina: (1) prende il token dalla
+  // query o dalla memoria, (2) se l'ha conservato toglie la query dalla barra,
+  // (3) SOLO DOPO segnala «conferma pronta» al banner, che su /conferma carica i
+  // tag solo con quel segnale E con la barra senza `order_token`
+  // (`canLoadTagsNow`). Se la memoria non funziona la query resta: la pagina va
+  // come oggi, e quel cliente su /conferma non viene contato.
+  useEffect(() => {
+    let memoria = null;
+    try {
+      memoria = window.localStorage;
+    } catch {
+      memoria = null;
+    }
+    const esito = resolveOrderToken({ search: window.location.search, storage: memoria });
+    if (esito.togliQuery) {
+      // `null` come stato: così Next registra l'indirizzo nuovo nel suo router e
+      // non rimette la query alla prima occasione.
+      window.history.replaceState(null, "", confirmationPathWithoutQuery(window.location.pathname, window.location.hash));
+    }
+    window.__kmConfermaPronta = true;
+    window.dispatchEvent(new Event(CONFIRMATION_READY_EVENT));
+    setOrderToken(esito.token);
+  }, []);
+
+  // L'ordine da contare si passa al banner una volta sola per pagina: il banner
+  // decide se c'è il consenso e se è già stato contato.
+  const passatoAlBannerRef = useRef(false);
 
   const [phase, setPhase] = useState("loading"); // loading | ready | error
   const [order, setOrder] = useState(null); // { pickupCode, status, fulfillment }
@@ -79,15 +116,18 @@ function ConfirmationScreen() {
   // dallo stato reale dell'ordine, mai da un flag "pagamento appena
   // confermato".
   useEffect(() => {
+    if (orderToken === undefined) return; // il token non è ancora stato deciso
     if (!orderToken) {
       setPhase("error");
       return;
     }
 
     let cancelled = false;
-    let intervalId = null;
+    let timeoutId = null;
+    const inizio = Date.now();
 
     async function poll() {
+      let statoPagamento;
       try {
         const response = await fetch(`/api/orders/${orderToken}`);
         const data = await response.json();
@@ -98,6 +138,7 @@ function ConfirmationScreen() {
           setPhase("error");
           return;
         }
+        statoPagamento = data.paymentStatus;
 
         setOrder({
           pickupCode: data.pickupCode,
@@ -114,21 +155,32 @@ function ConfirmationScreen() {
           clearSavedCart();
         }
 
-        if (TERMINAL_STATUSES.includes(data.status) && intervalId) {
-          clearInterval(intervalId);
-          intervalId = null;
+        // §65b (D2, D7): il server ha detto «da contare». Al banner passano
+        // SOLO il codice ritiro e il totale — mai il token.
+        if (data.daContare === true && !passatoAlBannerRef.current) {
+          passatoAlBannerRef.current = true;
+          const daContare = { pickupCode: data.pickupCode, total: data.total, daContare: true };
+          window.__kmOrdineDaContare = daContare;
+          window.dispatchEvent(new CustomEvent(ORDER_TO_COUNT_EVENT, { detail: daContare }));
+        }
+
+        if (TERMINAL_STATUSES.includes(data.status)) {
+          return; // stato finale: si smette di controllare
         }
       } catch (err) {
         if (!cancelled) setPhase("error");
+        return;
+      }
+      if (!cancelled) {
+        timeoutId = setTimeout(poll, nextPollDelay({ paymentStatus: statoPagamento, elapsedMs: Date.now() - inizio }));
       }
     }
 
     poll();
-    intervalId = setInterval(poll, POLL_INTERVAL_MS);
 
     return () => {
       cancelled = true;
-      if (intervalId) clearInterval(intervalId);
+      if (timeoutId) clearTimeout(timeoutId);
     };
   }, [orderToken]);
 
