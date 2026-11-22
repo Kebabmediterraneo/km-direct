@@ -5149,3 +5149,113 @@ scrive deve aspettare un controllo, il messaggio lo dice in testa e in maiuscolo
   buco di documentazione.
 * **Il commento in testa allo script di pulizia** dice «non restano oltre un
   mese»: da allineare ai 60 giorni quando esce la v1.3.
+
+### 49r) Il banner provato dal vivo, la revisione legale e la pulizia automatica (16-22/11/2026)
+
+**1. Il banner, scritto in due pezzi e NON pubblicato** (ramo `banner-cookie`):
+pezzo 1 `2818714` (banner, consenso, «Preferenze cookie», Adobe Fonts spegnibile),
+pezzo 2 `cbbcfbb` (conteggio degli ordini). Suite del ramo 46 suite, 2357 prove
+verdi. Come è fatto: spec §65b v97, «Stato al 22/11/2026». ⚠️ *Il ramo parte da
+`d40e6bb` e `main` ora è a `faff263`: va riportato sopra prima di pubblicarlo.*
+
+**2. La prova dal vivo, due tentativi.** Il 19/11 è stata sospesa prima del pagamento: le
+chiavi Stripe in `.env.local` sono **di test** e io le avevo date per live
+(lezione **er**). Nessun pagamento; è rimasto un ordine «in attesa». Il
+21/11 è riuscita con una **chiave limitata live** (solo «Checkout Sessions:
+Write»), creata da Andrea e scaduta subito dopo; poi di nuovo le chiavi di test.
+Ordine `KM-0048`, 1,50 €, rimborsato: **sette passi su sette** (spec §65b v97).
+⚠️ *Nota di Code, da ricordare: nel pannello staff l'annullamento **rimborsa da
+solo** ma non mostra nessun messaggio di rimborso. La sequenza giusta è segnare
+«problema» e annullare; **mai rimborsare prima a mano da Stripe**.*
+
+**3. Cookie in un browser pulito, impostazioni negli account, ruoli legali:**
+tutto in spec §65b v97. In sintesi: senza scelta o con rifiuto nessun cookie; con
+«Accetta tutti» `_gcl_au` e `_fbp` a 90 giorni; `__Secure-ENID` e
+`SEARCH_SAMESITE` ancora senza padre. Google Ads conta **solo** gli ordini da
+annuncio. Google titolare autonomo; Meta contitolare per raccolta e trasmissione,
+responsabile per la misurazione, conserva gli eventi fino a 2 anni, **richieste
+dei clienti da girare a Meta entro 7 giorni**. Il 19/11 ho spento io, con l'ok di
+Andrea, «Includi automaticamente informazioni più dettagliate» su Meta.
+
+**4. Per la parte legale, il 21/11:** il PDF «KM Direct - documenti Google e
+Meta (21-11-2026)» (10 pagine: termini, schermate G1-G7 e M1-M8, esito della
+prova) e la bozza v1.3 in Word. Risposta del 21/11: chiusi ruoli, conservazione
+Meta, impostazioni automatiche Meta, cookie policy dentro il punto 17,
+numerazione 5-bis; **priorità al punto 11.2**; il resto è nell'elenco qui sotto.
+⚠️ **Decisione di Andrea (22/11): alla parte legale non si manda più niente prima
+della v1.3 definitiva.**
+
+**5. Il punto 11.2: dalla pulizia straordinaria alla pulizia automatica.** Il
+21/11 alle 15 il referto diceva che l'ordine mai pagato più vecchio (22/10 17:53
+UTC) compiva 30 giorni **quella sera alle 18:53**. Pulizia straordinaria a 21
+giorni preparata da Code e lanciata da Andrea il **22/11 verso le 11 UTC: circa
+17 ore oltre il termine** (lezione **eq**). Poi, lo stesso giorno, la pulizia
+automatica ogni notte: decisioni di Andrea, file, impronte e prove in spec §69
+v97. Commit `faff263`, **pubblicato** (`main` = `origin/main` = `faff263`);
+orologio `jobid` 1 attivo, prima esecuzione la notte del 22/11 alle 23:01 UTC.
+⚠️⚠️ **L'informativa v1.2 dice ancora «non tramite procedure automatiche»: scelta
+di Andrea, che se ne assume la responsabilità. La v1.3 deve correggerla.**
+
+**Il registro della pulizia al 22/11:** n. 1 «errore» (soglia 5, voluto), n. 2
+«prova», n. 3 «manuale» ok, 0 righe. Mai pagati 3, pagati o rimborsati 31,
+clienti 30, codici consumati 1.
+
+**Controllo della mattina del 23/11** (promemoria alle 12): in cima al registro
+la riga 4, «automatica», soglia 28, ok; la SELECT «B» del file 5 con `succeeded`;
+pannello senza avviso.
+
+**ep. ⚠️⚠️ HO SCRITTO «DECISIONI DI ANDREA» SU COSE CHE AVEVO PROPOSTO IO.** *(da 49r)*
+Nel comando per Code del 22/11 ho messo sotto «con queste decisioni di Andrea»
+sette scelte che Andrea non aveva ancora preso. Andrea l'ha fermato: **non deve
+più succedere.** **Rimedio: le decisioni si chiedono punto per punto, con le
+opzioni e il mio consiglio separato; nei comandi e nei documenti «di Andrea» si
+scrive solo dopo la sua risposta, e una proposta di Code o mia si chiama così.**
+
+**eq. ⚠️ LA SCADENZA DEL 21/11 ERA CALCOLABILE DAL 15/11.** *(da 49r)* Il 15/11
+sapevamo già che la pulizia mensile non reggeva i 30 giorni e che restavano tre
+ordini mai pagati: bastava una SELECT sulle loro date per sapere quando il
+prossimo avrebbe superato il termine. L'ho calcolato solo il 21/11 alle 15, con
+quattro ore di margine, e la pulizia è arrivata il giorno dopo. **Rimedio: quando
+una promessa ha un termine, si calcola subito la prossima scadenza e la si mette
+in calendario, senza aspettare che qualcuno la ricordi.**
+
+**er. ⚠️ UNA PROVA DAL VIVO PROGETTATA SU UN AMBIENTE NON VERIFICATO.** *(da 49r)*
+Il 19/11 ho dato per scontato che `.env.local` avesse le chiavi Stripe live: erano
+di test, e la prova si è fermata prima del pagamento. **Rimedio: prima di una prova dal
+vivo, Code legge che tipo di chiavi ci sono (test o live, senza mostrarle) e lo
+scrive nel suo passo 0.**
+
+**es. ⚠️ HO PROPOSTO UNA PROCEDURA SENZA RILEGGERE COME L'INFORMATIVA LA
+DESCRIVE.** *(da 49r)* La pulizia automatica contraddiceva il punto 11.2 («non
+tramite procedure automatiche»): l'ha trovato Code, non io, che pure avevo
+riletto quel punto per la questione dei 30 giorni. **Rimedio: prima di proporre un
+cambio di procedura su dati personali, si rilegge per intero il punto
+dell'informativa che la descrive, non solo il numero che interessa.**
+
+#### L'elenco delle cose aperte, aggiornato
+
+*Sostituisce le aggiunte di 49q; le voci di 49p restano valide se non chiuse qui.*
+**Chiusi:** le verifiche negli account (fatte); il commento dei «60 giorni» nello
+script di pulizia (lo script va in pensione).
+
+* **Pulizia automatica:** prima notte da controllare il 23/11; prima cancellazione
+  vera verso il 30/11; intestazione «SOSTITUITO, non usare» nel vecchio
+  `sql/pulizia_mensile_ordini_mai_pagati.sql`; lo script dei conteggi e il
+  registro nuovo; la copia a 21 giorni in `~/Downloads`, da cancellare quando
+  Andrea vuole.
+* **Banner, pezzo 3:** il registro dei consensi (E4). Tabella nuova (Andrea) e
+  rotta.
+* **Banner, pezzo 4:** informativa v1.3 nel sito dopo l'approvazione legale, con
+  la frase del punto 11.2 sulle procedure automatiche e la decisione **30 o 60
+  giorni** (E7, da ridecidere con Andrea); casella «ho preso visione» (E6); testi
+  del pannello; marketing solo e-mail.
+* **Prove ancora da fare:** solo Google, solo Meta, revoca; scadenze vere;
+  spegnimento di Adobe; origine di `__Secure-ENID` e `SEARCH_SAMESITE`;
+  conversione Google Ads attribuita (al lancio, con D3).
+* **Ricerche per la v1.3:** conservazione di Google (punto 11.8); legittimo
+  interesse per Adobe con `p.typekit.net`; trasferimenti extra SEE per fornitore.
+* **Decisioni di Andrea negli account:** «Misura conversioni sui dispositivi» su
+  Meta (dopo la parte legale); domini consentiti su Meta (dopo le prove); contatto
+  per la protezione dei dati su Google Ads.
+* **Il ramo `banner-cookie`** da riportare sopra `faff263` prima di pubblicarlo.
+* **Il messaggio di rimborso nel pannello** quando l'annullamento rimborsa.

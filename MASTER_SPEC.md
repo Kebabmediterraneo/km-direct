@@ -1,6 +1,6 @@
 # KM DIRECT — MASTER SPECIFICATION
 
-**Versione 96** — sostituisce la v95.
+**Versione 97** — sostituisce la v96.
 
 Documento di riferimento definitivo per lo sviluppo. Le decisioni qui
 contenute sono approvate: non vanno reinterpretate senza un motivo concreto
@@ -22,22 +22,28 @@ versione corrente**. I precedenti vivono in `git log`, che è fatto per quello.
 del documento prima che cominciasse a parlare del progetto — e dentro c'erano
 istruzioni rovesciate che nessuno rileggeva.*
 
-**Novità della v96** (vincolanti, 15/11/2026, sera):
+**Novità della v97** (vincolanti, 22/11/2026):
 
-⚠️ **Le cinque voci della v95 sono state controllate e vivono tutte nel corpo**
-(§65b, i vincoli di §65 e §41-45, i tre punti dell'audit in §66, §69).
+⚠️ **Le tre voci della v96 sono state controllate e vivono tutte nel corpo**
+(§65b E1-E7 e la regola sul marketing, §69 la pulizia del 15/11).
 
-1. §65b — **DUE REVISIONI LEGALI DELLA BOZZA v1.3 E SETTE DECISIONI DI ANDREA**
-   (E1-E7): codice dell'ultimo ordine per 30 giorni con scadenza vera; marketing
-   solo e-mail; «Personalizza» con Google e Meta separati; registro delle scelte
-   del banner; interruttore per spegnere Adobe Fonts; «ho preso visione»
-   nella casella del checkout; i 30 giorni dell'informativa diventano 60.
-2. §65b — ⚠️ **REGOLA GIÀ IN VIGORE, PRIMA DEL BANNER: il consenso marketing
-   raccolto finora vale SOLO per l'e-mail.** Niente SMS né WhatsApp promozionali.
-3. §69 — ⚠️⚠️ **LA PROMESSA DEI 30 GIORNI NON ERA RISPETTATA**: il 15/11 c'era un
-   ordine mai pagato oltre i 30 giorni. **Pulizia mensile eseguita fuori
-   calendario il 15/11**, a locale chiuso: un ordine e un cliente tolti, nulla
-   d'altro toccato.
+1. §69 — ✅ **LA PULIZIA DEGLI ORDINI MAI PAGATI È AUTOMATICA, OGNI NOTTE, DAL
+   22/11/2026.** Funzione nel database, orologio `pg_cron` alle 23:01 UTC, soglia
+   28 giorni, registro di ogni esecuzione, avviso rosso nel pannello staff. **Lo
+   script mensile è in pensione.** Commit `faff263`, pubblicato.
+2. §69 — ⚠️⚠️ **L'INFORMATIVA v1.2 PUBBLICATA DICE ANCORA «NON TRAMITE PROCEDURE
+   AUTOMATICHE»** (punto 11.2). **Scelta di Andrea, che se ne assume la
+   responsabilità**: la frase resta finché non esce la v1.3, che **deve**
+   correggerla.
+3. §69 — ⚠️ **Un secondo ordine mai pagato ha superato i 30 giorni**, di circa 17
+   ore: tolto il 22/11 con una pulizia straordinaria a 21 giorni.
+4. §65b — **Il banner è scritto e provato dal vivo, NON pubblicato** (ramo
+   `banner-cookie`, `cbbcfbb`). Ruoli di Google e Meta chiusi con la parte
+   legale; la conversione Google Ads conta solo gli ordini arrivati da un annuncio.
+5. §65b — ⚠️ **E7 (i «60 giorni») è da ridecidere**: con la pulizia notturna i 30
+   giorni sono rispettati. Si decide con Andrea quando si scrive la v1.3.
+6. **Alla parte legale non si manda niente prima della v1.3 definitiva**
+   (decisione di Andrea, 22/11).
 
 **LE CONDIZIONI DI APERTURA SONO CHIUSE TUTTE**, e il sito è aperto.
 
@@ -6221,7 +6227,7 @@ motivo, tempi tra le fasi dell'ordine.
 
 ✅ **Pagina "Carrelli abbandonati" — ESISTE, FUNZIONA, E NON VA COSTRUITA** (accertato sul codice il 05/08/2026). `app/staff/abbandonati/page.js` e la sua rotta `app/api/staff/abandoned-carts/route.js` sono nate insieme il **19/07/2026** e non sono mai più state toccate. ⚠️ **Fino alla v56 questo documento la dava da costruire**, e su quella premessa era stata stimata una parte importante del lavoro di §65: la stima era gonfia perché il lavoro era già in casa.
 
-Cosa fa, letto dal codice: collegamento discreto in fondo al pannello, presente in tutte le sezioni; tre filtri — oggi, 7 giorni, 30 giorni; aggregati calcolati lato server (quanti, valore totale, valore medio); contenuto di ogni carrello riga per riga. Prende i soli `payment_status = "pending"` — **non** i `failed` — ed esclude i carrelli più giovani di **30 minuti**, che sono probabilmente checkout ancora in corso.
+Cosa fa, letto dal codice: collegamento discreto in fondo al pannello, presente in tutte le sezioni; tre filtri — oggi, 7 giorni, 30 giorni (⚠️ **dal 22/11/2026 il terzo è «Ultimi 28 giorni»**, periodo 28, perché la pulizia notturna toglie ciò che ha più di 28 giorni: §69 v97); aggregati calcolati lato server (quanti, valore totale, valore medio); contenuto di ogni carrello riga per riga. Prende i soli `payment_status = "pending"` — **non** i `failed` — ed esclude i carrelli più giovani di **30 minuti**, che sono probabilmente checkout ancora in corso.
 
 ✅ **Rispetta §69 alla radice, non a schermo**: la sua query **non chiede** `customers` né alcun dato personale — non nome, non telefono, non e-mail, e nemmeno il codice ordine. Non è che non li mostri: non li ha. *È la forma giusta di quella promessa, ed è il modello per qualunque vista statistica futura.*
 
@@ -6462,6 +6468,12 @@ dati da misurare dal vivo.
   i 30 erano una promessa che la procedura non poteva mantenere (§69).* La
   soglia dello script resta 30: la pulizia toglie ciò che ha più di 30 giorni, la
   promessa dice il massimo.
+  ⚠️⚠️ **SUPERATA NEI FATTI IL 22/11/2026 (v97), DA RIDECIDERE.** La parte legale
+  (21/11) ha chiesto di sistemare la procedura invece di allungare la promessa,
+  e la pulizia ora è **automatica ogni notte con soglia 28** (§69 v97): i 30
+  giorni sono rispettati. **Andrea non ha ancora deciso** se la v1.3 scrive 30 o
+  60 giorni: si decide quando si scrive la v1.3, insieme alla frase sulle
+  procedure automatiche.
 
 **Vincoli tecnici dalla revisione legale:**
 
@@ -6500,6 +6512,93 @@ dati da misurare dal vivo.
   nasce `nuovo` **prima** del pagamento: mostra «Ordine ricevuto» anche se il
   pagamento non è ancora confermato. *Con la carta il cliente ci arriva solo dopo
   un pagamento riuscito, quindi oggi è innocuo.*
+
+
+### Stato al 22/11/2026 — scritto e provato, NON pubblicato (v97)
+
+⚠️ **Tutto il codice del banner vive sul ramo `banner-cookie`, non pubblicato.**
+Pezzo 1, `2818714`: banner, consenso, «Preferenze cookie», interruttore di Adobe
+Fonts (cookie `km_font_off` letto dal server nel layout: **tutte le pagine
+diventano dinamiche**). Pezzo 2, `cbbcfbb`: conteggio degli ordini (D2, D5-D8,
+E1). Suite del ramo: 46 suite, 2357 prove, tutte verdi. ⚠️ *Il ramo parte da
+`d40e6bb`: prima di pubblicarlo va riportato sopra `main`, che dal 22/11 è a
+`faff263` (pulizia automatica).*
+
+**Come è fatto, letto dai commit:** Consent Mode v2 **base**; `ad_storage` e
+`ad_user_data` concessi solo con il consenso, `ad_personalization` e
+`analytics_storage` **sempre negati**; `url_passthrough` spento; Pixel Meta con
+configurazione automatica spenta e nessun dato del cliente. Il token di
+`/conferma` passa dall'indirizzo a `localStorage` con la data (30 giorni veri) e
+sparisce dalla barra; i tag si caricano su `/conferma` solo dopo. Conversione
+**una volta per codice ritiro**: Google `transaction_id` = codice ritiro, Meta
+`eventID` = codice ritiro. `Referrer-Policy: strict-origin-when-cross-origin` in
+`next.config.mjs`.
+
+✅ **Prova dal vivo del 21/11/2026, ordine vero `KM-0048` da 1,50 €, poi
+rimborsato — sette passi su sette:** Meta ha ricevuto `Purchase` con
+`eventID=KM-0048`; Google la richiesta di conversione con `oid=KM-0048` e valore
+1,5 EUR; nessun token, nome, telefono, e-mail o indirizzo nelle chiamate;
+indirizzo pulito; referrer vuoto; ricaricando, nessun secondo conteggio.
+
+⚠️ **La prova in locale con un pagamento vero ha richiesto una chiave Stripe
+apposta.** Le chiavi in `.env.local` sono **di test**: per questo la prova del 19/11 è
+stata **sospesa prima del pagamento** (nessun pagamento, è rimasto solo un ordine
+«in attesa»). **Procedura usata il 21/11, da riusare:** una **chiave
+limitata live** con il solo permesso «Checkout Sessions: Write», creata da Andrea
+per la prova e **scaduta subito dopo**; poi di nuovo le chiavi di test in
+`.env.local`. ⚠️⚠️ **MAI «Ruota chiave» né una scadenza sulla chiave segreta
+principale: fermerebbe i pagamenti del sito.**
+
+**Cookie, misurati in un browser pulito (21/11):** senza scelta o dopo il rifiuto
+**nessun cookie**; domini contattati: il sito, Supabase, `maps.googleapis.com`,
+`places.googleapis.com`, `use.typekit.net`, `p.typekit.net`. Dopo «Accetta
+tutti»: `_gcl_au` e `_fbp` sul dominio del sito, 90 giorni; in più
+`googletagmanager`, `google.com`, `ad.doubleclick.net`, `connect.facebook.net`.
+⚠️ **Non attribuiti:** `__Secure-ENID` e `SEARCH_SAMESITE` su `.google.com`,
+visti nel Chrome di Andrea. **Non osservati:** `_gcl_aw` e `_fbc` (nascono solo
+con un clic da annuncio).
+
+⚠️ **Google Ads conta solo gli ordini arrivati da un annuncio.** Lo stato
+dell'azione «Ordine KM Direct» è passato da «Configurazione errata» a «In attesa
+di conversioni»; l'ordine di prova non viene da un annuncio e non compare. **La
+verifica vera si fa al lancio, con D3.** *La parte legale: lo stato non basta a
+dimostrare che la misurazione completa funzioni.*
+
+**Impostazioni negli account (Andrea, con il compagno di ragionamento):**
+* **Meta:** matching avanzato, eventi automatici, monitoraggio senza codice
+  **spenti**; «Includi automaticamente informazioni più dettagliate» **spento il
+  19/11**; Conversions API **non attiva**. ⚠️ Da decidere: «Misura conversioni sui
+  dispositivi» (accesa, la valuta la parte legale) e l'elenco dei domini
+  consentiti (dopo le prove).
+* **Google Ads:** conversioni avanzate **spente**, termini dei dati cliente **non
+  accettati**, tagging automatico acceso. ⚠️ Il contatto per la protezione dei dati
+  è **vuoto**: decide Andrea.
+
+**Ruoli, chiusi con la parte legale (19-21/11):**
+* **Google Ireland** è **titolare autonomo** (termini Controller-Controller v8.0
+  del 30/05/2024). *Le conversioni avanzate sarebbero un servizio da
+  responsabile: sono spente.*
+* **Meta Platforms Ireland**: **contitolare** per raccolta e trasmissione
+  (Controller Addendum del 25/04/2023; Business Tools Terms del 03/11/2025),
+  **responsabile** per misurazione e statistiche, **titolare autonomo** per gli
+  ulteriori trattamenti. Conserva i dati sugli eventi **fino a 2 anni**. ⚠️⚠️ **Le
+  richieste dei clienti sul trattamento congiunto vanno girate a Meta entro 7
+  giorni.**
+
+**Aperto dopo la revisione legale del 21/11** (la bozza v1.3 e il PDF dei
+documenti sono stati mandati il 21/11):
+* testi v1.3: visita alle pagine separata dall'acquisto nel punto 3.6; finalità
+  Meta effettive; marketing solo e-mail nel punto 3.5; casella «presa visione»
+  distinta dal consenso marketing; testi del pannello «Preferenze cookie»; link
+  alle informative dei fornitori e all'accordo di contitolarità;
+* prove separate: **solo Google, solo Meta, revoca**; scadenze vere (30 giorni del
+  codice, 6 mesi della scelta); spegnimento di Adobe;
+* prova del consenso: il registro E4 (pezzo 3, non scritto);
+* durata di conservazione di Google per il punto 11.8; valutazione del legittimo
+  interesse per Adobe (compresa la chiamata a `p.typekit.net`); trasferimenti
+  extra SEE fornitore per fornitore;
+* il punto 11.2: **sistemato nella procedura il 22/11** (§69 v97), da sistemare
+  nel testo con la v1.3.
 
 ---
 
@@ -7496,7 +7595,14 @@ Non esisteva nulla in spec. Ora esiste.
 
 **Ordini mai pagati e righe cliente senza ordine pagato: massimo 30 giorni.** La rimozione è una **procedura manuale a cadenza almeno mensile**, non un processo automatico. L'informativa la descrive così: è una promessa organizzativa e vale quanto la disciplina con cui viene eseguita.
 
-✅ **Il giorno è fissato: il primo di ogni mese, prima di aprire il locale** (decisione di Andrea, 05/08/2026). Il primo perché **esiste in tutti i mesi** — un giorno che qualche mese non c'è è un giorno che prima o poi salta — e a saracinesca chiusa perché la procedura scrive sul database che serve i clienti. *La sequenza completa di ogni esecuzione è: referto dei conteggi, pulizia, referto dei conteggi di nuovo.*
+⚠️⚠️ **SUPERATA DAL 22/11/2026 (v97): la rimozione è AUTOMATICA, OGNI NOTTE,
+con soglia 28 giorni** (vedi «La pulizia automatica ogni notte», in fondo a
+questa sezione). *La cadenza mensile non poteva rispettare i 30 giorni: un ordine
+nato il 2 del mese restava fino a circa 60. È successo due volte (15/11 e 22/11).*
+⚠️ **L'informativa v1.2 dice ancora «non tramite procedure automatiche»: scelta di
+Andrea, da correggere con la v1.3.**
+
+~~✅ **Il giorno è fissato: il primo di ogni mese, prima di aprire il locale** (decisione di Andrea, 05/08/2026).~~ ⚠️ **SUPERATO dal 22/11/2026: la pulizia gira da sola ogni notte (v97).** Il paragrafo resta per la storia. Il primo perché **esiste in tutti i mesi** — un giorno che qualche mese non c'è è un giorno che prima o poi salta — e a saracinesca chiusa perché la procedura scrive sul database che serve i clienti. *La sequenza completa di ogni esecuzione è: referto dei conteggi, pulizia, referto dei conteggi di nuovo.*
 
 ⚠️ **Il referto delle statistiche di §65 si lancia PRIMA della pulizia, non dopo.** Nel caso normale non cambia nulla — la pulizia tocca solo ciò che ha più di trenta giorni — ma l'ordine giusto costa zero a scriverlo ed evita di doverci ragionare ogni volta. *Ne esce un'abitudine sola invece di tre: il primo del mese, tre file in fila nella stessa schermata — statistiche, conteggi, pulizia. Una procedura mensile si ricorda; tre sparse si dimenticano, ed è esattamente il rischio che questa sezione dichiara su sé stessa.* ✅ **LA PRIMA ESECUZIONE È STATA FATTA — 06/11/2026, a locale chiuso** (vedi sotto). *Il punto 11.2 dell'informativa non è più una promessa senza precedente.* ⚠️ **Ed è arrivata il 6, non il primo del mese**: la prima volta era già in ritardo di cinque giorni — *che è esattamente il rischio che questa sezione dichiara su sé stessa quando dice che la procedura «vale quanto la disciplina con cui viene eseguita».*
 
@@ -7534,7 +7640,7 @@ Non sono più un lavoro da fare: esistono, sono in `sql/`, e nessuno dei tre è 
 |---|---|---|
 | `sql/conteggi_dati_sola_lettura.sql` | conta e basta, non scrive nulla | **prima e dopo** ognuna delle due pulizie |
 | ~~`sql/ESEGUIRE_UNA_VOLTA_SOLA_prima_del_golive_CANCELLA_TUTTI_GLI_ORDINI.sql`~~ | ✅ **ESEGUITO IL 01/09/2026 e TOLTO DAL DEPOSITO** (commit `4ddd79b`) | fatto |
-| `sql/pulizia_mensile_ordini_mai_pagati.sql` | rimuove ordini mai pagati oltre i 30 giorni — ✅ **corretto e ESEGUITO il 06/11/2026** | **ogni mese**, per sempre |
+| `sql/pulizia_mensile_ordini_mai_pagati.sql` | rimuove ordini mai pagati oltre i 30 giorni — ✅ **corretto e ESEGUITO il 06/11 e il 15/11/2026** | ⚠️ **SOSTITUITO dal 22/11/2026** dalla funzione notturna (v97): **non usare** |
 
 **I nomi sono la prima protezione**, quella che agisce prima che qualcuno apra il file: il maiuscolo è voluto, perché nell'elenco della cartella — fra nove migrazioni datate tutte minuscole — quel file si stacca a colpo d'occhio. I due strumenti si somigliano e stanno nella stessa cartella: il pericolo non è che qualcuno esegua quello sbagliato di proposito, è che li confonda. *Le date sono uscite dai nomi: il primo verrà cancellato e non ordina niente, gli altri due non sono di agosto ma di sempre.*
 
@@ -7548,7 +7654,10 @@ Non sono più un lavoro da fare: esistono, sono in `sql/`, e nessuno dei tre è 
 
 **Stato del freno al 05/08/2026**: il valore committato nel file è anteriore all'ordine più recente, quindi **oggi il freno fermerebbe l'esecuzione**. È il comportamento voluto, ed è la direzione sicura.
 
-**Ogni tabella del database è coperta.** Le **otto** che gli script toccano più le **sedici** dichiarate intoccabili fanno esattamente le **24** dello schema: nessuna resta fuori: o è dichiarata come toccata, o è misurata come intatta dai post-check. *Le sedici non sono un elenco copiato a mano nei controlli: è la stessa lista, dichiarata una volta e percorsa in ciclo, così intestazione e verifica non possono divergere.* ⚠️ *`staff_action_log` è fra le otto ma non viene mai svuotato: le righe vere restano sempre, ed è l'eccezione di §66.* ⚠️ **L'ottava è `coupon_redemptions`, dal 03/09/2026**: la pulizia mensile la tocca (vedi sotto), e dal 15/11/2026 lo script dei conteggi **la conta**, anche per stato (vedi più sopra). *Fino a quel giorno non la contava.*
+**Ogni tabella del database è coperta.** Le **otto** che gli script toccano più le **sedici** dichiarate intoccabili fanno esattamente le **24** dello schema: nessuna resta fuori: o è dichiarata come toccata, o è misurata come intatta dai post-check. *Le sedici non sono un elenco copiato a mano nei controlli: è la stessa lista, dichiarata una volta e percorsa in ciclo, così intestazione e verifica non possono divergere.* ⚠️ *`staff_action_log` è fra le otto ma non viene mai svuotato: le righe vere restano sempre, ed è l'eccezione di §66.* ⚠️ **L'ottava è `coupon_redemptions`, dal 03/09/2026**: la pulizia mensile la tocca (vedi sotto), e dal 15/11/2026 lo script dei conteggi **la conta**, anche per stato (vedi più sopra). *Fino a quel giorno non la contava.* ⚠️ **Dal 22/11/2026 il database ha anche lo schema `manutenzione`**, con una
+tabella (`pulizia_registro`) e la funzione della pulizia notturna (§69 v97): le
+**24** sono quelle dello schema `public`, e le sedici intoccabili restano sedici.
+*Lo script dei conteggi non conosce ancora il registro: aperto.*
 
 ---
 
@@ -7619,6 +7728,107 @@ sue sarebbero sparite con lui.*
 codice singolo. *Va riscritto in forma generica — tutti i codici consumati —
 quando i codici consumati saranno più d'uno. Un file di verifica che nomina un
 caso particolare si esegue una volta e poi mente.*
+
+
+### ✅ LA PULIZIA AUTOMATICA OGNI NOTTE (22/11/2026, v97, vincolante)
+
+**Perché.** La parte legale (21/11) ha messo come priorità il punto 11.2 della
+v1.2, già operativo: «massimo 30 giorni» con una pulizia mensile non regge. Il
+21/11 il referto (2+1+1+0 = 4 mai pagati, il più vecchio del 22/10 17:53 UTC)
+mostrava che quell'ordine avrebbe compiuto 30 giorni la sera stessa.
+
+⚠️ **La pulizia straordinaria del 22/11/2026.** Copia dello script con la sola
+soglia a **21** (fuori dal deposito, `~/Downloads/km-pulizia-straordinaria-21giorni/`),
+conteggio prima, controprova dopo: **tolto solo l'ordine del 22/10** con le sue
+4 righe d'ordine; pagati 31 = 31, clienti 30 = 30, registro staff 252 = 252,
+codici consumati 1 = 1; mai pagati 4 → 3. ⚠️⚠️ **Arrivata circa 17 ore DOPO i 30
+giorni**: la promessa è stata superata per la seconda volta. *Per scelta di
+Andrea il caso non è stato comunicato a parte alla parte legale: la parte legale
+riceverà tutto con la v1.3.*
+
+**Le decisioni di Andrea (22/11/2026, prese punto per punto):**
+1. **Meccanismo: `pg_cron`**, l'orologio interno di Supabase, non il cron di
+   Vercel. *Tutto in una funzione del database, «tutto o niente», un pezzo solo
+   che può rompersi.*
+2. **Soglia: 28 giorni**, non 29: tollera **una notte persa** senza superare i 30.
+3. **Avviso rosso nel pannello staff alla prima notte non riuscita.**
+4. **Filtro dei carrelli abbandonati con lo stesso numero della soglia**: «Ultimi
+   28 giorni».
+5. **Nessuna seconda copia delle regole**: lo script manuale va in pensione.
+6. **L'orologio è acceso subito e l'informativa v1.2 NON si modifica.** ⚠️⚠️
+   **Andrea se ne assume la responsabilità**, sapendo che il punto 11.2 dice «non
+   tramite procedure automatiche». *Il compagno di ragionamento aveva consigliato
+   di cambiare oggi solo quella frase.* La v1.3 **deve** correggerla.
+7. **Alla parte legale niente prima della v1.3 definitiva.**
+*Scelte intermedie della stessa mattina (orologio spento fino alla v1.3 e
+pulizie a mano il lunedì) superate dalla 6: chiudere tutto oggi, senza situazioni
+provvisorie.*
+
+**Com'è fatta** (Code, commit `faff263`, **pubblicato**: `main` = `origin/main` = `faff263`):
+* **Funzione** `manutenzione.pulizia_ordini_mai_pagati(p_giorni, p_modo)`, nello
+  schema separato `manutenzione`, che l'API pubblica di Supabase non espone;
+  esecuzione tolta a `public`, `anon`, `authenticated`. **Le 7 istruzioni che
+  cancellano o staccano, i freni, le letture e i sette controlli finali sono
+  copiati identici dallo script mensile** (impronta `c80ea0bb…a55c6d67`), e una
+  prova lo verifica estraendoli dal file vecchio.
+* **Soglia accettata solo fra 20 e 30**; fuori, rifiutata e registrata come errore.
+* **Modi:** `automatica`, `manuale`, `prova` (conta tutto e poi annulla).
+* **Un freno o un errore annulla tutto e scrive nel registro** «fermata» o
+  «errore», con il motivo. *Lo script vecchio annullava senza lasciare traccia.*
+  Due pulizie non possono girare insieme. Restituisce una riga di testo con
+  l'esito, che l'editor mostra (gli avvisi `raise notice` non li mostra).
+* **Registro** `manutenzione.pulizia_registro`: una riga per esecuzione — data,
+  modo, soglia e istante limite, esito, motivo, righe toccate per tabella, totali
+  che non devono cambiare, durata. **Nessun dato personale.**
+* **Avviso:** `public.pulizia_stato()` (permessi chiusi, letta solo dal server),
+  rotta `app/api/staff/pulizia-stato` con sessione staff, componente
+  `app/staff/avviso-pulizia.js` in cima al pannello, riletto ogni 10 minuti.
+  **Rosso se** l'ultima esecuzione non è «ok», **oppure** l'ultima «ok» ha più di
+  **26 ore**, **oppure** lo stato non si legge. *La regola delle 26 ore copre anche
+  l'orologio spento o la funzione sparita, che nessuna funzione potrebbe
+  registrare.* ⚠️ *Si vede solo aprendo il pannello.*
+* **Orologio:** `cron.schedule`, ogni notte `1 23 * * *` UTC (00:01 in inverno,
+  01:01 d'estate), comando `(28, 'automatica')`. `jobid` 1, attivo.
+* **Emergenza:** `select manutenzione.pulizia_ordini_mai_pagati(28, 'manuale');`
+  con il conteggio prima e la controprova dopo.
+
+**File** (sha256 completi):
+```
+ddd2642e4d471554b94e372a78085cd0ac696990faafb8776291910a2294c788  sql/20261122_pulizia_automatica_1_struttura.sql
+1afc297a65141263fdb23564aebe7652da33fb6c9c01726660ef956f62d8dac1  sql/20261122_pulizia_automatica_2_conteggio_sola_lettura.sql
+92c8640767ff2da0ea1a60fdadd8a67af3898446248bf1250e3f950533e89e0c  sql/20261122_pulizia_automatica_3_controprova_sola_lettura.sql
+b9dd845a3570affd0ad10ab69523cafdef83f45a43a92eead7260e9d6f178f21  sql/20261122_pulizia_automatica_4_orologio_accensione.sql
+58b1e08a21b5eb62c021f990cf45fb74914f39933abf317f89b0535b3b18f4c7  sql/20261122_pulizia_automatica_5_orologio_verifica_sola_lettura.sql
+963bff9321d900be92799b3a0ac6b5a355c44be4c7912b5be3b1631596bea4fd  lib/pulizia-stato.js
+8699bd2275b12b35f837b9942fa3ff5b946997a3a1a2d63ae3dc557be3504de4  app/api/staff/pulizia-stato/route.js
+737a760ffcd360f3684b24e18bc52d2e7e95bbb8e8e6fa19970719bf3386041a  app/staff/avviso-pulizia.js
+36f332d5d6b18fdb6739b0d1a649e6f548335bef994ad94f2946eaea0d0e0e54  app/staff/page.js
+4a0b807ac4c4c371f529dd59f5338e0e348d8159b30f3a7fdd83f502358d88a2  app/api/staff/abandoned-carts/route.js
+25e21072bb2d7f29fd4f4835b4267121ac6a2614fee5b200cdf372548e892d99  app/staff/abbandonati/page.js
+c6d5073e8bab821f30e533682ec8104fc0d35597025e4778d7b88ff4d61f0c59  tests/pulizia-automatica.test.mjs
+```
+
+✅ **Provata dal vivo il 22/11/2026, un passo alla volta:**
+`pg_cron` 1.6.4 acceso → struttura creata, permessi giusti → soglia 5 rifiutata
+(registro n. 1, «errore») → prova generale (n. 2, «prova»), stessi numeri del
+conteggio e niente cambiato → pulizia vera a 28 (n. 3, «manuale», ok, 0 righe:
+niente oltre i 28 giorni) → controprova di 22 righe tutta come attesa → commit e
+push → **pannello senza avviso, carrelli a 28 giorni** → orologio acceso e
+verificato. *L'orologio si accende DOPO il push (proposta di Code, seguita): la
+prima notte fermata deve trovare l'avviso già pubblicato.* Prove: 106 nuove (91
+rosse prima del codice, una sonda — `b14` — riscritta prima del primo verde, con
+nota); suite intera 45 suite, 2307 prove, 0 fallite; sintassi SQL controllata con
+l'analizzatore di PostgreSQL 17; `next build` compila.
+
+⚠️ **Non ancora verificato:** la prima esecuzione automatica (notte del 22/11);
+una cancellazione vera fatta dalla funzione (prevista verso il 30/11, quando il
+prossimo mai pagato supera i 28 giorni); il ramo «freno» dal vivo (servirebbero
+dati fabbricati: non si fa); **l'avviso rosso visto acceso** (Andrea ha scelto di
+non provarlo il 22/11).
+
+**Da fare:** l'intestazione «SOSTITUITO, non usare» nel vecchio
+`sql/pulizia_mensile_ordini_mai_pagati.sql`; decidere se lo script dei conteggi
+conosce il registro nuovo; la frase del punto 11.2 nella v1.3.
 
 ---
 
