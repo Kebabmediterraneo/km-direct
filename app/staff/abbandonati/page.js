@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 const PERIODS = [
   { key: "oggi", label: "Oggi" },
   { key: "7g", label: "Ultimi 7 giorni" },
-  { key: "30g", label: "Ultimi 30 giorni" },
+  { key: "28g", label: "Ultimi 28 giorni" },
 ];
 
 function formatPrice(value) {

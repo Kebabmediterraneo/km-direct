@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { createSupabaseBrowserClient } from "../../lib/supabase-browser";
 import ImpostazioniSection from "./impostazioni-section";
+import AvvisoPulizia from "./avviso-pulizia";
 import { sortQueueByReferenceTime } from "../../lib/staff-queue-order";
 import { BADGE_OPTIONS } from "../../lib/menu-badges";
 import { SPICE_OPTIONS } from "../../lib/menu-spice";
@@ -3975,6 +3976,10 @@ export default function StaffDashboardPage() {
           Esci
         </button>
       </div>
+
+      {/* §69 (22/11/2026): avviso rosso se la pulizia notturna degli ordini
+          mai pagati si è fermata o non risulta riuscita da più di 26 ore. */}
+      <AvvisoPulizia />
 
       {/* §52-56 "Alert nuovo ordine": banner "Attiva avvisi sonori", mostrato
           finché l'audio non è sbloccato in questa sessione o il permesso

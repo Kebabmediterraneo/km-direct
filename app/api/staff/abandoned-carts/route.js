@@ -6,7 +6,10 @@ export const dynamic = "force-dynamic";
 
 const IN_PROGRESS_CUTOFF_MS = 30 * 60 * 1000;
 
-const PERIOD_DAYS = { oggi: 0, "7g": 7, "30g": 30 };
+// §69 (22/11/2026): il periodo più lungo è 28 giorni, non 30. La pulizia
+// notturna cancella gli ordini mai pagati con più di 28 giorni: oltre, la
+// pagina non avrebbe più niente da mostrare e dichiarerebbe un periodo falso.
+const PERIOD_DAYS = { oggi: 0, "7g": 7, "28g": 28 };
 
 // Stesso principio di daysBetweenRomeDates/getRomeDateParts in app/staff/page.js:
 // "oggi" deve intendersi come giorno di calendario a Europe/Rome, non UTC.
