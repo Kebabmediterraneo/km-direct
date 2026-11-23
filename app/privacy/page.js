@@ -1027,6 +1027,7 @@ export default function PrivacyPage() {
           </tr>
         </tbody>
       </table>
+      <p style={pStyle}><strong>Memoria del browser usata da Google e Meta, solo con il consenso.</strong> Oltre ai cookie indicati nella tabella, gli strumenti di Google e Meta, solo dopo il consenso, salvano alcune informazioni nella memoria del browser: Google la voce «_gcl_ls», che conserva i dati sul clic sull&apos;annuncio usati per misurare le conversioni; Meta le voci «lastExternalReferrer» e «lastExternalReferrerTime», che indicano da quale sito esterno l&apos;utente è arrivato e quando. Se l&apos;utente revoca il consenso, o se la sua scelta scade, il sito le cancella insieme ai cookie.</p>
       <p style={pStyle}><strong>Memoria del browser, sempre e senza consenso</strong>, perché strettamente necessaria al servizio:</p>
       <ul style={ulStyle}>
         <li>nella memoria temporanea (<code>sessionStorage</code>), eliminati alla chiusura della scheda: il contenuto del carrello e i dati inseriti nel modulo d&apos;ordine, quali nome, cognome, telefono, e-mail, indirizzo, numero civico, citofono, piano, interno, edificio o scala e note di consegna;</li>
