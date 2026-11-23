@@ -20,8 +20,8 @@
 // §65b (16/11/2026): in fondo il piè di pagina comune, per «Preferenze cookie».
 // §65b pezzo 4 (23/11/2026): il testo è la v1.3, riportato parola per parola
 // dal file «KM Direct - testi definitivi v1.3 e banner v2.md» (sha256 3ef8d7f8…).
-// ⚠️ La data di pubblicazione è un SEGNAPOSTO unico (la costante qui sotto):
-// si scrive il giorno del lancio (passo 1 della sequenza, §65b).
+// La data di pubblicazione è nella costante unica qui sotto: riempita il giorno
+// del lancio (23/11/2026, passo 1 della sequenza §65b), formato della v1.2.
 import PrivacyFooter from "../privacy-footer";
 
 export const metadata = {
@@ -53,8 +53,8 @@ const pStyle = {
   color: "var(--text-on-dark)",
 };
 
-// ⚠️ SEGNAPOSTO: da sostituire con la data vera il giorno del lancio.
-const DATA_PUBBLICAZIONE_V13 = "[data di pubblicazione]";
+// Data di pubblicazione della v1.3 (stesso formato della v1.2: «3 agosto 2026»).
+const DATA_PUBBLICAZIONE_V13 = "23 novembre 2026";
 
 const linkStyle = {
   color: "var(--brand-orange)",

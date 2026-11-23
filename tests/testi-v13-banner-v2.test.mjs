@@ -136,10 +136,19 @@ for (const vecchia of [
 ]) {
   assert(!pagina.includes(vecchia), `a3) la frase della v1.2 non c'è più: «${vecchia.slice(0, 60)}…»`);
 }
-assert(/const DATA_PUBBLICAZIONE_V13 = "\[data di pubblicazione\]";/.test(sorgente), "a4) la data della v1.3 è UN segnaposto unico, una costante, da riempire il giorno del lancio");
-assert((sorgente.match(/DATA_PUBBLICAZIONE_V13/g) ?? []).length === 2 && /Versione 1\.3 — \{DATA_PUBBLICAZIONE_V13\}/.test(sorgente), "a5) …usata in un solo punto: «Versione 1.3 — …»");
+// ROVESCIATA il 23/11/2026 (giorno del lancio, passo 1 della sequenza §65b).
+// Prima diceva: assert(/const DATA_PUBBLICAZIONE_V13 = "\[data di pubblicazione\]";/.test(sorgente),
+//   "a4) la data della v1.3 è UN segnaposto unico, una costante, da riempire il giorno del lancio");
+// Perché: il segnaposto è stato riempito con la data vera, nello stesso formato
+// della v1.2 («3 agosto 2026»: giorno senza zero, mese minuscolo, anno intero).
+assert(/const DATA_PUBBLICAZIONE_V13 = "23 novembre 2026";/.test(sorgente), "a4) la data della v1.3 è quella del lancio, 23 novembre 2026, nella costante unica");
+assert(!sorgente.includes("[data di pubblicazione]"), "a4b) il segnaposto della data non c'è più");assert((sorgente.match(/DATA_PUBBLICAZIONE_V13/g) ?? []).length === 2 && /Versione 1\.3 — \{DATA_PUBBLICAZIONE_V13\}/.test(sorgente), "a5) …usata in un solo punto: «Versione 1.3 — …»");
 assert(/<h2 id="cookie" style=\{h2Style\}>17\. Cookie e altri strumenti di tracciamento<\/h2>/.test(sorgente), "a6) il punto 17 ha l'àncora stabile «cookie»");
-assert(!/\[|\]/.test(pagina.replace("[data di pubblicazione]", "")), "a7) nessuna parentesi quadra nella pagina pubblica, a parte il segnaposto della data");
+// ROVESCIATA il 23/11/2026 (stesso motivo di a4: il segnaposto non c'è più).
+// Prima diceva: assert(!/\[|\]/.test(pagina.replace("[data di pubblicazione]", "")),
+//   "a7) nessuna parentesi quadra nella pagina pubblica, a parte il segnaposto della data");
+// Ora l'eccezione non serve: nessuna parentesi quadra, senza eccezioni.
+assert(!/\[|\]/.test(pagina), "a7) nessuna parentesi quadra nella pagina pubblica, senza eccezioni");
 assert(!/Code\b|compagno|segnaposto|\*\[/.test(pagina), "a8) nessuna nota interna nella pagina pubblica");
 const collegamenti = [...sorgente.matchAll(/<a href="(https:[^"]+)" target="_blank" rel="noopener noreferrer"/g)].map((m) => m[1]);
 assert(JSON.stringify(collegamenti) === JSON.stringify([
