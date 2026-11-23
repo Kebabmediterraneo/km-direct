@@ -1,6 +1,6 @@
 # KM DIRECT — MASTER SPECIFICATION
 
-**Versione 98** — sostituisce la v97.
+**Versione 99** — sostituisce la v98.
 
 Documento di riferimento definitivo per lo sviluppo. Le decisioni qui
 contenute sono approvate: non vanno reinterpretate senza un motivo concreto
@@ -22,32 +22,34 @@ versione corrente**. I precedenti vivono in `git log`, che è fatto per quello.
 del documento prima che cominciasse a parlare del progetto — e dentro c'erano
 istruzioni rovesciate che nessuno rileggeva.*
 
-**Novità della v98** (vincolanti, 23/11/2026):
+**Novità della v99** (vincolanti, 23/11/2026, sera):
 
-⚠️ **Le sei voci della v97 sono state controllate e vivono tutte nel corpo**
-(§69 la pulizia automatica e la frase dell'11.2, §65b lo stato del banner ed E7).
-*Superate dal 22-23/11: E7 è deciso (30 giorni); la regola «niente alla parte
-legale prima della v1.3» non è stata applicata, perché Andrea ha mandato lui
-stesso le bozze il 22 e il 23/11.*
+⚠️ **Le sei voci della v98 sono state controllate e vivono tutte nel corpo**
+(§65b lo stato del banner, il registro, Adobe, i cookie di google.com, la sequenza
+del lancio; §69 la pulizia automatica).
 
-1. §65b — ✅ **IL BANNER È COMPLETO SUL RAMO `banner-cookie`, IN QUATTRO
-   COMMIT, NON PUBBLICATO:** `6b6e3e5` banner, `432e7c0` conteggio, `79b8f69`
-   registro delle scelte, `e009d03` solo consensi e revoche e opposizione ad
-   Adobe che non scade. Tutto provato dal vivo il 23/11. Suite 49, 2616 prove.
-2. §65b — **IL REGISTRO DELLE SCELTE (E4) REGISTRA SOLO CONSENSI E REVOCHE**,
-   25 mesi, schema chiuso `consensi`. I rifiuti puri restano nel browser.
-3. §65b — **ADOBE FONTS RESTA A LEGITTIMO INTERESSE, PER TUTTI** (decisione di
-   Andrea: il carattere del marchio è indispensabile). Opposizione rinnovata dal
-   server a ogni visita, 400 giorni; una riga nel banner lo dirà dalla prima visita
-   (entra con i testi `v2`). **Il registro non salverà più la scelta su Adobe**
-   (decisione 21a, da realizzare).
-4. §65b — ✅ **I due cookie di google.com non vengono dal nostro percorso**:
-   0 richieste su 406 in una prova con ordine vero in un browser pulito.
-5. §65b — ⚠️⚠️ **LA SEQUENZA DEL GIORNO DEL LANCIO è scritta ed è vincolante**
-   (nuova sottosezione): due pulizie a mano entro 26 ore dal push, poi gli orologi.
-6. §69 — ✅ **La prima esecuzione automatica (23/11, 00:01) è riuscita; l'avviso
-   rosso è provato.** Resta da vedere la prima cancellazione vera (verso il 30/11):
-   per la parte legale **non blocca** la pubblicazione.
+1. §65b — ✅✅ **IL BANNER, L'INFORMATIVA v1.3 E IL CONTEGGIO SONO PUBBLICATI**
+   (23/11/2026). Primo push alle 16:45 (`f150df3`), secondo alle 18:12 (`e519405`).
+   Provato sul sito vero: niente verso Google Ads e Meta prima della scelta; tag e
+   cookie dopo «Accetta»; tutto cancellato dopo la revoca.
+2. §65b — ⚠️ **AL PRIMO PUSH I TAG NON PARTIVANO:** su Vercel mancavano per
+   Production le tre variabili `NEXT_PUBLIC_` dei tag. Aggiunte da Andrea come
+   **Config** (non Secret: sono pubbliche per natura), poi Redeploy. Regola nuova
+   nel corpo.
+3. §65b — **LA MEMORIA DEL BROWSER DI GOOGLE E META SI CANCELLA COME I COOKIE**
+   (`_gcl_ls`, `lastExternalReferrer`, `lastExternalReferrerTime`), a ogni apertura
+   delle pagine cliente senza un «sì» valido e alla revoca; l'informativa v1.3 lo
+   dice al punto 17. Commit `f43cd5d` ed `e519405`.
+4. §65b — ✅ **Il registro non salva più la scelta su Adobe** (decisione 21a,
+   realizzata: commit `7668cc5`, file 7 lanciato). La valutazione del legittimo
+   interesse su Adobe è **firmata dall'amministratore unico** (23/11).
+5. §65b — ✅ **Google Ads e Meta:** l'annuncio Search punta a
+   `ordina.kebabmediterraneo.it` (era fermo: il sito principale su Storeden non
+   funziona); sitelink in pausa; tagging automatico attivo; sul Pixel nessuna lista
+   di domini, associazione avanzata automatica spenta, `autoConfig` false nel codice.
+6. §65b — ⚠️ **Le righe di prova nel registro, da ora, si tolgono solo per codice**
+   (`id_browser`): il file 5 non trova quelle nuove, e il registro contiene ormai le
+   scelte vere dei clienti.
 
 **LE CONDIZIONI DI APERTURA SONO CHIUSE TUTTE**, e il sito è aperto.
 
@@ -6703,6 +6705,14 @@ n. 10 «manuale» ok alle 11:43 UTC.
   alternative, `p.typekit.net`, opposizione, aspettative). Fatti verificati il 23/11:
   la licenza Adobe Fonts **non consente** di ospitare i caratteri sul sito.
 
+✅ **(v99) La valutazione del legittimo interesse su Adobe Fonts è firmata
+dall'amministratore unico di Fame Srl (23/11/2026)**, con la sezione che risponde
+alla revisione legale e l'allegato interno sulla motivazione dei 25 mesi del
+registro. ✅ **Decisione 21a realizzata:** colonna `adobe_fonts` tolta (file 7),
+funzione di scrittura a 6 parametri, commit `7668cc5`.
+⚠️ *Interno (23a): un parere di un avvocato dopo il lancio. Non va mai nel testo
+pubblicato.*
+
 #### Altro deciso il 22-23/11
 
 * **Nessun pubblico di «chi ha visitato il sito»** su Meta né su Google: la v1.3 lo
@@ -6718,7 +6728,11 @@ n. 10 «manuale» ok alle 11:43 UTC.
   browser scritte «fino a». **Ultima versione mandata alla parte legale il 23/11; si
   attende la revisione finale.**
 
-### ⚠️⚠️ La sequenza del giorno del lancio (v98, vincolante)
+### ⚠️⚠️ La sequenza del giorno del lancio (v98, vincolante) — ✅ ESEGUITA IL 23/11/2026
+
+*Eseguita il 23/11 pomeriggio, prima dell'apertura delle 19. Com'è andata, passo
+per passo, nella sottosezione «Stato al 23/11/2026 sera — PUBBLICATO (v99)» qui
+sotto. Tenuta perché spiega l'ordine; non va rifatta.*
 
 A locale chiuso, tutto nello stesso giorno, ogni passo dopo il controllo del
 precedente:
@@ -6744,6 +6758,122 @@ precedente:
    `ordina.kebabmediterraneo.it` (D3). **Meta:** elenco dei domini consentiti.
 10. **La mattina dopo:** riga `pulizia_scelte_banner` automatica ok alle 23:11 UTC;
     nessun avviso. **Nei giorni dopo:** la prima conversione Google da un annuncio.
+
+### Stato al 23/11/2026 sera — PUBBLICATO (v99)
+
+**Che cosa è online.** `main` = `origin/main` = **`e519405`**. Dopo il rebase su
+`e13d8a1` i commit del ramo hanno hash nuovi:
+
+```
+e519405 Informativa v1.3: memoria del browser usata da Google e Meta
+f43cd5d Cancellazione della memoria del browser di Google e Meta alla revoca
+f150df3 Data di pubblicazione dell'informativa v1.3
+24b1466 Testi definitivi informativa v1.3, banner v2 e casella privacy al checkout
+7668cc5 feat: il registro delle scelte non salva più la scelta su Adobe Fonts
+36d78c0 feat: registro solo di consensi e revoche e opposizione ad Adobe Fonts rinnovata a ogni visita
+05f72a1 feat: registro delle scelte del banner cookie con pulizia notturna e codice visibile nelle preferenze
+d513715 feat: pagina di conferma con token nascosto, controllo ogni 3 secondi e conteggio degli ordini pagati su Google e Meta
+d9f2873 feat: banner cookie e preferenze, tag Google e Meta solo dopo il consenso, Adobe Fonts spegnibile
+```
+
+Suite **53, 2721 prove**, `next build` ok. Rami locali, mai spinti:
+`banner-cookie`, `memoria-tag-revoca`, il segnalibro
+`banner-cookie-prima-del-rebase` (da cancellare).
+
+**I passi della sequenza, com'è andata:**
+
+1. ✅ Parte legale: il testo v1.3 «può essere preparato per la pubblicazione»;
+   considerato luce verde il 23/11. Pezzo 4 committato (`24b1466`) dopo la prova
+   a schermo in locale.
+2. ✅ DPF, lista ufficiale al 23/11: Google LLC e Adobe Inc. «Active» (EU-U.S.,
+   Swiss-U.S., UK Extension); Meta Platforms Inc. «Active - Re-certification under
+   Review» (EU-U.S., Swiss-U.S.). ⚠️ *Meta da ricontrollare fra qualche settimana:
+   se diventasse «Inactive», il punto 12 dell'informativa va rivisto.*
+3. ✅ Rebase su `e13d8a1` senza conflitti; data «23 novembre 2026», nel formato
+   della v1.2; nessun appunto interno nei testi visibili.
+4. ✅ File 4 aggiornato: `firma_vecchia_tolta`, `colonna_adobe_tolta`,
+   `regola_revoca_attiva` tutte `true`, `righe_scelte` 0.
+5. ✅ Pulizia a mano: registro n. 11, `pulizia_scelte_banner`, 25 mesi, `manuale`,
+   0 righe, alle 16:35.
+6. ✅ Push alle 16:45 (`e13d8a1..f150df3`).
+7. ⚠️ Sito e pannello: banner `v2`, informativa v1.3, niente prima della scelta,
+   pannello senza avviso rosso. **Ma dopo «Accetta» i tag non partivano**: le tre
+   variabili dei tag mancavano su Vercel per Production (in `.env.local` c'erano,
+   per questo in locale funzionava). Aggiunte, Redeploy alle 17:03, riprovato:
+   tag e cookie giusti. Vedi la regola qui sotto.
+8. ✅ Orologio del registro (file 2) acceso: su `cron.job` due lavori attivi.
+9. ✅ Google Ads e Meta: vedi sotto.
+10. ⏳ La mattina del 24/11: la prima `pulizia_scelte_banner` automatica, l'annuncio
+    approvato, nessun avviso.
+
+⚠️ **REGOLA (v99): PRIMA DI UN PUSH CHE USA VARIABILI `NEXT_PUBLIC_` NUOVE,
+VERIFICARE CHE ESISTANO SU VERCEL PER PRODUCTION.** Senza, il sito si costruisce lo
+stesso e la funzione si spegne in silenzio (per i tag: nessun errore, nessun tag).
+Le variabili `NEXT_PUBLIC_` entrano nel sito **quando viene costruito**: aggiungerle
+non basta, serve una nuova pubblicazione. Quelle dei tag sono
+`NEXT_PUBLIC_GOOGLE_ADS_ID`, `NEXT_PUBLIC_GOOGLE_ADS_CONVERSION_LABEL`,
+`NEXT_PUBLIC_META_PIXEL_ID`, di tipo **Config**, solo **Production** (su Preview
+manderebbero visite e ordini finti agli account veri).
+
+**Le prove sul sito vero (23/11, dal Chrome di Andrea, pagina pulita prima):**
+prima della scelta solo Google Maps e Adobe Fonts, nessuna richiesta a
+`googletagmanager.com` né a `facebook.net`; dopo «Accetta tutti» `gtag/js` con
+l'id Ads e `page_view` con `npa=1`, `fbevents.js` e `PageView`, cookie `_gcl_au` e
+`_fbp` a 90 giorni; dopo «Rifiuta tutti» da «Preferenze cookie» cookie e voci della
+memoria cancellati, tag fermi al ricaricamento, revoca arrivata al registro (204).
+
+#### La memoria del browser di Google e Meta (23/11, deciso e realizzato)
+
+Trovato nella prova: dopo la revoca restavano nel `localStorage` `_gcl_ls`
+(Google), `lastExternalReferrer` e `lastExternalReferrerTime` (Meta), scritte dai
+tag dopo il consenso e non nominate dall'informativa. Deciso il 23/11:
+
+* **codice** (`f43cd5d`): una funzione sola, `pulisciFornitori`, cancella per ogni
+  fornitore cookie e voci, **a ogni apertura delle pagine cliente** per chi non ha un
+  «sì» valido (scelta assente, scaduta, «no») e **alla revoca**. Google e Meta
+  separati; solo quei tre nomi esatti; `km_cookie_consent` mai toccato; tutto in
+  `try/catch`. 33 prove. **Provato** in locale (revoca del solo Meta: restano le
+  voci di Google) e sul sito vero.
+* **informativa** (`e519405`): paragrafo al punto 17, dopo la tabella, testo
+  approvato da Andrea: *«Memoria del browser usata da Google e Meta, solo con il
+  consenso. …»*. Versione e data **invariate** («1.3 — 23 novembre 2026»), perché
+  aggiunto lo stesso giorno della pubblicazione; `BANNER_VERSION` resta `v2`.
+
+✅ **Gli eventi automatici di Meta erano già spenti:** `fbq('set', 'autoConfig',
+false, id)` prima di `init`, dal primo commit del banner, con le prove `i7`/`i8`.
+*Il file di configurazione che Meta manda al sito contiene comunque le impostazioni
+degli eventi automatici: non vuol dire che siano accesi.* L'**associazione avanzata
+automatica** non è impostata sul Pixel.
+
+#### Google Ads e Meta, al 23/11 sera
+
+* **Google Ads:** l'unico annuncio della campagna Search «KM | Kebab Bologna |
+  Visite locale» era **«Non idoneo — Destinazione non funzionante»**: il sito
+  principale `www.kebabmediterraneo.it` (su Storeden, TeamSystem) non risponde e
+  presenta un certificato sbagliato. URL finale cambiato in
+  `https://ordina.kebabmediterraneo.it/` (in revisione); i **sei sitelink** che
+  puntavano al sito principale **in pausa**, da riattivare quando Storeden torna;
+  callout e snippet attivi (senza link). Tagging automatico attivo. L'azione
+  **«Ordine KM Direct»** (Sito web, principale, conteggio «Tutte») attende la prima
+  conversione.
+* **Scheda Google del locale:** sito web portato a `ordina.kebabmediterraneo.it`
+  finché Storeden non torna.
+* **Meta, Pixel «KM ordini»:** nessuna lista di domini consentiti (quindi nessun
+  blocco), «Monitora gli eventi automaticamente» su No. *Verifica del dominio e lista
+  dei consentiti: utili, non urgenti, aperte.*
+* ⚠️ **Le prove in locale mandano eventi veri** a Google e Meta, perché
+  `.env.local` ha gli identificativi veri: Andrea ha scelto di lasciarli così.
+
+#### Il registro delle scelte dopo il lancio
+
+⚠️ **Dal 23/11 il registro contiene le scelte vere dei clienti: non va più
+controllato che sia a 0.** Una riga di prova si toglie **solo per codice**:
+`delete from consensi.scelte_banner where id_browser = '<codice>' returning id,
+id_browser, azione;` — con il numero di righe atteso detto prima (accettazione,
+eventuale scelta parziale, revoca). ⚠️ *Il file 5 cancella solo le prove conosciute
+quando è stato scritto: il 23/11 non ha trovato la riga 32.* Righe di prova del
+23/11, tutte tolte: 32, 33, poi quelle dei codici `35655e83…` (2), `b5cd1521…` (3),
+`55057d43…` (2).
 
 ---
 

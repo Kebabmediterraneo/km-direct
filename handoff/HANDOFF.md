@@ -5344,3 +5344,91 @@ google.com; `_gcl_aw` e `_fbc`; il contatto in Google Ads; E7 (30 giorni).
 * **Segnalibro `banner-cookie-prima-del-rebase`**, da cancellare.
 * **«Misura conversioni sui dispositivi» su Meta**, dopo la parte legale.
 * **Il messaggio di rimborso nel pannello** quando l'annullamento rimborsa.
+
+### 49t) Il lancio: banner, informativa v1.3 e conteggio pubblicati (23/11/2026, pomeriggio e sera)
+
+**1. Prima del lancio (23/11, fino alle 16).** Decisione 21a realizzata: il registro
+non salva più la scelta su Adobe (`f423ffa`, oggi `7668cc5`; file 7 lanciato). La
+valutazione del legittimo interesse su Adobe è firmata dall'amministratore unico.
+Il parere di un avvocato dopo il lancio (23a) resta interno. Pezzo 4 scritto da Code
+(24a: note interne tolte da `docs/banner/v2.md`, paragrafo «Alla scadenza…» spostato
+dopo l'11.9), provato a schermo in locale dal compagno di ragionamento e committato
+(`be01166`, oggi `24b1466`).
+
+**2. La sequenza del lancio** (spec §65b v99, passo per passo). Parte legale
+considerata luce verde; DPF controllati da Andrea sulla lista ufficiale (Meta «in
+revisione», attiva); rebase senza conflitti; data «23 novembre 2026»; file 4, pulizia
+a mano, registro a 0; **push alle 16:45** (`f150df3`).
+
+**3. I tag non partivano.** Sul sito vero, dopo «Accetta», nessun tag: Code ha trovato
+che le tre variabili `NEXT_PUBLIC_` dei tag mancavano su Vercel per Production. Andrea
+le ha aggiunte (tipo Config, solo Production) e ha fatto il Redeploy: alle 17:03 tag,
+cookie e revoca funzionavano. Regola nuova in spec §65b v99.
+
+**4. La memoria del browser.** Nella prova sono rimaste, dopo la revoca, tre voci di
+Google e Meta nel `localStorage`. Deciso con Andrea punto per punto: cancellarle a ogni
+apertura e alla revoca (strada a), paragrafo nuovo al punto 17 con testo approvato,
+versione e data invariate, pubblicazione anche oltre le 18:15. Commit `f43cd5d` ed
+`e519405`, **push alle 18:12**, provato in locale e sul sito vero.
+
+**5. Google Ads, Meta, Storeden.** L'annuncio Search era fermo da metà novembre perché
+il sito principale su Storeden non funziona (certificato sbagliato, guasto TeamSystem):
+URL finale portato su `ordina.kebabmediterraneo.it`, sitelink in pausa, scheda Google
+portata sul sito ordini. Pixel di Meta: nessun blocco di dominio, associazione avanzata
+spenta, `autoConfig` già false nel codice.
+
+**6. Il registro.** Orologio acceso (file 2), due lavori su `cron.job`. Tutte le righe
+di prova tolte per codice. Da ora il registro contiene scelte vere.
+
+**ev. ⚠️ HO SCRITTO NEL DATABASE VERO SENZA AVVISARE PRIMA.** *(da 49t)* Nella prova a
+schermo in locale ho cliccato «Accetta tutti»: il sito locale usa il database vero, e
+ho creato una riga nel registro dei consensi. Detto subito dopo, riga tolta. **Rimedio:
+prima di ogni clic che scrive (consenso, ordine, salvataggio), anche in locale, dire
+cosa verrà scritto e dove, e come si toglie.**
+
+**ew. ⚠️ UNA CONCLUSIONE TRATTA DA UN FILE DI TERZI INVECE CHE DAL NOSTRO CODICE.**
+*(da 49t)* Dal file di configurazione del Pixel ho concluso che gli eventi automatici
+di Meta erano accesi e ho fatto preparare una correzione: erano spenti nel nostro
+codice dal primo commit, con le prove. **Rimedio: prima di dire che una funzione è
+attiva sul nostro sito, chiedere a Code cosa fa il codice; il file di un fornitore
+dice cosa è disponibile, non cosa usiamo.**
+
+**ex. ⚠️ LA SEQUENZA DEL LANCIO NON CONTROLLAVA LE VARIABILI SU VERCEL.** *(da 49t)*
+Tutte le prove erano in locale, dove `.env.local` aveva gli identificativi; nessun
+passo verificava che esistessero per Production. Il primo push ha pubblicato un sito
+senza tag, senza errori. **Rimedio: in ogni sequenza di pubblicazione, un passo che
+confronta le variabili usate dal codice con quelle su Vercel per Production (solo i
+nomi).**
+
+**ey. ⚠️ HO DATO PER BUONO UN FILE DI PULIZIA SULLE RIGHE NUOVE.** *(da 49t)* Per la
+riga di prova creata in locale ho indicato il file 5, che cancella solo le prove
+conosciute quando è stato scritto: la riga è rimasta. **Rimedio: dopo ogni
+cancellazione, contare; e le righe nuove si tolgono per chiave esatta.**
+
+#### L'elenco delle cose aperte, aggiornato
+
+*Sostituisce l'elenco di 49s.* **Chiusi:** l'ok della parte legale; la decisione 21a;
+il pezzo 4; il lancio; il conteggio Google e Meta sul sito vero; l'URL degli annunci.
+
+* **24/11 mattina:** pannello senza avviso rosso (prime pulizie automatiche insieme,
+  23:01 e 23:11 UTC); annuncio Google «Idoneo»; scheda Google col nuovo link.
+* **Quando Storeden torna:** riattivare i sei sitelink e rimettere
+  `www.kebabmediterraneo.it` nel sito della scheda Google (il sito ordini può restare
+  come link per ordinare).
+* **01/12 alle 12:** la prima cancellazione automatica degli ordini mai pagati, da
+  documentare per la parte legale.
+* **Parere di un avvocato dopo il lancio (23a)** — interno, mai nel testo pubblicato.
+* **DPF di Meta** «in revisione»: ricontrollare fra qualche settimana.
+* **Meta:** verifica del dominio (record DNS da Aruba, senza toccare il record
+  `ordina`) e lista dei domini consentiti. «Misura conversioni sui dispositivi».
+* **Le frasi «decisione di Andrea»** nel codice (13, in `app/page.js`) e nei documenti
+  (73): da togliere o sostituire, quando Andrea lo deciderà.
+* **Prove in locale che mandano eventi veri** a Google e Meta: lasciate così per scelta.
+* **Ritocco del testo dell'avviso** («notturna» anche per una pulizia a mano).
+* **Intestazione «SOSTITUITO, non usare»** nel vecchio script di pulizia mensile.
+* **Lo script dei conteggi** non conosce il registro di manutenzione né lo schema
+  `consensi`.
+* **Rami locali** `banner-cookie`, `memoria-tag-revoca` e il segnalibro
+  `banner-cookie-prima-del-rebase`, da cancellare.
+* **I due file `sql/` non tracciati** (`20260901_…`, `20261106_…`).
+* **Il messaggio di rimborso nel pannello** quando l'annullamento rimborsa.
