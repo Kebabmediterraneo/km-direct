@@ -10,6 +10,7 @@
 --   su registra_scelta_banner e pulizia_stato;
 --   righe_registro_senza_lavoro_ordini → 0 (le righe di oggi della pulizia
 --   degli ordini hanno preso lavoro = 'pulizia_ordini');
+--   regola_revoca_attiva → true dopo il file 6 (false prima);
 --   stato_pannello → il json di pulizia_stato(): «ultima» e «ultima_ok» come
 --   prima, più «scelte_ultima» e «scelte_ultima_ok» (vuote finché il lavoro
 --   nuovo non gira).
@@ -33,4 +34,7 @@ select
   has_function_privilege('service_role', 'public.pulizia_stato()', 'execute')                      as stato_service_role,
   (select count(*) from manutenzione.pulizia_registro where lavoro <> 'pulizia_ordini')            as righe_registro_senza_lavoro_ordini,
   (select count(*) from consensi.scelte_banner)                                                    as righe_scelte,
+  -- (23/11/2026, file 6) true se la funzione di scrittura ha la regola «solo consensi e revoche».
+  pg_get_functiondef('public.registra_scelta_banner(uuid,text,boolean,boolean,boolean,text,text)'::regprocedure)
+    like '%nessun consenso da revocare%'                                                          as regola_revoca_attiva,
   public.pulizia_stato()                                                                           as stato_pannello;

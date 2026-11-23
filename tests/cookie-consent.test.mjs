@@ -212,7 +212,11 @@ const T0 = Date.UTC(2026, 10, 16, 12, 0, 0); // 16/11/2026
 // ---------------------------------------------------------------------------
 {
   const off = m.fontCookieString(false, true);
-  assert(off.startsWith(`${m.FONT_COOKIE}=1;`) && /Max-Age=15811200/.test(off) && off.includes("Secure"), "j1) a chi si oppone: km_font_off=1 per sei mesi, sicuro su https");
+  // ⚠️ ROVESCIATA APPOSTA il 23/11/2026 (decisione 16a/20 di Andrea). Il testo vecchio era:
+  //   /Max-Age=15811200/ … "j1) a chi si oppone: km_font_off=1 per sei mesi, sicuro su https"
+  // Perché: l'opposizione ad Adobe deve durare il più a lungo che il browser
+  // consente (400 giorni in Chrome) e si rinnova a ogni visita dal server.
+  assert(off.startsWith(`${m.FONT_COOKIE}=1;`) && /Max-Age=34560000/.test(off) && off.includes("Secure"), "j1) a chi si oppone: km_font_off=1 per 400 giorni, sicuro su https");
   const on = m.fontCookieString(true, false);
   assert(on.startsWith(`${m.FONT_COOKIE}=;`) && on.includes("Max-Age=0") && !on.includes("Secure"), "j2) a chi riaccende: il cookie viene tolto");
 }

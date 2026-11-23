@@ -128,7 +128,10 @@ const banner = leggi("app/cookie-consent.js") ?? "";
 assert(/from "\.\.\/lib\/consenso-registro"/.test(banner), "c1) il banner usa lib/consenso-registro");
 const iScegli = banner.indexOf("function scegli(");
 const corpoScegli = banner.slice(iScegli, banner.indexOf("\n  }\n", iScegli));
-assert(/prima\?\.idBrowser/.test(corpoScegli) && /nuovoIdBrowser\(/.test(corpoScegli), "c2) scegli() riusa l'identificativo della scelta valida, altrimenti ne crea uno nuovo");
+// ⚠️ ROVESCIATA APPOSTA il 23/11/2026 (decisione 19 di Andrea). Il testo vecchio era:
+//   /prima\?\.idBrowser/ && /nuovoIdBrowser\(/ … "c2) scegli() riusa l'identificativo della scelta valida, altrimenti ne crea uno nuovo"
+// Perché: l'identificativo ora nasce SOLO al primo consenso; chi rifiuta e basta non ne ha.
+assert(/nuova\.idBrowser = prima\?\.idBrowser \|\| \(\(nuova\.google \|\| nuova\.meta\) \? nuovoIdBrowser\(globalThis\.crypto\) : null\)/.test(corpoScegli), "c2) scegli() riusa l'identificativo della scelta valida; ne crea uno nuovo SOLO se la scelta ha un consenso");
 const iRegistra = corpoScegli.indexOf("registraScelta(");
 const iReload = corpoScegli.indexOf("window.location.reload()");
 assert(iRegistra > 0 && iReload > iRegistra, "c3) la riga parte PRIMA del ricaricamento della revoca");

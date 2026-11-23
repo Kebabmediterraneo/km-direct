@@ -35,10 +35,11 @@ import {
   metaCommands,
   cookieDeletions,
   fontCookieString,
+  fontSpentoNelCookie,
 } from "../lib/cookie-consent";
 import { CONFIRMATION_READY_EVENT, ORDER_TO_COUNT_EVENT } from "../lib/order-token";
 import { conversionsToSend, markCounted } from "../lib/order-conversion";
-import { nuovoIdBrowser, corpoRegistro, PULSANTE_DA_AZIONE } from "../lib/consenso-registro";
+import { nuovoIdBrowser, corpoRegistro, deveRegistrare, PULSANTE_DA_AZIONE } from "../lib/consenso-registro";
 
 // §65b (E4, 23/11/2026) — il registro delle scelte. Una riga a ogni
 // SALVATAGGIO, spara e dimentica: `keepalive` la fa partire anche quando la
@@ -233,7 +234,8 @@ export default function CookieConsent({ googleAdsId, googleAdsConversionLabel, m
       setBozza({
         google: attuale?.google === true,
         meta: attuale?.meta === true,
-        adobeFonts: attuale ? attuale.adobeFonts !== false : true,
+        // La scelta su Adobe si legge dal cookie (23/11/2026).
+        adobeFonts: !fontSpentoNelCookie(document.cookie),
       });
       setCodice(attuale?.idBrowser ?? null);
       setVista("preferenze");
@@ -248,12 +250,17 @@ export default function CookieConsent({ googleAdsId, googleAdsConversionLabel, m
   // dell'azione: «Accetta tutti» dentro Personalizza è un `custom` tutto sì.
   function scegli(azione, personalizzata, pulsante = null) {
     const prima = readConsent(memoria());
-    const nuova = choiceFromAction(azione, prima, personalizzata);
-    // E4: l'identificativo della scelta valida si riusa; se non c'è (prima
-    // scelta, scelta scaduta, versione cambiata, browser pulito) ne nasce uno.
-    nuova.idBrowser = prima?.idBrowser || nuovoIdBrowser(globalThis.crypto);
+    // Adobe: si parte da ciò che dice il cookie, non da «sì» (il difetto del
+    // 23/11: una scelta scaduta faceva perdere l'opposizione).
+    const nuova = choiceFromAction(azione, prima, personalizzata, !fontSpentoNelCookie(document.cookie));
+    // E4 (decisione 19): l'identificativo della scelta valida si riusa; ne
+    // nasce uno nuovo SOLO al primo consenso. Chi rifiuta e basta non ne ha.
+    nuova.idBrowser = prima?.idBrowser || ((nuova.google || nuova.meta) ? nuovoIdBrowser(globalThis.crypto) : null);
     const { consent: salvata } = saveConsent(memoria(), nuova);
-    registraScelta(salvata, pulsante ?? PULSANTE_DA_AZIONE[azione], vista === "preferenze" ? "preferenze" : "banner");
+    // Decisione 15a: nel registro solo i consensi e le revoche.
+    if (deveRegistrare(prima, salvata)) {
+      registraScelta(salvata, pulsante ?? PULSANTE_DA_AZIONE[azione], vista === "preferenze" ? "preferenze" : "banner");
+    }
 
     // Il carattere (P5): il cookie tecnico esiste solo per chi si oppone.
     try {
@@ -431,7 +438,7 @@ export default function CookieConsent({ googleAdsId, googleAdsConversionLabel, m
             type="button"
             style={STILE_SECONDARIO}
             onClick={() => {
-              setBozza({ google: false, meta: false, adobeFonts: consent ? consent.adobeFonts !== false : true });
+              setBozza({ google: false, meta: false, adobeFonts: !fontSpentoNelCookie(document.cookie) });
               setVista("personalizza");
             }}
           >
