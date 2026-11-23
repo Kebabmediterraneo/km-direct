@@ -11,7 +11,9 @@ import { testoAvvisoPulizia } from "../../lib/pulizia-stato";
 const RILETTURA_MS = 10 * 60 * 1000;
 
 export default function AvvisoPulizia() {
-  const [testo, setTesto] = useState(null);
+  // Uno o due testi: la pulizia degli ordini e, dal 23/11 (E4), quella del
+  // registro delle scelte del banner.
+  const [testi, setTesti] = useState([]);
 
   useEffect(() => {
     let annullato = false;
@@ -21,9 +23,9 @@ export default function AvvisoPulizia() {
         const response = await fetch("/api/staff/pulizia-stato", { cache: "no-store" });
         if (response.status === 401) return; // sessione scaduta: ci pensa il resto del pannello
         const data = await response.json();
-        if (!annullato) setTesto(testoAvvisoPulizia(data?.avviso));
+        if (!annullato) setTesti([testoAvvisoPulizia(data?.avviso), testoAvvisoPulizia(data?.avvisoScelte, "scelte")].filter(Boolean));
       } catch {
-        if (!annullato) setTesto(testoAvvisoPulizia({ acceso: true, motivo: "non_leggibile" }));
+        if (!annullato) setTesti([testoAvvisoPulizia({ acceso: true, motivo: "non_leggibile" })]);
       }
     }
 
@@ -35,7 +37,7 @@ export default function AvvisoPulizia() {
     };
   }, []);
 
-  if (!testo) return null;
+  if (testi.length === 0) return null;
 
   return (
     <div
@@ -49,9 +51,16 @@ export default function AvvisoPulizia() {
         fontSize: 14,
         fontWeight: 600,
         color: "#8E1B1B",
+        display: "flex",
+        flexDirection: "column",
+        gap: 8,
       }}
     >
-      {testo}
+      {testi.map((t) => (
+        <p key={t} style={{ margin: 0 }}>
+          {t}
+        </p>
+      ))}
     </div>
   );
 }

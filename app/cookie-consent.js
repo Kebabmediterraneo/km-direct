@@ -38,6 +38,27 @@ import {
 } from "../lib/cookie-consent";
 import { CONFIRMATION_READY_EVENT, ORDER_TO_COUNT_EVENT } from "../lib/order-token";
 import { conversionsToSend, markCounted } from "../lib/order-conversion";
+import { nuovoIdBrowser, corpoRegistro, PULSANTE_DA_AZIONE } from "../lib/consenso-registro";
+
+// §65b (E4, 23/11/2026) — il registro delle scelte. Una riga a ogni
+// SALVATAGGIO, spara e dimentica: `keepalive` la fa partire anche quando la
+// revoca ricarica subito la pagina, e il banner non aspetta mai la risposta.
+// Se qualcosa va storto il cliente non se ne accorge: il registro è una prova,
+// non un cancello.
+function registraScelta(consent, pulsante, origine) {
+  try {
+    const corpo = corpoRegistro(consent, pulsante, origine);
+    if (!corpo) return;
+    fetch("/api/consenso-banner", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(corpo),
+      keepalive: true,
+    }).catch(() => {});
+  } catch {
+    /* niente: la scelta vale comunque */
+  }
+}
 
 // La memoria del browser, presa con prudenza: in alcuni browser anche solo
 // nominarla lancia un errore. Il modulo tratta `null` come «nessuna scelta».
@@ -168,6 +189,8 @@ export default function CookieConsent({ googleAdsId, googleAdsConversionLabel, m
   // "nascosto" | "banner" | "personalizza" | "preferenze"
   const [vista, setVista] = useState("nascosto");
   const [bozza, setBozza] = useState({ google: false, meta: false, adobeFonts: true });
+  // E4: il codice della scelta, mostrato in «Preferenze cookie».
+  const [codice, setCodice] = useState(null);
   const ids = { googleAdsId, googleAdsConversionLabel, metaPixelId };
 
   // All'apertura: si legge la scelta, si decide se mostrare il banner e si
@@ -212,6 +235,7 @@ export default function CookieConsent({ googleAdsId, googleAdsConversionLabel, m
         meta: attuale?.meta === true,
         adobeFonts: attuale ? attuale.adobeFonts !== false : true,
       });
+      setCodice(attuale?.idBrowser ?? null);
       setVista("preferenze");
     }
     window.addEventListener(OPEN_PREFERENCES_EVENT, apri);
@@ -220,10 +244,16 @@ export default function CookieConsent({ googleAdsId, googleAdsConversionLabel, m
 
   if (isStaffPath(pathname)) return null;
 
-  function scegli(azione, personalizzata) {
+  // `pulsante` serve solo al registro (E4), quando il pulsante dice più
+  // dell'azione: «Accetta tutti» dentro Personalizza è un `custom` tutto sì.
+  function scegli(azione, personalizzata, pulsante = null) {
     const prima = readConsent(memoria());
     const nuova = choiceFromAction(azione, prima, personalizzata);
+    // E4: l'identificativo della scelta valida si riusa; se non c'è (prima
+    // scelta, scelta scaduta, versione cambiata, browser pulito) ne nasce uno.
+    nuova.idBrowser = prima?.idBrowser || nuovoIdBrowser(globalThis.crypto);
     const { consent: salvata } = saveConsent(memoria(), nuova);
+    registraScelta(salvata, pulsante ?? PULSANTE_DA_AZIONE[azione], vista === "preferenze" ? "preferenze" : "banner");
 
     // Il carattere (P5): il cookie tecnico esiste solo per chi si oppone.
     try {
@@ -368,18 +398,25 @@ export default function CookieConsent({ googleAdsId, googleAdsConversionLabel, m
           </div>
         )}
 
+        {/* E4: il codice della scelta, per poterla ritrovare nel registro. */}
+        {vista === "preferenze" && codice && (
+          <p style={{ margin: 0, fontSize: 11, color: "var(--text-on-dark)", userSelect: "all", wordBreak: "break-all" }}>
+            Codice della tua scelta: {codice}
+          </p>
+        )}
+
         <div style={{ display: "flex", gap: 10 }}>
           <button
             type="button"
             style={STILE_SCELTA}
-            onClick={() => (conCaselle ? scegli("custom", { google: true, meta: true, adobeFonts: bozza.adobeFonts }) : scegli("accept_all"))}
+            onClick={() => (conCaselle ? scegli("custom", { google: true, meta: true, adobeFonts: bozza.adobeFonts }, "accetta_tutti") : scegli("accept_all"))}
           >
             Accetta tutti
           </button>
           <button
             type="button"
             style={STILE_SCELTA}
-            onClick={() => (conCaselle ? scegli("custom", { google: false, meta: false, adobeFonts: bozza.adobeFonts }) : scegli("reject_all"))}
+            onClick={() => (conCaselle ? scegli("custom", { google: false, meta: false, adobeFonts: bozza.adobeFonts }, "rifiuta_tutti") : scegli("reject_all"))}
           >
             Rifiuta tutti
           </button>

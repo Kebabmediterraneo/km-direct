@@ -20,14 +20,24 @@ export async function GET() {
 
   if (error || !data || typeof data !== "object") {
     console.error("[GET /api/staff/pulizia-stato] Stato non leggibile:", { code: error?.code, message: error?.message });
-    return NextResponse.json({ avviso: statoAvvisoPulizia({ letturaRiuscita: false }) });
+    return NextResponse.json({
+      avviso: statoAvvisoPulizia({ letturaRiuscita: false }),
+      avvisoScelte: statoAvvisoPulizia({ letturaRiuscita: false }),
+    });
   }
 
+  // §65b (E4, 23/11/2026): stessa regola anche per la pulizia notturna del
+  // registro delle scelte del banner (chiavi `scelte_ultima`, `scelte_ultima_ok`).
   return NextResponse.json({
     avviso: statoAvvisoPulizia({
       letturaRiuscita: true,
       ultima: data.ultima ?? null,
       ultimaOk: data.ultima_ok ?? null,
+    }),
+    avvisoScelte: statoAvvisoPulizia({
+      letturaRiuscita: true,
+      ultima: data.scelte_ultima ?? null,
+      ultimaOk: data.scelte_ultima_ok ?? null,
     }),
   });
 }
