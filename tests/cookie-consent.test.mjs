@@ -251,9 +251,15 @@ const T0 = Date.UTC(2026, 10, 16, 12, 0, 0); // 16/11/2026
   const b = leggi("app/cookie-consent.js");
   const piatto = b.replace(/\s+/g, " ");
   assert(piatto.includes("La tua privacy"), "l1) titolo «La tua privacy»");
-  assert(piatto.includes("Usiamo la memoria del browser necessaria per far funzionare il sito e gestire il tuo ordine. Con il tuo consenso, utilizziamo anche cookie e strumenti di Google e Meta per misurare gli ordini generati dagli annunci e aiutare a ottimizzare le campagne."), "l2) primo paragrafo, parola per parola");
-  assert(piatto.includes("Puoi accettarli tutti, rifiutarli o scegliere quali attivare. Se chiudi questo banner, continuerai a navigare senza attivare gli strumenti facoltativi. Puoi cambiare scelta in qualsiasi momento da «Preferenze cookie»."), "l3) secondo paragrafo, parola per parola");
-  assert(/href="\/privacy"[^>]*>\s*Cookie policy/.test(b), "l4) «Cookie policy» porta a /privacy");
+  // ⚠️ l2, l3, l4 ROVESCIATA APPOSTA il 23/11/2026 (pezzo 4: testi definitivi della v1.3, banner v2). Il testo vecchio era:
+  //   l2 «…per misurare gli ordini generati dagli annunci e aiutare a ottimizzare le campagne.»
+  //   l3 «…continuerai a navigare senza attivare gli strumenti facoltativi. Puoi cambiare…»
+  //   l4 /href="\/privacy"[^>]*>\s*Cookie policy/ — «Cookie policy» porta a /privacy
+  // Perché: i testi v2 nominano anche le visite e gli «strumenti pubblicitari», e il
+  // collegamento porta al punto 17 (àncora «cookie»).
+  assert(piatto.includes("Usiamo la memoria del browser necessaria per far funzionare il sito e gestire il tuo ordine. Con il tuo consenso, utilizziamo anche cookie e strumenti di Google e Meta per misurare le visite al sito e gli ordini generati dagli annunci e aiutare a ottimizzare le campagne."), "l2) primo paragrafo v2, parola per parola");
+  assert(piatto.includes("Puoi accettarli tutti, rifiutarli o scegliere quali attivare. Se chiudi questo banner, continuerai a navigare senza attivare gli strumenti pubblicitari di Google e Meta. Puoi cambiare scelta in qualsiasi momento da «Preferenze cookie»."), "l3) secondo paragrafo v2, parola per parola");
+  assert(/href="\/privacy#cookie"[^>]*>\s*Cookie policy/.test(b), "l4) «Cookie policy» porta al punto 17 (/privacy#cookie)");
   // (riscritta il 16/11 alla prima esecuzione: la versione di prima cercava il
   // testo del pulsante saltando fino al primo `>`, ma `onClick={() => …}`
   // contiene già un `>` — la sonda era cieca sul codice giusto. Ora si legge il

@@ -49,7 +49,9 @@ const sorgente = fs.readFileSync(PERCORSO_PAGINA, "utf8");
 // Il blocco della casella, isolato: dalla riga della dichiarazione fino alla
 // chiusura dello `<span>`. Si lavora su quello e non sull'intero file, così una
 // parola che comparisse altrove non farebbe passare le prove per sbaglio.
-const INIZIO = sorgente.indexOf("Dichiaro di aver letto l&apos;");
+// ⚠️ ROVESCIATA APPOSTA il 23/11/2026 (pezzo 4: testi definitivi della v1.3, banner v2): la formula della casella diventa «Ho preso visione dell'informativa
+// privacy». Il testo vecchio dell'àncora era: sorgente.indexOf("Dichiaro di aver letto l&apos;")
+const INIZIO = sorgente.indexOf("Ho preso visione dell&apos;");
 const FINE = INIZIO >= 0 ? sorgente.indexOf("</span>", INIZIO) : -1;
 const blocco = INIZIO >= 0 && FINE > INIZIO ? sorgente.slice(INIZIO, FINE) : "";
 
@@ -83,9 +85,13 @@ const blocco = INIZIO >= 0 && FINE > INIZIO ? sorgente.slice(INIZIO, FINE) : "";
   // necessario, non modifica ciò che il cliente firma. Se un domani cambiasse
   // ciò che si dichiara, andrebbe versionata l'informativa — e questa prova
   // cadrebbe, che è esattamente il punto.
+  // ⚠️ b3 ROVESCIATA APPOSTA il 23/11/2026 (pezzo 4: testi definitivi della v1.3, banner v2). Il testo vecchio era:
+  //   blocco.includes("Dichiaro di aver letto l&apos;") — "b3) e la dichiarazione firmata dal cliente è rimasta identica"
+  // Perché: la dichiarazione è cambiata davvero, insieme all'informativa
+  // versionata (v1.3), come questa prova aveva previsto.
   assert(
-    blocco.includes("Dichiaro di aver letto l&apos;"),
-    "b3) e la dichiarazione firmata dal cliente è rimasta identica"
+    blocco.includes("Ho preso visione dell&apos;"),
+    "b3) la dichiarazione è «Ho preso visione dell'informativa privacy» (v1.3)"
   );
 }
 
@@ -127,14 +133,14 @@ const blocco = INIZIO >= 0 && FINE > INIZIO ? sorgente.slice(INIZIO, FINE) : "";
 {
   const finto = [
     "<span>",
-    "  Dichiaro di aver letto l&apos;",
+    "  Ho preso visione dell&apos;",
     '  <a href="/privacy" target="_blank" rel="noopener noreferrer">',
     "    informativa privacy",
     "  </a>",
     "  .",
     "</span>",
   ].join("\n");
-  const inizioFinto = finto.indexOf("Dichiaro di aver letto l&apos;");
+  const inizioFinto = finto.indexOf("Ho preso visione dell&apos;");
   const bloccoFinto = finto.slice(inizioFinto, finto.indexOf("</span>", inizioFinto));
 
   assert(

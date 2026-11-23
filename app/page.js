@@ -3372,7 +3372,7 @@ function CheckoutScreen({
                 interattivi come `<a href>`, ma la difesa è dichiarata qui
                 invece di essere affidata a quel dettaglio. */}
             <span>
-              Dichiaro di aver letto l&apos;
+              Ho preso visione dell&apos;
               <a
                 href="/privacy"
                 target="_blank"

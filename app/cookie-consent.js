@@ -355,12 +355,15 @@ export default function CookieConsent({ googleAdsId, googleAdsConversionLabel, m
         </div>
 
         <p style={{ margin: 0, fontSize: 14, lineHeight: 1.45, color: "var(--text-on-dark)" }}>
-          Usiamo la memoria del browser necessaria per far funzionare il sito e gestire il tuo ordine. Con il tuo consenso, utilizziamo anche cookie e strumenti di Google e Meta per misurare gli ordini generati dagli annunci e aiutare a ottimizzare le campagne.
+          Usiamo la memoria del browser necessaria per far funzionare il sito e gestire il tuo ordine. Con il tuo consenso, utilizziamo anche cookie e strumenti di Google e Meta per misurare le visite al sito e gli ordini generati dagli annunci e aiutare a ottimizzare le campagne.
         </p>
         <p style={{ margin: 0, fontSize: 14, lineHeight: 1.45, color: "var(--text-on-dark)" }}>
-          Puoi accettarli tutti, rifiutarli o scegliere quali attivare. Se chiudi questo banner, continuerai a navigare senza attivare gli strumenti facoltativi. Puoi cambiare scelta in qualsiasi momento da «Preferenze cookie».
+          Puoi accettarli tutti, rifiutarli o scegliere quali attivare. Se chiudi questo banner, continuerai a navigare senza attivare gli strumenti pubblicitari di Google e Meta. Puoi cambiare scelta in qualsiasi momento da «Preferenze cookie».
         </p>
-        <a href="/privacy" style={{ fontSize: 13, color: "var(--navy)", textDecoration: "underline", alignSelf: "flex-start" }}>
+        <p style={{ margin: 0, fontSize: 14, lineHeight: 1.45, color: "var(--text-on-dark)" }}>
+          Il sito usa il carattere del marchio tramite Adobe Fonts: puoi disattivarlo da «Preferenze cookie».
+        </p>
+        <a href="/privacy#cookie" style={{ fontSize: 13, color: "var(--navy)", textDecoration: "underline", alignSelf: "flex-start" }}>
           Cookie policy
         </a>
 
@@ -374,7 +377,7 @@ export default function CookieConsent({ googleAdsId, googleAdsConversionLabel, m
                 style={{ marginTop: 3 }}
               />
               <span>
-                <strong>Google</strong> — misura gli ordini arrivati dagli annunci Google.
+                <strong>Google</strong> — Misura le visite al sito e gli ordini associati agli annunci Google e aiuta a ottimizzare le campagne.
               </span>
             </label>
             <label style={STILE_RIGA}>
@@ -385,7 +388,7 @@ export default function CookieConsent({ googleAdsId, googleAdsConversionLabel, m
                 style={{ marginTop: 3 }}
               />
               <span>
-                <strong>Meta</strong> (Facebook e Instagram) — misura gli ordini arrivati dagli annunci Meta.
+                <strong>Meta</strong> (Facebook e Instagram) — Misura le visite al sito e gli ordini associati agli annunci Meta e aiuta a ottimizzare le campagne.
               </span>
             </label>
             {vista === "preferenze" && (

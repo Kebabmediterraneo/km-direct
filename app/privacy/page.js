@@ -18,7 +18,10 @@
 // (`app/page.js`, `app/conferma/page.js`).
 //
 // §65b (16/11/2026): in fondo il piè di pagina comune, per «Preferenze cookie».
-// ⚠️ Il testo dell'informativa qui sotto NON è cambiato: è ancora la v1.2.
+// §65b pezzo 4 (23/11/2026): il testo è la v1.3, riportato parola per parola
+// dal file «KM Direct - testi definitivi v1.3 e banner v2.md» (sha256 3ef8d7f8…).
+// ⚠️ La data di pubblicazione è un SEGNAPOSTO unico (la costante qui sotto):
+// si scrive il giorno del lancio (passo 1 della sequenza, §65b).
 import PrivacyFooter from "../privacy-footer";
 
 export const metadata = {
@@ -48,6 +51,39 @@ const pStyle = {
   fontSize: 14,
   lineHeight: 1.6,
   color: "var(--text-on-dark)",
+};
+
+// ⚠️ SEGNAPOSTO: da sostituire con la data vera il giorno del lancio.
+const DATA_PUBBLICAZIONE_V13 = "[data di pubblicazione]";
+
+const linkStyle = {
+  color: "var(--brand-orange)",
+  textDecoration: "underline",
+  fontWeight: 600,
+};
+
+const tableStyle = {
+  width: "100%",
+  borderCollapse: "collapse",
+  margin: "0 0 12px",
+  fontSize: 13,
+  lineHeight: 1.45,
+  color: "var(--text-on-dark)",
+};
+
+const thStyle = {
+  textAlign: "left",
+  fontWeight: 700,
+  color: "var(--navy)",
+  borderBottom: "1px solid var(--card-border)",
+  padding: "6px 6px 6px 0",
+  verticalAlign: "top",
+};
+
+const tdStyle = {
+  borderBottom: "1px solid var(--card-border)",
+  padding: "6px 6px 6px 0",
+  verticalAlign: "top",
 };
 
 const ulStyle = {
@@ -83,7 +119,7 @@ export default function PrivacyPage() {
       </p>
 
       <p style={pStyle}>
-        <strong>Versione 1.2 — 3 agosto 2026</strong>
+        <strong>Versione 1.3 — {DATA_PUBBLICAZIONE_V13}</strong>
       </p>
 
       <p style={pStyle}>
@@ -138,7 +174,7 @@ export default function PrivacyPage() {
         <li>data, ora, stato e identificativo dell&apos;ordine;</li>
         <li>stato e identificativi tecnici della transazione di pagamento;</li>
         <li>eventuali codici promozionali utilizzati;</li>
-        <li>accettazione dell&apos;informativa privacy, con data e ora;</li>
+        <li>presa visione dell&apos;informativa privacy, con data e ora;</li>
         <li>
           consenso alle comunicazioni commerciali, quando prestato, con data,
           ora e versione del testo accettato;
@@ -148,6 +184,7 @@ export default function PrivacyPage() {
           eventi di utilizzo del servizio trattati a fini statistici interni,
           secondo quanto indicato al punto 3.4;
         </li>
+        <li>soltanto con il consenso dell&apos;utente ai cookie di misurazione: identificativi dei cookie di Google e di Meta, identificativo del clic sull&apos;annuncio quando l&apos;utente arriva da un annuncio, codice di riferimento e importo degli ordini pagati, secondo quanto indicato al punto 3.6;</li>
         <li>
           log tecnici, diagnostici e di sicurezza generati durante l&apos;utilizzo
           del servizio.
@@ -278,13 +315,7 @@ export default function PrivacyPage() {
       <p style={pStyle}>Queste analisi sono svolte:</p>
 
       <ul style={ulStyle}>
-        <li>
-          <strong>
-            esclusivamente all&apos;interno dei sistemi di Fame S.r.l.
-          </strong>
-          , senza ricorso a piattaforme di analisi o di pubblicità di terze
-          parti;
-        </li>
+        <li><strong>esclusivamente all&apos;interno dei sistemi di Fame S.r.l.</strong>, senza ricorso a piattaforme di analisi o di pubblicità di terze parti. La misurazione dell&apos;efficacia degli annunci descritta al punto 3.6 è una finalità distinta, che avviene solo con il consenso dell&apos;utente;</li>
         <li>
           <strong>
             in forma aggregata o comunque priva di nome, cognome, numero di
@@ -314,10 +345,7 @@ export default function PrivacyPage() {
         iniziative ed eventi di KM Kebab Mediterraneo.
       </p>
 
-      <p style={pStyle}>
-        Le comunicazioni possono essere inviate ai recapiti forniti dal cliente,
-        tramite e-mail, SMS o messaggistica istantanea quale WhatsApp.
-      </p>
+      <p style={pStyle}>Le comunicazioni sono inviate all&apos;indirizzo e-mail fornito dal cliente.</p>
 
       <p style={pStyle}>
         La base giuridica è il consenso dell&apos;interessato, ai sensi dell&apos;art. 6,
@@ -349,10 +377,26 @@ export default function PrivacyPage() {
         effettuato prima della revoca.
       </p>
 
-      <p style={pStyle}>
-        Fame S.r.l. non comunica o cede i dati a soggetti terzi affinché questi
-        li utilizzino per proprie finalità commerciali.
-      </p>
+      <p style={pStyle}>Fame S.r.l. non comunica né cede i dati raccolti per le proprie comunicazioni commerciali a soggetti terzi affinché questi li utilizzino per proprie finalità commerciali. Il trattamento pubblicitario con Google e Meta è descritto separatamente al punto 3.6.</p>
+
+      <h3 style={h3Style}>3.6 Misurazione dell&apos;efficacia degli annunci pubblicitari</h3>
+      <p style={pStyle}>Fame S.r.l. pubblica annunci su Google (Google Ads) e su Meta (Facebook e Instagram). Per sapere quanti ordini nascono da quegli annunci, e con quale importo, il sito può comunicare a Google e a Meta il completamento di un ordine pagato.</p>
+      <p style={pStyle}>Questo avviene <strong>soltanto per il fornitore che l&apos;utente ha scelto di attivare</strong> nel banner: Google, Meta, entrambi o nessuno. Se l&apos;utente rifiuta, o chiude il banner, nessuno strumento di Google Ads o di Meta viene caricato e l&apos;ordine si svolge esattamente nello stesso modo.</p>
+      <p style={pStyle}>Con il consenso, per ciascun fornitore attivato, sono comunicate due cose distinte.</p>
+      <p style={pStyle}><strong>La visita alle pagine.</strong> A ogni pagina del sito aperta, gli strumenti di Google e di Meta registrano la visita e raccolgono da sé l&apos;indirizzo IP, informazioni sul browser e sul dispositivo, gli identificativi dei propri cookie e, se l&apos;utente è arrivato da un annuncio, l&apos;identificativo di quel clic.</p>
+      <p style={pStyle}><strong>L&apos;ordine pagato.</strong> Quando la pagina di conferma rileva che il pagamento è andato a buon fine, sono comunicati:</p>
+      <ul style={ulStyle}>
+        <li>il codice di riferimento dell&apos;ordine (ad esempio KM-0042);</li>
+        <li>l&apos;importo totale dell&apos;ordine e la valuta.</li>
+      </ul>
+      <p style={pStyle}>All&apos;interno di questa finalità <strong>non sono comunicati</strong> nome, cognome, numero di telefono, indirizzo e-mail, indirizzo di consegna, né il codice di accesso alla pagina di stato dell&apos;ordine.</p>
+      <p style={pStyle}>Fame S.r.l. utilizza questi dati per misurare quante visite e quanti ordini nascono dai propri annunci. Google e Meta possono utilizzarli, secondo le funzionalità attivate e le rispettive informative, anche per ottimizzare la pubblicazione e le prestazioni degli annunci di Fame S.r.l. Il sito comunica a Google di non usare questi dati per personalizzare gli annunci. Fame S.r.l. non utilizza questi dati per creare pubblici di persone che hanno visitato il sito.</p>
+      <p style={pStyle}>Maggiori informazioni: <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer" style={linkStyle}>informativa privacy di Google</a>, <a href="https://policies.google.com/technologies/partner-sites" target="_blank" rel="noopener noreferrer" style={linkStyle}>come Google utilizza le informazioni dei siti che usano i suoi servizi</a>, <a href="https://business.safety.google/adscontrollerterms/" target="_blank" rel="noopener noreferrer" style={linkStyle}>termini di Google Ads sulla protezione dei dati tra titolari</a>.</p>
+      <p style={pStyle}>La base giuridica è il consenso dell&apos;interessato, ai sensi dell&apos;art. 6, par. 1, lett. a) GDPR e dell&apos;art. 122 del D.Lgs. 196/2003. Il consenso può essere revocato in qualsiasi momento dal collegamento «Preferenze cookie» in fondo alle pagine del sito.</p>
+      <p style={pStyle}>Per la misurazione tramite Google Ads, Fame S.r.l. e Google Ireland Limited operano, per i rispettivi trattamenti, come titolari autonomi.</p>
+      <p style={pStyle}>Per la raccolta dei dati tramite Meta Pixel e la loro trasmissione a Meta per le finalità previste dagli strumenti business, Fame S.r.l. e Meta Platforms Ireland Limited operano come contitolari del trattamento, nei limiti indicati dall&apos;accordo di contitolarità. Fame S.r.l. cura l&apos;informativa sul sito e la corretta configurazione dello strumento. In base all&apos;accordo, Meta è responsabile della gestione dei diritti relativi ai dati personali da essa conservati dopo il trattamento congiunto.</p>
+      <p style={pStyle}>Per la fornitura a Fame S.r.l. di servizi di misurazione e dati statistici, Meta Platforms Ireland Limited tratta i dati per conto di Fame S.r.l. come responsabile del trattamento. Meta può inoltre trattare dati come titolare autonomo per le ulteriori finalità descritte nella propria informativa.</p>
+      <p style={pStyle}>L&apos;utente può esercitare i propri diritti contattando Fame S.r.l. ai recapiti indicati in questa informativa o rivolgendosi a Meta. Maggiori informazioni sono disponibili nell&apos;<a href="https://www.facebook.com/about/privacy" target="_blank" rel="noopener noreferrer" style={linkStyle}>informativa privacy di Meta</a> e nell&apos;<a href="https://www.facebook.com/legal/controller_addendum" target="_blank" rel="noopener noreferrer" style={linkStyle}>accordo di contitolarità</a>.</p>
 
       <h2 style={h2Style}>4. Modalità del trattamento e misure di sicurezza</h2>
 
@@ -416,13 +460,7 @@ export default function PrivacyPage() {
         possibilità di ordinare.
       </p>
 
-      <p style={pStyle}>
-        Gli strumenti di Google utilizzati dal sito{" "}
-        <strong>
-          non installano cookie né identificatori sul dispositivo dell&apos;utente
-        </strong>
-        , secondo quanto verificato dal Titolare.
-      </p>
+      <p style={pStyle}>Gli strumenti di <strong>Google Maps Platform</strong> utilizzati dal sito <strong>non installano cookie né identificatori sul dispositivo dell&apos;utente</strong>, secondo quanto verificato dal Titolare il 21 novembre 2026. Gli strumenti pubblicitari di Google descritti al punto 3.6 sono invece caricati soltanto con il consenso dell&apos;utente.</p>
 
       <p style={pStyle}>
         Fame S.r.l. utilizza tali informazioni esclusivamente per verificare
@@ -442,6 +480,12 @@ export default function PrivacyPage() {
         applicabili a Google Maps Platform e dalle informative rese disponibili
         da Google.
       </p>
+
+      <h2 style={h2Style}>5-bis. Caratteri tipografici tramite Adobe Fonts</h2>
+      <p style={pStyle}>Per mostrare i caratteri tipografici del marchio, il sito utilizza il servizio <strong>Adobe Fonts</strong>, fornito da Adobe. I caratteri sono caricati dai server di Adobe all&apos;apertura di qualunque pagina del sito; in quel momento sono trasmessi ad Adobe l&apos;indirizzo IP del dispositivo e le informazioni tecniche relative alla richiesta.</p>
+      <p style={pStyle}>Secondo quanto dichiarato da Adobe, il servizio Adobe Fonts per siti web non imposta né utilizza cookie per fornire i caratteri. Il servizio riceve l&apos;indirizzo IP necessario per recapitare i font; Adobe dichiara di non conservarlo.</p>
+      <p style={pStyle}>L&apos;utente può opporsi in qualsiasi momento dal collegamento «Preferenze cookie» in fondo alle pagine del sito, spegnendo il carattere del marchio: dalla pagina successiva il sito usa un carattere di sistema e non contatta più Adobe. La scelta viene ricordata sul browser e rinnovata quando l&apos;utente visita il sito, per un massimo tecnico di 400 giorni dall&apos;ultima visita. Il browser può eliminarla prima; in tal caso, oppure se l&apos;utente cancella i dati del browser, il sito potrebbe non riconoscere più l&apos;opposizione. L&apos;utente può modificarla in qualsiasi momento da «Preferenze cookie». Il banner mostrato alla prima visita informa dell&apos;uso di Adobe Fonts e della possibilità di opporsi.</p>
+      <p style={pStyle}>La base giuridica è il legittimo interesse di Fame S.r.l. a presentare il sito con la propria identità grafica, ai sensi dell&apos;art. 6, par. 1, lett. f) GDPR.</p>
 
       <h2 style={h2Style}>6. Pagamenti tramite Stripe Checkout</h2>
 
@@ -637,7 +681,7 @@ export default function PrivacyPage() {
           eventuali utilizzi di codici promozionali, con il riferimento
           necessario a impedirne il riutilizzo;
         </li>
-        <li>data e ora dell&apos;accettazione dell&apos;informativa privacy;</li>
+        <li>data e ora della presa visione dell&apos;informativa privacy;</li>
         <li>
           consenso alle comunicazioni commerciali, con data, ora e versione del
           testo accettato;
@@ -646,6 +690,7 @@ export default function PrivacyPage() {
         <li>
           dati tecnici e registri delle attività operative svolte dal personale.
         </li>
+              <li>il registro delle scelte sui cookie descritto al punto 11.9.</li>
       </ul>
 
       <p style={pStyle}>
@@ -667,7 +712,9 @@ export default function PrivacyPage() {
         <li>personale autorizzato di Fame S.r.l.;</li>
         <li>Foodinho S.r.l., per le consegne Glovo On-Demand;</li>
         <li>Stripe, per la gestione dei pagamenti;</li>
-        <li>Google, per la geocodifica e la validazione degli indirizzi;</li>
+        <li>Google, per la geocodifica e la validazione degli indirizzi e, soltanto con il consenso dell&apos;utente, per la misurazione degli annunci di cui al punto 3.6;</li>
+        <li>Meta Platforms Ireland Limited, per la misurazione degli annunci di cui al punto 3.6, soltanto con il consenso dell&apos;utente;</li>
+        <li>Adobe, per la fornitura dei caratteri tipografici del sito;</li>
         <li>Vercel, per l&apos;hosting e il funzionamento dell&apos;applicazione;</li>
         <li>Supabase, per il database e i servizi backend;</li>
         <li>fornitori informatici e tecnici;</li>
@@ -728,11 +775,7 @@ export default function PrivacyPage() {
         <strong>per un periodo non superiore a 30 giorni</strong>.
       </p>
 
-      <p style={pStyle}>
-        La rimozione è effettuata dal personale autorizzato mediante{" "}
-        <strong>verifiche periodiche</strong>, con cadenza almeno mensile, e non
-        tramite procedure automatiche.
-      </p>
+      <p style={pStyle}>La rimozione avviene tramite una procedura automatica eseguita ogni notte, che cancella le richieste d&apos;ordine non completate prima che superino il termine indicato. Il personale autorizzato riceve un avviso se la procedura non va a buon fine.</p>
 
       <p style={pStyle}>
         Resta fermo che, se la persona ha nel frattempo concluso un ordine, ai
@@ -796,6 +839,20 @@ export default function PrivacyPage() {
         indicato, senza essere utilizzati per alcuna altra finalità.
       </p>
 
+      <h3 style={h3Style}>11.8 Misurazione degli annunci</h3>
+      <p style={pStyle}>Per la misurazione degli annunci, Fame S.r.l. utilizza dati dell&apos;ordine già conservati per le finalità indicate nella presente informativa. Le scelte relative agli strumenti facoltativi sono registrate separatamente secondo quanto indicato al punto 11.9. Secondo le Condizioni per gli strumenti business di Meta, Meta può conservare i dati sugli eventi per un periodo massimo di due anni; per informazioni sugli ulteriori trattamenti e sui relativi tempi o criteri di conservazione, si rimanda all&apos;informativa privacy di Meta. Presso Google le durate di conservazione variano secondo il tipo di dato e il trattamento: ad esempio, per i dati pubblicitari registrati nei log dei server, Google indica di rimuovere parte dell&apos;indirizzo IP dopo 9 mesi e le informazioni dei cookie dopo 18 mesi. Per le altre durate si rimanda alla <a href="https://policies.google.com/technologies/retention" target="_blank" rel="noopener noreferrer" style={linkStyle}>pagina di Google sulla conservazione dei dati</a>. La durata dei cookie è indicata al punto 17.</p>
+
+      <h3 style={h3Style}>11.9 Registro delle scelte sui cookie</h3>
+      <p style={pStyle}>Per poter dimostrare il consenso, quando l&apos;utente presta un consenso a Google o a Meta, o revoca un consenso prestato in precedenza, Fame S.r.l. registra nei propri sistemi:</p>
+      <ul style={ulStyle}>
+        <li>un codice casuale generato dal browser al primo consenso e conservato insieme alla scelta, che non deriva da alcun dato dell&apos;utente;</li>
+        <li>data e ora della scelta;</li>
+        <li>la versione del testo del banner mostrato;</li>
+        <li>le scelte per Google e per Meta;</li>
+        <li>il pulsante usato e se la scelta è stata fatta dal banner o da «Preferenze cookie».</li>
+      </ul>
+      <p style={pStyle}>Non sono registrati l&apos;indirizzo IP, il nome, i contatti, i dati degli ordini né la scelta sul carattere Adobe Fonts, e il registro non è collegato agli ordini. Il codice è uno pseudonimo: permette di ritrovare le scelte di quel browser. L&apos;utente lo vede in «Preferenze cookie» e può indicarlo per chiedere informazioni sulle proprie scelte. I rifiuti che non revocano un consenso precedente e le scelte sul solo carattere Adobe Fonts non sono registrati sul server: restano soltanto nel browser dell&apos;utente. Ogni registrazione è conservata per 25 mesi dalla sua data e poi cancellata automaticamente. Se l&apos;utente cambia scelta, la registrazione precedente resta fino alla propria scadenza, salvo un&apos;ulteriore conservazione necessaria per uno specifico obbligo o contenzioso. La conservazione delle informazioni necessarie a dimostrare il consenso si basa sull&apos;obbligo legale di cui agli artt. 6, par. 1, lett. c), e 7, par. 1, GDPR. Il registro si trova nel database del servizio, nella regione Irlanda.</p>
+
       <p style={pStyle}>
         Alla scadenza dei rispettivi periodi di conservazione, i dati sono
         cancellati, resi anonimi o conservati esclusivamente quando ciò sia
@@ -824,6 +881,8 @@ export default function PrivacyPage() {
         Contrattuali Standard, Data Privacy Framework quando applicabile, misure
         supplementari e altre garanzie previste dalla normativa.
       </p>
+
+      <p style={pStyle}>Rientrano fra i fornitori che possono trattare dati al di fuori dello Spazio Economico Europeo anche Google e Meta, per la finalità di cui al punto 3.6, e Adobe, per i caratteri tipografici. Google LLC, Meta Platforms, Inc. e Adobe Inc. hanno aderito all&apos;EU-U.S. Data Privacy Framework, per il quale la Commissione europea ha adottato una decisione di adeguatezza il 10 luglio 2023. A seconda del trasferimento, si applica tale decisione di adeguatezza oppure altre garanzie appropriate, come le clausole contrattuali standard approvate dalla Commissione.</p>
 
       <p style={pStyle}>
         Ulteriori informazioni sulle garanzie applicate possono essere richieste
@@ -928,56 +987,56 @@ export default function PrivacyPage() {
         giudiziaria competente.
       </p>
 
-      <h2 style={h2Style}>17. Cookie e dati conservati nel browser</h2>
-
-      <p style={pStyle}>
-        Le pagine del sito destinate ai clienti{" "}
-        <strong>non installano alcun cookie</strong>, né del Titolare né di
-        terze parti. Non sono utilizzati cookie di profilazione, strumenti
-        pubblicitari, piattaforme di analisi di terze parti o sistemi di
-        registrazione delle sessioni.
-      </p>
-
-      <p style={pStyle}>
-        Cookie tecnici di sessione sono utilizzati esclusivamente nell&apos;area
-        riservata al personale del locale, per consentirne l&apos;autenticazione.
-      </p>
-
-      <p style={pStyle}>
-        Per la durata della visita, il sito conserva nella memoria temporanea
-        del browser dell&apos;utente (<code>sessionStorage</code>):
-      </p>
-
+      <h2 id="cookie" style={h2Style}>17. Cookie e altri strumenti di tracciamento</h2>
+      <p style={pStyle}><strong>Il banner.</strong> Alla prima visita il sito mostra un banner con i pulsanti «Accetta tutti» e «Rifiuta tutti», di pari evidenza, e «Personalizza», che permette di scegliere separatamente Google e Meta, senza opzioni preselezionate. Chiudere il banner equivale a rifiutare. Scorrere la pagina o continuare a navigare non equivale a un consenso. La scelta è ricordata fino a <strong>6 mesi</strong> e il banner non viene ripresentato prima, salvo i casi previsti dalle indicazioni del Garante, tra cui una modifica significativa delle condizioni di trattamento. Si può cambiare in qualsiasi momento dal collegamento <strong>«Preferenze cookie»</strong> in fondo alle pagine del sito.</p>
+      <p style={pStyle}><strong>Senza consenso</strong>, le pagine destinate ai clienti non installano alcun cookie, né del Titolare né di terze parti, salvo il cookie tecnico descritto sotto per chi si oppone ad Adobe Fonts, e non caricano alcuno strumento pubblicitario o di analisi di terze parti.</p>
+      <p style={pStyle}><strong>Con il consenso</strong>, sono caricati gli strumenti di misurazione di Google Ads e di Meta descritti al punto 3.6, che installano i propri cookie:</p>
+      <table style={tableStyle}>
+        <thead>
+          <tr>
+            <th style={thStyle}>Cookie</th>
+            <th style={thStyle}>Fornitore</th>
+            <th style={thStyle}>A cosa serve</th>
+            <th style={thStyle}>Durata</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td style={tdStyle}><code>_gcl_au</code></td>
+            <td style={tdStyle}>Google</td>
+            <td style={tdStyle}>misura delle conversioni degli annunci Google</td>
+            <td style={tdStyle}>90 giorni</td>
+          </tr>
+          <tr>
+            <td style={tdStyle}><code>_gcl_aw</code></td>
+            <td style={tdStyle}>Google</td>
+            <td style={tdStyle}>collega l&apos;ordine al clic sull&apos;annuncio, solo se l&apos;utente arriva da un annuncio</td>
+            <td style={tdStyle}>90 giorni</td>
+          </tr>
+          <tr>
+            <td style={tdStyle}><code>_fbp</code></td>
+            <td style={tdStyle}>Meta</td>
+            <td style={tdStyle}>misura delle conversioni degli annunci Meta</td>
+            <td style={tdStyle}>90 giorni</td>
+          </tr>
+          <tr>
+            <td style={tdStyle}><code>_fbc</code></td>
+            <td style={tdStyle}>Meta</td>
+            <td style={tdStyle}>collega l&apos;ordine al clic sull&apos;annuncio, solo se l&apos;utente arriva da un annuncio</td>
+            <td style={tdStyle}>90 giorni</td>
+          </tr>
+        </tbody>
+      </table>
+      <p style={pStyle}><strong>Memoria del browser, sempre e senza consenso</strong>, perché strettamente necessaria al servizio:</p>
       <ul style={ulStyle}>
-        <li>il contenuto del carrello;</li>
-        <li>
-          i dati inseriti nel modulo d&apos;ordine, quali nome, cognome, telefono,
-          e-mail, indirizzo, numero civico, citofono, piano, interno, edificio o
-          scala e note di consegna.
-        </li>
+        <li>nella memoria temporanea (<code>sessionStorage</code>), eliminati alla chiusura della scheda: il contenuto del carrello e i dati inseriti nel modulo d&apos;ordine, quali nome, cognome, telefono, e-mail, indirizzo, numero civico, citofono, piano, interno, edificio o scala e note di consegna;</li>
+        <li>nella memoria permanente (<code>localStorage</code>): il codice di accesso dell&apos;ultimo ordine, per poter riaprire la pagina di stato anche dopo aver chiuso la scheda, conservato fino a 30 giorni, dopo i quali il sito lo scarta; la scelta espressa nel banner, fino a 6 mesi, insieme al codice casuale descritto al punto 11.9 se l&apos;utente ha prestato un consenso. Alcuni browser, come Safari, possono cancellare questa memoria prima, ad esempio dopo alcuni giorni senza visite al sito: in quel caso il banner viene mostrato di nuovo.</li>
       </ul>
-
-      <p style={pStyle}>
-        Questi dati servono a evitare che l&apos;utente debba reinserirli se esce e
-        rientra nel sito. Restano sul dispositivo,{" "}
-        <strong>
-          non vengono trasmessi ad alcun terzo per il solo fatto di essere
-          conservati
-        </strong>{" "}
-        e vengono eliminati automaticamente alla chiusura della scheda del
-        browser.
-      </p>
-
-      <p style={pStyle}>
-        I consensi non vengono mai conservati né ripristinati automaticamente:
-        sono richiesti nuovamente a ogni ordine.
-      </p>
-
-      <p style={pStyle}>
-        L&apos;eventuale futuro utilizzo di strumenti analitici o pubblicitari non
-        strettamente necessari sarà disciplinato da una separata Cookie Policy
-        e, quando richiesto, subordinato al consenso dell&apos;utente.
-      </p>
+      <p style={pStyle}><strong>Cookie tecnico, solo per chi si oppone ad Adobe Fonts:</strong> <code>km_font_off</code>, dice al sito di non caricare il carattere di Adobe (punto 5-bis). È ricordato sul browser e rinnovato quando l&apos;utente visita il sito, per un massimo tecnico di 400 giorni dall&apos;ultima visita. Il browser può eliminarlo prima; in tal caso, oppure se l&apos;utente cancella i dati del browser, il sito potrebbe non riconoscere più l&apos;opposizione.</p>
+      <p style={pStyle}><strong>Memoria del browser, solo con il consenso:</strong> l&apos;elenco dei codici degli ordini già comunicati a Google e a Meta, per non comunicarli due volte.</p>
+      <p style={pStyle}>Questi dati restano sul dispositivo e <strong>non vengono trasmessi ad alcun terzo per il solo fatto di essere conservati</strong>.</p>
+      <p style={pStyle}>Cookie tecnici di sessione sono utilizzati esclusivamente nell&apos;area riservata al personale del locale, per consentirne l&apos;autenticazione.</p>
+      <p style={pStyle}>La presa visione dell&apos;informativa e l&apos;eventuale consenso alle comunicazioni commerciali non vengono ripristinati automaticamente nel modulo d&apos;ordine: sono richiesti nuovamente a ogni ordine. La scelta sui cookie, invece, è ricordata come indicato sopra.</p>
 
       <h2 style={h2Style}>18. Modifiche all&apos;informativa</h2>
 

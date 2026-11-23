@@ -269,9 +269,15 @@ const testiBanner = [
 ];
 const bannerPiatto = banner.replace(/\s+/g, " ");
 const v1Piatto = (v1 ?? "").replace(/\s+/g, " ");
-assert(testiBanner.every((t) => bannerPiatto.includes(t)), "h2) i testi di riferimento sono davvero nel banner di oggi");
+// ⚠️ h2 ROVESCIATA APPOSTA il 23/11/2026 (pezzo 4: testi definitivi della v1.3, banner v2). Il testo vecchio era:
+//   assert(testiBanner.every((t) => bannerPiatto.includes(t)), "h2) i testi di riferimento sono davvero nel banner di oggi");
+// Perché: il banner di oggi è v2; i testi v1 restano solo in docs/banner/v1.md (h3).
+assert(!testiBanner.slice(0, 4).some((t) => bannerPiatto.includes(t)), "h2) i testi v1 non sono più nel banner (oggi è v2)");
 assert(testiBanner.every((t) => v1Piatto.includes(t)), "h3) …e sono conservati parola per parola in docs/banner/v1.md");
-assert(/versione: v1/i.test(v1 ?? "") && cc?.BANNER_VERSION === "v1", "h4) il file dichiara v1, ed è la versione del codice");
+// ⚠️ h4 ROVESCIATA APPOSTA il 23/11/2026 (pezzo 4: testi definitivi della v1.3, banner v2). Il testo vecchio era:
+//   assert(/versione: v1/i.test(v1 ?? "") && cc?.BANNER_VERSION === "v1", "h4) il file dichiara v1, ed è la versione del codice");
+// Perché: la versione del codice passa a v2; il file v1 resta per le righe v1 del registro.
+assert(/versione: v1/i.test(v1 ?? "") && cc?.BANNER_VERSION === "v2", "h4) il file v1 resta e dichiara v1; il codice è passato a v2");
 
 console.log(failures === 0 ? "\nTUTTI I TEST PASSATI" : `\n${failures} TEST FALLITI`);
 process.exitCode = failures === 0 ? 0 : 1;
