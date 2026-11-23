@@ -69,16 +69,26 @@ assert(id1 !== R.nuovoIdBrowser?.(globalThis.crypto), "a8) due identificativi no
 const ID = "3f2a6c1e-8b4d-4c2a-9e1f-0a1b2c3d4e5f";
 const scelta = { google: true, meta: false, adobeFonts: true, idBrowser: ID, version: "v1", savedAt: 1 };
 const corpo = R.corpoRegistro?.(scelta, "personalizza", "preferenze");
-assert(corpo && JSON.stringify(Object.keys(corpo).sort()) === JSON.stringify(["adobeFonts", "azione", "google", "idBrowser", "meta", "origine", "versione"]), `a9) il corpo ha esattamente 7 campi (${corpo ? Object.keys(corpo).join(",") : "nessuno"})`);
-assert(corpo?.versione === "v1" && corpo?.idBrowser === ID && corpo?.google === true && corpo?.meta === false && corpo?.adobeFonts === true, "a10) …con i valori della scelta salvata");
+// ⚠️ ROVESCIATA APPOSTA il 23/11/2026 (decisione 21a di Andrea): il registro
+// non salva più la scelta su Adobe Fonts, e il browser non la manda più. Il
+// testo vecchio era:
+//   a9)  …["adobeFonts", "azione", "google", "idBrowser", "meta", "origine", "versione"] … "il corpo ha esattamente 7 campi"
+//   a10) …&& corpo?.adobeFonts === true, "…con i valori della scelta salvata"
+assert(corpo && JSON.stringify(Object.keys(corpo).sort()) === JSON.stringify(["azione", "google", "idBrowser", "meta", "origine", "versione"]), `a9) il corpo ha esattamente 6 campi, senza Adobe (${corpo ? Object.keys(corpo).join(",") : "nessuno"})`);
+assert(corpo?.versione === "v1" && corpo?.idBrowser === ID && corpo?.google === true && corpo?.meta === false && !("adobeFonts" in (corpo ?? {})), "a10) …con i valori della scelta salvata, e la scelta su Adobe NON parte");
 assert(!corpo || !("savedAt" in corpo), "a11) l'ora NON parte dal browser: la mette il database");
 assert(R.corpoRegistro?.({ ...scelta, idBrowser: null }, "personalizza", "banner") === null, "a12) senza identificativo non si manda niente");
 assert(R.corpoRegistro?.(scelta, "boh", "banner") === null && R.corpoRegistro?.(scelta, "personalizza", "boh") === null, "a13) azione o origine sconosciute: niente");
 
-const giusto = JSON.stringify({ idBrowser: ID, versione: "v1", google: true, meta: false, adobeFonts: true, azione: "accetta_tutti", origine: "banner" });
+// ⚠️ ROVESCIATA APPOSTA il 23/11/2026 (decisione 21a di Andrea): il registro
+// non salva più la scelta su Adobe Fonts, e il browser non la manda più. Il
+// testo vecchio era:
+//   const giusto = JSON.stringify({ idBrowser: ID, versione: "v1", google: true, meta: false, adobeFonts: true, azione: "accetta_tutti", origine: "banner" });
+//   a15) …p_adobe_fonts: true… "…e diventa i 7 parametri della funzione del database, con i nomi giusti"
+const giusto = JSON.stringify({ idBrowser: ID, versione: "v1", google: true, meta: false, azione: "accetta_tutti", origine: "banner" });
 const ok = R.rigaDaRichiesta?.(giusto, "v1");
 assert(ok?.ok === true, "a14) una richiesta giusta passa");
-assert(ok?.parametri && JSON.stringify(ok.parametri) === JSON.stringify({ p_id_browser: ID, p_versione_testo: "v1", p_google: true, p_meta: false, p_adobe_fonts: true, p_azione: "accetta_tutti", p_origine: "banner" }), "a15) …e diventa i 7 parametri della funzione del database, con i nomi giusti");
+assert(ok?.parametri && JSON.stringify(ok.parametri) === JSON.stringify({ p_id_browser: ID, p_versione_testo: "v1", p_google: true, p_meta: false, p_azione: "accetta_tutti", p_origine: "banner" }), "a15) …e diventa i 6 parametri della funzione del database, con i nomi giusti");
 const rifiuti = [
   ["corpo troppo lungo", giusto.slice(0, -1) + "," + '"x":"' + "a".repeat(1100) + '"}'],
   ["non è JSON", "{non json"],
@@ -87,7 +97,7 @@ const rifiuti = [
   ["versione diversa dal server", JSON.stringify({ ...JSON.parse(giusto), versione: "v2" })],
   ["identificativo non uuid", JSON.stringify({ ...JSON.parse(giusto), idBrowser: "abc" })],
   ["google non booleano", JSON.stringify({ ...JSON.parse(giusto), google: "true" })],
-  ["adobeFonts nullo", JSON.stringify({ ...JSON.parse(giusto), adobeFonts: null })],
+  ["la scelta su Adobe (non si accetta più)", JSON.stringify({ ...JSON.parse(giusto), adobeFonts: true })],
   ["azione sconosciuta", JSON.stringify({ ...JSON.parse(giusto), azione: "accept_all" })],
   ["origine sconosciuta", JSON.stringify({ ...JSON.parse(giusto), origine: "staff" })],
   ["un array", "[]"],
