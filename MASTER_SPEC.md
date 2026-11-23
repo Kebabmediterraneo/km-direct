@@ -1,6 +1,6 @@
 # KM DIRECT — MASTER SPECIFICATION
 
-**Versione 97** — sostituisce la v96.
+**Versione 98** — sostituisce la v97.
 
 Documento di riferimento definitivo per lo sviluppo. Le decisioni qui
 contenute sono approvate: non vanno reinterpretate senza un motivo concreto
@@ -22,28 +22,32 @@ versione corrente**. I precedenti vivono in `git log`, che è fatto per quello.
 del documento prima che cominciasse a parlare del progetto — e dentro c'erano
 istruzioni rovesciate che nessuno rileggeva.*
 
-**Novità della v97** (vincolanti, 22/11/2026):
+**Novità della v98** (vincolanti, 23/11/2026):
 
-⚠️ **Le tre voci della v96 sono state controllate e vivono tutte nel corpo**
-(§65b E1-E7 e la regola sul marketing, §69 la pulizia del 15/11).
+⚠️ **Le sei voci della v97 sono state controllate e vivono tutte nel corpo**
+(§69 la pulizia automatica e la frase dell'11.2, §65b lo stato del banner ed E7).
+*Superate dal 22-23/11: E7 è deciso (30 giorni); la regola «niente alla parte
+legale prima della v1.3» non è stata applicata, perché Andrea ha mandato lui
+stesso le bozze il 22 e il 23/11.*
 
-1. §69 — ✅ **LA PULIZIA DEGLI ORDINI MAI PAGATI È AUTOMATICA, OGNI NOTTE, DAL
-   22/11/2026.** Funzione nel database, orologio `pg_cron` alle 23:01 UTC, soglia
-   28 giorni, registro di ogni esecuzione, avviso rosso nel pannello staff. **Lo
-   script mensile è in pensione.** Commit `faff263`, pubblicato.
-2. §69 — ⚠️⚠️ **L'INFORMATIVA v1.2 PUBBLICATA DICE ANCORA «NON TRAMITE PROCEDURE
-   AUTOMATICHE»** (punto 11.2). **Scelta di Andrea, che se ne assume la
-   responsabilità**: la frase resta finché non esce la v1.3, che **deve**
-   correggerla.
-3. §69 — ⚠️ **Un secondo ordine mai pagato ha superato i 30 giorni**, di circa 17
-   ore: tolto il 22/11 con una pulizia straordinaria a 21 giorni.
-4. §65b — **Il banner è scritto e provato dal vivo, NON pubblicato** (ramo
-   `banner-cookie`, `cbbcfbb`). Ruoli di Google e Meta chiusi con la parte
-   legale; la conversione Google Ads conta solo gli ordini arrivati da un annuncio.
-5. §65b — ⚠️ **E7 (i «60 giorni») è da ridecidere**: con la pulizia notturna i 30
-   giorni sono rispettati. Si decide con Andrea quando si scrive la v1.3.
-6. **Alla parte legale non si manda niente prima della v1.3 definitiva**
-   (decisione di Andrea, 22/11).
+1. §65b — ✅ **IL BANNER È COMPLETO SUL RAMO `banner-cookie`, IN QUATTRO
+   COMMIT, NON PUBBLICATO:** `6b6e3e5` banner, `432e7c0` conteggio, `79b8f69`
+   registro delle scelte, `e009d03` solo consensi e revoche e opposizione ad
+   Adobe che non scade. Tutto provato dal vivo il 23/11. Suite 49, 2616 prove.
+2. §65b — **IL REGISTRO DELLE SCELTE (E4) REGISTRA SOLO CONSENSI E REVOCHE**,
+   25 mesi, schema chiuso `consensi`. I rifiuti puri restano nel browser.
+3. §65b — **ADOBE FONTS RESTA A LEGITTIMO INTERESSE, PER TUTTI** (decisione di
+   Andrea: il carattere del marchio è indispensabile). Opposizione rinnovata dal
+   server a ogni visita, 400 giorni; una riga nel banner lo dirà dalla prima visita
+   (entra con i testi `v2`). **Il registro non salverà più la scelta su Adobe**
+   (decisione 21a, da realizzare).
+4. §65b — ✅ **I due cookie di google.com non vengono dal nostro percorso**:
+   0 richieste su 406 in una prova con ordine vero in un browser pulito.
+5. §65b — ⚠️⚠️ **LA SEQUENZA DEL GIORNO DEL LANCIO è scritta ed è vincolante**
+   (nuova sottosezione): due pulizie a mano entro 26 ore dal push, poi gli orologi.
+6. §69 — ✅ **La prima esecuzione automatica (23/11, 00:01) è riuscita; l'avviso
+   rosso è provato.** Resta da vedere la prima cancellazione vera (verso il 30/11):
+   per la parte legale **non blocca** la pubblicazione.
 
 **LE CONDIZIONI DI APERTURA SONO CHIUSE TUTTE**, e il sito è aperto.
 
@@ -6474,6 +6478,8 @@ dati da misurare dal vivo.
   giorni sono rispettati. **Andrea non ha ancora deciso** se la v1.3 scrive 30 o
   60 giorni: si decide quando si scrive la v1.3, insieme alla frase sulle
   procedure automatiche.
+  ✅ **DECISO IL 22/11/2026 (v98): 30 giorni.** La v1.3 tiene «non superiore a 30
+  giorni» e descrive la procedura automatica notturna.
 
 **Vincoli tecnici dalla revisione legale:**
 
@@ -6599,6 +6605,145 @@ documenti sono stati mandati il 21/11):
   extra SEE fornitore per fornitore;
 * il punto 11.2: **sistemato nella procedura il 22/11** (§69 v97), da sistemare
   nel testo con la v1.3.
+
+
+### Stato al 23/11/2026 — completo e provato, NON pubblicato (v98)
+
+**Il ramo `banner-cookie`** è stato riportato sopra `main` (`46d7880`) il 23/11 con
+un rebase senza conflitti: i due commit di allora sono diventati `6b6e3e5` (ex
+`2818714`) e `432e7c0` (ex `cbbcfbb`), a contenuto identico (stessi patch-id). I
+commit `79b8f69` ed `e009d03` sono stati scritti dopo, già sopra `main`. Suite 49, 2616 prove, `next build` ok.
+⚠️ *Segnalibro locale `banner-cookie-prima-del-rebase` su `cbbcfbb`, da cancellare.*
+
+✅ **Prove del 23/11 (notte), in locale, browser ripulito prima di ognuna:** solo
+Google (solo `_gcl_au`, nessuna chiamata a Meta); solo Meta (solo `_fbp`, nessuna
+chiamata a Google); revoca di ciascuno (ricarica, cookie cancellati, chiamate
+ferme, l'altro attivo); scelta oltre 6 mesi → banner di nuovo e nessun tag; codice
+dell'ultimo ordine oltre 30 giorni → scartato senza chiamare il server; Adobe spento
+→ nessuna chiamata a `use.typekit.net` né `p.typekit.net` dalla pagina dopo.
+**Google riceve anche la visita alle pagine** (`page_view` alla `config`, con
+`npa=1`); Meta la riceve per scelta (`PageView`).
+
+✅ **I cookie `__Secure-ENID` e `SEARCH_SAMESITE` (23/11).** Prova con ordine vero da
+1,50 € (chiave limitata, poi scaduta; rimborso dal pannello) in una finestra Ospite:
+filtri `set-cookie-name:` = **0 richieste su 406**; a fine percorso solo `_gcl_au` e
+`_fbp` sul nostro dominio. Erano verosimilmente nel browser abituale. *Limiti:
+Google Pay non provato; un cookie scritto da script sulla sola pagina di Stripe non
+si vedrebbe.*
+
+✅ **`_gcl_aw` e `_fbc` (23/11):** simulando l'arrivo da un annuncio
+(`?gclid=…&fbclid=…`) compaiono con il consenso, **90 giorni**; con il rifiuto no.
+
+#### Il registro delle scelte (E4) — decisioni di Andrea del 23/11, punto per punto
+
+Prime decisioni (sul progetto di Code): id del browser dentro la scelta salvata;
+codice visibile **per intero** in «Preferenze cookie»; ogni riga con le tre scelte,
+il pulsante (`accetta_tutti`, `rifiuta_tutti`, `chiudi_x`, `personalizza`) e
+l'origine (`banner`, `preferenze`); limiti nel database (20 righe per id in 24 ore,
+120 al minuto in tutto); versione del testo che sale quando cambia un testo che
+descrive finalità, fornitori o conseguenze, con il testo di ogni versione in
+`docs/banner/<versione>.md` (**oggi `v1`; `v2` arriva con i testi della v1.3**);
+pulizia notturna separata (`'11 23 * * *'`) che scrive nel registro di manutenzione
+allargato, così l'avviso rosso copre anche lei; righe di prova ammesse e poi
+cancellate; la pulizia ha anche il «modo».
+
+**Dopo la revisione legale del 23/11 (decisioni 15a, 18a, 19a):** si registrano
+**solo i consensi** (Google o Meta accesi) **e le revoche** (entrambi spenti, da un
+codice la cui ultima riga aveva un consenso). Rifiuti puri e cambi della sola scelta
+su Adobe **non si registrano**. Il codice nasce **solo al primo consenso**. Il
+database stesso rifiuta una riga senza consenso che non sia una revoca (file 6):
+**provato** con un codice inventato e con una seconda revoca di fila, entrambe
+respinte. Durata **25 mesi**, motivazione da tenere agli atti: dimostrare un
+consenso finché Meta può conservare i dati raccolti con quel consenso (due anni),
+più un mese. Base giuridica proposta dalla parte legale: artt. 6.1.c e 7.1 GDPR.
+*La durata differenziata 25/7 mesi (decisione 11a) è stata superata dalla 15a prima
+di essere scritta.*
+⚠️ **Decisione 21a (23/11, dopo l'ultima revisione legale): il registro non salva
+più la scelta su Adobe Fonts**, che non serve a dimostrare nessun consenso. *Da
+realizzare: colonna `adobe_fonts` e funzione di scrittura (la tabella è vuota).*
+
+**Com'è fatto:** schema chiuso `consensi`, tabella `consensi.scelte_banner` (ora
+messa dal database); scrittura solo da `public.registra_scelta_banner(...)`,
+`security definer`, eseguibile solo da `service_role`; rotta
+`POST /api/consenso-banner`, «spara e dimentica» con `keepalive`, risponde sempre
+204, nel log solo il codice d'errore; pulizia
+`consensi.pulisci_scelte_banner(p_mesi, p_modo)` con 7, 13 o 25 mesi. **Modifiche a
+oggetti già online:** tre colonne aggiunte a `manutenzione.pulizia_registro`
+(`lavoro` predefinito `pulizia_ordini`, `soglia_mesi`, `righe_cancellate`) e
+`public.pulizia_stato()` riscritta con le chiavi `scelte_ultima` e
+`scelte_ultima_ok` (le due di prima identiche). File in `sql/`:
+`20261123_registro_scelte_banner_1_struttura` … `_6_solo_consensi_e_revoche`
+(1, 4 e 6 lanciati da Andrea il 23/11; **2, l'orologio, NON ancora**).
+
+**Stato sul database al 23/11:** registro vuoto (tutte le righe di prova
+cancellate); registro di manutenzione n. 8 «errore» (durata 5, voluto), n. 9 «prova»,
+n. 10 «manuale» ok alle 11:43 UTC.
+
+#### Adobe Fonts — decisioni di Andrea del 23/11
+
+* **Resta a legittimo interesse, caricato per tutti salvo opposizione (16a).**
+  *Andrea: il carattere del marchio è indispensabile; se la parte legale oppone
+  resistenza, si confuta.* Il compagno di ragionamento aveva consigliato il
+  consenso: proposta respinta.
+* **L'opposizione non scade:** `km_font_off` a **400 giorni** (il tetto di Chrome),
+  **riscritto dal server** a ogni pagina cliente dal `middleware` (in Safari un cookie
+  scritto da script durerebbe 7 giorni). Il ramo staff del middleware è invariato
+  (`isPercorsoStaff` copre anche `/api/staff`). **Provato:** scadenza a 400 giorni,
+  spostata in avanti a ogni pagina. *Il tetto di 400 giorni è documentato da Chrome;
+  il limite di 7 giorni di Safari per i cookie scritti da script viene dalla
+  discussione pubblica di Chromium sul tetto dei cookie, non da una pagina Apple.*
+* ⚠️ **Difetto trovato da Code e corretto:** alla scadenza della scelta, un nuovo
+  «Accetta tutti» cancellava `km_font_off`. Ora la scelta su Adobe si legge dal
+  cookie. **Provato.**
+* **Una riga nel banner** dalla prima visita: *«Il sito usa il carattere del marchio
+  tramite Adobe Fonts: puoi disattivarlo da «Preferenze cookie».»* (17a). Entra con i
+  testi `v2`.
+* La valutazione del legittimo interesse, nella bozza v1.3, ha ora l'esito di Fame
+  («prevale») e una sezione che risponde alla revisione legale (effetto sul servizio,
+  alternative, `p.typekit.net`, opposizione, aspettative). Fatti verificati il 23/11:
+  la licenza Adobe Fonts **non consente** di ospitare i caratteri sul sito.
+
+#### Altro deciso il 22-23/11
+
+* **Nessun pubblico di «chi ha visitato il sito»** su Meta né su Google: la v1.3 lo
+  dichiara. *Se un giorno servisse: cambiano codice (oggi `ad_personalization`
+  negato), banner e informativa.*
+* **Contatto per la protezione dei dati in Google Ads:** bfamesrl@gmail.com, inserito
+  da Andrea il 22/11.
+* **Testi della v1.3** (bozza nel documento a parte): termine 11.2 di 30 giorni con
+  la procedura notturna; marketing solo e-mail; «presa visione» invece di
+  «accettazione» (punti 2, 9, 17); visita alle pagine separata dall'ordine (3.6);
+  nuovo 11.9 sul registro; Google 11.8 come esempio dei log (9 mesi IP, 18 mesi
+  cookie); punto 12 con il Data Privacy Framework «oppure» altre garanzie; durate nel
+  browser scritte «fino a». **Ultima versione mandata alla parte legale il 23/11; si
+  attende la revisione finale.**
+
+### ⚠️⚠️ La sequenza del giorno del lancio (v98, vincolante)
+
+A locale chiuso, tutto nello stesso giorno, ogni passo dopo il controllo del
+precedente:
+
+1. **Ok finale della parte legale** sul testo v1.3, e **pezzo 4** committato sul ramo:
+   informativa v1.3 in `app/privacy/page.js`, testi del banner e del pannello `v2`
+   con `docs/banner/v2.md`, casella «Ho preso visione». Note interne tolte.
+2. **Verifica dello stato delle certificazioni DPF** di Google LLC, Meta Platforms
+   Inc. e Adobe Inc. su dataprivacyframework.gov (vanno rinnovate ogni anno).
+3. **Rebase** del ramo su `main`, se `main` è cambiato; suite e `next build`.
+4. **File 4 del registro** (la versione aggiornata, con `regola_revoca_attiva`):
+   permessi chiusi, `righe_scelte` = 0.
+5. **Pulizia a mano del registro:** `select consensi.pulisci_scelte_banner(25,
+   'manuale');` → OK. ⚠️ *Regola delle 26 ore: il pannello nuovo deve trovare una
+   riuscita recente, altrimenti mostra subito l'avviso rosso. Se il push slitta a un
+   altro giorno, va rifatta.*
+6. **Push** (lo decide Andrea): il ramo su `main`, `git push origin main`.
+7. **Pannello staff:** nessun avviso rosso. Sito: banner `v2`, riga su Adobe, link
+   alle informative cliccabili, «Preferenze cookie» col codice dopo un consenso.
+8. **Orologio del registro** (file 2): `km-pulizia-scelte-banner`, `11 23 * * *`.
+   Verifica su `cron.job`: due lavori attivi (ordini 23:01 e scelte 23:11).
+9. **Google Ads:** la pagina di arrivo degli annunci diventa
+   `ordina.kebabmediterraneo.it` (D3). **Meta:** elenco dei domini consentiti.
+10. **La mattina dopo:** riga `pulizia_scelte_banner` automatica ok alle 23:11 UTC;
+    nessun avviso. **Nei giorni dopo:** la prima conversione Google da un annuncio.
 
 ---
 
@@ -7657,7 +7802,8 @@ Non sono più un lavoro da fare: esistono, sono in `sql/`, e nessuno dei tre è 
 **Ogni tabella del database è coperta.** Le **otto** che gli script toccano più le **sedici** dichiarate intoccabili fanno esattamente le **24** dello schema: nessuna resta fuori: o è dichiarata come toccata, o è misurata come intatta dai post-check. *Le sedici non sono un elenco copiato a mano nei controlli: è la stessa lista, dichiarata una volta e percorsa in ciclo, così intestazione e verifica non possono divergere.* ⚠️ *`staff_action_log` è fra le otto ma non viene mai svuotato: le righe vere restano sempre, ed è l'eccezione di §66.* ⚠️ **L'ottava è `coupon_redemptions`, dal 03/09/2026**: la pulizia mensile la tocca (vedi sotto), e dal 15/11/2026 lo script dei conteggi **la conta**, anche per stato (vedi più sopra). *Fino a quel giorno non la contava.* ⚠️ **Dal 22/11/2026 il database ha anche lo schema `manutenzione`**, con una
 tabella (`pulizia_registro`) e la funzione della pulizia notturna (§69 v97): le
 **24** sono quelle dello schema `public`, e le sedici intoccabili restano sedici.
-*Lo script dei conteggi non conosce ancora il registro: aperto.*
+*Lo script dei conteggi non conosce ancora il registro: aperto.* ⚠️ **Dal 23/11/2026 c'è anche lo schema `consensi`** (tabella
+`scelte_banner`, §65b v98), chiuso all'API pubblica: le 24 di `public` restano 24.
 
 ---
 
@@ -7829,6 +7975,21 @@ non provarlo il 22/11).
 **Da fare:** l'intestazione «SOSTITUITO, non usare» nel vecchio
 `sql/pulizia_mensile_ordini_mai_pagati.sql`; decidere se lo script dei conteggi
 conosce il registro nuovo; la frase del punto 11.2 nella v1.3.
+
+
+#### Dopo l'attivazione (22-23/11/2026, v98)
+
+✅ **Prima esecuzione automatica: 23/11 alle 00:01 italiane** (registro n. 7,
+`automatica`, soglia 28, ok, 0 ordini; `cron.job_run_details` 1 `succeeded`).
+✅ **Avviso rosso provato il 22/11:** con una pulizia `manuale` fallita apposta
+(soglia 5, n. 5) l'avviso compare, con una riuscita (n. 6) sparisce. ⚠️
+**`pulizia_stato()` ignora apposta le righe in modo `prova`**: la prima prova, in
+modo `prova` (n. 4), non accendeva l'avviso, e il compagno di ragionamento non lo
+sapeva. ⚠️ *Il testo dell'avviso dice «notturna» anche per una pulizia a mano:
+ritocco piccolo, aperto.*
+**Parte legale (22-23/11):** procedura sistemata; avvio verificato; la **prima
+cancellazione vera** (attesa verso il 30/11, promemoria il 01/12 alle 12) va
+documentata, ma **non blocca** la pubblicazione della v1.3.
 
 ---
 

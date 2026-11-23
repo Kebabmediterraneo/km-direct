@@ -5259,3 +5259,88 @@ script di pulizia (lo script va in pensione).
   per la protezione dei dati su Google Ads.
 * **Il ramo `banner-cookie`** da riportare sopra `faff263` prima di pubblicarlo.
 * **Il messaggio di rimborso nel pannello** quando l'annullamento rimborsa.
+
+### 49s) L'avviso provato, la prima notte, e il banner completo in quattro pezzi (22-23/11/2026)
+
+**1. Pulizia automatica (22/11 pomeriggio e notte).** La parte legale ha chiesto se
+l'avviso rosso viene visto davvero: provato da Andrea (spec §69 v98). La prima prova
+in modo `prova` non accendeva l'avviso, perché `pulizia_stato()` ignora apposta le
+prove (lezione **eu**). Alla domanda «l'ordine più vecchio è stato tolto?», Andrea ha
+scelto di rispondere solo che è stato tolto, senza dire quando (17 ore dopo il
+termine, 49r). **Prima esecuzione automatica il 23/11 alle 00:01: ok.** La parte
+legale considera verificato l'avvio; la prima cancellazione vera (verso il 30/11)
+non blocca la v1.3. Promemoria per il controllo: **01/12 alle 12**.
+
+**2. Il banner, prove della notte del 23/11.** Ramo riportato sopra `46d7880` a
+contenuto identico. Solo Google, solo Meta, revoca, scadenze, Adobe spento: tutto
+come atteso; Google riceve anche la visita alle pagine (`npa=1`). Prove fatte dal
+compagno di ragionamento dal Chrome di Andrea.
+
+**3. Il registro delle scelte (pezzo 3) — progetto, codice, prove, commit `79b8f69`.**
+Code ha progettato, Andrea ha deciso punto per punto (spec §65b v98). Andrea ha
+creato la struttura nel database; le prove in locale (5 codici, 25 righe) e il
+limite di 20 righe hanno dato esattamente l'atteso; righe di prova cancellate.
+
+**4. I cookie di google.com.** Prova con un ordine vero da 1,50 € in finestra Ospite,
+con la chiave limitata (procedura del 21/11), poi rimborso dal pannello e chiave
+scaduta: **0 richieste su 406**. Chiuso, con due limiti dichiarati (spec §65b v98).
+
+**5. Quattro giri con la parte legale il 23/11.** Registro: base dell'obbligo legale,
+ma durata da motivare e righe di rifiuto da giustificare → **solo consensi e
+revoche, 25 mesi** (decisione 15a). Adobe: legittimo interesse non confermato,
+opposizione che scade dopo 6 mesi non accettata → Andrea **tiene Adobe per tutti**
+e si confuta (16a); opposizione a 400 giorni rinnovata dal server; riga nel banner
+(17a). Frase dell'11.8 sostituita con quella della parte legale. Correzioni di
+testo: Google 11.8, punto 12, punto 17. **Ultima bozza mandata il 23/11; attesa la
+revisione finale.**
+
+**6. Commit `e009d03`** (solo consensi e revoche, opposizione ad Adobe, difetto
+della scelta Adobe corretto). Andrea ha lanciato il file 6; prove dal vivo tutte
+come atteso, comprese le due difese del database e `_gcl_aw`/`_fbc` a 90 giorni.
+⚠️ *Il 23/11 alle 14:09 Andrea ha lanciato una copia vecchia del file 4 (senza la
+colonna `regola_revoca_attiva`): il giorno del lancio va usata quella del commit.*
+
+**7. La revisione del 23/11 pomeriggio** («vicina alla versione pubblicabile»).
+Applicate nella bozza le formulazioni della parte legale: opposizione ad Adobe
+«per un massimo tecnico di 400 giorni dall'ultima visita, il browser può
+eliminarla prima»; «Termina contribuisce alla coerenza visiva»; il banner chiuso
+«senza attivare gli strumenti pubblicitari di Google e Meta»; la casella Google
+nomina anche le visite. Aggiunto un allegato interno con la motivazione dei 25 mesi.
+**Decisione 21a: il registro non salva più la scelta su Adobe** (da realizzare).
+
+**8. Altro.** Contatto per la protezione dei dati in Google Ads inserito (22/11).
+Nessun pubblico di «chi ha visitato il sito» (22/11). Preparato per Andrea un prompt sui cookie e sulla
+provenienza degli ordini, per la chat della comunicazione di KM.
+
+**et. ⚠️ HO PROMESSO DI LAVORARE A CHAT CHIUSA.** *(da 49s)* La notte del 22/11 ho
+scritto «intanto io lavoro alle ricerche»: non è possibile, lavoro solo quando la
+chat è attiva. Il mattino dopo l'ho dichiarato. **Rimedio: mai promettere lavoro
+fra un messaggio e l'altro; dire «lo faccio quando riapri la chat».**
+
+**eu. ⚠️ UNA PROVA PROGETTATA SENZA LEGGERE LA REGOLA CHE PROVAVA.** *(da 49s)* Ho
+fatto provocare l'errore in modo `prova`, che il pannello ignora per costruzione:
+l'avviso non è comparso e abbiamo perso un giro. **Rimedio: prima di progettare una
+prova dal vivo, leggere (o chiedere a Code) la regola esatta che deve farla
+scattare, comprese le eccezioni.**
+
+#### L'elenco delle cose aperte, aggiornato
+
+*Sostituisce l'elenco di 49r; le voci di 49p restano valide se non chiuse qui.*
+**Chiusi:** il ramo riportato sopra `main`; le prove del banner; i cookie di
+google.com; `_gcl_aw` e `_fbc`; il contatto in Google Ads; E7 (30 giorni).
+
+* **Ultimo ok della parte legale** dopo le correzioni del 23/11 pomeriggio.
+* **Decisione 21a da realizzare:** togliere la scelta su Adobe dal registro
+  (colonna `adobe_fonts`, funzione di scrittura, rotta), con una prova veloce.
+* **Pezzo 4:** testi v1.3 nel sito, banner e pannello `v2` con la riga su Adobe,
+  `docs/banner/v2.md`, casella «Ho preso visione».
+* **Il lancio:** la sequenza vincolante di spec §65b v98.
+* **01/12:** la prima cancellazione automatica degli ordini mai pagati, da
+  documentare per la parte legale.
+* **Ritocco del testo dell'avviso** («notturna» anche per una pulizia a mano).
+* **Intestazione «SOSTITUITO, non usare»** nel vecchio script di pulizia mensile.
+* **Lo script dei conteggi** non conosce il registro di manutenzione né lo schema
+  `consensi`.
+* **Segnalibro `banner-cookie-prima-del-rebase`**, da cancellare.
+* **«Misura conversioni sui dispositivi» su Meta**, dopo la parte legale.
+* **Il messaggio di rimborso nel pannello** quando l'annullamento rimborsa.
