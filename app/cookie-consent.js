@@ -34,6 +34,8 @@ import {
   googleCommands,
   metaCommands,
   cookieDeletions,
+  clearProviderStorage,
+  providersWithoutConsent,
   fontCookieString,
   fontSpentoNelCookie,
 } from "../lib/cookie-consent";
@@ -68,6 +70,23 @@ function memoria() {
     return window.localStorage;
   } catch {
     return null;
+  }
+}
+
+// (23/11/2026, scelta «a» di Andrea) Ripulisce i fornitori indicati: i loro
+// cookie E le loro voci nella memoria del browser, con la stessa logica. Si
+// usa alla revoca e a ogni apertura per chi non ha un «sì» valido (scelta
+// assente, scaduta o «no»). Non lancia mai: il sito continua.
+function pulisciFornitori(fornitori) {
+  for (const fornitore of fornitori) {
+    try {
+      for (const riga of cookieDeletions(fornitore, document.cookie, window.location.hostname)) {
+        document.cookie = riga;
+      }
+    } catch {
+      /* cookie non scrivibili: si va avanti */
+    }
+    clearProviderStorage(memoria(), fornitore);
   }
 }
 
@@ -203,6 +222,8 @@ export default function CookieConsent({ googleAdsId, googleAdsConversionLabel, m
     const letta = readConsent(memoria());
     setConsent(letta);
     if (showsBanner(pathname) && needsBanner(letta)) setVista("banner");
+    // Chi non ha un «sì» valido non deve avere cookie né memoria di quel tag.
+    if (isCustomerPath(pathname)) pulisciFornitori(providersWithoutConsent(letta));
     caricaTag(letta, pathname, ids);
     provaAContare(letta, pathname, ids);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -271,11 +292,7 @@ export default function CookieConsent({ googleAdsId, googleAdsConversionLabel, m
 
     const revocati = revokedProviders(prima, salvata);
     if (revocati.length > 0) {
-      for (const fornitore of revocati) {
-        for (const riga of cookieDeletions(fornitore, document.cookie, window.location.hostname)) {
-          document.cookie = riga;
-        }
-      }
+      pulisciFornitori(revocati);
       window.location.reload();
       return;
     }
