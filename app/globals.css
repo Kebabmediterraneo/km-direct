@@ -61,3 +61,15 @@ button, input, select, textarea, option { font-family: inherit; }
 a {
   color: inherit;
 }
+
+/* FOTO DEGLI ARTICOLI NEL MENU (24/11/2026) — vedi lib/menu-photo.js.
+   Solo le schede CON foto usano questa classe: senza foto la scheda è quella
+   di sempre. La foto è flottante a sinistra; testata, piccantezza e
+   ingredienti le scorrono accanto e poi sotto. `flow-root` tiene la foto dentro
+   il blocco, così allergeni e pulsanti restano sotto.
+   ⚠️ `!important` serve perché le distanze di oggi stanno in linea nel codice
+   (`margin: 0` sugli ingredienti) e una regola di foglio non le batterebbe. */
+.km-foto-flusso { display: flow-root; }
+.km-foto-flusso > * { display: block; }
+.km-foto-flusso > * + * { margin-top: 8px !important; }
+.km-foto-flusso > img + * { margin-top: 0 !important; }

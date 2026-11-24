@@ -49,6 +49,7 @@ import { PHONE_INVALID_MESSAGE, DEFAULT_COUNTRY } from "../lib/customer-phone";
 // che resta l'unico posto dove la forma del numero viene decisa.
 import { isPhoneFieldValid, phoneForServer } from "../lib/phone-field";
 import { PHONE_COUNTRIES } from "../lib/phone-countries";
+import { FotoArticolo } from "../lib/menu-photo";
 import PrivacyFooter from "./privacy-footer";
 
 const CATEGORIES = [
@@ -397,6 +398,9 @@ function buildCatalogProduct(product, choicesByProduct, removalsByProduct, accom
     isVegan: product.is_vegan === true,
     isVegetarian: product.is_vegetarian === true,
     allergens: allergensByProduct[product.id] ?? [],
+    // Foto dell'articolo (24/11/2026): vuota = scheda identica a prima. Vedi
+    // lib/menu-photo.js.
+    imageUrl: product.image_url ?? undefined,
   };
 
   if (!hasConfig) return base;
@@ -1047,6 +1051,7 @@ function ProductCard({ product, onAddToCart, compactHeader = false }) {
         gap: 8,
       }}
     >
+      <FotoArticolo imageUrl={product.imageUrl} name={product.name}>
       {compactHeader ? (
         <div
           style={{
@@ -1181,6 +1186,7 @@ function ProductCard({ product, onAddToCart, compactHeader = false }) {
           {product.ingredients}
         </p>
       )}
+      </FotoArticolo>
 
       <AllergenList allergens={product.allergens} />
 
@@ -1230,6 +1236,7 @@ function SimpleProductCard({ product, quantity, onIncrement, onDecrement }) {
         gap: 8,
       }}
     >
+      <FotoArticolo imageUrl={product.imageUrl} name={product.name}>
       <div
         style={{
           display: "flex",
@@ -1362,6 +1369,7 @@ function SimpleProductCard({ product, quantity, onIncrement, onDecrement }) {
           {product.ingredients}
         </p>
       )}
+      </FotoArticolo>
 
       <AllergenList allergens={product.allergens} />
     </div>
