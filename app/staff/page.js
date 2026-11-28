@@ -5,6 +5,7 @@ import { createSupabaseBrowserClient } from "../../lib/supabase-browser";
 import ImpostazioniSection from "./impostazioni-section";
 import AvvisoPulizia from "./avviso-pulizia";
 import { sortQueueByReferenceTime } from "../../lib/staff-queue-order";
+import { formatOrderCreatedAt } from "../../lib/staff-order-time";
 import { BADGE_OPTIONS } from "../../lib/menu-badges";
 import { SPICE_OPTIONS } from "../../lib/menu-spice";
 import { PRODUCT_CATEGORIES, isBevanda } from "../../lib/menu-categories";
@@ -544,7 +545,7 @@ function OrderCard({ order, onChangeStatus, onReportProblem, onResolve, onCancel
             {order.pickup_code}
           </span>
           <span style={{ fontSize: 13, color: "var(--text-on-dark)" }}>
-            {formatTime(order.created_at)} · {FULFILLMENT_LABEL[order.fulfillment] ?? order.fulfillment} ·{" "}
+            {formatOrderCreatedAt(order.created_at)} · {FULFILLMENT_LABEL[order.fulfillment] ?? order.fulfillment} ·{" "}
             {STATUS_LABEL[order.status] ?? order.status}
           </span>
           {order.scheduled_delivery_at && (
@@ -790,7 +791,7 @@ function HistoryRow({ order, onChangeStatus }) {
           {order.pickup_code} · {customerName}
         </span>
         <span style={{ fontSize: 12, color: "var(--text-on-dark)" }}>
-          {formatTime(order.created_at)} · {FULFILLMENT_LABEL[order.fulfillment] ?? order.fulfillment} ·{" "}
+          {formatOrderCreatedAt(order.created_at)} · {FULFILLMENT_LABEL[order.fulfillment] ?? order.fulfillment} ·{" "}
           {STATUS_LABEL[order.status] ?? order.status}
           {order.scheduled_delivery_at &&
             ` · ${order.fulfillment === "pickup" ? "Ritiro" : "Consegna programmata"}: ${formatScheduledDeliveryLabel(order.scheduled_delivery_at)}`}
